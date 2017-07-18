@@ -7,7 +7,11 @@
 #ifndef TREELITE_TREE_H_
 #define TREELITE_TREE_H_
 
-#include "./base.h"
+#include <treelite/base.h>
+#include <treelite/common.h>
+#include <dmlc/logging.h>
+#include <vector>
+#include <limits>
 
 namespace treelite {
 
@@ -17,6 +21,7 @@ class Tree {
   enum class Operator : int8_t {
     kEQ, kLT, kLE, kGT, kGE  // ==, <, <=, >, >=
   };
+
   /*! \brief tree node */
   class Node {
    public:
@@ -165,6 +170,12 @@ class Tree {
     nodes[cleft].set_parent(nid, true);
     nodes[cright].set_parent(nid, false);
   }
+};
+
+// thin wrapper for ensemble model
+struct Model {
+  std::vector<Tree> trees;
+  int num_features;
 };
 
 }  // namespace treelite

@@ -6,6 +6,7 @@
  */
 
 #include <treelite/parser.h>
+#include <treelite/tree.h>
 #include <memory>
 #include <queue>
 #include <cstring>
@@ -279,11 +280,12 @@ class XGBParser : public Parser {
     }
   }
 
-  std::vector<Tree> Export() const override {
-    std::vector<Tree> model;
+  Model Export() const override {
+    Model model;
+    model.num_features = gbm_param_.num_feature;
     for (const auto& xgb_tree : xgb_trees_) {
-      model.emplace_back();
-      Tree& tree = model.back();
+      model.trees.emplace_back();
+      Tree& tree = model.trees.back();
       tree.Init();
 
       // re-map node ID's to eliminate gaps in numbering

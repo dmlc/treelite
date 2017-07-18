@@ -1,5 +1,5 @@
 /*!
- * Copyright by Contributors
+ * Copyright 2017 by Contributors
  * \file parser.h
  * \brief Interface of parser that reads from a file stream
  *        and outputs a tree ensemble model
@@ -12,16 +12,18 @@
 #include <dmlc/io.h>
 #include <functional>
 #include <vector>
-#include "./tree.h"
 
 namespace treelite {
+
+struct Model;  // forward declaration
+
 /*!
  * \brief interface of parser
  */
 class Parser {
  public:
   /*! \brief virtual destructor */
-  virtual ~Parser() {}
+  virtual ~Parser() = default;
   /*!
    * \brief load model from stream
    * \param fi input stream.
@@ -31,7 +33,7 @@ class Parser {
    * \brief export model as in-memory representation
    * \return in-memory representation of model
    */
-  virtual std::vector<Tree> Export() const = 0;
+  virtual Model Export() const = 0;
   /*!
    * \brief create a parser from given name
    * \param name name of parser

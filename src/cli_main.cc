@@ -5,7 +5,9 @@
  *  This file is not included in dynamic library.
  */
 
+#include <treelite/compiler.h>
 #include <treelite/parser.h>
+#include <treelite/semantic.h>
 #include <dmlc/config.h>
 #include <iostream>
 #include <fstream>
@@ -78,41 +80,20 @@ int CLIRunTask(int argc, char* argv[]) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(param.model_in.c_str(), "r"));
   parser->Load(fi.get());
 
-  std::vector<Tree> model = parser->Export();
-  LOG(INFO) << "model size = " << model.size();
+  Model model = parser->Export();
+  LOG(INFO) << "model size = " << model.trees.size();
 
-  std::ostringstream ss;
-  ss << "\n";
-  int i = 0;
-  for (const auto& tree : model) {
-    int nleaf = 0;
-    ss << "Tree #" << i << "\n";
-    std::queue<int> Q;
-    Q.push(0);
-    while (!Q.empty()) {
-      const int nid = Q.front(); Q.pop();
-      const Tree::Node& node = tree[nid];
-      if (node.is_leaf()) {
-        ss << "  " << nid << ": leaf_value=" << node.leaf_value() << ", parent=" << node.parent()
-           << "\n";
-        ++nleaf;
-      } else {
-        ss << "  " << nid << ": split_index=" << node.split_index() << ", threshold="
-           << node.threshold() << ", op=" << PrintOp(node.comparison_op())
-           << ", cleft=" << node.cleft() << ", cright=" << node.cright()
-           << ", cdefault=" << node.cdefault();
-        if (!node.is_root()) {
-          ss << ", parent=" << node.parent() << "\n";
-        } else {
-          ss << "\n";
-        }
-        Q.push(node.cleft());
-        Q.push(node.cright());
-      }
-    }
-    ss << "Tree #" << i++ << " has " << nleaf << " leaves total\n\n";
+  {
+    //std::unique_ptr<Compiler> compiler(Compiler::Create("simple"));
+    //std::unique_ptr<Compiler> compiler(Compiler::Create("compressed"));
+    std::unique_ptr<Compiler> compiler(Compiler::Create("sparse"));
+    auto semantic_model = compiler->Export(model);
+
+    std::ostringstream oss;
+    auto lines = semantic_model->Compile();
+    std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(oss, "\n"));
+    std::cout << oss.str();
   }
-  LOG(INFO) << ss.str();
 
   return 0;
 }

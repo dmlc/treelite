@@ -6,6 +6,7 @@
  */
 
 #include <treelite/parser.h>
+#include <treelite/tree.h>
 #include <unordered_map>
 #include <queue>
 #include <cerrno>
@@ -203,11 +204,12 @@ class LGBParser : public Parser {
     }
   }
 
-  std::vector<Tree> Export() const override {
-    std::vector<Tree> model;
+  Model Export() const override {
+    Model model;
+    model.num_features = max_feature_idx_;
     for (const auto& lgb_tree : lgb_trees_) {
-      model.emplace_back();
-      Tree& tree = model.back();
+      model.trees.emplace_back();
+      Tree& tree = model.trees.back();
       tree.Init();
 
       // re-map node ID's so that a breadth-wise traversal would yield a monotonic sequence

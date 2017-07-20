@@ -206,7 +206,7 @@ class LGBParser : public Parser {
 
   Model Export() const override {
     Model model;
-    model.num_features = max_feature_idx_;
+    model.num_features = max_feature_idx_ + 1;
     for (const auto& lgb_tree : lgb_trees_) {
       model.trees.emplace_back();
       Tree& tree = model.trees.back();

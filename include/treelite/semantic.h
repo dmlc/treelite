@@ -43,7 +43,7 @@ class FeatureAdapter : public Cloneable {
 class NumericAdapter : public Cloneable {
  public:
   virtual ~NumericAdapter() = default;
-  virtual std::string Compile(tl_float numeric) const = 0;
+  virtual std::string Compile(unsigned split_index, tl_float numeric) const = 0;
 };
 
 class CodeBlock : public Cloneable {
@@ -75,6 +75,10 @@ class PlainBlock : public CodeBlock {
 };
 
 class FunctionEntry {
+ public:
+  static const std::vector<std::string>& GetRegistry() {
+    return registry;
+  }
  protected:
   FunctionEntry() = default;
   inline void Register(const std::string& prototype) {
@@ -89,12 +93,12 @@ class FunctionBlock : public CodeBlock, private FunctionEntry {
   explicit FunctionBlock(const std::string& prototype,
                          const CodeBlock& body)
     : prototype(prototype), body(body) {
-    FunctionEntry::Register(prototype);
+    FunctionEntry::Register(this->prototype);
   }
   explicit FunctionBlock(std::string&& prototype,
                          CodeBlock&& body)
     : prototype(std::move(prototype)), body(std::move(body)) {
-    FunctionEntry::Register(prototype);
+    FunctionEntry::Register(this->prototype);
   }
   explicit FunctionBlock(const FunctionBlock& other) = default;
   explicit FunctionBlock(FunctionBlock&& other) = default;
@@ -179,13 +183,10 @@ class SplitCondition : public Condition {
 
 class SimpleAccumulator : public Accumulator {
  public:
-  explicit SimpleAccumulator(const std::string& acc_name,
-                             const NumericAdapter& numeric_adapter)
-    : acc_name(acc_name), numeric_adapter(numeric_adapter) {}
-  explicit SimpleAccumulator(std::string&& acc_name,
-                             NumericAdapter&& numeric_adapter)
-    : acc_name(std::move(acc_name)),
-      numeric_adapter(std::move(numeric_adapter)) {}
+  explicit SimpleAccumulator(const std::string& acc_name)
+    : acc_name(acc_name) {}
+  explicit SimpleAccumulator(std::string&& acc_name)
+    : acc_name(std::move(acc_name)) {}
   explicit SimpleAccumulator(const SimpleAccumulator& other) = default;
   explicit SimpleAccumulator(SimpleAccumulator&& other) = default;
   Cloneable* clone() const override {
@@ -198,7 +199,6 @@ class SimpleAccumulator : public Accumulator {
 
  private:
   std::string acc_name;
-  DeepCopyUniquePtr<NumericAdapter> numeric_adapter;
 };
 
 class IfElseBlock : public CodeBlock {
@@ -239,7 +239,24 @@ class SimpleNumeric : public NumericAdapter {
   Cloneable* move_clone() override {
     return new SimpleNumeric(std::move(*this));
   }
-  std::string Compile(tl_float numeric) const override;
+  std::string Compile(unsigned split_index, tl_float numeric) const override;
+};
+
+class QuantizeNumeric : public NumericAdapter {
+ public:
+  explicit QuantizeNumeric(const std::vector<std::vector<tl_float>>& cut_pts)
+   : cut_pts(cut_pts) {}
+  explicit QuantizeNumeric(const QuantizeNumeric& other) = default;
+  explicit QuantizeNumeric(QuantizeNumeric&& other) = default;
+  Cloneable* clone() const override {
+    return new QuantizeNumeric(*this);
+  }
+  Cloneable* move_clone() override {
+    return new QuantizeNumeric(std::move(*this));
+  }
+  std::string Compile(unsigned split_index, tl_float numeric) const override;
+ private:
+  const std::vector<std::vector<tl_float>>& cut_pts;
 };
 
 class DenseFeature : public FeatureAdapter {
@@ -289,10 +306,11 @@ class CompressedDenseFeature : public FeatureAdapter {
 class SparseFeature : public FeatureAdapter {
  public:
   explicit SparseFeature(const std::string& nonzero_name,
+                         const std::string& nonzero_len_name,
                          const std::string& col_ind_name,
                          const std::string& accessor_name)
-   : nonzero_name(nonzero_name), col_ind_name(col_ind_name),
-     accessor_name(accessor_name) {}
+   : nonzero_name(nonzero_name), nonzero_len_name(nonzero_len_name),
+     col_ind_name(col_ind_name), accessor_name(accessor_name) {}
   explicit SparseFeature(const SparseFeature& other) = default;
   explicit SparseFeature(SparseFeature&& other) = default;
   Cloneable* clone() const override {
@@ -305,6 +323,7 @@ class SparseFeature : public FeatureAdapter {
 
  private:
   std::string nonzero_name;
+  std::string nonzero_len_name;
   std::string col_ind_name;
   std::string accessor_name;
 };

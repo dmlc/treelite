@@ -65,6 +65,18 @@ std::unique_ptr<T> make_unique( Args&& ...args )
   return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
 }
 
+inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
+                     const std::string& str, size_t textwidth) {
+  std::ostringstream& stm = *p_stm;
+  size_t& length = *p_length;
+  if (length + str.length() + 2 <= textwidth) {
+    stm << str << ", ";
+    length += str.length() + 2;
+  } else {
+    stm << "\n  " << str << ", ";
+    length = str.length() + 4;
+  }
+}
 
 }  // namespace common
 }  // namespace treelite

@@ -14,7 +14,9 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <iterator>
 #include <string>
+#include "./compiler/param.h"
 
 namespace treelite {
 
@@ -23,6 +25,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   std::string format;
   /*! \brief model file */
   std::string model_in;
+  /*! \brief generated code file */
+  std::string name_codegen;
   /*! \brief all the configurations */
   std::vector<std::pair<std::string, std::string> > cfg;
 
@@ -30,6 +34,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   DMLC_DECLARE_PARAMETER(CLIParam) {
     DMLC_DECLARE_FIELD(format).describe("Model format");
     DMLC_DECLARE_FIELD(model_in).describe("Input model path");
+    DMLC_DECLARE_FIELD(name_codegen).describe("generated code file");
   }
   // customized configure function of CLIParam
   inline void Configure(const std::vector<std::pair<std::string, std::string> >& cfg) {
@@ -73,8 +78,11 @@ int CLIRunTask(int argc, char* argv[]) {
       cfg.push_back(std::make_pair(std::string(name), std::string(val)));
     }
   }
+
   CLIParam param;
+  compiler::CompilerParam cparam;
   param.Configure(cfg);
+  cparam.InitAllowUnknown(cfg);
 
   std::unique_ptr<Parser> parser(Parser::Create(param.format));
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(param.model_in.c_str(), "r"));
@@ -84,15 +92,19 @@ int CLIRunTask(int argc, char* argv[]) {
   LOG(INFO) << "model size = " << model.trees.size();
 
   {
-    //std::unique_ptr<Compiler> compiler(Compiler::Create("simple"));
-    //std::unique_ptr<Compiler> compiler(Compiler::Create("compressed"));
-    std::unique_ptr<Compiler> compiler(Compiler::Create("sparse"));
+    std::unique_ptr<Compiler> compiler(Compiler::Create("recursive", cparam));
     auto semantic_model = compiler->Export(model);
 
     std::ostringstream oss;
+    const auto& reg = semantic::FunctionEntry::GetRegistry();
+    std::copy(reg.begin(), reg.end(), std::ostream_iterator<std::string>(oss, "\n"));
+    std::cerr << "FunctionEntry = \n" << oss.str();
+
+    std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(param.name_codegen.c_str(), "w"));
+    dmlc::ostream os(fo.get());
+
     auto lines = semantic_model->Compile();
-    std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(oss, "\n"));
-    std::cout << oss.str();
+    std::copy(lines.begin(), lines.end(), std::ostream_iterator<std::string>(os, "\n"));
   }
 
   return 0;

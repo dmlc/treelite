@@ -58,12 +58,15 @@ SequenceBlock::PushBack(CodeBlock&& block) {
 std::string
 SplitCondition::Compile() const {
  return feature_adapter->Compile(default_left, split_index)
-     + " " + OpName(op) + " " + numeric_adapter->Compile(threshold);
+     + " " + OpName(op) + " "
+     + numeric_adapter->Compile(split_index, threshold);
 }
 
 std::string
 SimpleAccumulator::Compile(tl_float leaf_value) const {
-  return acc_name + " += " + numeric_adapter->Compile(leaf_value) + ";";
+  std::ostringstream oss;
+  oss << acc_name << " += " << leaf_value << ";";
+  return oss.str();
 }
 
 std::vector<std::string>
@@ -82,10 +85,18 @@ IfElseBlock::Compile() const {
 }
 
 std::string
-SimpleNumeric::Compile(tl_float numeric) const {
+SimpleNumeric::Compile(unsigned split_index, tl_float numeric) const {
   std::ostringstream oss;
   oss << numeric;
   return oss.str();
+}
+
+std::string
+QuantizeNumeric::Compile(unsigned split_index, tl_float numeric) const {
+  const auto& v = cut_pts[split_index];
+  auto loc = std::find(v.begin(), v.end(), numeric);
+  CHECK(loc != v.end());
+  return std::to_string(static_cast<size_t>(loc - v.begin()) * 2);
 }
 
 std::string
@@ -111,6 +122,7 @@ std::string
 SparseFeature::Compile(bool default_left, unsigned split_index) const {
   const std::string bitmap
     = std::string(" (idx = ") + accessor_name + "(" + col_ind_name + ", "
+                              + nonzero_len_name + ", "
                               + std::to_string(split_index) + ")) != -1";
   return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
                           : (                    bitmap + " && "))

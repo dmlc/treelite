@@ -19,6 +19,7 @@ struct Model;  // forward declaration
 
 namespace compiler {
   using common::MoveUniquePtr;  // import this function into compiler namespace
+  struct CompilerParam;  // forward declaration
 }  // namespace compiler
 
 namespace semantic {
@@ -37,20 +38,22 @@ class Compiler {
    * \return semantic model
    */
   virtual std::unique_ptr<semantic::CodeBlock>
-  Export(const Model& model) const = 0;
+  Export(const Model& model) = 0;
   /*!
    * \brief create a compiler from given name
    * \param name name of compiler
    * \return The created compiler
    */
-  static Compiler* Create(const std::string& name);
+  static Compiler* Create(const std::string& name,
+                          const compiler::CompilerParam& param);
 };
 
 /*!
  * \brief Registry entry for compiler
  */
 struct CompilerReg
-    : public dmlc::FunctionRegEntryBase<CompilerReg, std::function<Compiler* ()> > {
+    : public dmlc::FunctionRegEntryBase<CompilerReg,
+                  std::function<Compiler* (const compiler::CompilerParam&)> > {
 };
 
 /*!

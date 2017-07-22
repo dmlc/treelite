@@ -12,6 +12,12 @@
 namespace treelite {
 namespace compiler {
 
+enum LayoutType {
+  kDense = 0,
+  kCompressed = 1,
+  kSparse = 2
+};
+
 /*! \brief parameters for tree compiler */
 struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   /*! \brief how test instances should be accessed */
@@ -29,9 +35,11 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
-    DMLC_DECLARE_FIELD(data_layout).set_default(0)
+    DMLC_DECLARE_FIELD(data_layout).set_default(kDense)
       .describe("how test instances should be accessed")
-      .add_enum("dense", 0).add_enum("compressed", 1).add_enum("sparse", 2);
+      .add_enum("dense", kDense)
+      .add_enum("compressed", kCompressed)
+      .add_enum("sparse", kSparse);
     DMLC_DECLARE_FIELD(annotate_in).set_default("NULL")
       .describe("Name of model annotation file");
     DMLC_DECLARE_FIELD(batch_size).set_lower_bound(1).set_default(1)

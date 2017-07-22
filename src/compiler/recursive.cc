@@ -9,12 +9,19 @@
 #include <treelite/compiler.h>
 #include <treelite/tree.h>
 #include <treelite/semantic.h>
+#include <dmlc/data.h>
+#include <dmlc/json.h>
 #include <queue>
 #include <algorithm>
 #include <iterator>
 #include "param.h"
 
 namespace treelite {
+
+namespace {
+  using Annotation = std::vector<std::vector<size_t>>;
+}  // namespace anonymous
+
 namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(recursive);
@@ -56,12 +63,28 @@ class RecursiveCompiler : public Compiler, private Policy {
     info.Init(model, Policy::QuantizeFlag());
     Policy::Init(std::move(info));
 
+    Annotation annotation;
+    bool annotate = false;
+    if (param.annotate_in != "NULL") {
+      std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(
+                                       param.annotate_in.c_str(), "r"));
+      dmlc::istream is(fi.get());
+      auto reader = common::make_unique<dmlc::JSONReader>(&is);
+      reader->Read(&annotation);
+      annotate = true;
+    }
+
     SequenceBlock sequence;
     sequence.Reserve(model.trees.size() + 4);
     sequence.PushBack(PlainBlock("float sum = 0.0f;"));
     sequence.PushBack(PlainBlock(Policy::LocalVariables()));
-    for (const auto& tree : model.trees) {
-      sequence.PushBack(MoveUniquePtr(WalkTree(tree)));
+    for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
+      const Tree& tree = model.trees[tree_id];
+      if (!annotation.empty()) {
+        sequence.PushBack(MoveUniquePtr(WalkTree(tree, annotation[tree_id])));
+      } else {
+        sequence.PushBack(MoveUniquePtr(WalkTree(tree, {})));
+      }
     }
     sequence.PushBack(PlainBlock("return sum;"));
 
@@ -71,6 +94,11 @@ class RecursiveCompiler : public Compiler, private Policy {
 
     auto preamble = Policy::Preamble();
     preamble.emplace_back();
+    if (annotate) {
+      preamble.emplace_back("#define LIKELY(x)     __builtin_expect(!!(x), 1)");
+      preamble.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
+    }
+
     auto file = common::make_unique<SequenceBlock>();
     file->Reserve(2);
     file->PushBack(PlainBlock(std::move(preamble)));
@@ -82,23 +110,35 @@ class RecursiveCompiler : public Compiler, private Policy {
  private:
   CompilerParam param;
   
-  std::unique_ptr<CodeBlock> WalkTree(const Tree& tree) const {
-    return WalkTree_(tree, 0);
+  std::unique_ptr<CodeBlock> WalkTree(const Tree& tree,
+                                      const std::vector<size_t>& counts) const {
+    return WalkTree_(tree, counts, 0);
   }
 
-  std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree, int nid) const {
+  std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree,
+                                       const std::vector<size_t>& counts,
+                                       int nid) const {
+    using semantic::LikelyDirection;
     const Tree::Node& node = tree[nid];
     if (node.is_leaf()) {
       SimpleAccumulator sa("sum");
       const tl_float leaf_value = node.leaf_value();
       return std::unique_ptr<CodeBlock>(new PlainBlock(sa.Compile(leaf_value)));
     } else {
+      LikelyDirection likely_direction = LikelyDirection::kNone;
+      if (!counts.empty()) {
+        const size_t left_count = counts[node.cleft()];
+        const size_t right_count = counts[node.cright()];
+        likely_direction = (left_count > right_count) ? LikelyDirection::kLeft
+                                                      : LikelyDirection::kRight;
+      }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
         SplitCondition(node,
                        MoveUniquePtr(Policy::Feature()),
-                       MoveUniquePtr(Policy::Numeric())),
-        MoveUniquePtr(WalkTree_(tree, node.cleft())),
-        MoveUniquePtr(WalkTree_(tree, node.cright()))
+                       MoveUniquePtr(Policy::Numeric()),
+                       likely_direction),
+        MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
+        MoveUniquePtr(WalkTree_(tree, counts, node.cright()))
       ));
     }
   }
@@ -422,19 +462,19 @@ TREELITE_REGISTER_COMPILER(RecursiveCompiler, "recursive")
 .describe("A compiler with a recursive approach")
 .set_body([](const CompilerParam& param) -> Compiler* {
     switch(param.data_layout) {
-     case 0:
+     case kDense:
       if (param.quantize > 0) {
         return new RecursiveCompiler<DenseLayout<Quantize>>(param);
       } else {
         return new RecursiveCompiler<DenseLayout<NoQuantize>>(param);
       }
-     case 1:
+     case kCompressed:
       if (param.quantize > 0) {
         return new RecursiveCompiler<CompressedDenseLayout<Quantize>>(param);
       } else {
         return new RecursiveCompiler<CompressedDenseLayout<NoQuantize>>(param);
       }
-     case 2:
+     case kSparse:
       if (param.quantize > 0) {
         return new RecursiveCompiler<SparseLayout<Quantize>>(param);
       } else {

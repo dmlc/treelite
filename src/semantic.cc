@@ -57,9 +57,17 @@ SequenceBlock::PushBack(CodeBlock&& block) {
 
 std::string
 SplitCondition::Compile() const {
- return feature_adapter->Compile(default_left, split_index)
-     + " " + OpName(op) + " "
-     + numeric_adapter->Compile(split_index, threshold);
+  if (likely_direction == LikelyDirection::kNone) {
+    return feature_adapter->Compile(default_left, split_index)
+            + " " + OpName(op) + " "
+            + numeric_adapter->Compile(split_index, threshold);
+  } else {
+    const std::string tag =
+           (likely_direction == LikelyDirection::kLeft) ? "LIKELY" : "UNLIKELY";
+    return tag + "( " + feature_adapter->Compile(default_left, split_index)
+                      + " " + OpName(op) + " "
+                      + numeric_adapter->Compile(split_index, threshold) + " )";
+  }
 }
 
 std::string

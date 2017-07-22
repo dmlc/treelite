@@ -147,22 +147,30 @@ class Accumulator : public Cloneable {
   virtual std::string Compile(tl_float leaf_value) const = 0;
 };
 
+enum class LikelyDirection : uint8_t {
+  kNone = 0, kLeft = 1, kRight = 2
+};
+
 class SplitCondition : public Condition {
  public:
   explicit SplitCondition(const Tree::Node& node,
                           const FeatureAdapter& feature_adapter,
-                          const NumericAdapter& numeric_adapter)
+                          const NumericAdapter& numeric_adapter,
+                          LikelyDirection direction = LikelyDirection::kNone)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
      feature_adapter(feature_adapter),
-     numeric_adapter(numeric_adapter) {}
+     numeric_adapter(numeric_adapter),
+     likely_direction(direction) {}
   explicit SplitCondition(const Tree::Node& node,
                           FeatureAdapter&& feature_adapter,
-                          NumericAdapter&& numeric_adapter)
+                          NumericAdapter&& numeric_adapter,
+                          LikelyDirection direction = LikelyDirection::kNone)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
      feature_adapter(std::move(feature_adapter)),
-     numeric_adapter(std::move(numeric_adapter)) {}
+     numeric_adapter(std::move(numeric_adapter)),
+     likely_direction(direction) {}
   explicit SplitCondition(const SplitCondition& other) = default;
   explicit SplitCondition(SplitCondition&& other) = default;
   Cloneable* clone() const override {
@@ -179,6 +187,7 @@ class SplitCondition : public Condition {
   tl_float threshold;
   DeepCopyUniquePtr<FeatureAdapter> feature_adapter;
   DeepCopyUniquePtr<NumericAdapter> numeric_adapter;
+  LikelyDirection likely_direction;
 };
 
 class SimpleAccumulator : public Accumulator {

@@ -104,7 +104,7 @@ class RecursiveCompiler : public Compiler, private Policy {
     file->PushBack(PlainBlock(std::move(preamble)));
     file->PushBack(std::move(function));
 
-    return file;
+    return std::move(file);
   }
 
  private:

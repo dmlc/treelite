@@ -34,16 +34,11 @@ inline void TransformPushBack(std::vector<std::string>* p_dest,
 using common::Cloneable;
 using common::DeepCopyUniquePtr;
 
-class FeatureAdapter : public Cloneable {
- public:
-  virtual ~FeatureAdapter() = default;
-  virtual std::string Compile(bool default_left, unsigned split_index) const = 0;
-};
-
 class NumericAdapter : public Cloneable {
  public:
   virtual ~NumericAdapter() = default;
-  virtual std::string Compile(unsigned split_index, tl_float numeric) const = 0;
+  virtual std::string Compile(Tree::Operator op, unsigned split_index,
+                              tl_float numeric) const = 0;
 };
 
 class CodeBlock : public Cloneable {
@@ -154,21 +149,17 @@ enum class LikelyDirection : uint8_t {
 class SplitCondition : public Condition {
  public:
   explicit SplitCondition(const Tree::Node& node,
-                          const FeatureAdapter& feature_adapter,
                           const NumericAdapter& numeric_adapter,
                           LikelyDirection direction = LikelyDirection::kNone)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
-     feature_adapter(feature_adapter),
      numeric_adapter(numeric_adapter),
      likely_direction(direction) {}
   explicit SplitCondition(const Tree::Node& node,
-                          FeatureAdapter&& feature_adapter,
                           NumericAdapter&& numeric_adapter,
                           LikelyDirection direction = LikelyDirection::kNone)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
-     feature_adapter(std::move(feature_adapter)),
      numeric_adapter(std::move(numeric_adapter)),
      likely_direction(direction) {}
   explicit SplitCondition(const SplitCondition& other) = default;
@@ -185,7 +176,6 @@ class SplitCondition : public Condition {
   bool default_left;
   Tree::Operator op;
   tl_float threshold;
-  DeepCopyUniquePtr<FeatureAdapter> feature_adapter;
   DeepCopyUniquePtr<NumericAdapter> numeric_adapter;
   LikelyDirection likely_direction;
 };
@@ -248,7 +238,8 @@ class SimpleNumeric : public NumericAdapter {
   Cloneable* move_clone() override {
     return new SimpleNumeric(std::move(*this));
   }
-  std::string Compile(unsigned split_index, tl_float numeric) const override;
+  std::string Compile(Tree::Operator op, unsigned split_index,
+                      tl_float numeric) const override;
 };
 
 class QuantizeNumeric : public NumericAdapter {
@@ -263,78 +254,10 @@ class QuantizeNumeric : public NumericAdapter {
   Cloneable* move_clone() override {
     return new QuantizeNumeric(std::move(*this));
   }
-  std::string Compile(unsigned split_index, tl_float numeric) const override;
+  std::string Compile(Tree::Operator op, unsigned split_index,
+                      tl_float numeric) const override;
  private:
   const std::vector<std::vector<tl_float>>& cut_pts;
-};
-
-class DenseFeature : public FeatureAdapter {
- public:
-  explicit DenseFeature(const std::string& bitmap_name,
-                        const std::string& array_name)
-   : array_name(array_name), bitmap_name(bitmap_name) {}
-  explicit DenseFeature(const DenseFeature& other) = default;
-  explicit DenseFeature(DenseFeature&& other) = default;
-  Cloneable* clone() const override {
-    return new DenseFeature(*this);
-  }
-  Cloneable* move_clone() override {
-    return new DenseFeature(std::move(*this));
-  }
-  std::string Compile(bool default_left, unsigned split_index) const override;
-
- private:
-  std::string array_name;
-  std::string bitmap_name;
-};
-
-class CompressedDenseFeature : public FeatureAdapter {
- public:
-  explicit CompressedDenseFeature(const std::string& bitmap_name,
-                                  const std::string& accessor_name,
-                                  const std::string& array_name)
-   : array_name(array_name), bitmap_name(bitmap_name),
-     accessor_name(accessor_name) {}
-  explicit CompressedDenseFeature(const CompressedDenseFeature& other)
-    = default;
-  explicit CompressedDenseFeature(CompressedDenseFeature&& other) = default;
-  Cloneable* clone() const override {
-    return new CompressedDenseFeature(*this);
-  }
-  Cloneable* move_clone() override {
-    return new CompressedDenseFeature(std::move(*this));
-  }
-  std::string Compile(bool default_left, unsigned split_index) const override;
-
- private:
-  std::string array_name;
-  std::string bitmap_name;
-  std::string accessor_name;
-};
-
-class SparseFeature : public FeatureAdapter {
- public:
-  explicit SparseFeature(const std::string& nonzero_name,
-                         const std::string& nonzero_len_name,
-                         const std::string& col_ind_name,
-                         const std::string& accessor_name)
-   : nonzero_name(nonzero_name), nonzero_len_name(nonzero_len_name),
-     col_ind_name(col_ind_name), accessor_name(accessor_name) {}
-  explicit SparseFeature(const SparseFeature& other) = default;
-  explicit SparseFeature(SparseFeature&& other) = default;
-  Cloneable* clone() const override {
-    return new SparseFeature(*this);
-  }
-  Cloneable* move_clone() override {
-    return new SparseFeature(std::move(*this));
-  }
-  std::string Compile(bool default_left, unsigned split_index) const override;
-
- private:
-  std::string nonzero_name;
-  std::string nonzero_len_name;
-  std::string col_ind_name;
-  std::string accessor_name;
 };
 
 }  // namespace semantic

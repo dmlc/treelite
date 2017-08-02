@@ -40,8 +40,8 @@ struct Metadata {
   }
 };
 
-template <typename Policy>
-class RecursiveCompiler : public Compiler, private Policy {
+template <typename QuantizePolicy>
+class RecursiveCompiler : public Compiler, private QuantizePolicy {
  public:
   explicit RecursiveCompiler(const CompilerParam& param)
     : param(param) {
@@ -60,8 +60,8 @@ class RecursiveCompiler : public Compiler, private Policy {
   std::unique_ptr<CodeBlock>
   Export(const Model& model) override {
     Metadata info;
-    info.Init(model, Policy::QuantizeFlag());
-    Policy::Init(std::move(info));
+    info.Init(model, QuantizePolicy::QuantizeFlag());
+    QuantizePolicy::Init(std::move(info));
 
     Annotation annotation;
     bool annotate = false;
@@ -77,7 +77,6 @@ class RecursiveCompiler : public Compiler, private Policy {
     SequenceBlock sequence;
     sequence.Reserve(model.trees.size() + 4);
     sequence.PushBack(PlainBlock("float sum = 0.0f;"));
-    sequence.PushBack(PlainBlock(Policy::LocalVariables()));
     for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
       const Tree& tree = model.trees[tree_id];
       if (!annotation.empty()) {
@@ -88,11 +87,10 @@ class RecursiveCompiler : public Compiler, private Policy {
     }
     sequence.PushBack(PlainBlock("return sum;"));
 
-    FunctionBlock function(
-      std::string("float predict_margin(") + Policy::Prototype() + ")",
+    FunctionBlock function("float predict_margin(const union Entry* data)",
       std::move(sequence));
 
-    auto preamble = Policy::Preamble();
+    auto preamble = QuantizePolicy::Preamble();
     preamble.emplace_back();
     if (annotate) {
       preamble.emplace_back("#define LIKELY(x)     __builtin_expect(!!(x), 1)");
@@ -134,8 +132,7 @@ class RecursiveCompiler : public Compiler, private Policy {
       }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
         SplitCondition(node,
-                       MoveUniquePtr(Policy::Feature()),
-                       MoveUniquePtr(Policy::Numeric()),
+                       MoveUniquePtr(QuantizePolicy::Numeric()),
                        likely_direction),
         MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
         MoveUniquePtr(WalkTree_(tree, counts, node.cright()))
@@ -162,192 +159,51 @@ class MetadataStore {
   Metadata info;
 };
 
-template <typename QuantizePolicy>
-class DenseLayout : protected QuantizePolicy,
-                    private virtual MetadataStore {
- protected:
-  using DenseFeature = semantic::DenseFeature;
-  template <typename... Args>
-  void Init(Args&&... args) {
-     MetadataStore::Init(std::forward<Args>(args)...);
-     QuantizePolicy::Init([&] (const std::vector<std::string>& content) {
-       return IterateOverFeatures(content);
-     });
-  }
-  std::unique_ptr<DenseFeature> Feature() const {
-    return common::make_unique<DenseFeature>("bitmap",
-                                             QuantizePolicy::DataArrayName());
-  }
-  std::vector<std::string>
-  IterateOverFeatures(const std::vector<std::string>& content) {
-    std::vector<std::string> ret{
-      std::string("for (int i = 0; i < ")
-      + std::to_string(GetInfo().num_features) + "; ++i) {",
-      "  if (bitmap[i]) {",
-      "    const float val = data[i];",
-      "    const int fid = i;"};
-    semantic::TransformPushBack(&ret, content, [] (std::string line) {
-      return "    " + line;
-    });
-    ret.push_back("  }");
-    ret.push_back("}");
-    return ret;
-  }
-  std::string Prototype() const {
-    return "const unsigned char* bitmap, const float* data";
-  }
-  std::vector<std::string> Preamble() const {
-    return QuantizePolicy::Preamble();
-  }
-  std::vector<std::string> LocalVariables() const {
-    return QuantizePolicy::LocalVariables();
-  }
-};
-
-template <typename QuantizePolicy>
-class CompressedDenseLayout : protected QuantizePolicy,
-                              private virtual MetadataStore {
- protected:
-  using CompressedDenseFeature = semantic::CompressedDenseFeature;
-  template <typename... Args>
-  void Init(Args&&... args) {
-     MetadataStore::Init(std::forward<Args>(args)...);
-     QuantizePolicy::Init([&] (const std::vector<std::string>& content) {
-       return IterateOverFeatures(content);
-     });
-  }
-  std::unique_ptr<CompressedDenseFeature> Feature() const {
-    return common::make_unique<CompressedDenseFeature>("bitmap", "ACCESS",
-                                              QuantizePolicy::DataArrayName());
-  }
-  std::vector<std::string>
-  IterateOverFeatures(const std::vector<std::string>& content) {
-    std::vector<std::string> ret{
-      std::string("for (int i = 0; i < ")
-      + std::to_string(GetInfo().num_features) + "; ++i) {",
-      "  if (ACCESS(bitmap, i / 8, i % 8)) {",
-      "    const float val = data[i];",
-      "    const int fid = i;"};
-    semantic::TransformPushBack(&ret, content, [] (std::string line) {
-      return "    " + line;
-    });
-    ret.push_back("  }");
-    ret.push_back("}");
-    return ret;
-  }
-  std::string Prototype() const {
-    return "const unsigned char* bitmap, const float* data";
-  }
-  std::vector<std::string> Preamble() const {
-    std::vector<std::string> ret{ 
-       "#define ACCESS(x, i, offset) ((x[(i)] & (1 << offset)) >> offset)"};
-    auto ret2 = QuantizePolicy::Preamble();
-    ret.insert(ret.end(), ret2.begin(), ret2.end());
-    return ret;
-  }
-  std::vector<std::string> LocalVariables() const {
-    return QuantizePolicy::LocalVariables();
-  }
-};
-
-template <typename QuantizePolicy>
-class SparseLayout : protected QuantizePolicy,
-                     private virtual MetadataStore {
- protected:
-  using SparseFeature = semantic::SparseFeature;
-  template <typename... Args>
-  void Init(Args&&... args) {
-     MetadataStore::Init(std::forward<Args>(args)...);
-     QuantizePolicy::Init([&] (const std::vector<std::string>& content) {
-       return IterateOverFeatures(content);
-     });
-  }
-  std::unique_ptr<SparseFeature> Feature() const {
-    return common::make_unique<SparseFeature>(QuantizePolicy::DataArrayName(),
-                                              "len", "col_ind", "lookup");
-  }
-  std::vector<std::string>
-  IterateOverFeatures(const std::vector<std::string>& content) {
-    std::vector<std::string> ret{
-      "for (int i = 0; i < len; ++i) {",
-      "  const float val = data[i];",
-      "  const int fid = col_ind[i];"};
-    semantic::TransformPushBack(&ret, content, [] (std::string line) {
-      return "  " + line;
-    });
-    ret.push_back("}");
-    return ret;
-  }
-  std::string Prototype() const {
-    return "const float* data, int len, const int* col_ind";
-  }
-  std::vector<std::string> Preamble() const {
-    auto ret = semantic::FunctionBlock(
-            "int lookup(const int* col_ind, int len, int offset)",
-            semantic::PlainBlock({
-            "int i;",
-            "for (i = 0; i < len; ++i) {",
-            "  if (col_ind[i] == offset) {",
-            "    return i;",
-            "  }",
-            "}",
-            "return -1;"})).Compile();
-    auto ret2 = QuantizePolicy::Preamble();
-    ret.insert(ret.end(), ret2.begin(), ret2.end());
-    return ret;
-  }
-  std::vector<std::string> LocalVariables() const {
-    std::vector<std::string> ret{"int idx;"};
-    auto ret2 = QuantizePolicy::LocalVariables();
-    ret.insert(ret.end(), ret2.begin(), ret2.end());
-    return ret;
-  }
-};
-
-class NoQuantize : protected virtual MetadataStore {
+class NoQuantize : private MetadataStore {
  protected:
   using SimpleNumeric = semantic::SimpleNumeric;
-  template <typename Func>
-  void Init(Func f) {}
-  std::string DataArrayName() const {
-    return "data";
+  template <typename... Args>
+  void Init(Args&&... args) {
+    MetadataStore::Init(std::forward<Args>(args)...);
   }
   std::unique_ptr<SimpleNumeric> Numeric() const {
     return common::make_unique<SimpleNumeric>();
   }
-  std::vector<std::string> LocalVariables() const {
-    return {};
-  }
   std::vector<std::string> Preamble() const {
-    return {};
+    return {"union Entry {",
+            "  int missing;",
+            "  float fvalue;",
+            "};"};
   }
   bool QuantizeFlag() const {
     return false;
   }
 };
 
-class Quantize : protected virtual MetadataStore {
+class Quantize : private MetadataStore {
  protected:
   using QuantizeNumeric = semantic::QuantizeNumeric;
-  template <typename Func>
-  void Init(Func f) {
-    quant_preamble = f({"quantized[i] = quantize(val, fid);"});
-  }
-  std::string DataArrayName() const {
-    return "quantized";
+  template <typename... Args>
+  void Init(Args&&... args) {
+    MetadataStore::Init(std::forward<Args>(args)...);
+    quant_preamble = {
+      std::string("for (int i = 0; i < ")
+      + std::to_string(GetInfo().num_features) + "; ++i) {",
+      "  if (data[i].missing != -1) {",
+      "    data[i].qvalue = quantize(data[i].fvalue, i);",
+      "  }",
+      "}"};
   }
   std::unique_ptr<QuantizeNumeric> Numeric() const {
     return common::make_unique<QuantizeNumeric>(GetInfo().cut_pts);
   }
-  std::vector<std::string> LocalVariables() const {
-    std::vector<std::string> ret{
-            "static int quantized["
-            + std::to_string(GetInfo().num_features) + "];"};
-    ret.insert(ret.end(), quant_preamble.begin(), quant_preamble.end());
-    return ret;
-  }
   std::vector<std::string> Preamble() const {
-    std::vector<std::string> ret{"const float threshold[] = {"};
+    std::vector<std::string> ret{"union Entry {",
+                                 "  int missing;",
+                                 "  float fvalue;",
+                                 "  int qvalue;",
+                                 "};"};
+    ret.emplace_back("const float threshold[] = {");
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -388,7 +244,7 @@ class Quantize : protected virtual MetadataStore {
       ret.emplace_back("};");
     }
 
-    auto func = semantic::FunctionBlock("int quantize(float val, unsigned fid)",
+    auto func = semantic::FunctionBlock("static inline int quantize(float val, unsigned fid)",
                                         semantic::PlainBlock(
            {"const float* array = &threshold[th_begin[fid]];",
             "int len = th_len[fid];",
@@ -397,7 +253,7 @@ class Quantize : protected virtual MetadataStore {
             "int mid;",
             "float mval;",
             "if (val < array[0]) {",
-            "  return -1;",
+            "  return -10;",
             "}",
             "while (low + 1 < high) {",
             "  mid = (low + high) / 2;",
@@ -461,27 +317,11 @@ ExtractCutPoints(const Model& model) {
 TREELITE_REGISTER_COMPILER(RecursiveCompiler, "recursive")
 .describe("A compiler with a recursive approach")
 .set_body([](const CompilerParam& param) -> Compiler* {
-    switch(param.data_layout) {
-     case kDense:
-      if (param.quantize > 0) {
-        return new RecursiveCompiler<DenseLayout<Quantize>>(param);
-      } else {
-        return new RecursiveCompiler<DenseLayout<NoQuantize>>(param);
-      }
-     case kCompressed:
-      if (param.quantize > 0) {
-        return new RecursiveCompiler<CompressedDenseLayout<Quantize>>(param);
-      } else {
-        return new RecursiveCompiler<CompressedDenseLayout<NoQuantize>>(param);
-      }
-     case kSparse:
-      if (param.quantize > 0) {
-        return new RecursiveCompiler<SparseLayout<Quantize>>(param);
-      } else {
-        return new RecursiveCompiler<SparseLayout<NoQuantize>>(param);
-      }
+    if (param.quantize > 0) {
+      return new RecursiveCompiler<Quantize>(param);
+    } else {
+      return new RecursiveCompiler<NoQuantize>(param);
     }
-    return nullptr;  // should never get here
   });
 }  // namespace compiler
 }  // namespace treelite

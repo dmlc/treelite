@@ -57,16 +57,18 @@ SequenceBlock::PushBack(CodeBlock&& block) {
 
 std::string
 SplitCondition::Compile() const {
+  const std::string bitmap
+    = std::string("data[") + std::to_string(split_index) + "].missing != -1";
   if (likely_direction == LikelyDirection::kNone) {
-    return feature_adapter->Compile(default_left, split_index)
-            + " " + OpName(op) + " "
-            + numeric_adapter->Compile(split_index, threshold);
+    return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
+                            : (std::string(" (") + bitmap + ") && "))
+            + numeric_adapter->Compile(op, split_index, threshold);
   } else {
     const std::string tag =
            (likely_direction == LikelyDirection::kLeft) ? "LIKELY" : "UNLIKELY";
-    return tag + "( " + feature_adapter->Compile(default_left, split_index)
-                      + " " + OpName(op) + " "
-                      + numeric_adapter->Compile(split_index, threshold) + " )";
+    return ((default_left) ?  (tag + "( !(" + bitmap + ") || ")
+                            : (tag +  "( (" + bitmap + ") && "))
+            + numeric_adapter->Compile(op, split_index, threshold) + ") ";
   }
 }
 
@@ -93,48 +95,25 @@ IfElseBlock::Compile() const {
 }
 
 std::string
-SimpleNumeric::Compile(unsigned split_index, tl_float numeric) const {
+SimpleNumeric::Compile(Tree::Operator op,
+                       unsigned split_index,
+                       tl_float numeric) const {
   std::ostringstream oss;
-  oss << numeric;
+  oss << "data[" << split_index << "].fvalue " << OpName(op) << " " << numeric;
   return oss.str();
 }
 
 std::string
-QuantizeNumeric::Compile(unsigned split_index, tl_float numeric) const {
+QuantizeNumeric::Compile(Tree::Operator op,
+                         unsigned split_index,
+                         tl_float numeric) const {
+  std::ostringstream oss;
   const auto& v = cut_pts[split_index];
   auto loc = std::find(v.begin(), v.end(), numeric);
   CHECK(loc != v.end());
-  return std::to_string(static_cast<size_t>(loc - v.begin()) * 2);
-}
-
-std::string
-DenseFeature::Compile(bool default_left, unsigned split_index) const {
-  const std::string bitmap
-    = bitmap_name + "[" + std::to_string(split_index) + "]";
-  return ((default_left) ?  (std::string("!") + bitmap + " || ")
-                          : (                   bitmap + " && "))
-         + array_name + "[" + std::to_string(split_index) + "]";
-}
-
-std::string
-CompressedDenseFeature::Compile(bool default_left, unsigned split_index) const {
-  const std::string bitmap = accessor_name + "(" + bitmap_name + ", "
-                             + std::to_string(split_index / 8) + ", "
-                             + std::to_string(split_index % 8) + ")";
-  return ((default_left) ?  (std::string("!") + bitmap + " || ")
-                          : (                   bitmap + " && "))
-         + array_name + "[" + std::to_string(split_index) + "]";
-}
-
-std::string
-SparseFeature::Compile(bool default_left, unsigned split_index) const {
-  const std::string bitmap
-    = std::string(" (idx = ") + accessor_name + "(" + col_ind_name + ", "
-                              + nonzero_len_name + ", "
-                              + std::to_string(split_index) + ")) != -1";
-  return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
-                          : (                    bitmap + " && "))
-         + nonzero_name + "[idx]";
+  oss << "data[" << split_index << "].qvalue " << OpName(op) << " "
+      << static_cast<size_t>(loc - v.begin()) * 2;
+  return oss.str();
 }
 
 }  // namespace semantic

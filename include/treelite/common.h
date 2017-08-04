@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <dmlc/logging.h>
+#include <treelite/base.h>
 
 namespace treelite {
 namespace common {
@@ -19,6 +20,16 @@ class Cloneable {
   virtual Cloneable* clone() const = 0;
   virtual Cloneable* move_clone() = 0;
 };
+
+#define CLONEABLE_BOILERPLATE(className) \
+  explicit className(const className& other) = default;  \
+  explicit className(className&& other) = default;  \
+  Cloneable* clone() const override {  \
+    return new className(*this);  \
+  }  \
+  Cloneable* move_clone() override {  \
+    return new className(std::move(*this));  \
+  }
 
 template <typename T>
 class DeepCopyUniquePtr {
@@ -76,6 +87,23 @@ inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
     stm << "\n  " << str << ", ";
     length = str.length() + 4;
   }
+}
+
+template<class Iter, class T>
+Iter binary_search(Iter begin, Iter end, const T& val)
+{
+  Iter i = std::lower_bound(begin, end, val);
+  if (i != end && !(val < *i)) {
+    return i;  // found
+  } else {
+    return end;  // not found
+  }
+}
+
+inline std::string FloatToString(tl_float value) {
+  std::ostringstream oss;
+  oss << value;
+  return oss.str();
 }
 
 }  // namespace common

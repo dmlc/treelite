@@ -18,7 +18,6 @@ namespace treelite {
 struct Model;  // forward declaration
 
 namespace compiler {
-  using common::MoveUniquePtr;  // import this function into compiler namespace
   struct CompilerParam;  // forward declaration
 }  // namespace compiler
 

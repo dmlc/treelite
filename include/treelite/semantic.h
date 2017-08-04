@@ -13,6 +13,10 @@
 namespace treelite {
 namespace semantic {
 
+enum class LikelyDirection : uint8_t {
+  kNone = 0, kLeft = 1, kRight = 2
+};
+
 inline std::string OpName(Tree::Operator op) {
   switch(op) {
     case Tree::Operator::kEQ: return "==";
@@ -34,13 +38,6 @@ inline void TransformPushBack(std::vector<std::string>* p_dest,
 using common::Cloneable;
 using common::DeepCopyUniquePtr;
 
-class NumericAdapter : public Cloneable {
- public:
-  virtual ~NumericAdapter() = default;
-  virtual std::string Compile(Tree::Operator op, unsigned split_index,
-                              tl_float numeric) const = 0;
-};
-
 class CodeBlock : public Cloneable {
  public:
   virtual ~CodeBlock() = default;
@@ -55,14 +52,7 @@ class PlainBlock : public CodeBlock {
     : inner_text(inner_text) {}
   explicit PlainBlock(std::vector<std::string>&& inner_text)
     : inner_text(std::move(inner_text)) {}
-  explicit PlainBlock(const PlainBlock& other) = default;
-  explicit PlainBlock(PlainBlock&& other) = default;
-  Cloneable* clone() const override {
-    return new PlainBlock(*this);
-  }
-  Cloneable* move_clone() override {
-    return new PlainBlock(std::move(*this));
-  }
+  CLONEABLE_BOILERPLATE(PlainBlock)
   std::vector<std::string> Compile() const override;
 
  private:
@@ -95,14 +85,7 @@ class FunctionBlock : public CodeBlock, private FunctionEntry {
     : prototype(std::move(prototype)), body(std::move(body)) {
     FunctionEntry::Register(this->prototype);
   }
-  explicit FunctionBlock(const FunctionBlock& other) = default;
-  explicit FunctionBlock(FunctionBlock&& other) = default;
-  Cloneable* clone() const override {
-    return new FunctionBlock(*this);
-  }
-  Cloneable* move_clone() override {
-    return new FunctionBlock(std::move(*this));
-  }
+  CLONEABLE_BOILERPLATE(FunctionBlock)
   std::vector<std::string> Compile() const override;
 
  private:
@@ -113,14 +96,7 @@ class FunctionBlock : public CodeBlock, private FunctionEntry {
 class SequenceBlock : public CodeBlock {
  public:
   explicit SequenceBlock() = default;
-  explicit SequenceBlock(const SequenceBlock& other) = default;
-  explicit SequenceBlock(SequenceBlock&& other) = default;
-  Cloneable* clone() const override {
-    return new SequenceBlock(*this);
-  }
-  Cloneable* move_clone() override {
-    return new SequenceBlock(std::move(*this));
-  }
+  CLONEABLE_BOILERPLATE(SequenceBlock)
   std::vector<std::string> Compile() const override;
   void Reserve(size_t size);
   void PushBack(const CodeBlock& block);
@@ -136,128 +112,29 @@ class Condition : public Cloneable {
   virtual std::string Compile() const = 0;
 };
 
-class Accumulator : public Cloneable {
- public:
-  virtual ~Accumulator() = default;
-  virtual std::string Compile(tl_float leaf_value) const = 0;
-};
-
-enum class LikelyDirection : uint8_t {
-  kNone = 0, kLeft = 1, kRight = 2
-};
-
-class SplitCondition : public Condition {
- public:
-  explicit SplitCondition(const Tree::Node& node,
-                          const NumericAdapter& numeric_adapter,
-                          LikelyDirection direction = LikelyDirection::kNone)
-   : split_index(node.split_index()), default_left(node.default_left()),
-     op(node.comparison_op()), threshold(node.threshold()),
-     numeric_adapter(numeric_adapter),
-     likely_direction(direction) {}
-  explicit SplitCondition(const Tree::Node& node,
-                          NumericAdapter&& numeric_adapter,
-                          LikelyDirection direction = LikelyDirection::kNone)
-   : split_index(node.split_index()), default_left(node.default_left()),
-     op(node.comparison_op()), threshold(node.threshold()),
-     numeric_adapter(std::move(numeric_adapter)),
-     likely_direction(direction) {}
-  explicit SplitCondition(const SplitCondition& other) = default;
-  explicit SplitCondition(SplitCondition&& other) = default;
-  Cloneable* clone() const override {
-    return new SplitCondition(*this);
-  }
-  Cloneable* move_clone() override {
-    return new SplitCondition(std::move(*this));
-  }
-  std::string Compile() const override;
- private:
-  unsigned split_index;
-  bool default_left;
-  Tree::Operator op;
-  tl_float threshold;
-  DeepCopyUniquePtr<NumericAdapter> numeric_adapter;
-  LikelyDirection likely_direction;
-};
-
-class SimpleAccumulator : public Accumulator {
- public:
-  explicit SimpleAccumulator(const std::string& acc_name)
-    : acc_name(acc_name) {}
-  explicit SimpleAccumulator(std::string&& acc_name)
-    : acc_name(std::move(acc_name)) {}
-  explicit SimpleAccumulator(const SimpleAccumulator& other) = default;
-  explicit SimpleAccumulator(SimpleAccumulator&& other) = default;
-  Cloneable* clone() const override {
-    return new SimpleAccumulator(*this);
-  }
-  Cloneable* move_clone() override {
-    return new SimpleAccumulator(std::move(*this));
-  }
-  std::string Compile(tl_float leaf_value) const override;
-
- private:
-  std::string acc_name;
-};
-
 class IfElseBlock : public CodeBlock {
  public:
   explicit IfElseBlock(const Condition& condition,
                        const CodeBlock& if_block,
-                       const CodeBlock& else_block)
-    : condition(condition), if_block(if_block), else_block(else_block) {}
+                       const CodeBlock& else_block,
+                       LikelyDirection direction = LikelyDirection::kNone)
+    : condition(condition), if_block(if_block), else_block(else_block),
+      likely_direction(direction) {}
   explicit IfElseBlock(Condition&& condition,
                        CodeBlock&& if_block,
-                       CodeBlock&& else_block)
+                       CodeBlock&& else_block,
+                       LikelyDirection direction = LikelyDirection::kNone)
     : condition(std::move(condition)),
-      if_block(std::move(if_block)), else_block(std::move(else_block)) {}
-  explicit IfElseBlock(const IfElseBlock& other) = default;
-  explicit IfElseBlock(IfElseBlock&& other) = default;
-  Cloneable* clone() const override {
-    return new IfElseBlock(*this);
-  }
-  Cloneable* move_clone() override {
-    return new IfElseBlock(std::move(*this));
-  }
+      if_block(std::move(if_block)), else_block(std::move(else_block)),
+      likely_direction(direction) {}
+  CLONEABLE_BOILERPLATE(IfElseBlock)
   std::vector<std::string> Compile() const override;
 
  private:
   DeepCopyUniquePtr<Condition> condition;
   DeepCopyUniquePtr<CodeBlock> if_block;
   DeepCopyUniquePtr<CodeBlock> else_block;
-};
-
-class SimpleNumeric : public NumericAdapter {
- public:
-  explicit SimpleNumeric() = default;
-  explicit SimpleNumeric(const SimpleNumeric& other) = default;
-  explicit SimpleNumeric(SimpleNumeric&& other) = default;
-  Cloneable* clone() const override {
-    return new SimpleNumeric(*this);
-  }
-  Cloneable* move_clone() override {
-    return new SimpleNumeric(std::move(*this));
-  }
-  std::string Compile(Tree::Operator op, unsigned split_index,
-                      tl_float numeric) const override;
-};
-
-class QuantizeNumeric : public NumericAdapter {
- public:
-  explicit QuantizeNumeric(const std::vector<std::vector<tl_float>>& cut_pts)
-   : cut_pts(cut_pts) {}
-  explicit QuantizeNumeric(const QuantizeNumeric& other) = default;
-  explicit QuantizeNumeric(QuantizeNumeric&& other) = default;
-  Cloneable* clone() const override {
-    return new QuantizeNumeric(*this);
-  }
-  Cloneable* move_clone() override {
-    return new QuantizeNumeric(std::move(*this));
-  }
-  std::string Compile(Tree::Operator op, unsigned split_index,
-                      tl_float numeric) const override;
- private:
-  const std::vector<std::vector<tl_float>>& cut_pts;
+  LikelyDirection likely_direction;
 };
 
 }  // namespace semantic

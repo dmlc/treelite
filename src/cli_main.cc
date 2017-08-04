@@ -5,8 +5,8 @@
  * \author Philip Cho
  */
 
+#include <treelite/frontend.h>
 #include <treelite/compiler.h>
-#include <treelite/parser.h>
 #include <treelite/semantic.h>
 #include <dmlc/config.h>
 #include <dmlc/data.h>
@@ -28,10 +28,15 @@ enum CLITask {
   kAnnotate = 1
 };
 
-enum FileFormat {
+enum InputFormat {
   kLibSVM = 0,
   kCSV = 1,
-  kLibFM = 2
+  kLibFM = 2,
+};
+
+enum ModelFormat {
+  kXGBModel = 0,
+  kLGBModel = 1
 };
 
 inline const char* FileFormatString(int format) {
@@ -49,7 +54,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   /*! \brief whether silent */
   int silent;
   /*! \brief model format */
-  std::string format;
+  int format;
   /*! \brief model file */
   std::string model_in;
   /*! \brief generated code file */
@@ -74,7 +79,10 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .describe("Task to be performed by the CLI program.");
     DMLC_DECLARE_FIELD(silent).set_default(0).set_range(0, 2)
         .describe("Silence level during the task; >0 generates more messages");
-    DMLC_DECLARE_FIELD(format).describe("Model format");
+    DMLC_DECLARE_FIELD(format)
+        .add_enum("xgboost", kXGBModel)
+        .add_enum("lightgbm", kLGBModel)
+        .describe("Model format");
     DMLC_DECLARE_FIELD(model_in).describe("Input model path");
     DMLC_DECLARE_FIELD(name_codegen).set_default("dump.c")
         .describe("generated code file");
@@ -102,16 +110,23 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
 
 DMLC_REGISTER_PARAMETER(CLIParam);
 
+Model ParseModel(const CLIParam& param) {
+  switch (param.format) {
+   case kXGBModel:
+    return frontend::LoadXGBoostModel(param.model_in.c_str());
+   case kLGBModel:
+    return frontend::LoadLightGBMModel(param.model_in.c_str());
+   default:
+    LOG(FATAL) << "Unknown model format";
+    return {};  // avoid compiler warning
+  }
+}
+
 void CLICodegen(const CLIParam& param) {
   compiler::CompilerParam cparam;
   cparam.InitAllowUnknown(param.cfg);
 
-  std::unique_ptr<Parser> parser(Parser::Create(param.format));
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(
-                                   param.model_in.c_str(), "r"));
-  parser->Load(fi.get());
-
-  Model model = parser->Export();
+  Model model = ParseModel(param);
   LOG(INFO) << "model size = " << model.trees.size();
 
   std::unique_ptr<Compiler> compiler(Compiler::Create("recursive", cparam));
@@ -132,12 +147,7 @@ void CLICodegen(const CLIParam& param) {
 }
 
 void CLIAnnotate(const CLIParam& param) {
-  std::unique_ptr<Parser> model_parser(Parser::Create(param.format));
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(
-                                   param.model_in.c_str(), "r"));
-  model_parser->Load(fi.get());
-  
-  Model model = model_parser->Export();
+  Model model = ParseModel(param);
   LOG(INFO) << "model size = " << model.trees.size();
 
   CHECK_NE(param.train_path, "NULL")

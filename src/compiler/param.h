@@ -12,20 +12,10 @@
 namespace treelite {
 namespace compiler {
 
-enum LayoutType {
-  kDense = 0,
-  kCompressed = 1,
-  kSparse = 2
-};
-
 /*! \brief parameters for tree compiler */
 struct CompilerParam : public dmlc::Parameter<CompilerParam> {
-  /*! \brief how test instances should be accessed */
-  int data_layout;
   /*! \brief name of model annotation file */
   std::string annotate_in;
-  /*! \brief size of batch for batching prediction function */
-  int batch_size;
   /*! \brief whether to quantize threshold points (0: no, >0: yes) */
   int quantize;
   /*! \brief option to distribute compiled trees into different files;
@@ -35,15 +25,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
-    DMLC_DECLARE_FIELD(data_layout).set_default(kDense)
-      .describe("how test instances should be accessed")
-      .add_enum("dense", kDense)
-      .add_enum("compressed", kCompressed)
-      .add_enum("sparse", kSparse);
     DMLC_DECLARE_FIELD(annotate_in).set_default("NULL")
       .describe("Name of model annotation file");
-    DMLC_DECLARE_FIELD(batch_size).set_lower_bound(1).set_default(1)
-      .describe("Batch size for batching prediction function");
     DMLC_DECLARE_FIELD(quantize).set_lower_bound(0).set_default(0)
       .describe("whether to quantize threshold points (0: no, >0: yes)");
     DMLC_DECLARE_FIELD(dist_comp).set_lower_bound(0).set_default(0)

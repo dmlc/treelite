@@ -1,15 +1,34 @@
 /*!
  * Copyright 2017 by Contributors
  * \file xgboost.cc
- * \brief Parser for xgboost model
+ * \brief Frontend for xgboost model
  * \author Philip Cho
  */
 
-#include <treelite/parser.h>
+#include <dmlc/data.h>
 #include <treelite/tree.h>
 #include <memory>
 #include <queue>
 #include <cstring>
+
+namespace {
+
+treelite::Model ParseStream(dmlc::Stream* fi);
+
+}  // namespace anonymous
+
+namespace treelite {
+namespace frontend {
+
+DMLC_REGISTRY_FILE_TAG(xgboost);
+
+Model LoadXGBoostModel(const char* filename) {
+  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
+  return ParseStream(fi.get());
+}
+
+}  // namespace frontend
+}  // namespace treelite
 
 /* auxiliary data structures to interpret xgboost model file */
 namespace {
@@ -213,115 +232,98 @@ class XGBTree {
   }
 };
 
-}  // namespace anonymous
-
-namespace treelite {
-namespace parser {
-
-DMLC_REGISTRY_FILE_TAG(xgboost);
-
-class XGBParser : public Parser {
- public:
-  XGBParser() { LOG(INFO) << "XGBParser yah"; }
-
-  void Load(dmlc::Stream* fi) override {
-    std::unique_ptr<PeekableInputStream> fp(new PeekableInputStream(fi));
-    // backward compatible header check.
-    std::string header;
-    header.resize(4);
-    if (fp->PeekRead(&header[0], 4) == 4) {
-      CHECK_NE(header, "bs64")
-          << "Base64 format is no longer supported in brick.";
-      if (header == "binf") {
-        CONSUME_BYTES(fp, 4);
-      }
-    }
-    // read parameter
-    CONSUME_BYTES(fp, sizeof(bst_float) + sizeof(unsigned) + 32 * sizeof(int));
-    {
-      // backward compatibility code for compatible with old model type
-      // for new model, Read(&name_obj_) is suffice
-      uint64_t len;
-      CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
-      if (len >= std::numeric_limits<unsigned>::max()) {
-        int gap;
-        CHECK_EQ(fp->Read(&gap, sizeof(gap)), sizeof(gap))
-            << "BoostLearner: wrong model format";
-        len = len >> static_cast<uint64_t>(32UL);
-      }
-      if (len != 0) {
-        name_obj_.resize(len);
-        CHECK_EQ(fp->Read(&name_obj_[0], len), len)
-            << "BoostLearner: wrong model format";
-      }
-    }
-
-    {
-      uint64_t len;
-      CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
-      name_gbm_.resize(len);
-      if (len > 0) {
-        CHECK_EQ(fp->Read(&name_gbm_[0], len), len)
-          << "BoostLearner: wrong model format";
-      }
-    }
-
-    /* loading GBTree */
-    CHECK_EQ(name_gbm_, "gbtree")
-      << "Gradient booster must be gbtree type.";
-
-    CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
-        << "GBTree: invalid model file";
-    LOG(INFO) << "gbm_param_.num_feature = " << gbm_param_.num_feature;
-    xgb_trees_.clear();
-    for (int i = 0; i < gbm_param_.num_trees; ++i) {
-      xgb_trees_.emplace_back();
-      xgb_trees_.back().Load(fp.get());
-    }
-  }
-
-  Model Export() const override {
-    Model model;
-    model.num_features = gbm_param_.num_feature;
-    for (const auto& xgb_tree : xgb_trees_) {
-      model.trees.emplace_back();
-      Tree& tree = model.trees.back();
-      tree.Init();
-
-      // re-map node ID's to eliminate gaps in numbering
-      // deleted nodes will not be exported
-      std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
-      Q.push({0, 0});
-      while (!Q.empty()) {
-        int old_id, new_id;
-        std::tie(old_id, new_id) = Q.front(); Q.pop();
-        const XGBTree::Node& node = xgb_tree[old_id];
-        if (node.is_leaf()) {
-          tree[new_id].set_leaf(static_cast<tl_float>(node.leaf_value()));
-        } else {
-          tree.AddChilds(new_id);
-          tree[new_id].set_split(node.split_index(),
-                                 static_cast<tl_float>(node.split_cond()),
-                                 node.default_left(), Tree::Operator::kLT);
-          Q.push({node.cleft(), tree[new_id].cleft()});
-          Q.push({node.cright(), tree[new_id].cright()});
-        }
-      }
-    }
-
-    return model;
-  }
- private:
+inline treelite::Model ParseStream(dmlc::Stream* fi) {
   std::vector<XGBTree> xgb_trees_;
   GBTreeModelParam gbm_param_;
   std::string name_gbm_;
   std::string name_obj_;
-};
 
-TREELITE_REGISTER_PARSER(XGBParser, "xgboost")
-.describe("Parser for xgboost binary format")
-.set_body([]() {
-    return new XGBParser();
-  });
-}  // namespace parser
-}  // namespace treelite
+  /* 1. Parse input stream */
+  std::unique_ptr<PeekableInputStream> fp(new PeekableInputStream(fi));
+  // backward compatible header check.
+  std::string header;
+  header.resize(4);
+  if (fp->PeekRead(&header[0], 4) == 4) {
+    CHECK_NE(header, "bs64")
+        << "Base64 format is no longer supported in brick.";
+    if (header == "binf") {
+      CONSUME_BYTES(fp, 4);
+    }
+  }
+  // read parameter
+  CONSUME_BYTES(fp, sizeof(bst_float) + sizeof(unsigned) + 32 * sizeof(int));
+  {
+    // backward compatibility code for compatible with old model type
+    // for new model, Read(&name_obj_) is suffice
+    uint64_t len;
+    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
+    if (len >= std::numeric_limits<unsigned>::max()) {
+      int gap;
+      CHECK_EQ(fp->Read(&gap, sizeof(gap)), sizeof(gap))
+          << "BoostLearner: wrong model format";
+      len = len >> static_cast<uint64_t>(32UL);
+    }
+    if (len != 0) {
+      name_obj_.resize(len);
+      CHECK_EQ(fp->Read(&name_obj_[0], len), len)
+          << "BoostLearner: wrong model format";
+    }
+  }
+
+  {
+    uint64_t len;
+    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
+    name_gbm_.resize(len);
+    if (len > 0) {
+      CHECK_EQ(fp->Read(&name_gbm_[0], len), len)
+        << "BoostLearner: wrong model format";
+    }
+  }
+
+  /* loading GBTree */
+  CHECK_EQ(name_gbm_, "gbtree")
+    << "Gradient booster must be gbtree type.";
+
+  CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
+      << "GBTree: invalid model file";
+  LOG(INFO) << "gbm_param_.num_feature = " << gbm_param_.num_feature;
+  for (int i = 0; i < gbm_param_.num_trees; ++i) {
+    xgb_trees_.emplace_back();
+    xgb_trees_.back().Load(fp.get());
+  }
+
+  /* 2. Export model */
+  treelite::Model model;
+  model.num_features = gbm_param_.num_feature;
+  for (const auto& xgb_tree : xgb_trees_) {
+    model.trees.emplace_back();
+    treelite::Tree& tree = model.trees.back();
+    tree.Init();
+
+    // re-map node ID's to eliminate gaps in numbering
+    // deleted nodes will not be exported
+    std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
+    Q.push({0, 0});
+    while (!Q.empty()) {
+      int old_id, new_id;
+      std::tie(old_id, new_id) = Q.front(); Q.pop();
+      const XGBTree::Node& node = xgb_tree[old_id];
+      if (node.is_leaf()) {
+        const bst_float leaf_value = node.leaf_value();
+        tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+      } else {
+        const bst_float split_cond = node.split_cond();
+        tree.AddChilds(new_id);
+        tree[new_id].set_split(node.split_index(),
+                               static_cast<treelite::tl_float>(split_cond),
+                               node.default_left(),
+                               treelite::Tree::Operator::kLT);
+        Q.push({node.cleft(), tree[new_id].cleft()});
+        Q.push({node.cright(), tree[new_id].cright()});
+      }
+    }
+  }
+  return model;
+}
+
+}  // namespace anonymous

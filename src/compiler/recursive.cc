@@ -16,12 +16,44 @@
 #include <iterator>
 #include "param.h"
 
-namespace treelite {
-
 namespace {
-  using Annotation = std::vector<std::vector<size_t>>;
+
+using Annotation = std::vector<std::vector<size_t>>;
+class SplitCondition : public treelite::semantic::Condition {
+ public:
+  using NumericAdapter
+    = std::function<std::string(treelite::Tree::Operator, unsigned,
+                                treelite::tl_float)>;
+  explicit SplitCondition(const treelite::Tree::Node& node,
+                          const NumericAdapter& numeric_adapter)
+   : split_index(node.split_index()), default_left(node.default_left()),
+     op(node.comparison_op()), threshold(node.threshold()),
+     numeric_adapter(numeric_adapter) {}
+  explicit SplitCondition(const treelite::Tree::Node& node,
+                          NumericAdapter&& numeric_adapter)
+   : split_index(node.split_index()), default_left(node.default_left()),
+     op(node.comparison_op()), threshold(node.threshold()),
+     numeric_adapter(std::move(numeric_adapter)) {}
+  CLONEABLE_BOILERPLATE(SplitCondition)
+  inline std::string Compile() const override {
+    const std::string bitmap
+      = std::string("data[") + std::to_string(split_index) + "].missing != -1";
+    return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
+                            : (std::string(" (") + bitmap + ") && "))
+            + numeric_adapter(op, split_index, threshold);
+  }
+
+ private:
+  unsigned split_index;
+  bool default_left;
+  treelite::Tree::Operator op;
+  treelite::tl_float threshold;
+  NumericAdapter numeric_adapter;
+};
+
 }  // namespace anonymous
 
+namespace treelite {
 namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(recursive);
@@ -52,10 +84,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
   using PlainBlock = semantic::PlainBlock;
   using FunctionBlock = semantic::FunctionBlock;
   using SequenceBlock = semantic::SequenceBlock;
-  using SimpleAccumulator = semantic::SimpleAccumulator;
   using IfElseBlock = semantic::IfElseBlock;
-  using SplitCondition = semantic::SplitCondition;
-  using SimpleNumeric = semantic::SimpleNumeric;
 
   std::unique_ptr<CodeBlock>
   Export(const Model& model) override {
@@ -75,19 +104,21 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     }
 
     SequenceBlock sequence;
-    sequence.Reserve(model.trees.size() + 4);
+    sequence.Reserve(model.trees.size() + 3);
     sequence.PushBack(PlainBlock("float sum = 0.0f;"));
+    sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
     for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
       const Tree& tree = model.trees[tree_id];
       if (!annotation.empty()) {
-        sequence.PushBack(MoveUniquePtr(WalkTree(tree, annotation[tree_id])));
+        sequence.PushBack(common::MoveUniquePtr(WalkTree(tree,
+                                                annotation[tree_id])));
       } else {
-        sequence.PushBack(MoveUniquePtr(WalkTree(tree, {})));
+        sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
       }
     }
     sequence.PushBack(PlainBlock("return sum;"));
 
-    FunctionBlock function("float predict_margin(const union Entry* data)",
+    FunctionBlock function("float predict_margin(union Entry* data)",
       std::move(sequence));
 
     auto preamble = QuantizePolicy::Preamble();
@@ -119,9 +150,9 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     using semantic::LikelyDirection;
     const Tree::Node& node = tree[nid];
     if (node.is_leaf()) {
-      SimpleAccumulator sa("sum");
       const tl_float leaf_value = node.leaf_value();
-      return std::unique_ptr<CodeBlock>(new PlainBlock(sa.Compile(leaf_value)));
+      return std::unique_ptr<CodeBlock>(new PlainBlock(
+        std::string("sum += ") + common::FloatToString(leaf_value) + ";"));
     } else {
       LikelyDirection likely_direction = LikelyDirection::kNone;
       if (!counts.empty()) {
@@ -131,12 +162,11 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
                                                       : LikelyDirection::kRight;
       }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
-        SplitCondition(node,
-                       MoveUniquePtr(QuantizePolicy::Numeric()),
-                       likely_direction),
-        MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
-        MoveUniquePtr(WalkTree_(tree, counts, node.cright()))
-      ));
+        SplitCondition(node, QuantizePolicy::NumericAdapter()),
+        common::MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
+        common::MoveUniquePtr(WalkTree_(tree, counts, node.cright())),
+        likely_direction)
+      );
     }
   }
 };
@@ -161,19 +191,26 @@ class MetadataStore {
 
 class NoQuantize : private MetadataStore {
  protected:
-  using SimpleNumeric = semantic::SimpleNumeric;
   template <typename... Args>
   void Init(Args&&... args) {
     MetadataStore::Init(std::forward<Args>(args)...);
   }
-  std::unique_ptr<SimpleNumeric> Numeric() const {
-    return common::make_unique<SimpleNumeric>();
+  SplitCondition::NumericAdapter NumericAdapter() const {
+    return [] (Tree::Operator op, unsigned split_index, tl_float threshold) {
+      std::ostringstream oss;
+      oss << "data[" << split_index << "].fvalue "
+          << semantic::OpName(op) << " " << threshold;
+      return oss.str();
+    };
   }
   std::vector<std::string> Preamble() const {
     return {"union Entry {",
             "  int missing;",
             "  float fvalue;",
             "};"};
+  }
+  std::vector<std::string> Preprocessing() const {
+    return {};
   }
   bool QuantizeFlag() const {
     return false;
@@ -182,7 +219,6 @@ class NoQuantize : private MetadataStore {
 
 class Quantize : private MetadataStore {
  protected:
-  using QuantizeNumeric = semantic::QuantizeNumeric;
   template <typename... Args>
   void Init(Args&&... args) {
     MetadataStore::Init(std::forward<Args>(args)...);
@@ -194,8 +230,18 @@ class Quantize : private MetadataStore {
       "  }",
       "}"};
   }
-  std::unique_ptr<QuantizeNumeric> Numeric() const {
-    return common::make_unique<QuantizeNumeric>(GetInfo().cut_pts);
+  SplitCondition::NumericAdapter NumericAdapter() const {
+    const std::vector<std::vector<tl_float>>& cut_pts = GetInfo().cut_pts; 
+    return [&cut_pts] (Tree::Operator op, unsigned split_index,
+                       tl_float threshold) {
+      std::ostringstream oss;
+      const auto& v = cut_pts[split_index];
+      auto loc = common::binary_search(v.begin(), v.end(), threshold);
+      CHECK(loc != v.end());
+      oss << "data[" << split_index << "].qvalue " << semantic::OpName(op)
+          << " " << static_cast<size_t>(loc - v.begin()) * 2;
+      return oss.str();
+    };
   }
   std::vector<std::string> Preamble() const {
     std::vector<std::string> ret{"union Entry {",
@@ -203,7 +249,7 @@ class Quantize : private MetadataStore {
                                  "  float fvalue;",
                                  "  int qvalue;",
                                  "};"};
-    ret.emplace_back("const float threshold[] = {");
+    ret.emplace_back("static const float threshold[] = {");
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -217,7 +263,7 @@ class Quantize : private MetadataStore {
       ret.push_back(oss.str());
       ret.emplace_back("};");
     }
-    ret.emplace_back("const int th_begin[] = {");
+    ret.emplace_back("static const int th_begin[] = {");
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -231,7 +277,7 @@ class Quantize : private MetadataStore {
       ret.push_back(oss.str());
       ret.emplace_back("};");
     }
-    ret.emplace_back("const int th_len[] = {");
+    ret.emplace_back("static const int th_len[] = {");
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -244,8 +290,9 @@ class Quantize : private MetadataStore {
       ret.emplace_back("};");
     }
 
-    auto func = semantic::FunctionBlock("static inline int quantize(float val, unsigned fid)",
-                                        semantic::PlainBlock(
+    auto func = semantic::FunctionBlock(
+        "static inline int quantize(float val, unsigned fid)",
+        semantic::PlainBlock(
            {"const float* array = &threshold[th_begin[fid]];",
             "int len = th_len[fid];",
             "int low = 0;",
@@ -275,6 +322,9 @@ class Quantize : private MetadataStore {
             "}"})).Compile();
     ret.insert(ret.end(), func.begin(), func.end());
     return ret;
+  }
+  std::vector<std::string> Preprocessing() const {
+    return quant_preamble;
   }
   bool QuantizeFlag() const {
     return true;

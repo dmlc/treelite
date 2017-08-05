@@ -225,7 +225,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     treelite::Tree& tree = model.trees.back();
     tree.Init();
 
-    // re-map node ID's so that a breadth-wise traversal would yield a monotonic sequence
+    // assign node ID's so that a breadth-wise traversal would yield
+    // the monotonic sequence 0, 1, 2, ...
     std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
     Q.push({0, 0});
     while (!Q.empty()) {
@@ -242,19 +243,19 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         const treelite::tl_float default_value =
           static_cast<treelite::tl_float>(lgb_tree.default_value[old_id]);
         bool default_left;
-        treelite::Tree::Operator cmp_op;
+        treelite::Operator cmp_op;
         switch (lgb_tree.decision_type[old_id]) {
           case DecisionType::numerical:
-            cmp_op = treelite::Tree::Operator::kLE;
+            cmp_op = treelite::Operator::kLE;
             default_left = (default_value <= threshold);
             break;
           case DecisionType::categorical:
-            cmp_op = treelite::Tree::Operator::kEQ;
+            cmp_op = treelite::Operator::kEQ;
             default_left = (default_value == threshold);
             break;
           default:
             LOG(FATAL) << "invalid value for decision type";
-            cmp_op = treelite::Tree::Operator::kEQ;  // only remove warning
+            cmp_op = treelite::Operator::kEQ;  // only remove warning
             default_left = true;  // ditto
         }
         tree.AddChilds(new_id);

@@ -92,7 +92,7 @@ class PeekableInputStream {
                  + istm_->Read(&buf_[0],
                                bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1),
                  bytes_to_read)
-          << "Failed to peek " << size << " bytes";
+          << "Ill-formed XGBoost model: Failed to peek " << size << " bytes";
         end_ptr_ = bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1;
       }
     }
@@ -125,7 +125,9 @@ template <typename T>
 inline void CONSUME_BYTES(const T& fi, size_t size) {
   static std::vector<char> dummy(500);
   if (size > dummy.size()) dummy.resize(size);
-  CHECK_EQ(fi->Read(&dummy[0], size), size) << "BoostLearner: wrong model format";
+  CHECK_EQ(fi->Read(&dummy[0], size), size)
+    << "Ill-formed XGBoost model format: cannot read " << size
+    << " bytes from the file";
 }
 
 struct GBTreeModelParam {
@@ -214,21 +216,26 @@ class XGBTree {
     return nodes[nid];
   }
   inline void Load(PeekableInputStream* fi) {
-    CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam));
+    CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
+     << "Ill-formed XGBoost model file: can't read TreeParam";
     nodes.resize(param.num_nodes);
-    CHECK_NE(param.num_nodes, 0);
+    CHECK_NE(param.num_nodes, 0)
+     << "Ill-formed XGBoost model file: a tree can't be empty";
     CHECK_EQ(fi->Read(dmlc::BeginPtr(nodes), sizeof(Node) * nodes.size()),
-             sizeof(Node) * nodes.size());
+             sizeof(Node) * nodes.size())
+     << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     CONSUME_BYTES(fi, (3 * sizeof(bst_float) + sizeof(int)) * param.num_nodes);
     if (param.size_leaf_vector != 0) {
       uint64_t len;
-      CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len));
+      CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
+       << "Ill-formed XGBoost model file";
       if (len > 0) {
         CONSUME_BYTES(fi, sizeof(bst_float) * len);
       }
     }
     CHECK_EQ(param.num_roots, 1)
-      << "treelite does not support trees with multiple roots";
+      << "Invalid XGBoost model file: treelite does not support trees "
+      << "with multiple roots";
   }
 };
 
@@ -245,7 +252,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   header.resize(4);
   if (fp->PeekRead(&header[0], 4) == 4) {
     CHECK_NE(header, "bs64")
-        << "Base64 format is no longer supported in brick.";
+        << "Ill-formed XGBoost model file: Base64 format no longer supported";
     if (header == "binf") {
       CONSUME_BYTES(fp, 4);
     }
@@ -256,36 +263,39 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     // backward compatibility code for compatible with old model type
     // for new model, Read(&name_obj_) is suffice
     uint64_t len;
-    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
+    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
+     << "Ill-formed XGBoost model file: corrupted header";
     if (len >= std::numeric_limits<unsigned>::max()) {
       int gap;
       CHECK_EQ(fp->Read(&gap, sizeof(gap)), sizeof(gap))
-          << "BoostLearner: wrong model format";
+          << "Ill-formed XGBoost model file: corrupted header";
       len = len >> static_cast<uint64_t>(32UL);
     }
     if (len != 0) {
       name_obj_.resize(len);
       CHECK_EQ(fp->Read(&name_obj_[0], len), len)
-          << "BoostLearner: wrong model format";
+          << "Ill-formed XGBoost model file: corrupted header";
     }
   }
 
   {
     uint64_t len;
-    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len));
+    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
+      << "Ill-formed XGBoost model file: corrupted header";
     name_gbm_.resize(len);
     if (len > 0) {
       CHECK_EQ(fp->Read(&name_gbm_[0], len), len)
-        << "BoostLearner: wrong model format";
+        << "Ill-formed XGBoost model file: corrupted header";
     }
   }
 
   /* loading GBTree */
   CHECK_EQ(name_gbm_, "gbtree")
+    << "Invalid XGBoost model file: "
     << "Gradient booster must be gbtree type.";
 
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
-      << "GBTree: invalid model file";
+    << "Invalid XGBoost model file: corrupted GBTree parameters";
   LOG(INFO) << "gbm_param_.num_feature = " << gbm_param_.num_feature;
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
@@ -300,8 +310,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     treelite::Tree& tree = model.trees.back();
     tree.Init();
 
-    // re-map node ID's to eliminate gaps in numbering
-    // deleted nodes will not be exported
+    // assign node ID's so that a breadth-wise traversal would yield
+    // the monotonic sequence 0, 1, 2, ...
+    // deleted nodes will be excluded
     std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
     Q.push({0, 0});
     while (!Q.empty()) {
@@ -317,7 +328,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         tree[new_id].set_split(node.split_index(),
                                static_cast<treelite::tl_float>(split_cond),
                                node.default_left(),
-                               treelite::Tree::Operator::kLT);
+                               treelite::Operator::kLT);
         Q.push({node.cleft(), tree[new_id].cleft()});
         Q.push({node.cright(), tree[new_id].cright()});
       }

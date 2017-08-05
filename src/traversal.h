@@ -24,7 +24,7 @@ void Traverse_(const Tree& tree, const IndexType* index,
     CHECK_LT(node.split_index(), std::numeric_limits<IndexType>::max());
     const IndexType split_index = static_cast<IndexType>(node.split_index());
     const tl_float threshold = node.threshold();
-    const Tree::Operator op = node.comparison_op();
+    const Operator op = node.comparison_op();
 
     // check if the instance has a value for feature (split_index)
     tl_float fvalue;
@@ -42,15 +42,15 @@ void Traverse_(const Tree& tree, const IndexType* index,
       // perform comparison with fvalue
       bool result = true;
       switch (op) {
-       case Tree::Operator::kEQ:
+       case Operator::kEQ:
         result = (fvalue == threshold); break;
-       case Tree::Operator::kLT:
+       case Operator::kLT:
         result = (fvalue <  threshold); break;
-       case Tree::Operator::kLE:
+       case Operator::kLE:
         result = (fvalue <= threshold); break;
-       case Tree::Operator::kGT:
+       case Operator::kGT:
         result = (fvalue >  threshold); break;
-       case Tree::Operator::kGE:
+       case Operator::kGE:
         result = (fvalue >= threshold); break;
        default:
         LOG(FATAL) << "operator undefined";

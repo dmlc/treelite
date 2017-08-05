@@ -17,13 +17,13 @@ enum class LikelyDirection : uint8_t {
   kNone = 0, kLeft = 1, kRight = 2
 };
 
-inline std::string OpName(Tree::Operator op) {
+inline std::string OpName(Operator op) {
   switch(op) {
-    case Tree::Operator::kEQ: return "==";
-    case Tree::Operator::kLT: return "<";
-    case Tree::Operator::kLE: return "<=";
-    case Tree::Operator::kGT: return ">";
-    case Tree::Operator::kGE: return ">=";
+    case Operator::kEQ: return "==";
+    case Operator::kLT: return "<";
+    case Operator::kLE: return "<=";
+    case Operator::kGT: return ">";
+    case Operator::kGE: return ">=";
     default: return "";
   }
 }

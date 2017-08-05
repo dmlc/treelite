@@ -70,12 +70,6 @@ inline T&& MoveUniquePtr(const std::unique_ptr<T>& ptr) {
   return std::move(*ptr.get());
 }
 
-template<typename T, typename ...Args>
-std::unique_ptr<T> make_unique( Args&& ...args )
-{
-  return std::unique_ptr<T>( new T( std::forward<Args>(args)... ) );
-}
-
 inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
                      const std::string& str, size_t textwidth) {
   std::ostringstream& stm = *p_stm;

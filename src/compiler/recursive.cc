@@ -11,6 +11,7 @@
 #include <treelite/semantic.h>
 #include <dmlc/data.h>
 #include <dmlc/json.h>
+#include <dmlc/registry.h>
 #include <queue>
 #include <algorithm>
 #include <iterator>
@@ -22,7 +23,7 @@ using Annotation = std::vector<std::vector<size_t>>;
 class SplitCondition : public treelite::semantic::Condition {
  public:
   using NumericAdapter
-    = std::function<std::string(treelite::Tree::Operator, unsigned,
+    = std::function<std::string(treelite::Operator, unsigned,
                                 treelite::tl_float)>;
   explicit SplitCondition(const treelite::Tree::Node& node,
                           const NumericAdapter& numeric_adapter)
@@ -46,7 +47,7 @@ class SplitCondition : public treelite::semantic::Condition {
  private:
   unsigned split_index;
   bool default_left;
-  treelite::Tree::Operator op;
+  treelite::Operator op;
   treelite::tl_float threshold;
   NumericAdapter numeric_adapter;
 };
@@ -98,7 +99,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(
                                        param.annotate_in.c_str(), "r"));
       dmlc::istream is(fi.get());
-      auto reader = common::make_unique<dmlc::JSONReader>(&is);
+      auto reader = std::make_unique<dmlc::JSONReader>(&is);
       reader->Read(&annotation);
       annotate = true;
     }
@@ -128,7 +129,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       preamble.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
     }
 
-    auto file = common::make_unique<SequenceBlock>();
+    auto file = std::make_unique<SequenceBlock>();
     file->Reserve(2);
     file->PushBack(PlainBlock(std::move(preamble)));
     file->PushBack(std::move(function));
@@ -196,7 +197,7 @@ class NoQuantize : private MetadataStore {
     MetadataStore::Init(std::forward<Args>(args)...);
   }
   SplitCondition::NumericAdapter NumericAdapter() const {
-    return [] (Tree::Operator op, unsigned split_index, tl_float threshold) {
+    return [] (Operator op, unsigned split_index, tl_float threshold) {
       std::ostringstream oss;
       oss << "data[" << split_index << "].fvalue "
           << semantic::OpName(op) << " " << threshold;
@@ -232,7 +233,7 @@ class Quantize : private MetadataStore {
   }
   SplitCondition::NumericAdapter NumericAdapter() const {
     const std::vector<std::vector<tl_float>>& cut_pts = GetInfo().cut_pts; 
-    return [&cut_pts] (Tree::Operator op, unsigned split_index,
+    return [&cut_pts] (Operator op, unsigned split_index,
                        tl_float threshold) {
       std::ostringstream oss;
       const auto& v = cut_pts[split_index];

@@ -7,9 +7,15 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
+#include <cstdint>
+
 namespace treelite {
 
 typedef double tl_float;
+/*! \brief comparison operators */
+enum class Operator : int8_t {
+  kEQ, kLT, kLE, kGT, kGE  // ==, <, <=, >, >=
+};
 
 }  // namespace treelite
 

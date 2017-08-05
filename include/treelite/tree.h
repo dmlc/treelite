@@ -17,11 +17,6 @@ namespace treelite {
 
 class Tree {
  public:
-  /*! \brief comparison operators */
-  enum class Operator : int8_t {
-    kEQ, kLT, kLE, kGT, kGE  // ==, <, <=, >, >=
-  };
-
   /*! \brief tree node */
   class Node {
    public:
@@ -105,13 +100,9 @@ class Tree {
 
    private:
     friend class Tree;
-    /*!
-     * \brief in leaf node, we have weights, in non-leaf nodes,
-     *        we have threshold
-     */
     union Info {
-      tl_float leaf_value;
-      tl_float threshold;
+      tl_float leaf_value;  // for leaf nodes
+      tl_float threshold;   // for non-leaf nodes
     };
     // pointer to parent, highest bit is used to
     // indicate whether it's a left child or not
@@ -121,7 +112,7 @@ class Tree {
     // split feature index;
     // highest bit indicates default direction for missing values
     unsigned sindex_;
-    // extra info: weights or threshold
+    // extra info: leaf value or threshold
     Info info_;
     // operator to use for expression of form [fval] OP [threshold]
     // If the expression evaluates to true, take the left child;

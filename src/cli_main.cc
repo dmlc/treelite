@@ -163,7 +163,7 @@ void CLIAnnotate(const CLIParam& param) {
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_annotate.c_str(), "w"));
   dmlc::ostream os(fo.get());
-  auto writer = common::make_unique<dmlc::JSONWriter>(&os);
+  auto writer = std::make_unique<dmlc::JSONWriter>(&os);
   writer->BeginArray();
   for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
     writer->WriteArraySeperator();

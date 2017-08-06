@@ -11,17 +11,34 @@ namespace treelite {
 namespace semantic {
 
 std::vector<std::string>
+TranslationUnit::Compile(const std::string& header_filename) const {
+  std::string header_basename = common::GetBasename(header_filename);
+  std::vector<std::string> lines{std::string("#include \"")
+                                 + header_basename + "\"", ""};
+  auto preamble_lines = preamble->Compile();
+  if (preamble_lines.size() > 0) {
+    common::TransformPushBack(&lines, preamble_lines,
+      [] (std::string line) {
+        return line;
+      });
+    lines.emplace_back();
+  }
+  common::TransformPushBack(&lines, body->Compile(),
+    [] (std::string line) {
+      return line;
+    });
+  return lines;
+}
+
+std::vector<std::string>
 PlainBlock::Compile() const {
   return inner_text;
 }
 
 std::vector<std::string>
-FunctionEntry::registry = {};
-
-std::vector<std::string>
 FunctionBlock::Compile() const {
   std::vector<std::string> ret{prototype + " {"};
-  TransformPushBack(&ret, body->Compile(), [] (std::string line) {
+  common::TransformPushBack(&ret, body->Compile(), [] (std::string line) {
     return "  " + line;
   });
   ret.emplace_back("}");
@@ -33,7 +50,7 @@ std::vector<std::string>
 SequenceBlock::Compile() const {
   std::vector<std::string> ret;
   for (const auto& block : sequence) {
-    TransformPushBack(&ret, block->Compile(), [] (std::string line) {
+    common::TransformPushBack(&ret, block->Compile(), [] (std::string line) {
       return line;
     });
   }
@@ -67,11 +84,11 @@ IfElseBlock::Compile() const {
     ret.push_back(std::string("if ( ") + tag + "( "
                                        + condition->Compile() + " ) ) {");
   }
-  TransformPushBack(&ret, if_block->Compile(), [] (std::string line) {
+  common::TransformPushBack(&ret, if_block->Compile(), [] (std::string line) {
     return "  " + line;
   });
   ret.emplace_back("} else {");
-  TransformPushBack(&ret, else_block->Compile(), [] (std::string line) {
+  common::TransformPushBack(&ret, else_block->Compile(), [] (std::string line) {
     return "  " + line;
   });
   ret.emplace_back("}");

@@ -18,11 +18,15 @@ namespace treelite {
 struct Model;  // forward declaration
 
 namespace compiler {
-  struct CompilerParam;  // forward declaration
+
+struct CompilerParam;  // forward declaration
+
 }  // namespace compiler
 
 namespace semantic {
-class CodeBlock;  // forward declaration
+
+class SemanticModel;  // forward declaration
+
 }  // namespace semantic
 
 /*!
@@ -36,8 +40,7 @@ class Compiler {
    * \brief convert tree ensemble model into semantic model
    * \return semantic model
    */
-  virtual std::unique_ptr<semantic::CodeBlock>
-  Export(const Model& model) = 0;
+  virtual semantic::SemanticModel Compile(const Model& model) = 0;
   /*!
    * \brief create a compiler from given name
    * \param name name of compiler

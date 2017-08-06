@@ -7,9 +7,19 @@
 #ifndef TREELITE_COMMON_H_
 #define TREELITE_COMMON_H_
 
-#include <memory>
-#include <dmlc/logging.h>
 #include <treelite/base.h>
+#include <dmlc/logging.h>
+#include <dmlc/json.h>
+#include <dmlc/data.h>
+#include <memory>
+#include <iterator>
+
+#ifndef _WIN32
+#include <libgen.h>
+#include <cstring>
+#else
+#include <cstdlib>
+#endif
 
 namespace treelite {
 namespace common {
@@ -99,6 +109,51 @@ inline std::string FloatToString(tl_float value) {
   oss << value;
   return oss.str();
 }
+
+inline void LoadAnnotation(const std::string& filename,
+                           std::vector<std::vector<size_t>>* out_annotation) {
+  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename.c_str(), "r"));
+  dmlc::istream is(fi.get());
+  auto reader = std::make_unique<dmlc::JSONReader>(&is);
+  reader->Read(out_annotation);
+}
+
+inline void WriteToFile(const std::string& filename,
+                        const std::vector<std::string>& lines) {
+  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename.c_str(), "w"));
+  dmlc::ostream os(fo.get());
+  std::copy(lines.begin(), lines.end(),
+            std::ostream_iterator<std::string>(os, "\n"));
+  // force flush before fo destruct.
+  os.set_stream(nullptr);
+}
+
+inline void TransformPushBack(std::vector<std::string>* p_dest,
+                              const std::vector<std::string>& lines,
+                              std::function<std::string(std::string)> func) {
+  auto& dest = *p_dest;
+  std::transform(lines.begin(), lines.end(), std::back_inserter(dest), func);
+}
+
+#ifndef _WIN32
+// basename for UNIX-like systems
+inline std::string GetBasename(const std::string& path) {
+  char* path_ = strdup(path.c_str());
+  char* base = basename(path_);
+  std::string ret(base);
+  free(path_);
+  return ret;
+}
+#else
+// basename for Windows
+inline std::string GetBasename(const std::string& path) {
+  std::vector<char> fname(path.length() + 1);
+  std::vector<char> ext(path.length() + 1);
+  _splitpath_s(path.c_str(), NULL, 0, NULL, 0,
+      &fname[0], path.length() + 1, &ext[0], path.length() + 1);
+  return std::string(&fname[0]) + std::string(&ext[0]);
+}
+#endif
 
 }  // namespace common
 }  // namespace treelite

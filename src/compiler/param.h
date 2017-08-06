@@ -18,10 +18,10 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   std::string annotate_in;
   /*! \brief whether to quantize threshold points (0: no, >0: yes) */
   int quantize;
-  /*! \brief option to distribute compiled trees into different files;
-             set to nonzero to specify the number of trees each file
-             should contain */
-  int dist_comp;
+  /*! \brief option to enable parallel compilation;
+             if set to nonzero, the trees will be evely distributed
+             into [parallel_comp] files. */
+  int parallel_comp;
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
@@ -29,10 +29,10 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
       .describe("Name of model annotation file");
     DMLC_DECLARE_FIELD(quantize).set_lower_bound(0).set_default(0)
       .describe("whether to quantize threshold points (0: no, >0: yes)");
-    DMLC_DECLARE_FIELD(dist_comp).set_lower_bound(0).set_default(0)
-      .describe("option to distribute compiled trees into different files; "
-                "set to nonzero to specify the number of trees each file "
-                "should contain");
+    DMLC_DECLARE_FIELD(parallel_comp).set_lower_bound(0).set_default(0)
+      .describe("option to enable parallel compilation;"
+                "if set to nonzero, the trees will be evely distributed"
+                "into [parallel_comp] files.");
   }
 };
 

@@ -9,8 +9,6 @@
 #include <treelite/compiler.h>
 #include <treelite/tree.h>
 #include <treelite/semantic.h>
-#include <dmlc/data.h>
-#include <dmlc/json.h>
 #include <dmlc/registry.h>
 #include <queue>
 #include <algorithm>
@@ -19,7 +17,6 @@
 
 namespace {
 
-using Annotation = std::vector<std::vector<size_t>>;
 class SplitCondition : public treelite::semantic::Condition {
  public:
   using NumericAdapter
@@ -81,60 +78,95 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     LOG(INFO) << "RecursiveCompiler yah";
   }
   
+  using SemanticModel = semantic::SemanticModel;
+  using TranslationUnit = semantic::TranslationUnit;
   using CodeBlock = semantic::CodeBlock;
   using PlainBlock = semantic::PlainBlock;
   using FunctionBlock = semantic::FunctionBlock;
   using SequenceBlock = semantic::SequenceBlock;
   using IfElseBlock = semantic::IfElseBlock;
 
-  std::unique_ptr<CodeBlock>
-  Export(const Model& model) override {
+  SemanticModel Compile(const Model& model) override {
     Metadata info;
     info.Init(model, QuantizePolicy::QuantizeFlag());
     QuantizePolicy::Init(std::move(info));
 
-    Annotation annotation;
+    std::vector<std::vector<size_t>> annotation;
     bool annotate = false;
     if (param.annotate_in != "NULL") {
-      std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(
-                                       param.annotate_in.c_str(), "r"));
-      dmlc::istream is(fi.get());
-      auto reader = std::make_unique<dmlc::JSONReader>(&is);
-      reader->Read(&annotation);
+      common::LoadAnnotation(param.annotate_in, &annotation);
       annotate = true;
     }
 
+    SemanticModel semantic_model;
     SequenceBlock sequence;
-    sequence.Reserve(model.trees.size() + 3);
-    sequence.PushBack(PlainBlock("float sum = 0.0f;"));
-    sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
-    for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
-      const Tree& tree = model.trees[tree_id];
-      if (!annotation.empty()) {
-        sequence.PushBack(common::MoveUniquePtr(WalkTree(tree,
-                                                annotation[tree_id])));
-      } else {
-        sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
+    if (param.parallel_comp > 0) {
+      const size_t ngroup = param.parallel_comp;
+      sequence.Reserve(model.trees.size() + 3);
+      sequence.PushBack(PlainBlock("float sum = 0.0f;"));
+      sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
+      for (size_t group_id = 0; group_id < ngroup; ++group_id) {
+        sequence.PushBack(PlainBlock(std::string("sum += predict_margin_group")
+                                     + std::to_string(group_id)
+                                     + "(data);"));
+      }
+      sequence.PushBack(PlainBlock("return sum;"));
+    } else {
+      sequence.Reserve(model.trees.size() + 3);
+      sequence.PushBack(PlainBlock("float sum = 0.0f;"));
+      sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
+      for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
+        const Tree& tree = model.trees[tree_id];
+        if (!annotation.empty()) {
+          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree,
+                                                  annotation[tree_id])));
+        } else {
+          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
+        }
+      }
+      sequence.PushBack(PlainBlock("return sum;"));
+    }
+    FunctionBlock function("float predict_margin(union Entry* data)",
+      std::move(sequence), &semantic_model.function_registry);
+    auto file_preamble = QuantizePolicy::PreprocessingPreamble();
+    semantic_model.units.emplace_back(PlainBlock(file_preamble),
+                                      std::move(function));
+    if (param.parallel_comp > 0) {
+      const size_t ngroup = param.parallel_comp;
+      const size_t group_size = (model.trees.size() + ngroup - 1) / ngroup;
+      for (size_t group_id = 0; group_id < ngroup; ++group_id) {
+        const size_t tree_begin = group_id * group_size;
+        const size_t tree_end = std::min((group_id + 1) * group_size,
+                                         model.trees.size());
+        SequenceBlock group_seq;
+        group_seq.Reserve(tree_end - tree_begin + 2);
+        group_seq.PushBack(PlainBlock("float sum = 0.0f;"));
+        for (size_t tree_id = tree_begin; tree_id < tree_end; ++tree_id) {
+          const Tree& tree = model.trees[tree_id];
+          if (!annotation.empty()) {
+            group_seq.PushBack(common::MoveUniquePtr(WalkTree(tree,
+                                                     annotation[tree_id])));
+          } else {
+            group_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
+          }
+        }
+        group_seq.PushBack(PlainBlock("return sum;"));
+        FunctionBlock group_func(std::string("float predict_margin_group")
+                                 + std::to_string(group_id)
+                                 + "(union Entry* data)", std::move(group_seq),
+                                 &semantic_model.function_registry);
+        semantic_model.units.emplace_back(PlainBlock(), std::move(group_func));
       }
     }
-    sequence.PushBack(PlainBlock("return sum;"));
-
-    FunctionBlock function("float predict_margin(union Entry* data)",
-      std::move(sequence));
-
-    auto preamble = QuantizePolicy::Preamble();
-    preamble.emplace_back();
+    auto header = QuantizePolicy::CommonHeader();
     if (annotate) {
-      preamble.emplace_back("#define LIKELY(x)     __builtin_expect(!!(x), 1)");
-      preamble.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
+      header.emplace_back();
+      header.emplace_back("#define LIKELY(x)     __builtin_expect(!!(x), 1)");
+      header.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
     }
-
-    auto file = std::make_unique<SequenceBlock>();
-    file->Reserve(2);
-    file->PushBack(PlainBlock(std::move(preamble)));
-    file->PushBack(std::move(function));
-
-    return std::move(file);
+    semantic_model.common_header
+             = std::move(std::make_unique<PlainBlock>(header));
+    return semantic_model;
   }
 
  private:
@@ -204,11 +236,14 @@ class NoQuantize : private MetadataStore {
       return oss.str();
     };
   }
-  std::vector<std::string> Preamble() const {
+  std::vector<std::string> CommonHeader() const {
     return {"union Entry {",
             "  int missing;",
             "  float fvalue;",
             "};"};
+  }
+  std::vector<std::string> PreprocessingPreamble() const {
+    return {};
   }
   std::vector<std::string> Preprocessing() const {
     return {};
@@ -244,13 +279,15 @@ class Quantize : private MetadataStore {
       return oss.str();
     };
   }
-  std::vector<std::string> Preamble() const {
-    std::vector<std::string> ret{"union Entry {",
-                                 "  int missing;",
-                                 "  float fvalue;",
-                                 "  int qvalue;",
-                                 "};"};
-    ret.emplace_back("static const float threshold[] = {");
+  std::vector<std::string> CommonHeader() const {
+    return {"union Entry {",
+            "  int missing;",
+            "  float fvalue;",
+            "  int qvalue;",
+            "};"};
+  }
+  std::vector<std::string> PreprocessingPreamble() const {
+    std::vector<std::string> ret{"static const float threshold[] = {"};
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -263,6 +300,7 @@ class Quantize : private MetadataStore {
       }
       ret.push_back(oss.str());
       ret.emplace_back("};");
+      ret.emplace_back();
     }
     ret.emplace_back("static const int th_begin[] = {");
     {
@@ -277,6 +315,7 @@ class Quantize : private MetadataStore {
       }
       ret.push_back(oss.str());
       ret.emplace_back("};");
+      ret.emplace_back();
     }
     ret.emplace_back("static const int th_len[] = {");
     {
@@ -289,6 +328,7 @@ class Quantize : private MetadataStore {
       }
       ret.push_back(oss.str());
       ret.emplace_back("};");
+      ret.emplace_back();
     }
 
     auto func = semantic::FunctionBlock(
@@ -320,7 +360,7 @@ class Quantize : private MetadataStore {
             "  return len * 2;",
             "} else {",
             "  return low * 2 + 1;",
-            "}"})).Compile();
+            "}"}), nullptr).Compile();
     ret.insert(ret.end(), func.begin(), func.end());
     return ret;
   }

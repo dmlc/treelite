@@ -197,7 +197,7 @@ void CLIAnnotate(const CLIParam& param) {
 
   CHECK_NE(param.train_path, "NULL")
     << "Need to specify train_path paramter for annotation task";
-  std::unique_ptr<dmlc::Parser<uint32_t> > data_parser(
+  std::unique_ptr<dmlc::Parser<uint32_t>> data_parser(
       dmlc::Parser<uint32_t>::Create(param.train_path.c_str(), 0, 1,
                                      FileFormatString(param.train_format)));
   std::vector<size_t> counts;

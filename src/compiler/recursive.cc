@@ -6,6 +6,7 @@
  */
 
 #include <treelite/common.h>
+#include <treelite/annotator.h>
 #include <treelite/compiler.h>
 #include <treelite/tree.h>
 #include <treelite/semantic.h>
@@ -94,7 +95,11 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     std::vector<std::vector<size_t>> annotation;
     bool annotate = false;
     if (param.annotate_in != "NULL") {
-      common::LoadAnnotation(param.annotate_in, &annotation);
+      BranchAnnotator annotator;
+      std::unique_ptr<dmlc::Stream> fi(
+        dmlc::Stream::Create(param.annotate_in.c_str(), "r"));
+      annotator.Load(fi.get());
+      annotation = annotator.Get();
       annotate = true;
     }
 

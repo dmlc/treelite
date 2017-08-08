@@ -6,11 +6,11 @@
  */
 
 #include <treelite/frontend.h>
+#include <treelite/annotator.h>
 #include <treelite/compiler.h>
 #include <treelite/semantic.h>
 #include <dmlc/config.h>
 #include <dmlc/data.h>
-#include <iostream>
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -19,7 +19,6 @@
 #include <string>
 #include <omp.h>
 #include "./compiler/param.h"
-#include "./traversal.h"
 
 namespace treelite {
 
@@ -200,27 +199,12 @@ void CLIAnnotate(const CLIParam& param) {
   std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.train_path.c_str(),
                                          FileFormatString(param.train_format),
                                          param.nthread, param.verbose));
-  std::vector<size_t> counts;
-  std::vector<size_t> row_ptr;
-  common::ComputeBranchFrequenciesFromData(model, *dmat.get(), &counts,
-                                         &row_ptr, param.nthread, param.verbose);
+  BranchAnnotator annotator;
+  annotator.Annotate(model, dmat.get(), param.nthread, param.verbose);
   // write to json file
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_annotate.c_str(), "w"));
-  dmlc::ostream os(fo.get());
-  auto writer = std::make_unique<dmlc::JSONWriter>(&os);
-  writer->BeginArray();
-  for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
-    writer->WriteArraySeperator();
-    writer->BeginArray(false);
-    const uint32_t ibegin = row_ptr[tree_id];
-    const uint32_t iend = row_ptr[tree_id + 1];
-    for (uint32_t i = ibegin; i < iend; ++i) {
-      writer->WriteArrayItem(counts[i]);
-    }
-    writer->EndArray();
-  }
-  writer->EndArray();
+  annotator.Save(fo.get());
 }
 
 int CLIRunTask(int argc, char* argv[]) {

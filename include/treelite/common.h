@@ -110,14 +110,6 @@ inline std::string FloatToString(tl_float value) {
   return oss.str();
 }
 
-inline void LoadAnnotation(const std::string& filename,
-                           std::vector<std::vector<size_t>>* out_annotation) {
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename.c_str(), "r"));
-  dmlc::istream is(fi.get());
-  auto reader = std::make_unique<dmlc::JSONReader>(&is);
-  reader->Read(out_annotation);
-}
-
 inline void WriteToFile(const std::string& filename,
                         const std::vector<std::string>& lines) {
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename.c_str(), "w"));

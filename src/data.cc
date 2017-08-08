@@ -1,0 +1,63 @@
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file data.h
+ * \author Philip Cho
+ * \brief Input data structure of treelite
+ */
+
+#include <treelite/data.h>
+#include <memory>
+#include <omp.h>
+
+namespace treelite {
+
+DMatrix*
+DMatrix::Create(const char* filename, const char* format,
+                int nthread, int verbose) {
+  std::unique_ptr<dmlc::Parser<uint32_t>> parser(
+    dmlc::Parser<uint32_t>::Create(filename, 0, 1, format));
+  return Create(parser.get(), nthread, verbose);
+}
+
+DMatrix*
+DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
+  const int max_thread = omp_get_max_threads();
+  nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
+
+  DMatrix* dmat = new DMatrix();
+  dmat->Clear();
+  std::vector<size_t> max_col_ind(nthread, 0);
+  parser->BeforeFirst();
+  while (parser->Next()) {
+    const dmlc::RowBlock<uint32_t>& batch = parser->Value();
+    dmat->num_row += batch.size;
+    const size_t top = dmat->data.size();
+    dmat->data.resize(top + batch.offset[batch.size] - batch.offset[0]);
+    dmat->col_ind.resize(top + batch.offset[batch.size] - batch.offset[0]);
+    #pragma omp parallel for schedule(static) num_threads(nthread)
+    for (size_t i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
+      const int tid = omp_get_thread_num();
+      const uint32_t index = batch.index[i];
+      const float fvalue = (batch.value == nullptr) ? 1.0f : 
+                           static_cast<float>(batch.value[i]);
+      const size_t offset = top + i - batch.offset[0];
+      dmat->data[offset] = fvalue;
+      dmat->col_ind[offset] = index;
+      max_col_ind[tid] = std::max(max_col_ind[tid], static_cast<size_t>(index));
+    }
+    const size_t rtop = dmat->row_ptr.size();
+    dmat->row_ptr.resize(rtop + batch.size);
+    #pragma omp parallel for schedule(static) num_threads(nthread)
+    for (size_t i = 0; i < batch.size; ++i) {
+      dmat->row_ptr[rtop + i]
+        = dmat->row_ptr[rtop - 1] + batch.offset[i + 1] - batch.offset[0];
+    }
+    if (verbose > 0) {
+      LOG(INFO) << dmat->num_row << " rows read into memory";
+    }
+  }
+  dmat->num_col = *std::max_element(max_col_ind.begin(), max_col_ind.end()) + 1;
+  return dmat;
+}
+
+}  // namespace treelite

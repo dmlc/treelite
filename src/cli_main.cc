@@ -51,8 +51,8 @@ inline const char* FileFormatString(int format) {
 struct CLIParam : public dmlc::Parameter<CLIParam> {
   /*! \brief the task name */
   int task;
-  /*! \brief whether silent */
-  int silent;
+  /*! \brief whether verbose */
+  int verbose;
   /*! \brief model format */
   int format;
   /*! \brief model file */
@@ -77,8 +77,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .add_enum("train", kCodegen)
         .add_enum("annotate", kAnnotate)
         .describe("Task to be performed by the CLI program.");
-    DMLC_DECLARE_FIELD(silent).set_default(0).set_range(0, 2)
-        .describe("Silence level during the task; >0 generates more messages");
+    DMLC_DECLARE_FIELD(verbose).set_default(0)
+        .describe("Produce extra messages if >0");
     DMLC_DECLARE_FIELD(format)
         .add_enum("xgboost", kXGBModel)
         .add_enum("lightgbm", kLGBModel)
@@ -197,13 +197,13 @@ void CLIAnnotate(const CLIParam& param) {
 
   CHECK_NE(param.train_path, "NULL")
     << "Need to specify train_path paramter for annotation task";
-  std::unique_ptr<dmlc::Parser<uint32_t>> data_parser(
-      dmlc::Parser<uint32_t>::Create(param.train_path.c_str(), 0, 1,
-                                     FileFormatString(param.train_format)));
+  std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.train_path.c_str(),
+                                         FileFormatString(param.train_format),
+                                         param.nthread, param.verbose));
   std::vector<size_t> counts;
-  std::vector<uint32_t> row_ptr;
-  common::ComputeBranchFrequenciesFromData(model, data_parser.get(), &counts,
-                                         &row_ptr, param.nthread, param.silent);
+  std::vector<size_t> row_ptr;
+  common::ComputeBranchFrequenciesFromData(model, *dmat.get(), &counts,
+                                         &row_ptr, param.nthread, param.verbose);
   // write to json file
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_annotate.c_str(), "w"));

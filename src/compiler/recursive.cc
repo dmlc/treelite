@@ -170,7 +170,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       header.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
     }
     semantic_model.common_header
-             = std::move(std::make_unique<PlainBlock>(header));
+             = std::move(common::make_unique<PlainBlock>(header));
     return semantic_model;
   }
 

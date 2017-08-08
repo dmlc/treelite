@@ -138,14 +138,14 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
 void
 BranchAnnotator::Load(dmlc::Stream* fi) {
   dmlc::istream is(fi);
-  auto reader = std::make_unique<dmlc::JSONReader>(&is);
+  auto reader = common::make_unique<dmlc::JSONReader>(&is);
   reader->Read(&counts);
 }
 
 void
 BranchAnnotator::Save(dmlc::Stream* fo) const {
   dmlc::ostream os(fo);
-  auto writer = std::make_unique<dmlc::JSONWriter>(&os);
+  auto writer = common::make_unique<dmlc::JSONWriter>(&os);
   writer->Write(counts);
 }
 

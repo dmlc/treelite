@@ -74,7 +74,7 @@ struct ModelBufferImpl {
 };
 
 ModelBuffer::ModelBuffer(int num_features)
-  : pimpl(std::make_unique<ModelBufferImpl>(num_features)) {}
+  : pimpl(common::make_unique<ModelBufferImpl>(num_features)) {}
 ModelBuffer::~ModelBuffer() {}
 
 int
@@ -111,7 +111,7 @@ ModelBuffer::CreateNode(int tree_index, int node_key) {
   auto& nodes = trees[tree_index].nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) == 0,
                      "CreateNode: nodes with duplicate keys are not allowed");
-  nodes[node_key] = std::make_unique<_Node>();
+  nodes[node_key] = common::make_unique<_Node>();
   return true;
 }
 

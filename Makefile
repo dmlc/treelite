@@ -45,7 +45,7 @@ endif
 endif
 
 export LDFLAGS= -pthread -lm $(ADD_LDFLAGS) $(DMLC_LDFLAGS)
-export CFLAGS=  -std=c++14 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS)
+export CFLAGS=  -std=c++11 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS)
 CFLAGS += -I$(DMLC_CORE)/include
 
 ifeq ($(TEST_COVER), 1)

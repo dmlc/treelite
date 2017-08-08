@@ -44,7 +44,7 @@ export CXX = g++
 endif
 endif
 
-export LDFLAGS= -pthread -lm $(ADD_LDFLAGS) $(DMLC_LDFLAGS)
+export LDFLAGS= -pthread -lm -ldl $(ADD_LDFLAGS) $(DMLC_LDFLAGS)
 export CFLAGS=  -std=c++11 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS)
 CFLAGS += -I$(DMLC_CORE)/include
 

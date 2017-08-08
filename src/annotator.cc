@@ -60,18 +60,17 @@ void Traverse(const treelite::Tree& tree, const Entry* data,
   Traverse_(tree, data, 0, out_counts);
 }
 
-static inline void ComputeBranchLoop(const treelite::Model& model,
-                                     const treelite::DMatrix* dmat,
-                                     size_t rbegin, size_t rend, int nthread,
-                                     std::vector<size_t>& count_row_ptr,
-                                     std::vector<size_t>& counts_tloc,
-                                     std::vector<Entry>& inst) {
+inline void ComputeBranchLoop(const treelite::Model& model,
+                              const treelite::DMatrix* dmat,
+                              size_t rbegin, size_t rend, int nthread,
+                              const size_t* count_row_ptr,
+                              size_t* counts_tloc, Entry* inst) {
   const size_t ntree = model.trees.size();
   #pragma omp parallel for schedule(static) num_threads(nthread)
   for (size_t rid = rbegin; rid < rend; ++rid) {
     const int tid = omp_get_thread_num();
     const size_t off = dmat->num_col * tid;
-    const size_t off2 = count_row_ptr.back() * tid;
+    const size_t off2 = count_row_ptr[ntree] * tid;
     const size_t ibegin = dmat->row_ptr[rid];
     const size_t iend = dmat->row_ptr[rid + 1];
     for (size_t i = ibegin; i < iend; ++i) {
@@ -98,13 +97,14 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
   count_row_ptr = {0};
+  const size_t ntree = model.trees.size();
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
   for (const Tree& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);
   }
-  counts.resize(count_row_ptr.back(), 0);
-  counts_tloc.resize(count_row_ptr.back() * nthread, 0);
+  counts.resize(count_row_ptr[ntree], 0);
+  counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
   
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
   const size_t pstep = (dmat->num_row + 99) / 100;
@@ -112,23 +112,21 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, dmat->num_row);
     ComputeBranchLoop(model, dmat, rbegin, rend, nthread,
-                      count_row_ptr, counts_tloc, inst);
+                      &count_row_ptr[0], &counts_tloc[0], &inst[0]);
     if (verbose > 0) {
       LOG(INFO) << rend << " of " << dmat->num_row << " rows processed";
     }
   }
 
   // perform reduction on counts
-  const size_t tot = count_row_ptr.back();  // # of all nodes in all trees
   for (int tid = 0; tid < nthread; ++tid) {
-    const size_t off = tot * tid;
-    for (size_t i = 0; i < tot; ++i) {
+    const size_t off = count_row_ptr[ntree] * tid;
+    for (size_t i = 0; i < count_row_ptr[ntree]; ++i) {
       counts[i] += counts_tloc[off + i];
     }
   }
   
   // change layout of counts
-  const size_t ntree = model.trees.size();
   for (size_t i = 0; i < ntree; ++i) {
     this->counts.emplace_back(&counts[count_row_ptr[i]],
                               &counts[count_row_ptr[i + 1]]);

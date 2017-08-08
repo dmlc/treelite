@@ -59,6 +59,10 @@ TREELITE_DLL int TreeliteDMatrixCreateFromMat(const float* data,
                                               int nthread,
                                               int verbose,
                                               DMatrixHandle* out);
+TREELITE_DLL int TreeliteDMatrixGetDimension(DMatrixHandle handle,
+                                             size_t* out_num_row,
+                                             size_t* out_num_col,
+                                             size_t* nnz);
 TREELITE_DLL int TreeliteDMatrixFree(DMatrixHandle handle);
 
 /* branch annotation */
@@ -92,7 +96,7 @@ TREELITE_DLL int TreelitePredictorPredict(PredictorHandle handle,
                                           DMatrixHandle dmat,
                                           int nthread,
                                           int verbose,
-                                          const float** out_result);
+                                          float* out_result);
 TREELITE_DLL int TreelitePredictorFree(PredictorHandle handle);
 
 /* file interface: read from the disk */

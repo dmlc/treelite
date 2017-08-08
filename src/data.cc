@@ -31,6 +31,7 @@ DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
   while (parser->Next()) {
     const dmlc::RowBlock<uint32_t>& batch = parser->Value();
     dmat->num_row += batch.size;
+    dmat->nnz += batch.offset[batch.size];
     const size_t top = dmat->data.size();
     dmat->data.resize(top + batch.offset[batch.size] - batch.offset[0]);
     dmat->col_ind.resize(top + batch.offset[batch.size] - batch.offset[0]);

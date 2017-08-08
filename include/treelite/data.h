@@ -17,13 +17,14 @@ struct DMatrix {
   std::vector<uint32_t> col_ind;
   size_t num_row;
   size_t num_col;
+  size_t nnz;  // number of nonzero entries
 
   inline void Clear() {
     data.clear();
     row_ptr.clear();
     col_ind.clear();
     row_ptr.resize(1, 0);
-    num_row = num_col = 0;
+    num_row = num_col = nnz = 0;
   }
   static DMatrix* Create(const char* filename, const char* format,
                          int nthread, int verbose);

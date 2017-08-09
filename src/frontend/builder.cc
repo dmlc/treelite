@@ -1,7 +1,7 @@
 /*!
  * Copyright 2017 by Contributors
- * \file interactive.cc
- * \brief Interactive frontend: build tree interactively
+ * \file builder.cc
+ * \brief model builder frontend
  * \author Philip Cho
  */
 
@@ -60,9 +60,9 @@ struct _Tree {
 
 namespace treelite {
 namespace frontend {
-namespace interactive {
+namespace builder {
 
-DMLC_REGISTRY_FILE_TAG(interactive);
+DMLC_REGISTRY_FILE_TAG(builder);
 
 struct ModelBufferImpl {
   std::vector<_Tree> trees;
@@ -261,6 +261,6 @@ ModelBuffer::CommitModel(Model* out_model) {
   return true;
 }
 
-}  // namespace interactive
+}  // namespace builder
 }  // namespace frontend
 }  // namespace treelite

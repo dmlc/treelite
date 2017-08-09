@@ -21,8 +21,8 @@ Model LoadLightGBMModel(const char* filename);
 Model LoadXGBoostModel(const char* filename);
 Model LoadProtobuf(const char* filename);
 
-/* interactive interface: build trees incrementally */
-namespace interactive {
+/* model builder interface: build trees incrementally */
+namespace builder {
 
 struct ModelBufferImpl;  // forward declaration
 
@@ -104,7 +104,7 @@ class ModelBuffer {
   std::unique_ptr<ModelBufferImpl> pimpl;  // Pimpl pattern
 };
 
-}  // namespace interactive
+}  // namespace builder
 
 }  // namespace frontend
 }  // namespace treelite

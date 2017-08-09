@@ -176,7 +176,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
 
  private:
   CompilerParam param;
-  
+
   std::unique_ptr<CodeBlock> WalkTree(const Tree& tree,
                                       const std::vector<size_t>& counts) const {
     return WalkTree_(tree, counts, 0);
@@ -185,25 +185,25 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
   std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree,
                                        const std::vector<size_t>& counts,
                                        int nid) const {
-    using semantic::LikelyDirection;
+    using semantic::BranchHint;
     const Tree::Node& node = tree[nid];
     if (node.is_leaf()) {
       const tl_float leaf_value = node.leaf_value();
       return std::unique_ptr<CodeBlock>(new PlainBlock(
         std::string("sum += ") + common::FloatToString(leaf_value) + ";"));
     } else {
-      LikelyDirection likely_direction = LikelyDirection::kNone;
+      BranchHint branch_hint = BranchHint::kNone;
       if (!counts.empty()) {
         const size_t left_count = counts[node.cleft()];
         const size_t right_count = counts[node.cright()];
-        likely_direction = (left_count > right_count) ? LikelyDirection::kLeft
-                                                      : LikelyDirection::kRight;
+        branch_hint = (left_count > right_count) ? BranchHint::kLikely
+                                                 : BranchHint::kUnlikely;
       }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
         SplitCondition(node, QuantizePolicy::NumericAdapter()),
         common::MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
         common::MoveUniquePtr(WalkTree_(tree, counts, node.cright())),
-        likely_direction)
+        branch_hint)
       );
     }
   }

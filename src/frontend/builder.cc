@@ -64,21 +64,21 @@ namespace builder {
 
 DMLC_REGISTRY_FILE_TAG(builder);
 
-struct ModelBufferImpl {
+struct ModelBuilderImpl {
   std::vector<_Tree> trees;
   int num_features;
-  inline ModelBufferImpl(int num_features)
+  inline ModelBuilderImpl(int num_features)
     : trees(), num_features(num_features) {
-    CHECK_GT(num_features, 0) << "ModelBuffer: num_features must be positive";
+    CHECK_GT(num_features, 0) << "ModelBuilder: num_features must be positive";
   }
 };
 
-ModelBuffer::ModelBuffer(int num_features)
-  : pimpl(common::make_unique<ModelBufferImpl>(num_features)) {}
-ModelBuffer::~ModelBuffer() {}
+ModelBuilder::ModelBuilder(int num_features)
+  : pimpl(common::make_unique<ModelBuilderImpl>(num_features)) {}
+ModelBuilder::~ModelBuilder() {}
 
 int
-ModelBuffer::CreateTree(int index) {
+ModelBuilder::CreateTree(int index) {
   auto& trees = pimpl->trees;
   if (index == -1) {
     trees.push_back(_Tree());
@@ -95,7 +95,7 @@ ModelBuffer::CreateTree(int index) {
 }
 
 bool
-ModelBuffer::DeleteTree(int index) {
+ModelBuilder::DeleteTree(int index) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(index) < trees.size(),
                      "DeleteTree: index out of bound");
@@ -104,7 +104,7 @@ ModelBuffer::DeleteTree(int index) {
 }
 
 bool
-ModelBuffer::CreateNode(int tree_index, int node_key) {
+ModelBuilder::CreateNode(int tree_index, int node_key) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
                      "CreateNode: tree_index out of bound");
@@ -116,7 +116,7 @@ ModelBuffer::CreateNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuffer::DeleteNode(int tree_index, int node_key) {
+ModelBuilder::DeleteNode(int tree_index, int node_key) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
                      "DeleteNode: tree_index out of bound");
@@ -139,7 +139,7 @@ ModelBuffer::DeleteNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuffer::SetRootNode(int tree_index, int node_key) {
+ModelBuilder::SetRootNode(int tree_index, int node_key) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
                      "SetRootNode: tree_index out of bound");
@@ -157,9 +157,9 @@ ModelBuffer::SetRootNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuffer::SetTestNode(int tree_index, int node_key, unsigned feature_id,
-                         Operator op, tl_float threshold, bool default_left,
-                         int left_child_key, int right_child_key) {
+ModelBuilder::SetTestNode(int tree_index, int node_key, unsigned feature_id,
+                          Operator op, tl_float threshold, bool default_left,
+                          int left_child_key, int right_child_key) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
                      "SetTestNode: tree_index out of bound");
@@ -198,7 +198,7 @@ ModelBuffer::SetTestNode(int tree_index, int node_key, unsigned feature_id,
 }
 
 bool
-ModelBuffer::SetLeafNode(int tree_index, int node_key, tl_float leaf_value) {
+ModelBuilder::SetLeafNode(int tree_index, int node_key, tl_float leaf_value) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
                      "SetLeafNode: tree_index out of bound");
@@ -215,7 +215,7 @@ ModelBuffer::SetLeafNode(int tree_index, int node_key, tl_float leaf_value) {
 }
 
 bool
-ModelBuffer::CommitModel(Model* out_model) {
+ModelBuilder::CommitModel(Model* out_model) {
   Model model;
   model.num_features = pimpl->num_features;
   for (const auto& _tree : pimpl->trees) {

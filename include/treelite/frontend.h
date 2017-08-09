@@ -24,14 +24,13 @@ Model LoadProtobuf(const char* filename);
 /* model builder interface: build trees incrementally */
 namespace builder {
 
-struct ModelBufferImpl;  // forward declaration
+struct ModelBuilderImpl;  // forward declaration
 
-class ModelBuffer {
+/*! \brief model builder class */
+class ModelBuilder {
  public:
-  // constructor
-  ModelBuffer(int num_features);
-  // destructor
-  ~ModelBuffer();
+  ModelBuilder(int num_features);  // constructor
+  ~ModelBuilder();  // destructor
   /*!
    * \brief Create a new tree
    * \param index location within the ensemble at which the new tree
@@ -101,7 +100,7 @@ class ModelBuffer {
   bool CommitModel(Model* out_model);
 
  private:
-  std::unique_ptr<ModelBufferImpl> pimpl;  // Pimpl pattern
+  std::unique_ptr<ModelBuilderImpl> pimpl;  // Pimpl pattern
 };
 
 }  // namespace builder

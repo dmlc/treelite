@@ -238,7 +238,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       } else {  // non-leaf
         const unsigned split_index =
           static_cast<unsigned>(lgb_tree.split_feature[old_id]);
-        const treelite::tl_float threshold = 
+        const treelite::tl_float threshold =
           static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
         const treelite::tl_float default_value =
           static_cast<treelite::tl_float>(lgb_tree.default_value[old_id]);

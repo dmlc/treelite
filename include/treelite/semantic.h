@@ -13,8 +13,11 @@
 namespace treelite {
 namespace semantic {
 
-enum class LikelyDirection : uint8_t {
-  kNone = 0, kLeft = 1, kRight = 2
+/*! \brief enum class to store branch annotation */
+enum class BranchHint : uint8_t {
+  kNone = 0,     /*!< no hint */
+  kLikely = 1,   /*!< condition >50% likely */
+  kUnlikely = 2  /*!< condition <50% likely */
 };
 
 inline std::string OpName(Operator op) {
@@ -121,23 +124,23 @@ class IfElseBlock : public CodeBlock {
   explicit IfElseBlock(const Condition& condition,
                        const CodeBlock& if_block,
                        const CodeBlock& else_block,
-                       LikelyDirection direction = LikelyDirection::kNone)
+                       BranchHint hint = BranchHint::kNone)
     : condition(condition), if_block(if_block), else_block(else_block),
-      likely_direction(direction) {}
+      branch_hint(hint) {}
   explicit IfElseBlock(Condition&& condition,
                        CodeBlock&& if_block,
                        CodeBlock&& else_block,
-                       LikelyDirection direction = LikelyDirection::kNone)
+                       BranchHint hint = BranchHint::kNone)
     : condition(std::move(condition)),
       if_block(std::move(if_block)), else_block(std::move(else_block)),
-      likely_direction(direction) {}
+      branch_hint(hint) {}
   CLONEABLE_BOILERPLATE(IfElseBlock)
   std::vector<std::string> Compile() const override;
  private:
   DeepCopyUniquePtr<Condition> condition;
   DeepCopyUniquePtr<CodeBlock> if_block;
   DeepCopyUniquePtr<CodeBlock> else_block;
-  LikelyDirection likely_direction;
+  BranchHint branch_hint;
 };
 
 }  // namespace semantic

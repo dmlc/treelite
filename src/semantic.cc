@@ -75,12 +75,12 @@ SequenceBlock::PushBack(CodeBlock&& block) {
 std::vector<std::string>
 IfElseBlock::Compile() const {
   std::vector<std::string> ret;
-  
-  if (likely_direction == LikelyDirection::kNone) {
+
+  if (branch_hint == BranchHint::kNone) {
     ret.push_back(std::string("if (") + condition->Compile() + ") {");
   } else {
     const std::string tag =
-           (likely_direction == LikelyDirection::kLeft) ? "LIKELY" : "UNLIKELY";
+                  (branch_hint == BranchHint::kLikely) ? "LIKELY" : "UNLIKELY";
     ret.push_back(std::string("if ( ") + tag + "( "
                                        + condition->Compile() + " ) ) {");
   }

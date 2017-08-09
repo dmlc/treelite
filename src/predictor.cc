@@ -44,7 +44,7 @@ inline void PredLoop(treelite::Predictor::PredFunc func,
 
 namespace treelite {
 
-Predictor::Predictor() {}
+Predictor::Predictor() : lib_handle_(nullptr), func_(nullptr) {}
 Predictor::~Predictor() {
   Free();
 }
@@ -87,6 +87,8 @@ Predictor::Free() {
 void
 Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
                    float* out_pred) {
+  CHECK(func_ != nullptr)
+    << "The predict_margin() function needs to be loaded first.";
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});

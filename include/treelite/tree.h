@@ -15,6 +15,7 @@
 
 namespace treelite {
 
+/*! \brief in-memory representation of a decision tree */
 class Tree {
  public:
   /*! \brief tree node */
@@ -74,7 +75,8 @@ class Tree {
      * \param split_index feature index to split
      * \param threshold threshold value
      * \param default_left the default direction when feature is unknown
-     * \param cmp comparison operator to compare between feature value and threshold
+     * \param cmp comparison operator to compare between feature value and
+     *            threshold
      */
     inline void set_split(unsigned split_index, tl_float threshold,
                           bool default_left, Operator cmp) {
@@ -92,7 +94,11 @@ class Tree {
       this->cleft_ = -1;
       this->cright_ = -1;
     }
-    // set parent
+    /*!
+     * \brief set parent of the node
+     * \param pidx node id of the parent
+     * \param is_left_child whether the node is left child or not
+     */
     inline void set_parent(int pidx, bool is_left_child = true) {
       if (is_left_child) pidx |= (1U << 31);
       this->parent_ = pidx;
@@ -100,23 +106,30 @@ class Tree {
 
    private:
     friend class Tree;
+    /*! \brief store either leaf value or decision threshold */
     union Info {
       tl_float leaf_value;  // for leaf nodes
       tl_float threshold;   // for non-leaf nodes
     };
-    // pointer to parent, highest bit is used to
-    // indicate whether it's a left child or not
+    /*!
+     * \brief pointer to parent
+     * highest bit is used to indicate whether it's a left child or not
+     */
     int parent_;
-    // pointer to left and right children
+    /*! \brief pointer to left and right children */
     int cleft_, cright_;
-    // split feature index;
-    // highest bit indicates default direction for missing values
+    /*!
+     * \brief feature index used for the split
+     * highest bit indicates default direction for missing values
+     */
     unsigned sindex_;
-    // extra info: leaf value or threshold
+    /*! \brief storage for leaf value or decision threshold */
     Info info_;
-    // operator to use for expression of form [fval] OP [threshold]
-    // If the expression evaluates to true, take the left child;
-    // otherwise, take the right child.
+    /*!
+     * \brief operator to use for expression of form [fval] OP [threshold].
+     * If the expression evaluates to true, take the left child;
+     * otherwise, take the right child.
+     */
     Operator cmp_;
   };
 
@@ -133,12 +146,21 @@ class Tree {
   }
 
  public:
+  /*! \brief number of nodes */
   int num_nodes;
-  /*! \brief get node given nid */
+  /*!
+   * \brief get node given nid
+   * \param nid node id
+   * \return reference to node
+   */
   inline Node& operator[](int nid) {
     return nodes[nid];
   }
-  /*! \brief get node given nid */
+  /*!
+   * \brief get node given nid (const version)
+   * \param nid node id
+   * \return const reference to node
+   */
   inline const Node& operator[](int nid) const {
     return nodes[nid];
   }
@@ -163,9 +185,14 @@ class Tree {
   }
 };
 
-// thin wrapper for ensemble model
+/*! \brief thin wrapper for tree ensemble model */
 struct Model {
+  /*! \brief member trees */
   std::vector<Tree> trees;
+  /*!
+   * \brief number of features used for the model.
+   * It is assumed that all feature indices are between 0 and [num_features]-1.
+   */
   int num_features;
 };
 

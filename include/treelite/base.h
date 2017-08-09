@@ -11,12 +11,17 @@
 
 namespace treelite {
 
-typedef double tl_float;
+/*! \brief float type to be used internally */
+typedef float tl_float;
 /*! \brief comparison operators */
 enum class Operator : int8_t {
-  kEQ, kLT, kLE, kGT, kGE  // ==, <, <=, >, >=
+  kEQ,  /*!< operator == */
+  kLT,  /*!< operator <  */
+  kLE,  /*!< operator <= */
+  kGT,  /*!< operator >  */
+  kGE   /*!< operator >= */
 };
 
 }  // namespace treelite
 
-#endif  // TREELITE_BASE_H_ 
+#endif  // TREELITE_BASE_H_

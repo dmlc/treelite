@@ -29,9 +29,7 @@ class SemanticModel;  // forward declaration
 
 }  // namespace semantic
 
-/*!
- * \brief interface of compiler
- */
+/*! \brief interface of compiler */
 class Compiler {
  public:
   /*! \brief virtual destructor */

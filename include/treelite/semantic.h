@@ -20,6 +20,11 @@ enum class BranchHint : uint8_t {
   kUnlikely = 2  /*!< condition <50% likely */
 };
 
+/*!
+ * \brief get string representation of comparsion operator
+ * \param op comparison operator
+ * \return string representation
+ */
 inline std::string OpName(Operator op) {
   switch(op) {
     case Operator::kEQ: return "==";
@@ -34,12 +39,17 @@ inline std::string OpName(Operator op) {
 using common::Cloneable;
 using common::DeepCopyUniquePtr;
 
+/*!
+ * \brief fundamental block in semantic model.
+ * All code blocks should inherit from this class.
+ */
 class CodeBlock : public Cloneable {
  public:
   virtual ~CodeBlock() = default;
   virtual std::vector<std::string> Compile() const = 0;
 };
 
+/*! \brief translation unit is abstraction of a source file */
 class TranslationUnit {
  public:
   explicit TranslationUnit(const CodeBlock& preamble, const CodeBlock& body)
@@ -54,12 +64,17 @@ class TranslationUnit {
   DeepCopyUniquePtr<CodeBlock> body;
 };
 
+/*!
+ * \brief semantic model consists of a header, function registry, and
+ *        a list of translation units
+ */
 struct SemanticModel {
   std::unique_ptr<CodeBlock> common_header;
-  std::vector<std::string> function_registry;
+  std::vector<std::string> function_registry;  // list of function prototypes
   std::vector<TranslationUnit> units;
 };
 
+/*! \brief plain code block containing one or more lines of code */
 class PlainBlock : public CodeBlock {
  public:
   explicit PlainBlock()
@@ -76,6 +91,10 @@ class PlainBlock : public CodeBlock {
   std::vector<std::string> inner_text;
 };
 
+/*!
+ * \brief function block with a prototype and code body.
+ * Its prototype can optionally be registered with a function registry.
+ */
 class FunctionBlock : public CodeBlock {
  public:
   explicit FunctionBlock(const std::string& prototype,
@@ -101,6 +120,7 @@ class FunctionBlock : public CodeBlock {
   DeepCopyUniquePtr<CodeBlock> body;
 };
 
+/*! \brief sequence of one or more code blocks */
 class SequenceBlock : public CodeBlock {
  public:
   explicit SequenceBlock() = default;
@@ -113,12 +133,17 @@ class SequenceBlock : public CodeBlock {
   std::vector<DeepCopyUniquePtr<CodeBlock>> sequence;
 };
 
+/*! \brief a conditional expression */
 class Condition : public Cloneable {
  public:
   virtual ~Condition() = default;
   virtual std::string Compile() const = 0;
 };
 
+/*!
+ * \brief if-else statement with condition
+ * may store a branch hint (>50% or <50% likely)
+ */
 class IfElseBlock : public CodeBlock {
  public:
   explicit IfElseBlock(const Condition& condition,

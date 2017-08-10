@@ -76,9 +76,11 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
  public:
   explicit RecursiveCompiler(const CompilerParam& param)
     : param(param) {
-    LOG(INFO) << "RecursiveCompiler yah";
+    if (param.verbose > 0) {
+      LOG(INFO) << "Using RecursiveCompiler";
+    }
   }
-  
+
   using SemanticModel = semantic::SemanticModel;
   using TranslationUnit = semantic::TranslationUnit;
   using CodeBlock = semantic::CodeBlock;
@@ -101,11 +103,19 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       annotator.Load(fi.get());
       annotation = annotator.Get();
       annotate = true;
+      if (param.verbose > 0) {
+        LOG(INFO) << "Using branch annotation file `"
+                  << param.annotate_in << "\"";
+      }
     }
 
     SemanticModel semantic_model;
     SequenceBlock sequence;
     if (param.parallel_comp > 0) {
+      if (param.verbose > 0) {
+        LOG(INFO) << "Parallel compilation enabled; member trees will be "
+                  << "grouped in " << param.parallel_comp << " groups.";
+      }
       const size_t ngroup = param.parallel_comp;
       sequence.Reserve(model.trees.size() + 3);
       sequence.PushBack(PlainBlock("float sum = 0.0f;"));
@@ -117,6 +127,11 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       }
       sequence.PushBack(PlainBlock("return sum;"));
     } else {
+      if (param.verbose > 0) {
+        LOG(INFO) << "Parallel compilation disabled; all member trees will be "
+                  << "dump to a single source file. This may increase "
+                  << "compilation time and memory usage.";
+      }
       sequence.Reserve(model.trees.size() + 3);
       sequence.PushBack(PlainBlock("float sum = 0.0f;"));
       sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));

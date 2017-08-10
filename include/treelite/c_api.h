@@ -47,12 +47,14 @@ TREELITE_DLL const char* TreeliteGetLastError();
 /*!
  * \brief create DMatrix from a file
  * \param path file path
+ * \param format file format
  * \param nthread number of threads to use
  * \param verbose whether to produce extra messages
  * \param out the created DMatrix
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDMatrixCreateFromFile(const char* path,
+                                               const char* format,
                                                int nthread,
                                                int verbose,
                                                DMatrixHandle* out);
@@ -63,9 +65,6 @@ TREELITE_DLL int TreeliteDMatrixCreateFromFile(const char* path,
  * \param row_ptr pointer to row headers
  * \param num_row number of rows
  * \param num_col number of columns
- * \param nnz number of nonzero entries
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
  * \param out the created DMatrix
  * \return 0 for success, -1 for failure
  */
@@ -74,9 +73,6 @@ TREELITE_DLL int TreeliteDMatrixCreateFromCSR(const float* data,
                                               const size_t* row_ptr,
                                               size_t num_row,
                                               size_t num_col,
-                                              size_t nnz,
-                                              int nthread,
-                                              int verbose,
                                               DMatrixHandle* out);
 /*!
  * \brief create DMatrix from a (in-memory) dense matrix
@@ -84,8 +80,6 @@ TREELITE_DLL int TreeliteDMatrixCreateFromCSR(const float* data,
  * \param num_row number of rows
  * \param num_col number of columns
  * \param missing_value value to represent missing value
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
  * \param out the created DMatrix
  * \return 0 for success, -1 for failure
  */
@@ -93,21 +87,19 @@ TREELITE_DLL int TreeliteDMatrixCreateFromMat(const float* data,
                                               size_t num_row,
                                               size_t num_col,
                                               float missing_value,
-                                              int nthread,
-                                              int verbose,
                                               DMatrixHandle* out);
 /*!
  * \brief get dimensions of a DMatrix
  * \param handle handle to DMatrix
  * \param out_num_row used to set number of rows
  * \param out_num_col used to set number of columns
- * \param out_nnz used to set number of nonzero entries
+ * \param out_nelem used to set number of nonzero entries
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDMatrixGetDimension(DMatrixHandle handle,
                                              size_t* out_num_row,
                                              size_t* out_num_col,
-                                             size_t* out_nnz);
+                                             size_t* out_nelem);
 /*!
  * \brief delete DMatrix from memory
  * \param handle handle to DMatrix
@@ -209,9 +201,9 @@ TREELITE_DLL int TreeliteCompilerFree(CompilerHandle handle);
  * Part 4: predictor interface
  ***************************************************************************/
 /*!
- * \brief load prediction code into memory. This function assumes that
- *        prediction code has been already compiled into a dynamic shared
- *        library object (.so/.dll).
+ * \brief load prediction code into memory.
+ * This function assumes that the prediction code has been already compiled into
+ * a dynamic shared library object (.so/.dll/.dylib).
  * \param library_path path to library object file containing prediction code
  * \param out handle to predictor
  * \return 0 for success, -1 for failure

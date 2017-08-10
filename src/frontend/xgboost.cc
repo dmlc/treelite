@@ -87,7 +87,7 @@ class PeekableInputStream {
           << "Failed to peek " << size << " bytes";
         end_ptr_ += bytes_to_read;
       } else {
-        CHECK_EQ(  istm_->Read(&buf_[end_ptr_], 
+        CHECK_EQ(  istm_->Read(&buf_[end_ptr_],
                                MAX_PEEK_WINDOW + 1 - end_ptr_)
                  + istm_->Read(&buf_[0],
                                bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1),

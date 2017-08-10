@@ -80,6 +80,7 @@ class Tree {
      */
     inline void set_split(unsigned split_index, tl_float threshold,
                           bool default_left, Operator cmp) {
+      CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
       this->sindex_ = split_index;
       (this->info_).threshold = threshold;
@@ -194,6 +195,13 @@ struct Model {
    * It is assumed that all feature indices are between 0 and [num_features]-1.
    */
   int num_features;
+
+  /*! \brief disable copy; use default move */
+  Model() = default;
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+  Model(Model&&) = default;
+  Model& operator=(Model&&) = default;
 };
 
 }  // namespace treelite

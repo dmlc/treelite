@@ -60,7 +60,6 @@ struct _Tree {
 
 namespace treelite {
 namespace frontend {
-namespace builder {
 
 DMLC_REGISTRY_FILE_TAG(builder);
 
@@ -261,6 +260,5 @@ ModelBuilder::CommitModel(Model* out_model) {
   return true;
 }
 
-}  // namespace builder
 }  // namespace frontend
 }  // namespace treelite

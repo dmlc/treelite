@@ -22,6 +22,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
              if set to nonzero, the trees will be evely distributed
              into [parallel_comp] files. */
   int parallel_comp;
+  /*! \brief if >0, produce extra messages */
+  int verbose;
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
@@ -33,6 +35,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
       .describe("option to enable parallel compilation;"
                 "if set to nonzero, the trees will be evely distributed"
                 "into [parallel_comp] files.");
+    DMLC_DECLARE_FIELD(verbose).set_default(0)
+      .describe("if >0, produce extra messages");
   }
 };
 

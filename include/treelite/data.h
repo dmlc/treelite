@@ -24,7 +24,7 @@ struct DMatrix {
   /*! \brief number of columns */
   size_t num_col;
   /*! \brief number of nonzero entries */
-  size_t nnz;
+  size_t nelem;
 
   /*!
    * \brief clear all data fields
@@ -34,7 +34,7 @@ struct DMatrix {
     row_ptr.clear();
     col_ind.clear();
     row_ptr.resize(1, 0);
-    num_row = num_col = nnz = 0;
+    num_row = num_col = nelem = 0;
   }
   /*!
    * \brief construct a new DMatrix from a file

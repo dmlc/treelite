@@ -86,7 +86,7 @@ Predictor::Free() {
 
 void
 Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
-                   float* out_pred) {
+                   float* out_pred) const {
   CHECK(func_ != nullptr)
     << "The predict_margin() function needs to be loaded first.";
   const int max_thread = omp_get_max_threads();

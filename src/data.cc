@@ -26,38 +26,45 @@ DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
 
   DMatrix* dmat = new DMatrix();
   dmat->Clear();
+  auto& data_ = dmat->data;
+  auto& col_ind_ = dmat->col_ind;
+  auto& row_ptr_ = dmat->row_ptr;
+  auto& num_row_ = dmat->num_row;
+  auto& num_col_ = dmat->num_row;
+  auto& nelem_ = dmat->nelem;
+
   std::vector<size_t> max_col_ind(nthread, 0);
   parser->BeforeFirst();
   while (parser->Next()) {
     const dmlc::RowBlock<uint32_t>& batch = parser->Value();
-    dmat->num_row += batch.size;
-    dmat->nnz += batch.offset[batch.size];
-    const size_t top = dmat->data.size();
-    dmat->data.resize(top + batch.offset[batch.size] - batch.offset[0]);
-    dmat->col_ind.resize(top + batch.offset[batch.size] - batch.offset[0]);
+    num_row_ += batch.size;
+    nelem_ += batch.offset[batch.size];
+    const size_t top = data_.size();
+    data_.resize(top + batch.offset[batch.size] - batch.offset[0]);
+    col_ind_.resize(top + batch.offset[batch.size] - batch.offset[0]);
     #pragma omp parallel for schedule(static) num_threads(nthread)
     for (size_t i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
       const int tid = omp_get_thread_num();
       const uint32_t index = batch.index[i];
-      const float fvalue = (batch.value == nullptr) ? 1.0f : 
+      const float fvalue = (batch.value == nullptr) ? 1.0f :
                            static_cast<float>(batch.value[i]);
       const size_t offset = top + i - batch.offset[0];
-      dmat->data[offset] = fvalue;
-      dmat->col_ind[offset] = index;
+      data_[offset] = fvalue;
+      col_ind_[offset] = index;
       max_col_ind[tid] = std::max(max_col_ind[tid], static_cast<size_t>(index));
     }
-    const size_t rtop = dmat->row_ptr.size();
-    dmat->row_ptr.resize(rtop + batch.size);
+    const size_t rtop = row_ptr_.size();
+    row_ptr_.resize(rtop + batch.size);
     #pragma omp parallel for schedule(static) num_threads(nthread)
     for (size_t i = 0; i < batch.size; ++i) {
-      dmat->row_ptr[rtop + i]
-        = dmat->row_ptr[rtop - 1] + batch.offset[i + 1] - batch.offset[0];
+      row_ptr_[rtop + i]
+        = row_ptr_[rtop - 1] + batch.offset[i + 1] - batch.offset[0];
     }
     if (verbose > 0) {
-      LOG(INFO) << dmat->num_row << " rows read into memory";
+      LOG(INFO) << num_row_ << " rows read into memory";
     }
   }
-  dmat->num_col = *std::max_element(max_col_ind.begin(), max_col_ind.end()) + 1;
+  num_col_ = *std::max_element(max_col_ind.begin(), max_col_ind.end()) + 1;
   return dmat;
 }
 

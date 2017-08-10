@@ -40,13 +40,11 @@ Model LoadXGBoostModel(const char* filename);
  * \param filename name of model file
  * \return loaded model
  */
-Model LoadProtobuf(const char* filename);
+Model LoadProtobufModel(const char* filename);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally
 //--------------------------------------------------------------------------
-namespace builder {
-
 struct ModelBuilderImpl;  // forward declaration
 
 /*! \brief model builder class */
@@ -64,28 +62,28 @@ class ModelBuilder {
   /*!
    * \brief Remove a tree from the ensemble
    * \param index index of the tree that would be removed
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool DeleteTree(int index);
   /*!
    * \brief Create an empty node within a tree
    * \param tree_index index of the tree into which the new node will be placed
    * \param node_key unique integer key to identify the new node
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool CreateNode(int tree_index, int node_key);
   /*!
    * \brief Remove a node from a tree
    * \param tree_index index of the tree from which a node will be removed
    * \param node_key unique integer key to identify the node to be removed
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool DeleteNode(int tree_index, int node_key);
   /*!
    * \brief Set a node as the root of a tree
    * \param tree_index index of the tree whose root is being set
    * \param node_key unique integer key to identify the root node
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool SetRootNode(int tree_index, int node_key);
   /*!
@@ -101,7 +99,7 @@ class ModelBuilder {
    * \param default_left default direction for missing values
    * \param left_child_key unique integer key to identify the left child node
    * \param right_child_key unique integer key to identify the right child node
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool SetTestNode(int tree_index, int node_key,
                    unsigned feature_id, Operator op, tl_float threshold,
@@ -112,22 +110,20 @@ class ModelBuilder {
    * \param node_key unique integer key to identify the node being modified;
    *                 this node needs to be empty
    * \param leaf_value leaf value (weight) of the leaf node
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool SetLeafNode(int tree_index, int node_key, tl_float leaf_value);
   /*!
    * \brief finalize the model and produce the in-memory representation
    * \param out_model place to store in-memory representation of the finished
    *                  model
-   * \return 0 for success; -1 for failure
+   * \return whether successful
    */
   bool CommitModel(Model* out_model);
 
  private:
   std::unique_ptr<ModelBuilderImpl> pimpl;  // Pimpl pattern
 };
-
-}  // namespace builder
 
 }  // namespace frontend
 }  // namespace treelite

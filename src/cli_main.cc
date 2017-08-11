@@ -30,12 +30,13 @@ enum CLITask {
 enum InputFormat {
   kLibSVM = 0,
   kCSV = 1,
-  kLibFM = 2,
+  kLibFM = 2
 };
 
 enum ModelFormat {
   kXGBModel = 0,
-  kLGBModel = 1
+  kLGBModel = 1,
+  kProtobuf = 2
 };
 
 inline const char* FileFormatString(int format) {
@@ -81,6 +82,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
     DMLC_DECLARE_FIELD(format)
         .add_enum("xgboost", kXGBModel)
         .add_enum("lightgbm", kLGBModel)
+        .add_enum("protobuf", kProtobuf)
         .describe("Model format");
     DMLC_DECLARE_FIELD(model_in).describe("Input model path");
     DMLC_DECLARE_FIELD(name_codegen).set_default("dump.c")
@@ -115,6 +117,8 @@ Model ParseModel(const CLIParam& param) {
     return frontend::LoadXGBoostModel(param.model_in.c_str());
    case kLGBModel:
     return frontend::LoadLightGBMModel(param.model_in.c_str());
+   case kProtobuf:
+    return frontend::LoadProtobufModel(param.model_in.c_str());
    default:
     LOG(FATAL) << "Unknown model format";
     return {};  // avoid compiler warning
@@ -218,12 +222,14 @@ int CLIRunTask(int argc, char* argv[]) {
 
   std::vector<std::pair<std::string, std::string> > cfg;
 
-  std::ifstream cfgfile(argv[1], std::ifstream::in);
-  dmlc::Config itr(cfgfile);
-  for (const auto& entry : itr) {
-    cfg.push_back(std::make_pair(entry.first, entry.second));
+  {
+    std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(argv[1], "r"));
+    dmlc::istream cfgfile(fi.get());
+    dmlc::Config itr(cfgfile);
+    for (const auto& entry : itr) {
+      cfg.push_back(std::make_pair(entry.first, entry.second));
+    }
   }
-  cfgfile.close();
 
   for (int i = 2; i < argc; ++i) {
     char name[256], val[256];

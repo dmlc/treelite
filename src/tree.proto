@@ -1,0 +1,29 @@
+syntax = "proto2";
+
+package treelite_protobuf;
+
+message Model {
+  repeated Tree trees = 1;
+  optional int32 num_features = 2;
+}
+
+message Tree {
+  optional Node head = 1;
+}
+
+message Node {
+   optional Node left_child = 1;     // Left child; missing if leaf
+   optional Node right_child = 2;    // Right child; missing if leaf
+   optional bool default_left = 3;   // Default direction for missing values
+                                     // true: default to left
+                                     // false: default to right
+   optional int32 split_index = 4;   // Feature index used for the split;
+                                     // missing if leaf
+   optional string op = 5;           // Operation used for comparison (e.g. "<")
+                                     // of form [feature value] OP [threshold].
+                                     // The left child is taken if the expression
+                                     // evaluates to true; the right child is
+                                     // taken otherwise.
+   optional float threshold = 6;     // Decision threshold; missing if leaf
+   optional float leaf_value = 7;    // Leaf value; missing if non-leaf
+}

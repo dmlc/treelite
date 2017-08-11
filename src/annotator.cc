@@ -4,7 +4,7 @@
  * \author Philip Cho
  * \brief Branch annotation tools
  */
- 
+
 #include <treelite/annotator.h>
 #include <omp.h>
 
@@ -18,7 +18,7 @@ union Entry {
 void Traverse_(const treelite::Tree& tree, const Entry* data,
                int nid, size_t* out_counts) {
   const treelite::Tree::Node& node = tree[nid];
-  
+
   ++out_counts[nid];
   if (!node.is_leaf()) {
     const unsigned split_index = node.split_index();
@@ -105,7 +105,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   }
   counts.resize(count_row_ptr[ntree], 0);
   counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
-  
+
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
   const size_t pstep = (dmat->num_row + 99) / 100;
       // interval to display progress
@@ -125,7 +125,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
       counts[i] += counts_tloc[off + i];
     }
   }
-  
+
   // change layout of counts
   for (size_t i = 0; i < ntree; ++i) {
     this->counts.emplace_back(&counts[count_row_ptr[i]],

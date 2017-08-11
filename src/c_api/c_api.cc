@@ -30,14 +30,6 @@ struct CompilerHandleImpl {
   ~CompilerHandleImpl() = default;
 };
 
-const std::unordered_map<std::string, Operator> optable{
-  {"==", Operator::kEQ},
-  {"<",  Operator::kLT},
-  {"<=", Operator::kLE},
-  {">",  Operator::kGT},
-  {">=", Operator::kGE}
-};
-
 }  // namespace anonymous
 
 int TreeliteDMatrixCreateFromFile(const char* path,
@@ -439,6 +431,7 @@ int TreeliteSetTestNode(ModelBuilderHandle handle,
                         int left_child_key, int right_child_key) {
   API_BEGIN();
   auto builder = static_cast<frontend::ModelBuilder*>(handle);
+  CHECK_GT(optable.count(opname), 0) << "No operator `" << opname << "\" exists";
   return (builder->SetTestNode(tree_index, node_key, feature_id,
                                optable.at(opname),
                                static_cast<tl_float>(threshold),

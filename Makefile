@@ -44,7 +44,7 @@ export CXX = g++
 endif
 endif
 
-export LDFLAGS= -pthread -lm -ldl $(ADD_LDFLAGS) $(DMLC_LDFLAGS)
+export LDFLAGS= -pthread -lm -ldl -lprotobuf $(ADD_LDFLAGS) $(DMLC_LDFLAGS)
 export CFLAGS=  -std=c++11 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS)
 CFLAGS += -I$(DMLC_CORE)/include
 
@@ -76,8 +76,7 @@ else
 endif
 
 
-.PHONY: clean all clean_all 
-
+.PHONY: clean all clean_all
 
 all: lib/libtreelite.a $(TREELITE_DYLIB) treelite
 
@@ -85,12 +84,27 @@ $(DMLC_CORE)/libdmlc.a: $(wildcard $(DMLC_CORE)/src/*.cc $(DMLC_CORE)/src/*/*.cc
 	+ cd $(DMLC_CORE); $(MAKE) libdmlc.a config=$(ROOTDIR)/$(config); cd $(ROOTDIR)
 
 SRC = $(wildcard src/*.cc src/*/*.cc)
-ALL_OBJ = $(patsubst src/%.cc, build/%.o, $(SRC))
+PBSRC = $(wildcard src/*.proto)
+PBGEN = $(patsubst src/%.proto, src/%.pb.cc, $(PBSRC))
+PBHEADER = $(patsubst src/%.proto, src/%.pb.h, $(PBSRC))
+PBOBJ = $(patsubst src/%.proto, build/%.pb.o, $(PBSRC))
+
+ALL_OBJ = $(patsubst src/%.cc, build/%.o, $(SRC)) $(PBOBJ)
+
 LIB_DEP = $(DMLC_CORE)/libdmlc.a
 ALL_DEP = $(filter-out build/cli_main.o, $(ALL_OBJ)) $(LIB_DEP)
 CLI_OBJ = build/cli_main.o
 
-build/%.o: src/%.cc
+$(PBGEN): $(PBSRC)
+	@mkdir -p $(@D)
+	protoc -I$(@D) --cpp_out=$(@D) $<
+
+$(PBOBJ): $(PBGEN)
+	@mkdir -p $(@D)
+	$(CXX) $(CFLAGS) -MM -MT $*.o $< >$*.d
+	$(CXX) -c $(CFLAGS) $< -o $@
+
+build/%.o: src/%.cc $(PBGEN)
 	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) -MM -MT build/$*.o $< >build/$*.d
 	$(CXX) -c $(CFLAGS) $< -o $@
@@ -107,7 +121,7 @@ treelite: $(CLI_OBJ) $(ALL_DEP)
 	$(CXX) $(CFLAGS) -o $@  $(filter %.o %.a, $^)  $(LDFLAGS)
 
 clean:
-	$(RM) -rf build lib bin *~ */*~ */*/*~ */*/*/*~ */*.o */*/*.o */*/*/*.o treelite
+	$(RM) -rf build lib bin *~ */*~ */*/*~ */*/*/*~ */*.o */*/*.o */*/*/*.o treelite $(PBGEN) $(PBHEADER)
 
 clean_all: clean
 	cd $(DMLC_CORE); $(MAKE) clean; cd $(ROOTDIR)

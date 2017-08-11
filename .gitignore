@@ -11,6 +11,14 @@
 *.gch
 *.pch
 
+# Protobuf generated files
+*.pb.h
+*.pb.cc
+*_pb2.py
+*_pb2.pyc
+*_pb3.py
+*_pb3.pyc
+
 # Compiled Dynamic libraries
 *.so
 *.dylib

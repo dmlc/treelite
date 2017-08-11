@@ -7,6 +7,7 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
+#include <unordered_map>
 #include <cstdint>
 
 namespace treelite {
@@ -21,6 +22,8 @@ enum class Operator : int8_t {
   kGT,  /*!< operator >  */
   kGE   /*!< operator >= */
 };
+/*! \brief conversion table from string to operator, defined in optable.cc */
+extern const std::unordered_map<std::string, Operator> optable;
 
 }  // namespace treelite
 

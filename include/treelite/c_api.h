@@ -255,7 +255,7 @@ TREELITE_DLL int TreeliteLoadXGBoostModel(const char* filename,
 /*!
  * \brief load a model in Protocol Buffers format. Protocol Buffers
  *        (google/protobuf) is a language- and platform-neutral mechanism for
- *        serializing structured data. See treelite.proto for format spec.
+ *        serializing structured data. See tree.proto for format spec.
  * \param filename name of model file
  * \param out loaded model
  * \return 0 for success, -1 for failure

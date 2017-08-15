@@ -171,6 +171,7 @@ void CLICodegen(const CLIParam& param) {
     }
   }
   /* write Makefile */
+#ifdef __linux__
   {
     const std::string library_name
       = common::GetBasename(param.name_codegen + ".so");
@@ -195,6 +196,7 @@ void CLICodegen(const CLIParam& param) {
     }
     common::WriteToFile(param.name_codegen + ".Makefile", {oss.str()});
   }
+#endif
 }
 
 void CLIAnnotate(const CLIParam& param) {

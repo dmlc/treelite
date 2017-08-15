@@ -52,7 +52,7 @@ struct _Node {
 
 struct _Tree {
   _Node* root;
-  std::unordered_map<int, std::unique_ptr<_Node>> nodes;
+  std::unordered_map<int, std::shared_ptr<_Node>> nodes;
   inline _Tree() : root(nullptr), nodes() {}
 };
 

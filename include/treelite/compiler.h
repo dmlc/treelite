@@ -25,7 +25,7 @@ struct CompilerParam;  // forward declaration
 
 namespace semantic {
 
-class SemanticModel;  // forward declaration
+struct SemanticModel;  // forward declaration
 
 }  // namespace semantic
 

@@ -7,6 +7,8 @@
 
 #include <treelite/data.h>
 #include <memory>
+#include <limits>
+#include <cstdint>
 #include <omp.h>
 
 namespace treelite {
@@ -42,8 +44,11 @@ DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
     const size_t top = data_.size();
     data_.resize(top + batch.offset[batch.size] - batch.offset[0]);
     col_ind_.resize(top + batch.offset[batch.size] - batch.offset[0]);
+    CHECK_LT(static_cast<int64_t>(batch.offset[batch.size]),
+             std::numeric_limits<int64_t>::max());
     #pragma omp parallel for schedule(static) num_threads(nthread)
-    for (size_t i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
+    for (int64_t i = static_cast<int64_t>(batch.offset[0]);
+                 i < static_cast<int64_t>(batch.offset[batch.size]); ++i) {
       const int tid = omp_get_thread_num();
       const uint32_t index = batch.index[i];
       const float fvalue = (batch.value == nullptr) ? 1.0f :
@@ -51,12 +56,15 @@ DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
       const size_t offset = top + i - batch.offset[0];
       data_[offset] = fvalue;
       col_ind_[offset] = index;
-      max_col_ind[tid] = std::max(max_col_ind[tid], static_cast<size_t>(index));
+      max_col_ind[tid] = std::max(max_col_ind[tid],
+                                  static_cast<size_t>(index));
     }
     const size_t rtop = row_ptr_.size();
     row_ptr_.resize(rtop + batch.size);
+    CHECK_LT(static_cast<int64_t>(batch.size),
+             std::numeric_limits<int64_t>::max());
     #pragma omp parallel for schedule(static) num_threads(nthread)
-    for (size_t i = 0; i < batch.size; ++i) {
+    for (int64_t i = 0; i < static_cast<int64_t>(batch.size); ++i) {
       row_ptr_[rtop + i]
         = row_ptr_[rtop - 1] + batch.offset[i + 1] - batch.offset[0];
     }

@@ -9,6 +9,8 @@
 #include <dmlc/logging.h>
 #include <dmlc/timer.h>
 #include <omp.h>
+#include <cstdint>
+#include <limits>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -24,8 +26,12 @@ inline void PredLoop(treelite::Predictor::PredFunc func,
                      size_t rbegin, size_t rend, int nthread,
                      treelite::Predictor::Entry* inst,
                      float* out_pred) {
+  CHECK_LE(rbegin, rend);
+  CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
+  const int64_t rbegin_i = static_cast<int64_t>(rbegin);
+  const int64_t rend_i = static_cast<int64_t>(rend);
   #pragma omp parallel for schedule(static) num_threads(nthread)
-  for (size_t rid = rbegin; rid < rend; ++rid) {
+  for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
     const int tid = omp_get_thread_num();
     const size_t off = dmat->num_col * tid;
     const size_t ibegin = dmat->row_ptr[rid];
@@ -52,11 +58,11 @@ Predictor::~Predictor() {
 #ifdef _WIN32
 void
 Predictor::Load(const char* name) {
-  lib_handle_ = static_cast<void*>(LoadLibraryA(wname));
+  HMODULE handle = LoadLibraryA(name);
+  lib_handle_ = static_cast<void*>(handle);
   CHECK(lib_handle_ != nullptr)
     << "Failed to load dynamic shared library `" << name << "'";
-  func_ = reinterpret_cast<PredFunc>(GetProcAddress(lib_handle_,
-                                                    "predict_margin"));
+  func_ = reinterpret_cast<PredFunc>(GetProcAddress(handle, "predict_margin"));
   CHECK(func_ != nullptr)
     << "Dynamic shared library `" << name
     << "' does not contain predict_margin() function";
@@ -64,7 +70,7 @@ Predictor::Load(const char* name) {
 
 void
 Predictor::Free() {
-  FreeLibrary(lib_handle_);
+  FreeLibrary(static_cast<HMODULE>(lib_handle_));
 }
 #else
 void

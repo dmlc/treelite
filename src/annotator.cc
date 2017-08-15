@@ -7,6 +7,8 @@
 
 #include <treelite/annotator.h>
 #include <omp.h>
+#include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -66,8 +68,12 @@ inline void ComputeBranchLoop(const treelite::Model& model,
                               const size_t* count_row_ptr,
                               size_t* counts_tloc, Entry* inst) {
   const size_t ntree = model.trees.size();
+  CHECK_LE(rbegin, rend);
+  CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
+  const int64_t rbegin_i = static_cast<int64_t>(rbegin);
+  const int64_t rend_i = static_cast<int64_t>(rend);
   #pragma omp parallel for schedule(static) num_threads(nthread)
-  for (size_t rid = rbegin; rid < rend; ++rid) {
+  for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
     const int tid = omp_get_thread_num();
     const size_t off = dmat->num_col * tid;
     const size_t off2 = count_row_ptr[ntree] * tid;

@@ -56,8 +56,8 @@ Model LoadProtobufModel(const char* filename) {
   CHECK_GT(num_features, 0) << "num_features must be positive";
   model.num_features = static_cast<int>(protomodel.num_features());
 
-  const size_t ntree = protomodel.trees_size();
-  for (size_t i = 0; i < ntree; ++i) {
+  const int ntree = protomodel.trees_size();
+  for (int i = 0; i < ntree; ++i) {
     model.trees.emplace_back();
     treelite::Tree& tree = model.trees.back();
     tree.Init();

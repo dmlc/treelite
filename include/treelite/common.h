@@ -13,6 +13,7 @@
 #include <dmlc/data.h>
 #include <memory>
 #include <iterator>
+#include <functional>
 #include <cfloat>
 #include <cmath>
 

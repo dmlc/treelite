@@ -16,8 +16,6 @@ if(MSVC)
   # Multithreaded compilation
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 else()
-  # Correct error for GCC 5 and cuda
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES")
   # Performance
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
 endif()
@@ -25,7 +23,6 @@ endif()
 include_directories (
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/dmlc-core/include
-    ${PROJECT_SOURCE_DIR}/rabit/include
 )
 
 file(GLOB_RECURSE SOURCES

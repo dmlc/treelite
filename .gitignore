@@ -34,6 +34,9 @@
 *.a
 *.lib
 
+# build folder
+build/*
+
 # Executables
 *.exe
 *.out

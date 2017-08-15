@@ -7,8 +7,9 @@
 
 #include <treelite/tree.h>
 #include <queue>
-#include "../tree.pb.h"
 
+#ifdef PROTOBUF_SUPPORT
+#include "tree.pb.h"
 namespace {
 
 inline bool IsLeaf(const treelite_protobuf::Node& node) {
@@ -96,3 +97,20 @@ Model LoadProtobufModel(const char* filename) {
 
 }  // namespace frontend
 }  // namespace treelite
+
+#else
+
+namespace treelite {
+namespace frontend {
+
+DMLC_REGISTRY_FILE_TAG(protobuf);
+
+Model LoadProtobufModel(const char* filename) {
+  LOG(FATAL) << "Protobuf library not linked";
+  return Model();
+}
+
+}  // namespace frontend
+}  // napespace treelite
+
+#endif  // PROTOBUF_SUPPORT

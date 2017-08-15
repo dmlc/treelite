@@ -181,8 +181,14 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     auto header = QuantizePolicy::CommonHeader();
     if (annotate) {
       header.emplace_back();
+#if defined(__clang__) || defined(__GNUC__)
+      // only gcc and clang support __builtin_expect intrinsic
       header.emplace_back("#define LIKELY(x)     __builtin_expect(!!(x), 1)");
       header.emplace_back("#define UNLIKELY(x)   __builtin_expect(!!(x), 0)");
+#else
+      header.emplace_back("#define LIKELY(x) (x)");
+      header.emplace_back("#define UNLIKELY(x) (x)");
+#endif
     }
     semantic_model.common_header
              = std::move(common::make_unique<PlainBlock>(header));

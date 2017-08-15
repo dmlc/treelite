@@ -211,7 +211,8 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     if (node.is_leaf()) {
       const tl_float leaf_value = node.leaf_value();
       return std::unique_ptr<CodeBlock>(new PlainBlock(
-        std::string("sum += ") + common::FloatToString(leaf_value) + ";"));
+        std::string("sum += (float)")
+          + common::FloatToString(leaf_value) + ";"));
     } else {
       BranchHint branch_hint = BranchHint::kNone;
       if (!counts.empty()) {

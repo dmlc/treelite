@@ -147,7 +147,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       sequence.PushBack(PlainBlock("return sum;"));
     }
     FunctionBlock function("float predict_margin(union Entry* data)",
-      std::move(sequence), &semantic_model.function_registry);
+      std::move(sequence), &semantic_model.function_registry, true);
     auto file_preamble = QuantizePolicy::PreprocessingPreamble();
     semantic_model.units.emplace_back(PlainBlock(file_preamble),
                                       std::move(function));

@@ -69,10 +69,31 @@ class TranslationUnit {
  *        a list of translation units
  */
 struct SemanticModel {
+  struct FunctionEntry {
+    std::string prototype;
+    bool dll_export;
+    FunctionEntry(const std::string& prototype, bool dll_export)
+      : prototype(prototype), dll_export(dll_export) {}
+  };
   std::unique_ptr<CodeBlock> common_header;
-  std::vector<std::string> function_registry;  // list of function prototypes
+  std::vector<FunctionEntry> function_registry;  // list of function prototypes
   std::vector<TranslationUnit> units;
 };
+
+inline std::ostream &operator<<(std::ostream &os,
+                                const SemanticModel::FunctionEntry &entry) {
+#ifdef _WIN32
+  const std::string declspec("__declspec(dllexport) ");
+#else
+  const std::string declspec("");
+#endif
+  if (entry.dll_export) {
+    os << declspec << entry.prototype << ";\n";
+  } else {
+    os << entry.prototype << ";\n";
+  }
+  return os;
+}
 
 /*! \brief plain code block containing one or more lines of code */
 class PlainBlock : public CodeBlock {
@@ -96,27 +117,34 @@ class PlainBlock : public CodeBlock {
  * Its prototype can optionally be registered with a function registry.
  */
 class FunctionBlock : public CodeBlock {
+ private:
+  using FunctionEntry = SemanticModel::FunctionEntry;
+
  public:
   explicit FunctionBlock(const std::string& prototype,
                          const CodeBlock& body,
-                         std::vector<std::string>* p_function_registry)
-    : prototype(prototype), body(body) {
+                         std::vector<FunctionEntry>* p_function_registry,
+                         bool dll_export = false)
+    : prototype(prototype), body(body), dll_export(dll_export) {
     if (p_function_registry != nullptr) {
-      p_function_registry->push_back(this->prototype);
+      p_function_registry->emplace_back(this->prototype, this->dll_export);
     }
   }
   explicit FunctionBlock(std::string&& prototype,
                          CodeBlock&& body,
-                         std::vector<std::string>* p_function_registry)
-    : prototype(std::move(prototype)), body(std::move(body)) {
+                         std::vector<FunctionEntry>* p_function_registry,
+                         bool dll_export = false)
+    : prototype(std::move(prototype)), body(std::move(body)),
+      dll_export(dll_export) {
     if (p_function_registry != nullptr) {
-      p_function_registry->push_back(this->prototype);
+      p_function_registry->emplace_back(this->prototype, this->dll_export);
     }
   }
   CLONEABLE_BOILERPLATE(FunctionBlock)
   std::vector<std::string> Compile() const override;
  private:
   std::string prototype;
+  bool dll_export;
   DeepCopyUniquePtr<CodeBlock> body;
 };
 

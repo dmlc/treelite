@@ -251,9 +251,10 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
       });
     lines.emplace_back();
     std::ostringstream oss;
+    using FunctionEntry = semantic::SemanticModel::FunctionEntry;
     std::copy(semantic_model.function_registry.begin(),
               semantic_model.function_registry.end(),
-              std::ostream_iterator<std::string>(oss, ";\n"));
+              std::ostream_iterator<FunctionEntry>(oss));
     lines.push_back(oss.str());
     common::WriteToFile(header_filename, lines);
   }

@@ -11,6 +11,7 @@
 #include <omp.h>
 #include <cstdint>
 #include <limits>
+#include <functional>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -21,7 +22,36 @@
 
 namespace {
 
-inline void PredLoop(treelite::Predictor::PredFunc func,
+inline treelite::Predictor::LibraryHandle OpenLibrary(const char* name) {
+#ifdef _WIN32
+  HMODULE handle = LoadLibraryA(name);
+#else
+  void* handle = dlopen(name, RTLD_LAZY | RTLD_LOCAL);
+#endif
+  return static_cast<treelite::Predictor::LibraryHandle>(handle);
+}
+
+inline void CloseLibrary(treelite::Predictor::LibraryHandle handle) {
+#ifdef _WIN32
+  FreeLibrary(static_cast<HMODULE>(handle));
+#else
+  dlclose(static_cast<void*>(handle));
+#endif
+}
+
+template <typename HandleType>
+inline HandleType LoadFunction(treelite::Predictor::LibraryHandle lib_handle,
+                               const char* name) {
+#ifdef _WIN32
+  FARPROC func_handle = GetProcAddress(static_cast<HMODULE>(lib_handle), name);
+#else
+  void* func_handle = dlsym(static_cast<void*>(lib_handle), name);
+#endif
+  return static_cast<HandleType>(func_handle);
+}
+
+inline void PredLoop(const std::function<void (int64_t,
+                                    treelite::Predictor::Entry*, float*)>& func,
                      const treelite::DMatrix* dmat,
                      size_t rbegin, size_t rend, int nthread,
                      treelite::Predictor::Entry* inst,
@@ -39,7 +69,7 @@ inline void PredLoop(treelite::Predictor::PredFunc func,
     for (size_t i = ibegin; i < iend; ++i) {
       inst[off + dmat->col_ind[i]].fvalue = dmat->data[i];
     }
-    out_pred[rid] = func(&inst[off]);
+    func(rid, &inst[off], out_pred);
     for (size_t i = ibegin; i < iend; ++i) {
       inst[off + dmat->col_ind[i]].missing = -1;
     }
@@ -50,64 +80,93 @@ inline void PredLoop(treelite::Predictor::PredFunc func,
 
 namespace treelite {
 
-Predictor::Predictor() : lib_handle_(nullptr), func_(nullptr) {}
+Predictor::Predictor() : lib_handle_(nullptr),
+                         query_func_handle_(nullptr),
+                         pred_func_handle_(nullptr) {}
 Predictor::~Predictor() {
   Free();
 }
 
-#ifdef _WIN32
 void
 Predictor::Load(const char* name) {
-  HMODULE handle = LoadLibraryA(name);
-  lib_handle_ = static_cast<void*>(handle);
+  lib_handle_ = OpenLibrary(name);
   CHECK(lib_handle_ != nullptr)
     << "Failed to load dynamic shared library `" << name << "'";
-  func_ = reinterpret_cast<PredFunc>(GetProcAddress(handle, "predict_margin"));
-  CHECK(func_ != nullptr)
+
+  /* 1. query # of output groups */
+  query_func_handle_ = LoadFunction<QueryFuncHandle>(lib_handle_,
+                                                     "get_num_output_group");
+  using QueryFunc = size_t (*)(void);
+  QueryFunc query_func = reinterpret_cast<QueryFunc>(query_func_handle_);
+  CHECK(query_func != nullptr)
     << "Dynamic shared library `" << name
-    << "' does not contain predict_margin() function";
+    << "' does not contain valid get_num_output_group() function";
+  num_output_group_ = query_func();
+
+  /* 2. load appropriate function for margin prediction */
+  CHECK_GT(num_output_group_, 0) << "num_output_group cannot be zero";
+  if (num_output_group_ > 1) {   // multi-class classification
+    pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,
+                                                   "predict_margin_multiclass");
+    using PredFunc = void (*)(Entry*, float*);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
+    CHECK(pred_func != nullptr)
+      << "Dynamic shared library `" << name
+      << "' does not contain valid predict_margin_multiclass() function";
+  } else {                      // everything else
+    pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,
+                                                     "predict_margin");
+    using PredFunc = float (*)(Entry*);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
+    CHECK(pred_func != nullptr)
+      << "Dynamic shared library `" << name
+      << "' does not contain valid predict_margin() function";
+  }
 }
 
 void
 Predictor::Free() {
-  FreeLibrary(static_cast<HMODULE>(lib_handle_));
+  CloseLibrary(lib_handle_);
 }
-#else
-void
-Predictor::Load(const char* name) {
-  lib_handle_ = static_cast<void*>(dlopen(name, RTLD_LAZY | RTLD_LOCAL));
-  CHECK(lib_handle_ != nullptr)
-    << "Failed to load dynamic shared library `" << name << "'";
-  func_ = reinterpret_cast<PredFunc>(dlsym(lib_handle_, "predict_margin"));
-  CHECK(func_ != nullptr)
-    << "Dynamic shared library `" << name
-    << "' does not contain predict_margin() function";
-}
-
-void
-Predictor::Free() {
-  dlclose(lib_handle_);
-}
-#endif
 
 void
 Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
                    float* out_pred) const {
-  CHECK(func_ != nullptr)
-    << "The predict_margin() function needs to be loaded first.";
+  CHECK(pred_func_handle_ != nullptr)
+    << "A shared library needs to be loaded first using Load()";
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
-  const size_t pstep = (dmat->num_row + 99) / 100;
+  const size_t pstep = (dmat->num_row + 19) / 20;
       // interval to display progress
 
   if (verbose > 0) {
     LOG(INFO) << "Begin prediction";
   }
   double tstart = dmlc::GetTime();
+
+  /* Pass the correct prediction function to PredLoop.
+     We also need to specify how the function should be called. */
+  std::function<void (int64_t, Entry*, float*)> func;
+  if (num_output_group_ > 1) {
+    using PredFunc = void (*)(Entry*, float*);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
+    const size_t num_output_group = num_output_group_;
+    func = [pred_func, num_output_group]
+           (int64_t rid, Entry* inst, float* out_pred) {
+      pred_func(inst, &out_pred[rid * num_output_group]);
+    };
+  } else {
+    using PredFunc = float (*)(Entry*);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
+    func = [pred_func](int64_t rid, Entry* inst, float* out_pred) {
+      out_pred[rid] = pred_func(inst);
+    };
+  }
+
   for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, dmat->num_row);
-    PredLoop(func_, dmat, rbegin, rend, nthread, &inst[0], out_pred);
+    PredLoop(func, dmat, rbegin, rend, nthread, &inst[0], out_pred);
     if (verbose > 0) {
       LOG(INFO) << rend << " of " << dmat->num_row << " rows processed";
     }

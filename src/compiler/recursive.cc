@@ -83,6 +83,22 @@ class CategoricalSplitCondition : public treelite::semantic::Condition {
   }
 };
 
+struct GroupPolicy {
+  std::string GroupQueryFunction() const;
+  std::string Accumulator() const;
+  std::string AccumulateTranslationUnit(size_t unit_id) const;
+  std::string AccumulateLeaf(treelite::tl_float leaf_value,
+                             size_t tree_id) const;
+  std::vector<std::string> Return() const;
+  std::string Prototype() const;
+  std::string PrototypeTranslationUnit(size_t unit_id) const;
+
+  int num_output_group;
+
+  inline GroupPolicy(const treelite::Model& model)
+    : num_output_group(model.param.num_output_group) {}
+};
+
 }  // namespace anonymous
 
 namespace treelite {
@@ -136,6 +152,8 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     info.Init(model, QuantizePolicy::QuantizeFlag());
     QuantizePolicy::Init(std::move(info));
 
+    GroupPolicy group_policy(model);
+
     std::vector<std::vector<size_t>> annotation;
     bool annotate = false;
     if (param.annotate_in != "NULL") {
@@ -156,18 +174,18 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     if (param.parallel_comp > 0) {
       if (param.verbose > 0) {
         LOG(INFO) << "Parallel compilation enabled; member trees will be "
-                  << "grouped in " << param.parallel_comp << " groups.";
+                  << "divided into " << param.parallel_comp
+                  << " translation units.";
       }
-      const size_t ngroup = param.parallel_comp;
+      const size_t nunit = param.parallel_comp;  // # translation units
       sequence.Reserve(model.trees.size() + 3);
-      sequence.PushBack(PlainBlock("float sum = 0.0f;"));
+      sequence.PushBack(PlainBlock(group_policy.Accumulator()));
       sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
-      for (size_t group_id = 0; group_id < ngroup; ++group_id) {
-        sequence.PushBack(PlainBlock(std::string("sum += predict_margin_group")
-                                     + std::to_string(group_id)
-                                     + "(data);"));
+      for (size_t unit_id = 0; unit_id < nunit; ++unit_id) {
+        sequence.PushBack(PlainBlock(
+                             group_policy.AccumulateTranslationUnit(unit_id)));
       }
-      sequence.PushBack(PlainBlock("return sum;"));
+      sequence.PushBack(PlainBlock(group_policy.Return()));
     } else {
       if (param.verbose > 0) {
         LOG(INFO) << "Parallel compilation disabled; all member trees will be "
@@ -175,49 +193,62 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
                   << "compilation time and memory usage.";
       }
       sequence.Reserve(model.trees.size() + 3);
-      sequence.PushBack(PlainBlock("float sum = 0.0f;"));
+      sequence.PushBack(PlainBlock(group_policy.Accumulator()));
       sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
       for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
         const Tree& tree = model.trees[tree_id];
         if (!annotation.empty()) {
-          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree,
-                                                  annotation[tree_id])));
+          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
+                                                           annotation[tree_id],
+                                                           group_policy)));
         } else {
-          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
+          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id, {},
+                                                           group_policy)));
         }
       }
-      sequence.PushBack(PlainBlock("return sum;"));
+      sequence.PushBack(PlainBlock(group_policy.Return()));
     }
-    FunctionBlock function("float predict_margin(union Entry* data)",
+
+    FunctionBlock query_func("size_t get_num_output_group(void)",
+                             PlainBlock(group_policy.GroupQueryFunction()),
+                             &semantic_model.function_registry, true);
+    FunctionBlock main_func(group_policy.Prototype(),
       std::move(sequence), &semantic_model.function_registry, true);
-    auto file_preamble = QuantizePolicy::PreprocessingPreamble();
+    SequenceBlock main_file;
+    main_file.Reserve(3);
+    main_file.PushBack(std::move(query_func));
+    main_file.PushBack(PlainBlock(""));
+    main_file.PushBack(std::move(main_func));
+    auto file_preamble = QuantizePolicy::ConstantsPreamble();
     semantic_model.units.emplace_back(PlainBlock(file_preamble),
-                                      std::move(function));
+                                      std::move(main_file));
+
     if (param.parallel_comp > 0) {
-      const size_t ngroup = param.parallel_comp;
-      const size_t group_size = (model.trees.size() + ngroup - 1) / ngroup;
-      for (size_t group_id = 0; group_id < ngroup; ++group_id) {
-        const size_t tree_begin = group_id * group_size;
-        const size_t tree_end = std::min((group_id + 1) * group_size,
+      const size_t nunit = param.parallel_comp;
+      const size_t unit_size = (model.trees.size() + nunit - 1) / nunit;
+      for (size_t unit_id = 0; unit_id < nunit; ++unit_id) {
+        const size_t tree_begin = unit_id * unit_size;
+        const size_t tree_end = std::min((unit_id + 1) * unit_size,
                                          model.trees.size());
-        SequenceBlock group_seq;
-        group_seq.Reserve(tree_end - tree_begin + 2);
-        group_seq.PushBack(PlainBlock("float sum = 0.0f;"));
+        SequenceBlock unit_seq;
+        unit_seq.Reserve(tree_end - tree_begin + 2);
+        unit_seq.PushBack(PlainBlock(group_policy.Accumulator()));
         for (size_t tree_id = tree_begin; tree_id < tree_end; ++tree_id) {
           const Tree& tree = model.trees[tree_id];
           if (!annotation.empty()) {
-            group_seq.PushBack(common::MoveUniquePtr(WalkTree(tree,
-                                                     annotation[tree_id])));
+            unit_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
+                                                            annotation[tree_id],
+                                                            group_policy)));
           } else {
-            group_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, {})));
+            unit_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
+                                                            {}, group_policy)));
           }
         }
-        group_seq.PushBack(PlainBlock("return sum;"));
-        FunctionBlock group_func(std::string("float predict_margin_group")
-                                 + std::to_string(group_id)
-                                 + "(union Entry* data)", std::move(group_seq),
-                                 &semantic_model.function_registry);
-        semantic_model.units.emplace_back(PlainBlock(), std::move(group_func));
+        unit_seq.PushBack(PlainBlock(group_policy.Return()));
+        FunctionBlock unit_func(group_policy.PrototypeTranslationUnit(unit_id),
+                                std::move(unit_seq),
+                                &semantic_model.function_registry);
+        semantic_model.units.emplace_back(PlainBlock(), std::move(unit_func));
       }
     }
     auto header = QuantizePolicy::CommonHeader();
@@ -240,21 +271,22 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
  private:
   CompilerParam param;
 
-  std::unique_ptr<CodeBlock> WalkTree(const Tree& tree,
-                                      const std::vector<size_t>& counts) const {
-    return WalkTree_(tree, counts, 0);
+  std::unique_ptr<CodeBlock> WalkTree(const Tree& tree, size_t tree_id,
+                                      const std::vector<size_t>& counts,
+                                      const GroupPolicy& group_policy) const {
+    return WalkTree_(tree, tree_id, counts, group_policy, 0);
   }
 
-  std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree,
+  std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree, size_t tree_id,
                                        const std::vector<size_t>& counts,
+                                       const GroupPolicy& group_policy,
                                        int nid) const {
     using semantic::BranchHint;
     const Tree::Node& node = tree[nid];
     if (node.is_leaf()) {
       const tl_float leaf_value = node.leaf_value();
       return std::unique_ptr<CodeBlock>(new PlainBlock(
-        std::string("sum += (float)")
-          + common::FloatToString(leaf_value) + ";"));
+        group_policy.AccumulateLeaf(leaf_value, tree_id)));
     } else {
       BranchHint branch_hint = BranchHint::kNone;
       if (!counts.empty()) {
@@ -272,8 +304,10 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
         common::MoveUniquePtr(condition),
-        common::MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
-        common::MoveUniquePtr(WalkTree_(tree, counts, node.cright())),
+        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, group_policy,
+                                        node.cleft())),
+        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, group_policy,
+                                        node.cright())),
         branch_hint)
       );
     }
@@ -313,12 +347,14 @@ class NoQuantize : private MetadataStore {
     };
   }
   std::vector<std::string> CommonHeader() const {
-    return {"union Entry {",
+    return {"#include <stdlib.h>",
+            "",
+            "union Entry {",
             "  int missing;",
             "  float fvalue;",
             "};"};
   }
-  std::vector<std::string> PreprocessingPreamble() const {
+  std::vector<std::string> ConstantsPreamble() const {
     return {};
   }
   std::vector<std::string> Preprocessing() const {
@@ -356,13 +392,15 @@ class Quantize : private MetadataStore {
     };
   }
   std::vector<std::string> CommonHeader() const {
-    return {"union Entry {",
+    return {"#include <stdlib.h>",
+            "",
+            "union Entry {",
             "  int missing;",
             "  float fvalue;",
             "  int qvalue;",
             "};"};
   }
-  std::vector<std::string> PreprocessingPreamble() const {
+  std::vector<std::string> ConstantsPreamble() const {
     std::vector<std::string> ret;
     ret.emplace_back("static const unsigned char is_categorical[] = {");
     {
@@ -489,9 +527,6 @@ ExtractCutPoints(const Model& model) {
           const tl_float threshold = node.threshold();
           const unsigned split_index = node.split_index();
           thresh_[split_index].insert(threshold);
-          if (split_index == 0) {
-            LOG(INFO) << "Inserting " << threshold << " into cut_pts[" << split_index << "]";
-          }
         } else {
           CHECK(node.split_type() == SplitFeatureType::kCategorical);
         }
@@ -518,3 +553,77 @@ TREELITE_REGISTER_COMPILER(RecursiveCompiler, "recursive")
   });
 }  // namespace compiler
 }  // namespace treelite
+
+namespace {
+
+inline std::string
+GroupPolicy::GroupQueryFunction() const {
+  return "return " + std::to_string(num_output_group) + ";";
+}
+
+inline std::string
+GroupPolicy::Accumulator() const {
+  if (num_output_group > 1) {
+    return std::string("float sum[") + std::to_string(num_output_group)
+           + "] = {0.0f};";
+  } else {
+    return "float sum = 0.0f;";
+  }
+}
+
+inline std::string
+GroupPolicy::AccumulateTranslationUnit(size_t unit_id) const {
+  if (num_output_group > 1) {
+    return std::string("predict_margin_multiclass_unit")
+         + std::to_string(unit_id) + "(data, sum);";
+  } else {
+    return std::string("sum += predict_margin_unit")
+         + std::to_string(unit_id) + "(data);";
+  }
+}
+
+inline std::string
+GroupPolicy::AccumulateLeaf(treelite::tl_float leaf_value,
+                            size_t tree_id) const {
+  if (num_output_group > 1) {
+    return std::string("sum[") + std::to_string(tree_id % num_output_group)
+         + "] += (float)" + treelite::common::FloatToString(leaf_value) + ";";
+  } else {
+    return std::string("sum += (float)")
+         + treelite::common::FloatToString(leaf_value) + ";";
+  }
+}
+
+inline std::vector<std::string>
+GroupPolicy::Return() const {
+  if (num_output_group > 1) {
+    return {std::string("for (int i = 0; i < ")
+               + std::to_string(num_output_group) + "; ++i) {",
+            "  result[i] += sum[i];",
+            "}"};
+  } else {
+    return {"return sum;"};
+  }
+}
+
+inline std::string
+GroupPolicy::Prototype() const {
+  if (num_output_group > 1) {
+    return "void predict_margin_multiclass(union Entry* data, float* result)";
+  } else {
+    return "float predict_margin(union Entry* data)";
+  }
+}
+
+inline std::string
+GroupPolicy::PrototypeTranslationUnit(size_t unit_id) const {
+  if (num_output_group > 1) {
+    return std::string("void predict_margin_multiclass_unit")
+         + std::to_string(unit_id) + "(union Entry* data, float* result)";
+  } else {
+    return std::string("float predict_margin_unit")
+         + std::to_string(unit_id) + "(union Entry* data)";
+  }
+}
+
+}  // namespace anonymous

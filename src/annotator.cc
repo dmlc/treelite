@@ -121,7 +121,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
 
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
-  const size_t pstep = (dmat->num_row + 99) / 100;
+  const size_t pstep = (dmat->num_row + 19) / 20;
       // interval to display progress
   for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, dmat->num_row);

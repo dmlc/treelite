@@ -343,6 +343,23 @@ int TreelitePredictorPredict(PredictorHandle handle,
   API_END();
 }
 
+int TreelitePredictorQueryResultSize(PredictorHandle handle,
+                                     DMatrixHandle dmat,
+                                     size_t* out) {
+  API_BEGIN();
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  const DMatrix* dmat_ = static_cast<DMatrix*>(dmat);
+  *out = predictor_->QueryResultSize(dmat_);
+  API_END();
+}
+
+int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle, size_t* out) {
+  API_BEGIN();
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out = predictor_->QueryNumOutputGroup();
+  API_END();
+}
+
 int TreelitePredictorFree(PredictorHandle handle) {
   API_BEGIN();
   delete static_cast<Predictor*>(handle);

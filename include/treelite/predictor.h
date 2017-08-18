@@ -23,8 +23,11 @@ class Predictor {
     float fvalue;
     // may contain extra fields later, such as qvalue
   };
-  /*! \brief type alias for prediction function */
-  using PredFunc = float (*)(Entry*);
+
+  /*! \brief opaque handle types */
+  typedef void* QueryFuncHandle;
+  typedef void* PredFuncHandle;
+  typedef void* LibraryHandle;
 
   Predictor();
   ~Predictor();
@@ -52,16 +55,31 @@ class Predictor {
                float* out_result) const;
 
   /*!
-   * \brief get prediction function
-   * \return function pointer pointing to the prediction function
+   * \brief Given a data matrix, query the necessary size of array to
+   *        hold predictions for all data points.
+   * \param dmat data matrix
+   * \return length of prediction array
    */
-  inline PredFunc GetPredFunc() const {
-    return func_;
+  inline size_t QueryResultSize(const DMatrix* dmat) const {
+    CHECK(pred_func_handle_ != nullptr)
+      << "A shared library needs to be loaded first using Load()";
+    return dmat->num_row * num_output_group_;
+  }
+  /*!
+   * \brief Get the number of output groups in the loaded model
+   * The number is 1 for most tasks;
+   * it is greater than 1 for multiclass classifcation.
+   * \return length of prediction array
+   */
+  inline size_t QueryNumOutputGroup() const {
+    return num_output_group_;
   }
 
  private:
-  void* lib_handle_;
-  PredFunc func_;
+  LibraryHandle lib_handle_;
+  QueryFuncHandle query_func_handle_;
+  PredFuncHandle pred_func_handle_;
+  size_t num_output_group_;
 };
 
 }  // namespace treelite

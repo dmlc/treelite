@@ -224,6 +224,28 @@ TREELITE_DLL int TreelitePredictorPredict(PredictorHandle handle,
                                           int nthread,
                                           int verbose,
                                           float* out_result);
+
+/*!
+ * \brief Given a data matrix, query the necessary size of array to
+ *        hold predictions for all data points.
+ * \param handle predictor
+ * \param dmat data matrix
+ * \param out used to store the length of prediction array
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryResultSize(PredictorHandle handle,
+                                                  DMatrixHandle dmat,
+                                                  size_t* out);
+/*!
+ * \brief Get the number of output groups in the loaded model
+ * The number is 1 for most tasks;
+ * it is greater than 1 for multiclass classifcation.
+ * \param handle predictor
+ * \param out length of prediction array
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle,
+                                                      size_t* out);
 /*!
  * \brief delete predictor from memory
  * \param handle predictor to remove

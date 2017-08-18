@@ -9,6 +9,8 @@
 
 #include <treelite/base.h>
 #include <memory>
+#include <vector>
+#include <cstdint>
 
 namespace treelite {
 
@@ -53,6 +55,12 @@ class ModelBuilder {
   ModelBuilder(int num_features);  // constructor
   ~ModelBuilder();  // destructor
   /*!
+   * \brief Set a model parameter
+   * \param name name of parameter
+   * \param value value of parameter
+   */
+  void SetModelParam(const char* name, const char* value);
+  /*!
    * \brief Create a new tree
    * \param index location within the ensemble at which the new tree
    *              would be placed; use -1 to insert at the end
@@ -87,7 +95,7 @@ class ModelBuilder {
    */
   bool SetRootNode(int tree_index, int node_key);
   /*!
-   * \brief Turn an empty node into a test (non-leaf) node; the test is in the
+   * \brief Turn an empty node into a numerical test node; the test is in the
    *        form [feature value] OP [threshold]. Depending on the result of the
    *        test, either left or right child would be taken.
    * \param tree_index index of the tree containing the node being modified
@@ -101,9 +109,29 @@ class ModelBuilder {
    * \param right_child_key unique integer key to identify the right child node
    * \return whether successful
    */
-  bool SetTestNode(int tree_index, int node_key,
-                   unsigned feature_id, Operator op, tl_float threshold,
-                   bool default_left, int left_child_key, int right_child_key);
+  bool SetNumericalTestNode(int tree_index, int node_key, unsigned feature_id,
+                            Operator op, tl_float threshold, bool default_left,
+                            int left_child_key, int right_child_key);
+  /*!
+   * \brief Turn an empty node into a categorical test node.
+   * A list defines all categories that would be classified as the left side.
+   * Categories are integers ranging from 0 to (n-1), where n is the number of
+   * categories in that particular feature. Let's assume n <= 64.
+   * \param tree_index index of the tree containing the node being modified
+   * \param node_key unique integer key to identify the node being modified;
+   *                 this node needs to be empty
+   * \param feature_id id of feature
+   * \param left_categories list of categories belonging to the left child
+   * \param default_left default direction for missing values
+   * \param left_child_key unique integer key to identify the left child node
+   * \param right_child_key unique integer key to identify the right child node
+   * \return whether successful
+   */
+   bool SetCategoricalTestNode(int tree_index, int node_key,
+                               unsigned feature_id,
+                               const std::vector<uint8_t>& left_categories,
+                               bool default_left, int left_child_key,
+                               int right_child_key);
   /*!
    * \brief Turn an empty node into a leaf node
    * \param tree_index index of the tree containing the node being modified

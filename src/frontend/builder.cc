@@ -23,7 +23,7 @@ namespace {
 
 struct _Node {
   enum class _Status : int8_t {
-    kEmpty, kTest, kLeaf
+    kEmpty, kNumericalTest, kCategoricalTest, kLeaf
   };
   union _Info {
     treelite::tl_float leaf_value;  // for leaf nodes
@@ -40,10 +40,17 @@ struct _Node {
   bool default_left;
   // extra info: leaf value or threshold
   _Info info;
+  // (for numerical split)
   // operator to use for expression of form [fval] OP [threshold]
   // If the expression evaluates to true, take the left child;
   // otherwise, take the right child.
   treelite::Operator op;
+  // (for categorical split)
+  // list of all categories that belong to the left child node.
+  // All others not in the list belong to the right child node.
+  // Categories are integers ranging from 0 to (n-1), where n is the number of
+  // categories in that particular feature. Let's assume n <= 64.
+  std::vector<uint8_t> left_categories;
 
   inline _Node()
     : status(_Status::kEmpty),
@@ -66,8 +73,9 @@ DMLC_REGISTRY_FILE_TAG(builder);
 struct ModelBuilderImpl {
   std::vector<_Tree> trees;
   int num_features;
+  std::vector<std::pair<std::string, std::string>> cfg;
   inline ModelBuilderImpl(int num_features)
-    : trees(), num_features(num_features) {
+    : trees(), num_features(num_features), cfg() {
     CHECK_GT(num_features, 0) << "ModelBuilder: num_features must be positive";
   }
 };
@@ -75,6 +83,11 @@ struct ModelBuilderImpl {
 ModelBuilder::ModelBuilder(int num_features)
   : pimpl(common::make_unique<ModelBuilderImpl>(num_features)) {}
 ModelBuilder::~ModelBuilder() {}
+
+void
+ModelBuilder::SetModelParam(const char* name, const char* value) {
+  pimpl->cfg.emplace_back(name, value);
+}
 
 int
 ModelBuilder::CreateTree(int index) {
@@ -156,35 +169,39 @@ ModelBuilder::SetRootNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuilder::SetTestNode(int tree_index, int node_key, unsigned feature_id,
-                          Operator op, tl_float threshold, bool default_left,
-                          int left_child_key, int right_child_key) {
+ModelBuilder::SetNumericalTestNode(int tree_index, int node_key,
+                                   unsigned feature_id,
+                                   Operator op, tl_float threshold,
+                                   bool default_left, int left_child_key,
+                                   int right_child_key) {
   auto& trees = pimpl->trees;
   CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "SetTestNode: tree_index out of bound");
+                     "SetNumericalTestNode: tree_index out of bound");
   CHECK_EARLY_RETURN(static_cast<int>(feature_id) >= 0 &&
                      static_cast<int>(feature_id) < pimpl->num_features,
-                     "SetTestNode: feature id out of bound");
+                     "SetNumericalTestNode: feature id out of bound");
   auto& tree = trees[tree_index];
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
-                     "SetTestNode: no node found with node_key");
+                     "SetNumericalTestNode: no node found with node_key");
   CHECK_EARLY_RETURN(nodes.count(left_child_key) > 0,
-                     "SetTestNode: no node found with left_child_key");
+                     "SetNumericalTestNode: no node found with left_child_key");
   CHECK_EARLY_RETURN(nodes.count(right_child_key) > 0,
-                     "SetTestNode: no node found with right_child_key");
+                     "SetNumericalTestNode: no node found with right_child_key");
   _Node* node = nodes[node_key].get();
   _Node* left_child = nodes[left_child_key].get();
   _Node* right_child = nodes[right_child_key].get();
   CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
-                     "SetTestNode: cannot modify a non-empty node");
+                     "SetNumericalTestNode: cannot modify a non-empty node");
   CHECK_EARLY_RETURN(left_child->parent == nullptr,
-            "SetTestNode: node designated as left child already has a parent");
+            "SetNumericalTestNode: node designated as left child already has "
+            "a parent");
   CHECK_EARLY_RETURN(right_child->parent == nullptr,
-            "SetTestNode: node designated as right child already has a parent");
+            "SetNumericalTestNode: node designated as right child already has "
+            "a parent");
   CHECK_EARLY_RETURN(left_child != tree.root && right_child != tree.root,
-                     "SetTestNode: the root node cannot be a child");
-  node->status = _Node::_Status::kTest;
+                     "SetNumericalTestNode: the root node cannot be a child");
+  node->status = _Node::_Status::kNumericalTest;
   node->left_child = nodes[left_child_key].get();
   node->left_child->parent = node;
   node->right_child = nodes[right_child_key].get();
@@ -193,6 +210,50 @@ ModelBuilder::SetTestNode(int tree_index, int node_key, unsigned feature_id,
   node->default_left = default_left;
   node->info.threshold = threshold;
   node->op = op;
+  return true;
+}
+
+bool
+ModelBuilder::SetCategoricalTestNode(int tree_index, int node_key,
+                                     unsigned feature_id,
+                                    const std::vector<uint8_t>& left_categories,
+                                    bool default_left, int left_child_key,
+                                    int right_child_key) {
+  auto& trees = pimpl->trees;
+  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
+                     "SetCategoricalTestNode: tree_index out of bound");
+  CHECK_EARLY_RETURN(static_cast<int>(feature_id) >= 0 &&
+                     static_cast<int>(feature_id) < pimpl->num_features,
+                     "SetCategoricalTestNode: feature id out of bound");
+  auto& tree = trees[tree_index];
+  auto& nodes = tree.nodes;
+  CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
+                     "SetCategoricalTestNode: no node found with node_key");
+  CHECK_EARLY_RETURN(nodes.count(left_child_key) > 0,
+                 "SetCategoricalTestNode: no node found with left_child_key");
+  CHECK_EARLY_RETURN(nodes.count(right_child_key) > 0,
+                 "SetCategoricalTestNode: no node found with right_child_key");
+  _Node* node = nodes[node_key].get();
+  _Node* left_child = nodes[left_child_key].get();
+  _Node* right_child = nodes[right_child_key].get();
+  CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
+                     "SetCategoricalTestNode: cannot modify a non-empty node");
+  CHECK_EARLY_RETURN(left_child->parent == nullptr,
+            "SetCategoricalTestNode: node designated as left child already "
+            "has a parent");
+  CHECK_EARLY_RETURN(right_child->parent == nullptr,
+            "SetCategoricalTestNode: node designated as right child already "
+            "has a parent");
+  CHECK_EARLY_RETURN(left_child != tree.root && right_child != tree.root,
+                     "SetCategoricalTestNode: the root node cannot be a child");
+  node->status = _Node::_Status::kCategoricalTest;
+  node->left_child = nodes[left_child_key].get();
+  node->left_child->parent = node;
+  node->right_child = nodes[right_child_key].get();
+  node->right_child->parent = node;
+  node->feature_id = feature_id;
+  node->default_left = default_left;
+  node->left_categories = left_categories;
   return true;
 }
 
@@ -217,6 +278,9 @@ bool
 ModelBuilder::CommitModel(Model* out_model) {
   Model model;
   model.num_features = pimpl->num_features;
+  // extra parameters
+  InitParamAndCheck(&model.param, pimpl->cfg);
+
   for (const auto& _tree : pimpl->trees) {
     CHECK_EARLY_RETURN(_tree.root != nullptr,
                        "CommitModel: a tree has no root node");
@@ -234,7 +298,7 @@ ModelBuilder::CommitModel(Model* out_model) {
       std::tie(node, nid) = Q.front(); Q.pop();
       CHECK_EARLY_RETURN(node->status != _Node::_Status::kEmpty,
               "CommitModel: encountered an empty node in the middle of a tree");
-      if (node->status == _Node::_Status::kTest) {  // non-leaf node
+      if (node->status == _Node::_Status::kNumericalTest) {
         CHECK_EARLY_RETURN(node->left_child != nullptr,
                            "CommitModel: a test node lacks a left child");
         CHECK_EARLY_RETURN(node->right_child != nullptr,
@@ -244,8 +308,22 @@ ModelBuilder::CommitModel(Model* out_model) {
         CHECK_EARLY_RETURN(node->right_child->parent == node,
                            "CommitModel: right child has wrong parent");
         tree.AddChilds(nid);
-        tree[nid].set_split(node->feature_id, node->info.threshold,
-                            node->default_left, node->op);
+        tree[nid].set_numerical_split(node->feature_id, node->info.threshold,
+                                      node->default_left, node->op);
+        Q.push({node->left_child, tree[nid].cleft()});
+        Q.push({node->right_child, tree[nid].cright()});
+      } else if (node->status == _Node::_Status::kCategoricalTest) {
+        CHECK_EARLY_RETURN(node->left_child != nullptr,
+                           "CommitModel: a test node lacks a left child");
+        CHECK_EARLY_RETURN(node->right_child != nullptr,
+                           "CommitModel: a test node lacks a right child");
+        CHECK_EARLY_RETURN(node->left_child->parent == node,
+                           "CommitModel: left child has wrong parent");
+        CHECK_EARLY_RETURN(node->right_child->parent == node,
+                           "CommitModel: right child has wrong parent");
+        tree.AddChilds(nid);
+        tree[nid].set_categorical_split(node->feature_id, node->default_left,
+                                        node->left_categories);
         Q.push({node->left_child, tree[nid].cleft()});
         Q.push({node->right_child, tree[nid].cright()});
       } else {  // leaf node

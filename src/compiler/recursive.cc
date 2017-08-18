@@ -18,22 +18,22 @@
 
 namespace {
 
-class SplitCondition : public treelite::semantic::Condition {
+class NumericSplitCondition : public treelite::semantic::Condition {
  public:
   using NumericAdapter
     = std::function<std::string(treelite::Operator, unsigned,
                                 treelite::tl_float)>;
-  explicit SplitCondition(const treelite::Tree::Node& node,
-                          const NumericAdapter& numeric_adapter)
+  explicit NumericSplitCondition(const treelite::Tree::Node& node,
+                                 const NumericAdapter& numeric_adapter)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
      numeric_adapter(numeric_adapter) {}
-  explicit SplitCondition(const treelite::Tree::Node& node,
-                          NumericAdapter&& numeric_adapter)
+  explicit NumericSplitCondition(const treelite::Tree::Node& node,
+                                 NumericAdapter&& numeric_adapter)
    : split_index(node.split_index()), default_left(node.default_left()),
      op(node.comparison_op()), threshold(node.threshold()),
      numeric_adapter(std::move(numeric_adapter)) {}
-  CLONEABLE_BOILERPLATE(SplitCondition)
+  CLONEABLE_BOILERPLATE(NumericSplitCondition)
   inline std::string Compile() const override {
     const std::string bitmap
       = std::string("data[") + std::to_string(split_index) + "].missing != -1";
@@ -50,6 +50,39 @@ class SplitCondition : public treelite::semantic::Condition {
   NumericAdapter numeric_adapter;
 };
 
+class CategoricalSplitCondition : public treelite::semantic::Condition {
+ public:
+  explicit CategoricalSplitCondition(const treelite::Tree::Node& node)
+   : split_index(node.split_index()), default_left(node.default_left()),
+     categorical_bitmap(to_bitmap(node.left_categories())) {}
+  CLONEABLE_BOILERPLATE(CategoricalSplitCondition)
+  inline std::string Compile() const override {
+    const std::string bitmap
+      = std::string("data[") + std::to_string(split_index) + "].missing != -1";
+    const std::string comp
+      = std::string("((") + std::to_string(categorical_bitmap)
+          + "U >> (unsigned int)(data[" + std::to_string(split_index)
+          + "].fvalue)) & 1)";
+    return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
+                            : (std::string(" (") + bitmap + ") && "))
+            + ((categorical_bitmap == 0) ? std::string("0") : comp);
+  }
+
+ private:
+  unsigned split_index;
+  bool default_left;
+  uint64_t categorical_bitmap;
+
+  inline uint64_t to_bitmap(const std::vector<uint8_t>& left_categories) const {
+    uint64_t result = 0;
+    for (uint8_t e : left_categories) {
+      CHECK_LT(e, 64) << "Cannot have more than 64 categories in a feature";
+      result |= (static_cast<uint64_t>(1) << e);
+    }
+    return result;
+  }
+};
+
 }  // namespace anonymous
 
 namespace treelite {
@@ -62,9 +95,17 @@ std::vector<std::vector<tl_float>> ExtractCutPoints(const Model& model);
 struct Metadata {
   int num_features;
   std::vector<std::vector<tl_float>> cut_pts;
+  std::vector<bool> is_categorical;
 
   inline void Init(const Model& model, bool extract_cut_pts = false) {
     num_features = model.num_features;
+    is_categorical.clear();
+    is_categorical.resize(num_features, false);
+    for (const Tree& tree : model.trees) {
+      for (unsigned e : tree.GetCategoricalFeatures()) {
+        is_categorical[e] = true;
+      }
+    }
     if (extract_cut_pts) {
       cut_pts = std::move(ExtractCutPoints(model));
     }
@@ -88,6 +129,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
   using FunctionBlock = semantic::FunctionBlock;
   using SequenceBlock = semantic::SequenceBlock;
   using IfElseBlock = semantic::IfElseBlock;
+  using Condition = semantic::Condition;
 
   SemanticModel Compile(const Model& model) override {
     Metadata info;
@@ -221,8 +263,15 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
         branch_hint = (left_count > right_count) ? BranchHint::kLikely
                                                  : BranchHint::kUnlikely;
       }
+      std::unique_ptr<Condition> condition(nullptr);
+      if (node.split_type() == SplitFeatureType::kNumerical) {
+        condition = common::make_unique<NumericSplitCondition>(node,
+                                        QuantizePolicy::NumericAdapter());
+      } else {
+        condition = common::make_unique<CategoricalSplitCondition>(node);
+      }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
-        SplitCondition(node, QuantizePolicy::NumericAdapter()),
+        common::MoveUniquePtr(condition),
         common::MoveUniquePtr(WalkTree_(tree, counts, node.cleft())),
         common::MoveUniquePtr(WalkTree_(tree, counts, node.cright())),
         branch_hint)
@@ -255,7 +304,7 @@ class NoQuantize : private MetadataStore {
   void Init(Args&&... args) {
     MetadataStore::Init(std::forward<Args>(args)...);
   }
-  SplitCondition::NumericAdapter NumericAdapter() const {
+  NumericSplitCondition::NumericAdapter NumericAdapter() const {
     return [] (Operator op, unsigned split_index, tl_float threshold) {
       std::ostringstream oss;
       oss << "data[" << split_index << "].fvalue "
@@ -288,13 +337,13 @@ class Quantize : private MetadataStore {
     quant_preamble = {
       std::string("for (int i = 0; i < ")
       + std::to_string(GetInfo().num_features) + "; ++i) {",
-      "  if (data[i].missing != -1) {",
+      "  if (data[i].missing != -1 && !is_categorical[i]) {",
       "    data[i].qvalue = quantize(data[i].fvalue, i);",
       "  }",
       "}"};
   }
-  SplitCondition::NumericAdapter NumericAdapter() const {
-    const std::vector<std::vector<tl_float>>& cut_pts = GetInfo().cut_pts; 
+  NumericSplitCondition::NumericAdapter NumericAdapter() const {
+    const std::vector<std::vector<tl_float>>& cut_pts = GetInfo().cut_pts;
     return [&cut_pts] (Operator op, unsigned split_index,
                        tl_float threshold) {
       std::ostringstream oss;
@@ -314,7 +363,26 @@ class Quantize : private MetadataStore {
             "};"};
   }
   std::vector<std::string> PreprocessingPreamble() const {
-    std::vector<std::string> ret{"static const float threshold[] = {"};
+    std::vector<std::string> ret;
+    ret.emplace_back("static const unsigned char is_categorical[] = {");
+    {
+      std::ostringstream oss, oss2;
+      size_t length = 2;
+      oss << "  ";
+      const int num_features = GetInfo().num_features;
+      const auto& is_categorical = GetInfo().is_categorical;
+      for (int fid = 0; fid < num_features; ++fid) {
+        if (is_categorical[fid]) {
+          common::WrapText(&oss, &length, "1", 80);
+        } else {
+          common::WrapText(&oss, &length, "0", 80);
+        }
+      }
+      ret.push_back(oss.str());
+      ret.emplace_back("};");
+      ret.emplace_back();
+    }
+    ret.emplace_back("static const float threshold[] = {");
     {
       std::ostringstream oss, oss2;
       size_t length = 2;
@@ -417,9 +485,16 @@ ExtractCutPoints(const Model& model) {
       const Tree::Node& node = tree[nid];
       Q.pop();
       if (!node.is_leaf()) {
-        const tl_float threshold = node.threshold();
-        const unsigned split_index = node.split_index();
-        thresh_[split_index].insert(threshold);
+        if (node.split_type() == SplitFeatureType::kNumerical) {
+          const tl_float threshold = node.threshold();
+          const unsigned split_index = node.split_index();
+          thresh_[split_index].insert(threshold);
+          if (split_index == 0) {
+            LOG(INFO) << "Inserting " << threshold << " into cut_pts[" << split_index << "]";
+          }
+        } else {
+          CHECK(node.split_type() == SplitFeatureType::kCategorical);
+        }
         Q.push(node.cleft());
         Q.push(node.cright());
       }

@@ -381,6 +381,15 @@ int TreeliteCreateModelBuilder(int num_features,
   API_END();
 }
 
+int TreeliteSetModelParam(ModelBuilderHandle handle,
+                          const char* name,
+                          const char* value) {
+  API_BEGIN();
+  auto builder = static_cast<frontend::ModelBuilder*>(handle);
+  builder->SetModelParam(name, value);
+  API_END();
+}
+
 int TreeliteDeleteModelBuilder(ModelBuilderHandle handle) {
   API_BEGIN();
   delete static_cast<frontend::ModelBuilder*>(handle);
@@ -425,19 +434,42 @@ int TreeliteSetRootNode(ModelBuilderHandle handle,
   API_END();
 }
 
-int TreeliteSetTestNode(ModelBuilderHandle handle,
-                        int tree_index, int node_key,
-                        unsigned feature_id, const char* opname,
-                        float threshold, int default_left,
-                        int left_child_key, int right_child_key) {
+int TreeliteSetNumericalTestNode(ModelBuilderHandle handle,
+                                 int tree_index, int node_key,
+                                 unsigned feature_id, const char* opname,
+                                 float threshold, int default_left,
+                                 int left_child_key, int right_child_key) {
   API_BEGIN();
   auto builder = static_cast<frontend::ModelBuilder*>(handle);
-  CHECK_GT(optable.count(opname), 0) << "No operator `" << opname << "\" exists";
-  return (builder->SetTestNode(tree_index, node_key, feature_id,
-                               optable.at(opname),
-                               static_cast<tl_float>(threshold),
-                               static_cast<bool>(default_left),
-                               left_child_key, right_child_key)) ? 0 : -1;
+  CHECK_GT(optable.count(opname), 0)
+    << "No operator `" << opname << "\" exists";
+  return (builder->SetNumericalTestNode(tree_index, node_key, feature_id,
+                                        optable.at(opname),
+                                        static_cast<tl_float>(threshold),
+                                        static_cast<bool>(default_left),
+                                        left_child_key, right_child_key)) \
+                                        ? 0 : -1;
+  API_END();
+}
+
+int TreeliteSetCategoricalTestNode(ModelBuilderHandle handle,
+                                   int tree_index, int node_key,
+                                   unsigned feature_id,
+                                   const unsigned char* left_categories,
+                                   size_t left_categories_len,
+                                   int default_left,
+                                   int left_child_key, int right_child_key) {
+  API_BEGIN();
+  auto builder = static_cast<frontend::ModelBuilder*>(handle);
+  std::vector<uint8_t> vec(left_categories_len);
+  for (size_t i = 0; i < left_categories_len; ++i) {
+    CHECK(left_categories[i] <= std::numeric_limits<uint8_t>::max());
+    vec[i] = static_cast<uint8_t>(left_categories[i]);
+  }
+  return (builder->SetCategoricalTestNode(tree_index, node_key, feature_id, vec,
+                                          static_cast<bool>(default_left),
+                                          left_child_key, right_child_key)) \
+                                        ? 0 : -1;
   API_END();
 }
 

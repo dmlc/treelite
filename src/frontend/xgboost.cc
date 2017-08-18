@@ -136,7 +136,8 @@ struct GBTreeModelParam {
   int num_feature;
   int pad1;
   int64_t pad2;
-  int pad3[34];
+  int num_output_group;
+  int pad3[33];
 };
 
 struct TreeParam {
@@ -297,6 +298,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
   LOG(INFO) << "gbm_param_.num_feature = " << gbm_param_.num_feature;
+  LOG(INFO) << "gbm_param_.num_output_group = " << gbm_param_.num_output_group;
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
@@ -305,6 +307,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   /* 2. Export model */
   treelite::Model model;
   model.num_features = gbm_param_.num_feature;
+
+  // extra parameters
+  std::vector<std::pair<std::string, std::string>> cfg;
+  cfg.emplace_back("num_output_group", std::to_string(gbm_param_.num_output_group));
+  InitParamAndCheck(&model.param, cfg);
+
   for (const auto& xgb_tree : xgb_trees_) {
     model.trees.emplace_back();
     treelite::Tree& tree = model.trees.back();
@@ -325,10 +333,10 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
-        tree[new_id].set_split(node.split_index(),
-                               static_cast<treelite::tl_float>(split_cond),
-                               node.default_left(),
-                               treelite::Operator::kLT);
+        tree[new_id].set_numerical_split(node.split_index(),
+                                   static_cast<treelite::tl_float>(split_cond),
+                                   node.default_left(),
+                                   treelite::Operator::kLT);
         Q.push({node.cleft(), tree[new_id].cleft()});
         Q.push({node.cright(), tree[new_id].cright()});
       }

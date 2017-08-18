@@ -70,21 +70,47 @@ class Tree {
     inline Operator comparison_op() const {
       return cmp_;
     }
+    /*! \brief get categories for left child node */
+    inline const std::vector<uint8_t>& left_categories() const {
+      return left_categories_;
+    }
+    /*! \briet get feature split type */
+    inline SplitFeatureType split_type() const {
+      return split_type_;
+    }
     /*!
-     * \brief set split condition of current node
+     * \brief create a numerical split
      * \param split_index feature index to split
      * \param threshold threshold value
      * \param default_left the default direction when feature is unknown
      * \param cmp comparison operator to compare between feature value and
      *            threshold
      */
-    inline void set_split(unsigned split_index, tl_float threshold,
-                          bool default_left, Operator cmp) {
+    inline void set_numerical_split(unsigned split_index, tl_float threshold,
+                                    bool default_left, Operator cmp) {
       CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
       this->sindex_ = split_index;
       (this->info_).threshold = threshold;
       this->cmp_ = cmp;
+      this->split_type_ = SplitFeatureType::kNumerical;
+    }
+    /*!
+     * \brief create a categorical split
+     * \param split_index feature index to split
+     * \param threshold threshold value
+     * \param default_left the default direction when feature is unknown
+     * \param cmp comparison operator to compare between feature value and
+     *            threshold
+     */
+    inline void set_categorical_split(unsigned split_index, bool default_left,
+                                 const std::vector<uint8_t>& left_categories) {
+      CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
+      if (default_left) split_index |= (1U << 31);
+      this->sindex_ = split_index;
+      this->left_categories_ = left_categories;
+      std::sort(this->left_categories_.begin(), this->left_categories_.end());
+      this->split_type_ = SplitFeatureType::kCategorical;
     }
     /*!
      * \brief set the leaf value of the node
@@ -94,6 +120,7 @@ class Tree {
       (this->info_).leaf_value = value;
       this->cleft_ = -1;
       this->cright_ = -1;
+      this->split_type_ = SplitFeatureType::kNone;
     }
     /*!
      * \brief set parent of the node
@@ -119,6 +146,8 @@ class Tree {
     int parent_;
     /*! \brief pointer to left and right children */
     int cleft_, cright_;
+    /*! \brief feature split type */
+    SplitFeatureType split_type_;
     /*!
      * \brief feature index used for the split
      * highest bit indicates default direction for missing values
@@ -132,6 +161,13 @@ class Tree {
      * otherwise, take the right child.
      */
     Operator cmp_;
+    /*!
+     * \brief list of all categories belonging to the left node.
+     * Categories not in this list will belong to the right node.
+     * Categories are integers ranging from 0 to (n-1), where n is the number of
+     * categories in that particular feature. Let's assume n <= 64.
+     */
+    std::vector<uint8_t> left_categories_;
   };
 
  private:
@@ -184,7 +220,62 @@ class Tree {
     nodes[cleft].set_parent(nid, true);
     nodes[cright].set_parent(nid, false);
   }
+
+  /*!
+   * \brief get list of all categorical features that have appeared anywhere
+   *        in tree
+   */
+  inline std::vector<unsigned> GetCategoricalFeatures() const {
+    std::unordered_map<unsigned, bool> tmp;
+    for (int nid = 0; nid < num_nodes; ++nid) {
+      const Node& node = nodes[nid];
+      const SplitFeatureType type = node.split_type();
+      if (type != SplitFeatureType::kNone) {
+        const bool flag = (type == SplitFeatureType::kCategorical);
+        const unsigned split_index = node.split_index();
+        if (tmp.count(split_index) == 0) {
+          tmp[split_index] = flag;
+        } else {
+          CHECK_EQ(tmp[split_index], flag) << "Feature " << split_index
+            << " cannot be simultaneously be categorical and numerical.";
+        }
+      }
+    }
+    std::vector<unsigned> result;
+    for (const auto& kv : tmp) {
+      if (kv.second) {
+        result.push_back(kv.first);
+      }
+    }
+    std::sort(result.begin(), result.end());
+    return result;
+  }
 };
+
+struct ModelParam : public dmlc::Parameter<ModelParam> {
+  /*! \brief number of output groups -- for multi-class classification */
+  int num_output_group;
+
+  DMLC_DECLARE_PARAMETER(ModelParam) {
+    DMLC_DECLARE_FIELD(num_output_group).set_default(1)
+      .set_lower_bound(1)
+      .describe("number of output groups; >1 indicates multi-class "
+                "classification");
+  }
+};
+
+inline void InitParamAndCheck(ModelParam* param,
+                  const std::vector<std::pair<std::string, std::string>> cfg) {
+  auto unknown = param->InitAllowUnknown(cfg);
+  if (unknown.size() > 0) {
+    std::ostringstream oss;
+    for (const auto& kv : unknown) {
+      oss << kv.first << ", ";
+    }
+    LOG(INFO) << "\033[1;31mWarning: Unknown parameters found; "
+              << "they have been ignored\u001B[0m: " << oss.str();
+  }
+}
 
 /*! \brief thin wrapper for tree ensemble model */
 struct Model {
@@ -195,6 +286,8 @@ struct Model {
    * It is assumed that all feature indices are between 0 and [num_features]-1.
    */
   int num_features;
+  /*! \brief extra parameters */
+  ModelParam param;
 
   /*! \brief disable copy; use default move */
   Model() = default;

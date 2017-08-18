@@ -24,29 +24,37 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
   ++out_counts[nid];
   if (!node.is_leaf()) {
     const unsigned split_index = node.split_index();
-    const treelite::tl_float threshold = node.threshold();
-    const treelite::Operator op = node.comparison_op();
 
     if (data[split_index].missing == -1) {
       Traverse_(tree, data, node.cdefault(), out_counts);
     } else {
-      // perform comparison with fvalue
-      const treelite::tl_float fvalue
-        = static_cast<treelite::tl_float>(data[split_index].fvalue);
       bool result = true;
-      switch (op) {
-       case treelite::Operator::kEQ:
-        result = (fvalue == threshold); break;
-       case treelite::Operator::kLT:
-        result = (fvalue <  threshold); break;
-       case treelite::Operator::kLE:
-        result = (fvalue <= threshold); break;
-       case treelite::Operator::kGT:
-        result = (fvalue >  threshold); break;
-       case treelite::Operator::kGE:
-        result = (fvalue >= threshold); break;
-       default:
-        LOG(FATAL) << "operator undefined";
+      if (node.split_type() == treelite::SplitFeatureType::kNumerical) {
+        const treelite::tl_float threshold = node.threshold();
+        const treelite::Operator op = node.comparison_op();
+        const treelite::tl_float fvalue
+          = static_cast<treelite::tl_float>(data[split_index].fvalue);
+        switch (op) {
+         case treelite::Operator::kEQ:
+          result = (fvalue == threshold); break;
+         case treelite::Operator::kLT:
+          result = (fvalue <  threshold); break;
+         case treelite::Operator::kLE:
+          result = (fvalue <= threshold); break;
+         case treelite::Operator::kGT:
+          result = (fvalue >  threshold); break;
+         case treelite::Operator::kGE:
+          result = (fvalue >= threshold); break;
+         default:
+          LOG(FATAL) << "operator undefined";
+        }
+      } else {
+        const auto fvalue = data[split_index].fvalue;
+        CHECK_LT(fvalue, 64) << "Cannot have more than 64 categories";
+        const uint8_t fvalue2 = static_cast<uint8_t>(fvalue);
+        const auto left_categories = node.left_categories();
+        result = (std::binary_search(left_categories.begin(),
+                                     left_categories.end(), fvalue));
       }
       if (result) {  // left child
         Traverse_(tree, data, node.cleft(), out_counts);

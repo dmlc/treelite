@@ -5,6 +5,7 @@ package treelite_protobuf;
 message Model {
   repeated Tree trees = 1;
   optional int32 num_features = 2;
+  map<string, string> extra_params = 3;  // extra parameters
 }
 
 message Tree {
@@ -19,11 +20,25 @@ message Node {
                                      // false: default to right
    optional int32 split_index = 4;   // Feature index used for the split;
                                      // missing if leaf
-   optional string op = 5;           // Operation used for comparison (e.g. "<")
+   enum SplitFeatureType {
+     NUMERICAL = 0;
+     CATEGORICAL = 1;
+   }
+   optional SplitFeatureType split_type = 5;
+                                     // Type of feature used for the split
+                                     // missing if leaf
+   optional string op = 6;           // Operation used for comparison (e.g. "<")
                                      // of form [feature value] OP [threshold].
-                                     // The left child is taken if the expression
-                                     // evaluates to true; the right child is
-                                     // taken otherwise.
-   optional float threshold = 6;     // Decision threshold; missing if leaf
-   optional float leaf_value = 7;    // Leaf value; missing if non-leaf
+                                     // The left child is taken if the
+                                     // expression evaluates to true; the right
+                                     // child is taken otherwise.
+                                     // missing if leaf or categorical split
+   optional float threshold = 7;     // Decision threshold
+                                     // missing if leaf or categorical split
+   repeated int32 left_categories = 8;
+                                     // List of all categories belonging to
+                                     // the left child. All other categories
+                                     // will belong to the right child.
+                                     // missing if leaf or numerical split
+   optional float leaf_value = 9;    // Leaf value; missing if non-leaf
 }

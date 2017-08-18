@@ -283,6 +283,16 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 TREELITE_DLL int TreeliteCreateModelBuilder(int num_features,
                                             ModelBuilderHandle* out);
 /*!
+ * \brief Set a model parameter
+ * \param handle model builder
+ * \param name name of parameter
+ * \param value value of parameter
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteSetModelParam(ModelBuilderHandle handle,
+                                       const char* name,
+                                       const char* value);
+/*!
  * \brief Delete a model builder from memory
  * \param handle model builder to remove
  * \return 0 for success; -1 for failure
@@ -333,7 +343,7 @@ TREELITE_DLL int TreeliteDeleteNode(ModelBuilderHandle handle,
 TREELITE_DLL int TreeliteSetRootNode(ModelBuilderHandle handle,
                                      int tree_index, int node_key);
 /*!
- * \brief Turn an empty node into a test (non-leaf) node; the test is in the
+ * \brief Turn an empty node into a numerical test node; the test is in the
  *        form [feature value] OP [threshold]. Depending on the result of the
  *        test, either left or right child would be taken.
  * \param handle model builder
@@ -341,18 +351,44 @@ TREELITE_DLL int TreeliteSetRootNode(ModelBuilderHandle handle,
  * \param node_key unique integer key to identify the node being modified;
  *                 this node needs to be empty
  * \param feature_id id of feature
- * \param op_name binary operator to use in the test
+ * \param opname binary operator to use in the test
  * \param threshold threshold value
  * \param default_left default direction for missing values
  * \param left_child_key unique integer key to identify the left child node
  * \param right_child_key unique integer key to identify the right child node
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int TreeliteSetTestNode(ModelBuilderHandle handle,
-                                     int tree_index, int node_key,
-                                     unsigned feature_id, const char* opname,
-                                     float threshold, int default_left,
-                                     int left_child_key, int right_child_key);
+TREELITE_DLL int TreeliteSetNumericalTestNode(ModelBuilderHandle handle,
+                                              int tree_index, int node_key,
+                                              unsigned feature_id,
+                                              const char* opname,
+                                              float threshold, int default_left,
+                                              int left_child_key,
+                                              int right_child_key);
+/*!
+ * \brief Turn an empty node into a categorical test node.
+ * A list defines all categories that would be classified as the left side.
+ * Categories are integers ranging from 0 to (n-1), where n is the number of
+ * categories in that particular feature. Let's assume n <= 64.
+ * \param handle model builder
+ * \param tree_index index of the tree containing the node being modified
+ * \param node_key unique integer key to identify the node being modified;
+ *                 this node needs to be empty
+ * \param feature_id id of feature
+ * \param left_categories list of categories belonging to the left child
+ * \param left_categories_len length of left_cateogries
+ * \param default_left default direction for missing values
+ * \param left_child_key unique integer key to identify the left child node
+ * \param right_child_key unique integer key to identify the right child node
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int SetCategoricalTestNode(ModelBuilderHandle handle,
+                                        int tree_index, int node_key,
+                                        unsigned feature_id,
+                                        const unsigned char* left_categories,
+                                        size_t left_categories_len,
+                                        bool default_left, int left_child_key,
+                                        int right_child_key);
 /*!
  * \brief Turn an empty node into a leaf node
  * \param handle model builder

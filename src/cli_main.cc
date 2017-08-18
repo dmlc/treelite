@@ -9,6 +9,7 @@
 #include <treelite/annotator.h>
 #include <treelite/compiler.h>
 #include <treelite/semantic.h>
+#include <treelite/predictor.h>
 #include <dmlc/config.h>
 #include <dmlc/data.h>
 #include <fstream>
@@ -24,7 +25,8 @@ namespace treelite {
 
 enum CLITask {
   kCodegen = 0,
-  kAnnotate = 1
+  kAnnotate = 1,
+  kPredict = 2
 };
 
 enum InputFormat {
@@ -61,10 +63,18 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   std::string name_codegen;
   /*! \brief name of generated annotation file */
   std::string name_annotate;
-  /*! \brief the path of training set -- used for annotation */
-  std::string train_path;
+  /*! \brief name of text file to save prediction */
+  std::string name_pred;
+  /*! \brief the path of training set: used for annotation */
+  std::string train_data_path;
+  /*! \brief the path of test set: used for prediction */
+  std::string test_data_path;
+  /*! \brief the path of compiled dynamic shared library: used for prediction */
+  std::string codelib_path;
   /*! \brief training set file format */
   int train_format;
+  /*! \brief test set file format */
+  int test_format;
   // number of threads to use if OpenMP is enabled
   // if equals 0, use system default
   int nthread;
@@ -76,6 +86,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
     DMLC_DECLARE_FIELD(task).set_default(kCodegen)
         .add_enum("train", kCodegen)
         .add_enum("annotate", kAnnotate)
+        .add_enum("predict", kPredict)
         .describe("Task to be performed by the CLI program.");
     DMLC_DECLARE_FIELD(verbose).set_default(0)
         .describe("Produce extra messages if >0");
@@ -89,17 +100,31 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .describe("generated code file");
     DMLC_DECLARE_FIELD(name_annotate).set_default("annotate.json")
         .describe("Name of generated annotation file");
-    DMLC_DECLARE_FIELD(train_path).set_default("NULL")
+    DMLC_DECLARE_FIELD(name_pred).set_default("pred.txt")
+        .describe("Name of text file to save prediction");
+    DMLC_DECLARE_FIELD(train_data_path).set_default("NULL")
         .describe("Training data path; used for annotation");
+    DMLC_DECLARE_FIELD(test_data_path).set_default("NULL")
+        .describe("Test data path; used prediction");
+    DMLC_DECLARE_FIELD(codelib_path).set_default("NULL")
+        .describe("Path to compiled dynamic shared library (.so/.dll/.dylib); "
+                  "used for prediction");
     DMLC_DECLARE_FIELD(train_format).set_default(kLibSVM)
         .add_enum("libsvm", kLibSVM)
         .add_enum("csv", kCSV)
-        .add_enum("libfm", kLibFM);
+        .add_enum("libfm", kLibFM)
+        .describe("training set data format");
+    DMLC_DECLARE_FIELD(test_format).set_default(kLibSVM)
+        .add_enum("libsvm", kLibSVM)
+        .add_enum("csv", kCSV)
+        .add_enum("libfm", kLibFM)
+        .describe("test set data format");
     DMLC_DECLARE_FIELD(nthread).set_default(0).describe(
         "Number of threads to use.");
 
     // alias
-    DMLC_DECLARE_ALIAS(train_path, data);
+    DMLC_DECLARE_ALIAS(train_data_path, data);
+    DMLC_DECLARE_ALIAS(test_data_path, test:data);
     DMLC_DECLARE_ALIAS(train_format, data_format);
   }
   // customized configure function of CLIParam
@@ -204,9 +229,9 @@ void CLIAnnotate(const CLIParam& param) {
   Model model = ParseModel(param);
   LOG(INFO) << "model size = " << model.trees.size();
 
-  CHECK_NE(param.train_path, "NULL")
-    << "Need to specify train_path paramter for annotation task";
-  std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.train_path.c_str(),
+  CHECK_NE(param.train_data_path, "NULL")
+    << "Need to specify train_data_path paramter for annotation task";
+  std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.train_data_path.c_str(),
                                          FileFormatString(param.train_format),
                                          param.nthread, param.verbose));
   BranchAnnotator annotator;
@@ -215,6 +240,30 @@ void CLIAnnotate(const CLIParam& param) {
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_annotate.c_str(), "w"));
   annotator.Save(fo.get());
+}
+
+void CLIPredict(const CLIParam& param) {
+
+  CHECK_NE(param.codelib_path, "NULL")
+    << "Need to specify codelib_path paramter for prediction task";
+  CHECK_NE(param.test_data_path, "NULL")
+    << "Need to specify test_data_path paramter for annotation task";
+  std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.test_data_path.c_str(),
+                                         FileFormatString(param.test_format),
+                                         param.nthread, param.verbose));
+  Predictor predictor;
+  predictor.Load(param.codelib_path.c_str());
+  std::vector<float> result(predictor.QueryResultSize(dmat.get()));
+  predictor.Predict(dmat.get(), param.nthread, param.verbose, &result[0]);
+  // write to text file
+  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
+                                   param.name_pred.c_str(), "w"));
+  dmlc::ostream os(fo.get());
+  for (float e : result) {
+    os << e << std::endl;
+  }
+  // force flush before fo destruct.
+  os.set_stream(nullptr);
 }
 
 int CLIRunTask(int argc, char* argv[]) {
@@ -247,6 +296,7 @@ int CLIRunTask(int argc, char* argv[]) {
   switch (param.task) {
     case kCodegen: CLICodegen(param); break;
     case kAnnotate: CLIAnnotate(param); break;
+    case kPredict: CLIPredict(param); break;
   }
 
   return 0;

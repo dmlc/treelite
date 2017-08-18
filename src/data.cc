@@ -32,7 +32,7 @@ DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
   auto& col_ind_ = dmat->col_ind;
   auto& row_ptr_ = dmat->row_ptr;
   auto& num_row_ = dmat->num_row;
-  auto& num_col_ = dmat->num_row;
+  auto& num_col_ = dmat->num_col;
   auto& nelem_ = dmat->nelem;
 
   std::vector<size_t> max_col_ind(nthread, 0);

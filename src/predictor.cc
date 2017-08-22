@@ -50,12 +50,11 @@ inline HandleType LoadFunction(treelite::Predictor::LibraryHandle lib_handle,
   return static_cast<HandleType>(func_handle);
 }
 
-inline void PredLoop(const std::function<void (int64_t,
-                                    treelite::Predictor::Entry*, float*)>& func,
-                     const treelite::DMatrix* dmat,
-                     size_t rbegin, size_t rend, int nthread,
-                     treelite::Predictor::Entry* inst,
-                     float* out_pred) {
+template <typename PredFunc>
+inline void PredLoopInternal(const treelite::DMatrix* dmat,
+                             size_t rbegin, size_t rend, int nthread,
+                             treelite::Predictor::Entry* inst,
+                             float* out_pred, PredFunc func) {
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const int64_t rbegin_i = static_cast<int64_t>(rbegin);
@@ -72,6 +71,21 @@ inline void PredLoop(const std::function<void (int64_t,
     func(rid, &inst[off], out_pred);
     for (size_t i = ibegin; i < iend; ++i) {
       inst[off + dmat->col_ind[i]].missing = -1;
+    }
+  }
+}
+
+template <typename PredFunc>
+inline void PredLoop(const treelite::DMatrix* dmat, int nthread, int verbose,
+                     float* out_pred, PredFunc func) {
+  // interval to display progress
+  const size_t pstep = (dmat->num_row + 19) / 20;
+  std::vector<treelite::Predictor::Entry> inst(nthread * dmat->num_col, {-1});
+  for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
+    const size_t rend = std::min(rbegin + pstep, dmat->num_row);
+    PredLoopInternal(dmat, rbegin, rend, nthread, &inst[0], out_pred, func);
+    if (verbose > 0) {
+      LOG(INFO) << rend << " of " << dmat->num_row << " rows processed";
     }
   }
 }
@@ -136,9 +150,6 @@ Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
     << "A shared library needs to be loaded first using Load()";
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
-  std::vector<Entry> inst(nthread * dmat->num_col, {-1});
-  const size_t pstep = (dmat->num_row + 19) / 20;
-      // interval to display progress
 
   if (verbose > 0) {
     LOG(INFO) << "Begin prediction";
@@ -147,29 +158,22 @@ Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
 
   /* Pass the correct prediction function to PredLoop.
      We also need to specify how the function should be called. */
-  std::function<void (int64_t, Entry*, float*)> func;
   if (num_output_group_ > 1) {
     using PredFunc = void (*)(Entry*, float*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
     const size_t num_output_group = num_output_group_;
-    func = [pred_func, num_output_group]
-           (int64_t rid, Entry* inst, float* out_pred) {
-      pred_func(inst, &out_pred[rid * num_output_group]);
-    };
+    PredLoop(dmat, nthread, verbose, out_pred,
+      [pred_func, num_output_group]
+      (int64_t rid, Entry* inst, float* out_pred) {
+        pred_func(inst, &out_pred[rid * num_output_group]);
+      });
   } else {
     using PredFunc = float (*)(Entry*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
-    func = [pred_func](int64_t rid, Entry* inst, float* out_pred) {
-      out_pred[rid] = pred_func(inst);
-    };
-  }
-
-  for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
-    const size_t rend = std::min(rbegin + pstep, dmat->num_row);
-    PredLoop(func, dmat, rbegin, rend, nthread, &inst[0], out_pred);
-    if (verbose > 0) {
-      LOG(INFO) << rend << " of " << dmat->num_row << " rows processed";
-    }
+    PredLoop(dmat, nthread, verbose, out_pred,
+      [pred_func](int64_t rid, Entry* inst, float* out_pred) {
+        out_pred[rid] = pred_func(inst);
+      });
   }
   if (verbose > 0) {
     LOG(INFO) << "Finished prediction in "

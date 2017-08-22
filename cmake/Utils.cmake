@@ -47,7 +47,7 @@ endfunction(set_output_directory)
 # Set a default build type to release if none was specified
 function(set_default_configuration_release)
     if(CMAKE_CONFIGURATION_TYPES STREQUAL "Debug;Release;MinSizeRel;RelWithDebInfo") # multiconfig generator?
-        set(CMAKE_CONFIGURATION_TYPES Release CACHE STRING "" FORCE)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 	elseif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	  message(STATUS "Setting build type to 'Release' as none was specified.")
 	  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE )

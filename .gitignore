@@ -42,3 +42,6 @@ build/*
 *.out
 *.app
 treelite
+
+# Project files
+*.pyproj

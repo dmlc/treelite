@@ -12,12 +12,24 @@
 #include <treelite/frontend.h>
 #include <treelite/predictor.h>
 #include <treelite/semantic.h>
+#include <dmlc/thread_local.h>
 #include <memory>
 #include <unordered_map>
+#include <algorithm>
 #include "./c_api_error.h"
 #include "../compiler/param.h"
 
 using namespace treelite;
+
+/*! \brief entry to to easily hold returning information */
+struct TreeliteAPIThreadLocalEntry {
+  /*! \brief result holder for returning string */
+  std::string ret_str;
+};
+
+// define threadlocal store for returning information
+using TreeliteAPIThreadLocalStore
+  = dmlc::ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
 
 namespace {
 
@@ -137,6 +149,32 @@ int TreeliteDMatrixGetDimension(DMatrixHandle handle,
   *out_num_row = dmat->num_row;
   *out_num_col = dmat->num_col;
   *out_nelem = dmat->nelem;
+  API_END();
+}
+
+int TreeliteDMatrixGetPreview(DMatrixHandle handle,
+                              const char** out_preview) {
+  API_BEGIN();
+  const DMatrix* dmat = static_cast<DMatrix*>(handle);
+  std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
+  std::ostringstream oss;
+  for (size_t i = 0; i < 25; ++i) {
+    const size_t row_ind =
+      std::upper_bound(&dmat->row_ptr[0], &dmat->row_ptr[dmat->num_row + 1], i)
+        - &dmat->row_ptr[0] - 1;
+    oss << "  (" << row_ind << ", " << dmat->col_ind[i] << ")\t"
+        << dmat->data[i] << "\n";
+  }
+  oss << "  :\t:\n";
+  for (size_t i = dmat->nelem - 25; i < dmat->nelem; ++i) {
+    const size_t row_ind =
+      std::upper_bound(&dmat->row_ptr[0], &dmat->row_ptr[dmat->num_row + 1], i)
+      - &dmat->row_ptr[0] - 1;
+    oss << "  (" << row_ind << ", " << dmat->col_ind[i] << ")\t"
+      << dmat->data[i] << "\n";
+  }
+  ret_str = oss.str();
+  *out_preview = ret_str.c_str();
   API_END();
 }
 

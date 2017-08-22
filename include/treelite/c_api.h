@@ -100,6 +100,16 @@ TREELITE_DLL int TreeliteDMatrixGetDimension(DMatrixHandle handle,
                                              size_t* out_num_row,
                                              size_t* out_num_col,
                                              size_t* out_nelem);
+
+/*!
+ * \brief produce a human-readable preview of a DMatrix
+ * Will print first and last 25 non-zero entries, along with their locations
+ * \param handle handle to DMatrix
+ * \param out_preview used to save the address of the string literal
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixGetPreview(DMatrixHandle handle,
+                                           const char** out_preview);
 /*!
  * \brief delete DMatrix from memory
  * \param handle handle to DMatrix

@@ -52,7 +52,7 @@ def c_array(ctype, values):
   return (ctype * len(values))(*values)
 
 # import frontend later to break circular reference
-from .frontend import Model, load_model_from_file
+from .frontend import Model, load_model_from_file, ModelBuilder
 
 PANDAS_DTYPE_MAPPER = {'int8': 'int', 'int16': 'int', 'int32': 'int',
                        'int64': 'int', 'uint8': 'int', 'uint16': 'int',

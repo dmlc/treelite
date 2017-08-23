@@ -96,7 +96,12 @@ struct GroupPolicy {
   int num_output_group;
 
   inline GroupPolicy(const treelite::Model& model)
-    : num_output_group(model.param.num_output_group) {}
+    : num_output_group(model.param.num_output_group) {
+    CHECK_EQ(model.trees.size() % num_output_group, 0)
+      << "The number of trees (" << model.trees.size()
+      << ") must be evenly divisible by the number of output groups ("
+      << num_output_group << ")";
+  }
 };
 
 }  // namespace anonymous

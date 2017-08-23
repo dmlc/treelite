@@ -10,9 +10,11 @@
 #include <dmlc/registry.h>
 #include <memory>
 #include <queue>
+#include "../c_api/c_api_error.h"
 
 #define CHECK_EARLY_RETURN(x, msg)                           \
   if (!(x)) {                                                \
+    TreeliteAPISetLastError(msg); \
     dmlc::LogMessage(__FILE__, __LINE__).stream() << msg;    \
     return false;                                            \
   }
@@ -236,22 +238,35 @@ ModelBuilder::SetModelParam(const char* name, const char* value) {
 int
 ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
   if (tree_builder == nullptr) {
-    LOG(INFO) << "InsertTree: not a valid tree builder";
+    const char* msg = "InsertTree: not a valid tree builder";
+    LOG(INFO) << msg;
+    TreeliteAPISetLastError(msg);
     return -1;  // fail
   }
   if (tree_builder->ensemble_id != nullptr) {
-    LOG(INFO) << "InsertTree: tree is already part of another ensemble";
+    const char* msg = "InsertTree: tree is already part of another ensemble";
+    LOG(INFO) << msg;
+    TreeliteAPISetLastError(msg);
     return -1;  // fail
   }
 
   // check bounds for feature indices
   for (const auto& kv : tree_builder->pimpl->tree.nodes) {
-    const int fid = static_cast<int>(kv.second->feature_id);
-    if (fid < 0 || fid >= pimpl->num_features) {
-      LOG(INFO) << "InsertTree: tree has an invalid split at node "
-                << kv.first << ": feature id " << kv.second->feature_id
-                << " is out of bound";
-      return -1;  // fail
+    const _Node::_Status status = kv.second->status;
+    if (status == _Node::_Status::kNumericalTest ||
+      status == _Node::_Status::kCategoricalTest) {
+      const int fid = static_cast<int>(kv.second->feature_id);
+      if (fid < 0 || fid >= pimpl->num_features) {
+        std::ostringstream oss;
+        oss << "InsertTree: tree has an invalid split at node "
+          << kv.first << ": feature id " << kv.second->feature_id
+          << " is out of bound";
+        const std::string str = oss.str();
+        const char* msg = str.c_str();
+        LOG(INFO) << msg;
+        TreeliteAPISetLastError(msg);
+        return -1;  // fail
+      }
     }
   }
 
@@ -298,6 +313,10 @@ ModelBuilder::CommitModel(Model* out_model) {
   model.num_features = pimpl->num_features;
   // extra parameters
   InitParamAndCheck(&model.param, pimpl->cfg);
+
+  CHECK_EARLY_RETURN(pimpl->trees.size() % model.param.num_output_group == 0,
+    "CommitModel: the number of trees must be evenly divisible by the number "
+    "of the output groups");
 
   for (const auto& _tree_builder : pimpl->trees) {
     const auto& _tree = _tree_builder.pimpl->tree;

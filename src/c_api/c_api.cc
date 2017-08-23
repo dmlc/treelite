@@ -561,11 +561,17 @@ int TreeliteModelBuilderDeleteTree(ModelBuilderHandle handle, int index) {
   API_END();
 }
 
-int TreeliteCommitModel(ModelBuilderHandle handle,
-                        ModelHandle* out) {
+int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
+                                    ModelHandle* out) {
   API_BEGIN();
   auto builder = static_cast<frontend::ModelBuilder*>(handle);
   Model* model = new Model();
-  return (builder->CommitModel(model)) ? 0 : -1;
+  const bool result = builder->CommitModel(model);
+  if (result) {
+    *out = static_cast<ModelHandle>(model);
+    return 0;
+  } else {
+    return -1;
+  }
   API_END();
 }

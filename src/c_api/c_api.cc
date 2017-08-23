@@ -522,7 +522,7 @@ int TreeliteSetCategoricalTestNode(ModelBuilderHandle handle,
     vec[i] = static_cast<uint8_t>(left_categories[i]);
   }
   return (builder->SetCategoricalTestNode(tree_index, node_key, feature_id, vec,
-                                          static_cast<bool>(default_left),
+                                          (default_left != 0),
                                           left_child_key, right_child_key)) \
                                         ? 0 : -1;
   API_END();

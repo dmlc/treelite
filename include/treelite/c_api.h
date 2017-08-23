@@ -414,13 +414,14 @@ TREELITE_DLL int TreeliteSetNumericalTestNode(ModelBuilderHandle handle,
  * \param right_child_key unique integer key to identify the right child node
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int SetCategoricalTestNode(ModelBuilderHandle handle,
-                                        int tree_index, int node_key,
-                                        unsigned feature_id,
-                                        const unsigned char* left_categories,
-                                        size_t left_categories_len,
-                                        bool default_left, int left_child_key,
-                                        int right_child_key);
+TREELITE_DLL int TreeliteSetCategoricalTestNode(ModelBuilderHandle handle,
+                                                int tree_index, int node_key,
+                                                unsigned feature_id,
+                                          const unsigned char* left_categories,
+                                                size_t left_categories_len,
+                                                int default_left,
+                                                int left_child_key,
+                                                int right_child_key);
 /*!
  * \brief Turn an empty node into a leaf node
  * \param handle model builder

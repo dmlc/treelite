@@ -295,7 +295,7 @@ class Compiler(object):
 
   def _set_param(self, params, value=None):
     """
-    Set parameters into the Booster.
+    Set parameter(s)
 
     Parameters
     ----------

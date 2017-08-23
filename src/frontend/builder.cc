@@ -70,8 +70,13 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(builder);
 
+struct TreeBuilderImpl {
+  _Tree tree;
+  inline TreeBuilderImpl() : tree() {}
+};
+
 struct ModelBuilderImpl {
-  std::vector<_Tree> trees;
+  std::vector<TreeBuilder> trees;
   int num_features;
   std::vector<std::pair<std::string, std::string>> cfg;
   inline ModelBuilderImpl(int num_features)
@@ -80,47 +85,13 @@ struct ModelBuilderImpl {
   }
 };
 
-ModelBuilder::ModelBuilder(int num_features)
-  : pimpl(common::make_unique<ModelBuilderImpl>(num_features)) {}
-ModelBuilder::~ModelBuilder() {}
-
-void
-ModelBuilder::SetModelParam(const char* name, const char* value) {
-  pimpl->cfg.emplace_back(name, value);
-}
-
-int
-ModelBuilder::CreateTree(int index) {
-  auto& trees = pimpl->trees;
-  if (index == -1) {
-    trees.push_back(_Tree());
-    return static_cast<int>(trees.size());
-  } else {
-    if (static_cast<size_t>(index) <= trees.size()) {
-      trees.insert(trees.begin() + index, _Tree());
-      return index;
-    } else {
-      LOG(INFO) << "CreateTree: index out of bound";
-      return -1;  // fail
-    }
-  }
-}
+TreeBuilder::TreeBuilder()
+  : pimpl(common::make_unique<TreeBuilderImpl>()), ensemble_id(nullptr) {}
+TreeBuilder::~TreeBuilder() {}
 
 bool
-ModelBuilder::DeleteTree(int index) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(index) < trees.size(),
-                     "DeleteTree: index out of bound");
-  trees.erase(trees.begin() + index);
-  return true;
-}
-
-bool
-ModelBuilder::CreateNode(int tree_index, int node_key) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "CreateNode: tree_index out of bound");
-  auto& nodes = trees[tree_index].nodes;
+TreeBuilder::CreateNode(int node_key) {
+  auto& nodes = pimpl->tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) == 0,
                      "CreateNode: nodes with duplicate keys are not allowed");
   nodes[node_key] = common::make_unique<_Node>();
@@ -128,11 +99,8 @@ ModelBuilder::CreateNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuilder::DeleteNode(int tree_index, int node_key) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "DeleteNode: tree_index out of bound");
-  auto& tree = trees[tree_index];
+TreeBuilder::DeleteNode(int node_key) {
+  auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "DeleteNode: no node found with node_key");
@@ -151,11 +119,8 @@ ModelBuilder::DeleteNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuilder::SetRootNode(int tree_index, int node_key) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "SetRootNode: tree_index out of bound");
-  auto& tree = trees[tree_index];
+TreeBuilder::SetRootNode(int node_key) {
+  auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetRootNode: no node found with node_key");
@@ -169,33 +134,27 @@ ModelBuilder::SetRootNode(int tree_index, int node_key) {
 }
 
 bool
-ModelBuilder::SetNumericalTestNode(int tree_index, int node_key,
-                                   unsigned feature_id,
-                                   Operator op, tl_float threshold,
-                                   bool default_left, int left_child_key,
-                                   int right_child_key) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "SetNumericalTestNode: tree_index out of bound");
-  CHECK_EARLY_RETURN(static_cast<int>(feature_id) >= 0 &&
-                     static_cast<int>(feature_id) < pimpl->num_features,
-                     "SetNumericalTestNode: feature id out of bound");
-  auto& tree = trees[tree_index];
+TreeBuilder::SetNumericalTestNode(int node_key,
+                                  unsigned feature_id,
+                                  Operator op, tl_float threshold,
+                                  bool default_left, int left_child_key,
+                                  int right_child_key) {
+  auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetNumericalTestNode: no node found with node_key");
   CHECK_EARLY_RETURN(nodes.count(left_child_key) > 0,
-                     "SetNumericalTestNode: no node found with left_child_key");
+                    "SetNumericalTestNode: no node found with left_child_key");
   CHECK_EARLY_RETURN(nodes.count(right_child_key) > 0,
-                     "SetNumericalTestNode: no node found with right_child_key");
+                   "SetNumericalTestNode: no node found with right_child_key");
   _Node* node = nodes[node_key].get();
   _Node* left_child = nodes[left_child_key].get();
   _Node* right_child = nodes[right_child_key].get();
   CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
                      "SetNumericalTestNode: cannot modify a non-empty node");
   CHECK_EARLY_RETURN(left_child->parent == nullptr,
-            "SetNumericalTestNode: node designated as left child already has "
-            "a parent");
+             "SetNumericalTestNode: node designated as left child already has "
+             "a parent");
   CHECK_EARLY_RETURN(right_child->parent == nullptr,
             "SetNumericalTestNode: node designated as right child already has "
             "a parent");
@@ -214,23 +173,17 @@ ModelBuilder::SetNumericalTestNode(int tree_index, int node_key,
 }
 
 bool
-ModelBuilder::SetCategoricalTestNode(int tree_index, int node_key,
-                                     unsigned feature_id,
+TreeBuilder::SetCategoricalTestNode(int node_key,
+                                    unsigned feature_id,
                                     const std::vector<uint8_t>& left_categories,
                                     bool default_left, int left_child_key,
                                     int right_child_key) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "SetCategoricalTestNode: tree_index out of bound");
-  CHECK_EARLY_RETURN(static_cast<int>(feature_id) >= 0 &&
-                     static_cast<int>(feature_id) < pimpl->num_features,
-                     "SetCategoricalTestNode: feature id out of bound");
-  auto& tree = trees[tree_index];
+  auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetCategoricalTestNode: no node found with node_key");
   CHECK_EARLY_RETURN(nodes.count(left_child_key) > 0,
-                 "SetCategoricalTestNode: no node found with left_child_key");
+                  "SetCategoricalTestNode: no node found with left_child_key");
   CHECK_EARLY_RETURN(nodes.count(right_child_key) > 0,
                  "SetCategoricalTestNode: no node found with right_child_key");
   _Node* node = nodes[node_key].get();
@@ -239,13 +192,13 @@ ModelBuilder::SetCategoricalTestNode(int tree_index, int node_key,
   CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
                      "SetCategoricalTestNode: cannot modify a non-empty node");
   CHECK_EARLY_RETURN(left_child->parent == nullptr,
-            "SetCategoricalTestNode: node designated as left child already "
-            "has a parent");
+               "SetCategoricalTestNode: node designated as left child already "
+               "has a parent");
   CHECK_EARLY_RETURN(right_child->parent == nullptr,
-            "SetCategoricalTestNode: node designated as right child already "
-            "has a parent");
+              "SetCategoricalTestNode: node designated as right child already "
+              "has a parent");
   CHECK_EARLY_RETURN(left_child != tree.root && right_child != tree.root,
-                     "SetCategoricalTestNode: the root node cannot be a child");
+                    "SetCategoricalTestNode: the root node cannot be a child");
   node->status = _Node::_Status::kCategoricalTest;
   node->left_child = nodes[left_child_key].get();
   node->left_child->parent = node;
@@ -258,11 +211,8 @@ ModelBuilder::SetCategoricalTestNode(int tree_index, int node_key,
 }
 
 bool
-ModelBuilder::SetLeafNode(int tree_index, int node_key, tl_float leaf_value) {
-  auto& trees = pimpl->trees;
-  CHECK_EARLY_RETURN(static_cast<size_t>(tree_index) < trees.size(),
-                     "SetLeafNode: tree_index out of bound");
-  auto& tree = trees[tree_index];
+TreeBuilder::SetLeafNode(int node_key, tl_float leaf_value) {
+  auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetLeafNode: no node found with node_key");
@@ -274,6 +224,74 @@ ModelBuilder::SetLeafNode(int tree_index, int node_key, tl_float leaf_value) {
   return true;
 }
 
+ModelBuilder::ModelBuilder(int num_features)
+  : pimpl(common::make_unique<ModelBuilderImpl>(num_features)) {}
+ModelBuilder::~ModelBuilder() {}
+
+void
+ModelBuilder::SetModelParam(const char* name, const char* value) {
+  pimpl->cfg.emplace_back(name, value);
+}
+
+int
+ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
+  if (tree_builder == nullptr) {
+    LOG(INFO) << "InsertTree: not a valid tree builder";
+    return -1;  // fail
+  }
+  if (tree_builder->ensemble_id != nullptr) {
+    LOG(INFO) << "InsertTree: tree is already part of another ensemble";
+    return -1;  // fail
+  }
+
+  // check bounds for feature indices
+  for (const auto& kv : tree_builder->pimpl->tree.nodes) {
+    const int fid = static_cast<int>(kv.second->feature_id);
+    if (fid < 0 || fid >= pimpl->num_features) {
+      LOG(INFO) << "InsertTree: tree has an invalid split at node "
+                << kv.first << ": feature id " << kv.second->feature_id
+                << " is out of bound";
+      return -1;  // fail
+    }
+  }
+
+  // perform insertion
+  auto& trees = pimpl->trees;
+  if (index == -1) {
+    trees.push_back(std::move(*tree_builder));
+    tree_builder->ensemble_id = static_cast<void*>(this);
+    return static_cast<int>(trees.size());
+  } else {
+    if (static_cast<size_t>(index) <= trees.size()) {
+      trees.insert(trees.begin() + index, std::move(*tree_builder));
+      tree_builder->ensemble_id = static_cast<void*>(this);
+      return index;
+    } else {
+      LOG(INFO) << "CreateTree: index out of bound";
+      return -1;  // fail
+    }
+  }
+}
+
+TreeBuilder&
+ModelBuilder::GetTree(int index) {
+  return pimpl->trees[index];
+}
+
+const TreeBuilder&
+ModelBuilder::GetTree(int index) const {
+  return pimpl->trees[index];
+}
+
+bool
+ModelBuilder::DeleteTree(int index) {
+  auto& trees = pimpl->trees;
+  CHECK_EARLY_RETURN(static_cast<size_t>(index) < trees.size(),
+                     "DeleteTree: index out of bound");
+  trees.erase(trees.begin() + index);
+  return true;
+}
+
 bool
 ModelBuilder::CommitModel(Model* out_model) {
   Model model;
@@ -281,7 +299,8 @@ ModelBuilder::CommitModel(Model* out_model) {
   // extra parameters
   InitParamAndCheck(&model.param, pimpl->cfg);
 
-  for (const auto& _tree : pimpl->trees) {
+  for (const auto& _tree_builder : pimpl->trees) {
+    const auto& _tree = _tree_builder.pimpl->tree;
     CHECK_EARLY_RETURN(_tree.root != nullptr,
                        "CommitModel: a tree has no root node");
     model.trees.emplace_back();

@@ -28,7 +28,7 @@
 #define API_END_HANDLE_ERROR(Finalize)          \
      } catch(dmlc::Error &_except_) {           \
        Finalize;                                \
-       return XGBAPIHandleException(_except_);  \
+       return TreeliteAPIHandleException(_except_);  \
      }                                          \
      return 0
 

@@ -342,9 +342,9 @@ TREELITE_DLL int TreeliteTreeBuilderDeleteNode(TreeBuilderHandle handle,
 TREELITE_DLL int TreeliteTreeBuilderSetRootNode(TreeBuilderHandle handle,
                                                 int node_key);
 /*!
- * \brief Turn an empty node into a numerical test node; the test is in the
- *        form [feature value] OP [threshold]. Depending on the result of the
- *        test, either left or right child would be taken.
+ * \brief Turn an empty node into a test node with numerical split.
+ * The test is in the form [feature value] OP [threshold]. Depending on the
+ * result of the test, either left or right child would be taken.
  * \param handle tree builder
  * \param node_key unique integer key to identify the node being modified;
  *                 this node needs to be empty
@@ -364,7 +364,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetNumericalTestNode(
                                              int left_child_key,
                                              int right_child_key);
 /*!
- * \brief Turn an empty node into a categorical test node.
+ * \brief Turn an empty node into a test node with categorical split.
  * A list defines all categories that would be classified as the left side.
  * Categories are integers ranging from 0 to (n-1), where n is the number of
  * categories in that particular feature. Let's assume n <= 64.

@@ -123,6 +123,17 @@ class TreeBuilder {
    * \return whether successful
    */
   bool SetLeafNode(int node_key, tl_float leaf_value);
+  /*!
+  * \brief Turn an empty node into a leaf vector node
+  * The leaf vector (collection of multiple leaf weights per leaf node) is
+  * useful for multi-class random forest classifier.
+  * \param node_key unique integer key to identify the node being modified;
+  *                 this node needs to be empty
+  * \param leaf_vector leaf vector of the leaf node
+  * \return whether successful
+  */
+  bool SetLeafVectorNode(int node_key,
+                         const std::vector<tl_float>& leaf_vector);
 
  private:
   std::unique_ptr<TreeBuilderImpl> pimpl;  // Pimpl pattern
@@ -133,7 +144,7 @@ class TreeBuilder {
 /*! \brief model builder class */
 class ModelBuilder {
  public:
-  ModelBuilder(int num_features);  // constructor
+  ModelBuilder(int num_feature, int num_output_group);  // constructor
   ~ModelBuilder();  // destructor
   /*!
    * \brief Set a model parameter

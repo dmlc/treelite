@@ -399,14 +399,33 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle,
                                                 int node_key,
                                                 float leaf_value);
 /*!
+ * \brief Turn an empty node into a leaf vector node
+ * The leaf vector (collection of multiple leaf weights per leaf node) is
+ * useful for multi-class random forest classifier.
+ * \param handle tree builder
+ * \param node_key unique integer key to identify the node being modified;
+ *                 this node needs to be empty
+ * \param leaf_vector leaf vector of the leaf node
+ * \param leaf_vector_len length of leaf_vector
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
+                                                      int node_key,
+                                                      const float* leaf_vector,
+                                                      size_t leaf_vector_len);
+/*!
  * \brief Create a new model builder
- * \param num_features number of features used in model being built. We assume
- *                     that all feature indices are between 0 and
- *                     (num_features - 1).
+ * \param num_feature number of features used in model being built. We assume
+ *                    that all feature indices are between 0 and
+ *                    (num_feature - 1).
+ * \param num_output_group number of output groups. Set to 1 for binary
+ *                         classification and regression; >1 for multiclass
+ *                         classification
  * \param out newly created model builder
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int TreeliteCreateModelBuilder(int num_features,
+TREELITE_DLL int TreeliteCreateModelBuilder(int num_feature,
+                                            int num_output_group,
                                             ModelBuilderHandle* out);
 /*!
  * \brief Set a model parameter

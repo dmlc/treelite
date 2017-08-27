@@ -140,7 +140,8 @@ inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
   return (decision_type & mask) > 0;
 }
 
-inline std::vector<uint8_t> BitsetToList(const uint32_t* bits, uint8_t nslots) {
+inline std::vector<uint8_t> BitsetToList(const uint32_t* bits,
+                                         uint8_t nslots) {
   std::vector<uint8_t> result;
   CHECK(nslots == 1 || nslots == 2);
   const uint8_t nbits = nslots * 32;
@@ -168,7 +169,8 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
     size_t tok_begin = 0;
     while (i < byte_read) {
       if (buf[i] == '\n' || buf[i] == '\r') {  // delimiter for lines
-        if (tok_begin == 0 && leftover.length() + i > 0) {  // first line in buffer
+        if (tok_begin == 0 && leftover.length() + i > 0) {
+          // first line in buffer
           lines.push_back(leftover + std::string(&buf[0], i));
           leftover = "";
         } else {
@@ -186,7 +188,8 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
   }
 
   if (!leftover.empty()) {
-    LOG(INFO) << "Warning: input file was not terminated with end-of-line character.";
+    LOG(INFO)
+      << "Warning: input file was not terminated with end-of-line character.";
     lines.push_back(leftover);
   }
 
@@ -226,13 +229,16 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   {
     auto it = global_dict.find("objective");
-    CHECK(it != global_dict.end()) << "Ill-formed LightGBM model file: need objective";
+    CHECK(it != global_dict.end())
+      << "Ill-formed LightGBM model file: need objective";
     obj_name_ = it->second;
     it = global_dict.find("max_feature_idx");
-    CHECK(it != global_dict.end()) << "Ill-formed LightGBM model file: need max_feature_idx";
+    CHECK(it != global_dict.end())
+      << "Ill-formed LightGBM model file: need max_feature_idx";
     max_feature_idx_ = TextToEntry<int>(it->second);
     it = global_dict.find("num_tree_per_iteration");
-    CHECK(it != global_dict.end()) << "Ill-formed LightGBM model file: need num_tree_per_iteration";
+    CHECK(it != global_dict.end())
+      << "Ill-formed LightGBM model file: need num_tree_per_iteration";
     num_tree_per_iteration_ = TextToEntry<int>(it->second);
   }
 
@@ -241,7 +247,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     LGBTree& tree = lgb_trees_.back();
 
     auto it = dict.find("num_leaves");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need num_leaves";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need num_leaves";
     tree.num_leaves = TextToEntry<int>(it->second);
 
     it = dict.find("num_cat");
@@ -249,51 +256,61 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     tree.num_cat = TextToEntry<int>(it->second);
 
     it = dict.find("leaf_value");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need leaf_value";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need leaf_value";
     tree.leaf_value = TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need decision_type";
+    CHECK(it != dict.end()) 
+      << "Ill-formed LightGBM model file: need decision_type";
     if (it == dict.end()) {
       tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
     } else {
-      tree.decision_type = TextToArray<int8_t>(it->second, tree.num_leaves - 1);
+      tree.decision_type
+        = TextToArray<int8_t>(it->second, tree.num_leaves - 1);
     }
 
     if (tree.num_cat > 0) {
       it = dict.find("cat_boundaries");
-      CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need cat_boundaries";
+      CHECK(it != dict.end())
+        << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries = TextToArray<int>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
-      CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need cat_threshold";
-      tree.cat_threshold = TextToArray<uint32_t>(it->second, tree.cat_boundaries.back());
+      CHECK(it != dict.end())
+        << "Ill-formed LightGBM model file: need cat_threshold";
+      tree.cat_threshold
+        = TextToArray<uint32_t>(it->second, tree.cat_boundaries.back());
     }
 
     it = dict.find("split_feature");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need split_feature";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need split_feature";
     tree.split_feature = TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("threshold");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need threshold";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need threshold";
     tree.threshold = TextToArray<double>(it->second, tree.num_leaves - 1);
 
     it = dict.find("left_child");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need left_child";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need left_child";
     tree.left_child = TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("right_child");
-    CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need right_child";
+    CHECK(it != dict.end())
+      << "Ill-formed LightGBM model file: need right_child";
     tree.right_child = TextToArray<int>(it->second, tree.num_leaves - 1);
   }
 
   /* 2. Export model */
   treelite::Model model;
-  model.num_features = max_feature_idx_ + 1;
-
-  // extra parameters
-  std::vector<std::pair<std::string, std::string>> cfg;
-  cfg.emplace_back("num_output_group", std::to_string(num_tree_per_iteration_));
-  InitParamAndCheck(&model.param, cfg);
+  model.num_feature = max_feature_idx_ + 1;
+  model.num_output_group = num_tree_per_iteration_;
+  model.multiclass_type
+    = (model.num_output_group > 1) ?
+      treelite::Model::MulticlassType::kGradientBoosting
+    : treelite::Model::MulticlassType::kNA;
 
   for (const auto& lgb_tree : lgb_trees_) {
     model.trees.emplace_back();

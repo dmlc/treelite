@@ -13,7 +13,7 @@
 namespace {
 
 enum class NodeType : int8_t {
-  kLeaf, kNumericalSplit, kCategoricalSplit
+  kLeaf, kLeafVector, kNumericalSplit, kCategoricalSplit
 };
 
 inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
@@ -23,6 +23,7 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
     CHECK(node.has_split_index());
     CHECK(node.has_split_type());
     CHECK(!node.has_leaf_value());
+    CHECK_EQ(node.leaf_vector_size(), 0);
     const auto split_type = node.split_type();
     if (split_type == treelite_protobuf::Node_SplitFeatureType_NUMERICAL) {
       // numerical split
@@ -43,8 +44,13 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
     CHECK(!node.has_op());
     CHECK(!node.has_threshold());
     CHECK_EQ(node.left_categories_size(), 0);
-    CHECK(node.has_leaf_value());
-    return NodeType::kLeaf;
+    if (node.has_leaf_value()) {
+      CHECK_EQ(node.leaf_vector_size(), 0);
+      return NodeType::kLeaf;
+    } else {
+      CHECK_GT(node.leaf_vector_size(), 0);
+      return NodeType::kLeafVector;
+    }
   }
 }
 
@@ -64,22 +70,36 @@ Model LoadProtobufModel(const char* filename) {
   CHECK(protomodel.ParseFromIstream(&is)) << "Ill-formed Protocol Buffers file";
 
   Model model;
-  CHECK(protomodel.has_num_features());
-  const auto num_features = protomodel.num_features();
-  CHECK_LT(num_features, std::numeric_limits<int>::max())
-    << "num_features too big";
-  CHECK_GT(num_features, 0) << "num_features must be positive";
-  model.num_features = static_cast<int>(protomodel.num_features());
+  CHECK(protomodel.has_num_feature()) << "num_feature must exist";
+  const auto num_feature = protomodel.num_feature();
+  CHECK_LT(num_feature, std::numeric_limits<int>::max())
+    << "num_feature too big";
+  CHECK_GT(num_feature, 0) << "num_feature must be positive";
+  model.num_feature = static_cast<int>(protomodel.num_feature());
+
+  CHECK(protomodel.has_num_output_group()) << "num_output_group must exist";
+  const auto num_output_group = protomodel.num_output_group();
+  CHECK_LT(num_output_group, std::numeric_limits<int>::max())
+    << "num_output_group too big";
+  CHECK_GT(num_output_group, 0) << "num_output_group must be positive";
+  model.num_output_group = static_cast<int>(protomodel.num_output_group());
+
   // extra parameters field
   const auto& ep = protomodel.extra_params();
   std::vector<std::pair<std::string, std::string>> cfg;
   std::copy(ep.begin(), ep.end(), std::back_inserter(cfg));
   InitParamAndCheck(&model.param, cfg);
 
+  // flag to check consistent use of leaf vector
+  // 0: no leaf should use leaf vector
+  // 1: every leaf should use leaf vector
+  // -1: indeterminate
+  int8_t flag_leaf_vector = -1;
+
   const int ntree = protomodel.trees_size();
   for (int i = 0; i < ntree; ++i) {
     model.trees.emplace_back();
-    treelite::Tree& tree = model.trees.back();
+    Tree& tree = model.trees.back();
     tree.Init();
 
     CHECK(protomodel.trees(i).has_head());
@@ -94,26 +114,46 @@ Model LoadProtobufModel(const char* filename) {
       int id = elem.second;
       const NodeType node_type = GetNodeType(node);
       if (node_type == NodeType::kLeaf) {
-        tree[id].set_leaf(static_cast<treelite::tl_float>(node.leaf_value()));
+        CHECK(flag_leaf_vector != 1)
+          << "Inconsistent use of leaf vector: if one leaf node does not use"
+          << "a leaf vector, *no other* leaf node can use a leaf vector";
+        flag_leaf_vector = 0;  // now no leaf can use leaf vector
+
+        tree[id].set_leaf(static_cast<tl_float>(node.leaf_value()));
+      } else if (node_type == NodeType::kLeafVector) {
+        CHECK(flag_leaf_vector != 0)
+          << "Inconsistent use of leaf vector: if one leaf node uses "
+          << "a leaf vector, *every* leaf node must use a leaf vector as well";
+        flag_leaf_vector = 1;  // now every leaf must use leaf vector
+
+        const int len = node.leaf_vector_size();
+        CHECK_EQ(len, model.num_output_group)
+          << "The length of leaf vector must be identical to the "
+          << "number of output groups";
+        std::vector<tl_float> leaf_vector(len);
+        for (int i = 0; i < len; ++i) {
+          leaf_vector[i] = static_cast<tl_float>(node.leaf_vector(i));
+        }
+        tree[id].set_leaf_vector(leaf_vector);
       } else if (node_type == NodeType::kNumericalSplit) {
         const auto split_index = node.split_index();
         const std::string opname = node.op();
-        CHECK_LT(split_index, model.num_features)
-          << "split_index must be between 0 and [num_featues]-1.";
+        CHECK_LT(split_index, model.num_feature)
+          << "split_index must be between 0 and [num_feature] - 1.";
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         CHECK_GT(optable.count(opname), 0) << "No operator `"
                                            << opname << "\" exists";
         tree.AddChilds(id);
         tree[id].set_numerical_split(static_cast<unsigned>(split_index),
-                             static_cast<treelite::tl_float>(node.threshold()),
+                             static_cast<tl_float>(node.threshold()),
                              node.default_left(),
                              optable.at(opname.c_str()));
         Q.push({node.left_child(), tree[id].cleft()});
         Q.push({node.right_child(), tree[id].cright()});
       } else {  // categorical split
         const auto split_index = node.split_index();
-        CHECK_LT(split_index, model.num_features)
-          << "split_index must be between 0 and [num_featues]-1.";
+        CHECK_LT(split_index, model.num_feature)
+          << "split_index must be between 0 and [num_feature] - 1.";
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         const int left_categories_size = node.left_categories_size();
         std::vector<uint8_t> left_categories;
@@ -130,6 +170,20 @@ Model LoadProtobufModel(const char* filename) {
         Q.push({node.right_child(), tree[id].cright()});
       }
     }
+  }
+  if (flag_leaf_vector == 0) {
+    CHECK_EQ(ntree % model.num_output_group, 0)
+      << "For multi-class classifiers with gradient boosted trees, the number "
+      << "of trees must be evenly divisible by the number of output groups";
+    if (model.num_output_group == 1) {
+      model.multiclass_type = Model::MulticlassType::kNA;
+    } else {
+      model.multiclass_type = Model::MulticlassType::kGradientBoosting;
+    }
+  } else if (flag_leaf_vector == 1) {
+    model.multiclass_type = Model::MulticlassType::kRandomForest;
+  } else {
+    LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
   return model;
 }

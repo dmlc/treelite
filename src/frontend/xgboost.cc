@@ -306,12 +306,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   /* 2. Export model */
   treelite::Model model;
-  model.num_features = gbm_param_.num_feature;
-
-  // extra parameters
-  std::vector<std::pair<std::string, std::string>> cfg;
-  cfg.emplace_back("num_output_group", std::to_string(gbm_param_.num_output_group));
-  InitParamAndCheck(&model.param, cfg);
+  model.num_feature = gbm_param_.num_feature;
+  model.num_output_group = gbm_param_.num_output_group;
+  model.multiclass_type
+    = (model.num_output_group > 1) ?
+      treelite::Model::MulticlassType::kGradientBoosting
+    : treelite::Model::MulticlassType::kNA;
 
   for (const auto& xgb_tree : xgb_trees_) {
     model.trees.emplace_back();

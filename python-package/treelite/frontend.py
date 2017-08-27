@@ -84,34 +84,111 @@ class ModelBuilder(object):
       self.empty = True
 
     def set_root(self):
+      """
+      Set the node as the root
+
+      Returns
+      -------
+      self (for method chaining)
+      """
       try:
-        _check_call(_LIB.TreeliteTreeBuilderSetRootNode(self.tree_handle,
+        _check_call(_LIB.TreeliteTreeBuilderSetRootNode(self.tree.handle,
                                                   ctypes.c_int(self.node_key)))
+        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                            + 'a node must be inserted before it can be a root')
 
     def set_leaf_node(self, leaf_value):
+      """
+      Set the node as a leaf node
+
+      Parameters
+      ----------
+      leaf_value : float / list of float
+          Usually a single leaf value (weight) of the leaf node
+          For multiclass random forest classifier, leaf_value should be a list
+          of leaf weights
+      
+      Returns
+      -------
+      self (for method chaining)
+      """
+      # check if leaf_value is a list-like object
       try:
-        _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(self.tree_handle,
+        iterator = iter(leaf_value)
+        is_list = True
+      except TypeError:
+        is_list = False
+
+      try:
+        if is_list:
+          leaf_value = [float(i) for i in leaf_value]
+        else:
+          leaf_value = float(leaf_value)
+      except TypeError:
+        raise TreeliteError('leaf_value parameter should be either a ' + \
+                            'single float or a list of floats')
+
+      try:
+        if is_list:
+          _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
+                                                   self.tree.handle,
+                                                   ctypes.c_int(self.node_key),
+                                          c_array(ctypes.c_float, leaf_value),
+                                             ctypes.c_size_t(len(leaf_value))))
+        else:
+          _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
+                                                   self.tree.handle,
                                                    ctypes.c_int(self.node_key),
                                                    ctypes.c_float(leaf_value)))
         self.empty = False
+        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a leaf node')
   
     def set_numerical_test_node(self, feature_id, opname, threshold,
                                 default_left, left_child_key, right_child_key):
+      """
+      Set the node as a test node with numerical split. The test is in the form
+      [feature value] OP [threshold]. Depending on the result of the test,
+      either left or right child would be taken.
+
+      Parameters
+      ----------
+      feature_id : int
+          feature index
+      opname : string
+          binary operator to use in the test
+      threshold : float
+          threshold value
+      default_left : boolean
+          default direction for missing values (True for left; False for right)
+      left_child_key : int
+          unique integer key to identify the left child node
+      right_child_key : int
+          unique integer key to identify the right child node
+  
+      Returns
+      -------
+      self (for method chaining)
+      """
       try:
+        # automatically create child nodes that don't exist yet
+        if left_child_key not in self.tree:
+          self.tree[left_child_key] = ModelBuilder.Node()
+        if right_child_key not in self.tree:
+          self.tree[right_child_key] = ModelBuilder.Node()
         _check_call(_LIB.TreeliteTreeBuilderSetNumericalTestNode(
-                                 self.tree_handle, ctypes.c_int(self.node_key),
+                                 self.tree.handle, ctypes.c_int(self.node_key),
                                  ctypes.c_uint(feature_id), c_str(opname),
                                  ctypes.c_float(threshold),
                                  ctypes.c_int(1 if default_left else 0),
                                  ctypes.c_int(left_child_key),
                                  ctypes.c_int(right_child_key)))
         self.empty = False
+        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a test node')
@@ -119,9 +196,37 @@ class ModelBuilder(object):
     def set_categorical_test_node(self, feature_id, left_categories,
                                   default_left, left_child_key,
                                   right_child_key):
+      """
+      Set the node as a test node with categorical split. A list defines all
+      categories that would be classified as the left side. Categories are
+      integers ranging from 0 to (n-1), where n is the number of categories in
+      that particular feature. Let's assume n <= 64.
+
+      Parameters
+      ----------
+      feature_id : int
+          feature index
+      left_categories : list of int, with every element not exceeding 63
+          list of categories belonging to the left child.
+      default_left : boolean
+          default direction for missing values (True for left; False for right)
+      left_child_key : int
+          unique integer key to identify the left child node
+      right_child_key : int
+          unique integer key to identify the right child node
+
+      Returns
+      -------
+      self (for method chaining)
+      """
       try:
+        # automatically create child nodes that don't exist yet
+        if left_child_key not in self.tree:
+          self.tree[left_child_key] = ModelBuilder.Node()
+        if right_child_key not in self.tree:
+          self.tree[right_child_key] = ModelBuilder.Node()
         _check_call(_LIB.TreeliteTreeBuilderSetCategoricalTestNode(
-                                 self.tree_handle, ctypes.c_int(self.node_key),
+                                 self.tree.handle, ctypes.c_int(self.node_key),
                                  ctypes.c_uint(feature_id),
                                  c_array(ctypes.c_ubyte, left_categories),
                                  ctypes.c_size_t(len(left_categories)),
@@ -129,6 +234,7 @@ class ModelBuilder(object):
                                  ctypes.c_int(left_child_key),
                                  ctypes.c_int(right_child_key)))
         self.empty = False
+        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a test node')
@@ -142,7 +248,9 @@ class ModelBuilder(object):
 
     def __del__(self):
       if self.handle is not None:
-        _check_call(_LIB.TreeliteDeleteTreeBuilder(self.handle))
+        if not hasattr(self, 'ensemble'):
+          # need a separate deletion if tree is not part of an ensemble
+          _check_call(_LIB.TreeliteDeleteTreeBuilder(self.handle))
         self.handle = None
 
     """Implement dict semantics whenever applicable"""
@@ -160,7 +268,8 @@ class ModelBuilder(object):
 
     def __getitem__(self, key):
       if key not in self.nodes:
-        raise KeyError('tree contains no node with key {}'.format(key))
+        # implicitly create a new node
+        self.__setitem__(key, ModelBuilder.Node())
       return self.nodes.__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -177,7 +286,7 @@ class ModelBuilder(object):
                                                      ctypes.c_int(key)))
       self.nodes.__setitem__(key, value)
       value.node_key = key  # save node id for later
-      value.tree_handle = self.handle
+      value.tree = self
 
     def __delitem__(self, key):
       self.nodes.__delitem__(key)
@@ -188,24 +297,31 @@ class ModelBuilder(object):
     def __reversed__(self):
       return self.nodes.__reversed__()
 
-  def __init__(self, num_features, params):
+  def __init__(self, num_feature, num_output_group=1, params={}):
     """
     Builder class for tree ensemble model
 
     Parameters
     ----------
-    num_features : integer
+    num_feature : integer
         number of features used in model being built. We assume that all
-        feature indices are between 0 and (num_features - 1)
-    params : dict
+        feature indices are between 0 and (num_feature - 1)
+    num_output_group : integer, optional (defaults to 1)
+        number of output groups; >1 indicates multiclass classification
+    params : dict, optional (defaults to {})
         parameters to be used with the resulting model
     """
-    if not isinstance(num_features, int):
-      raise ValueError('num_features must be of int type')
-    if num_features <= 0:
-      raise ValueError('num_features must be strictly positive')
+    if not isinstance(num_feature, int):
+      raise ValueError('num_feature must be of int type')
+    if num_feature <= 0:
+      raise ValueError('num_feature must be strictly positive')
+    if not isinstance(num_output_group, int):
+      raise ValueError('num_output_group must be of int type')
+    if num_output_group <= 0:
+      raise ValueError('num_output_group must be strictly positive')
     self.handle = ctypes.c_void_p()
-    _check_call(_LIB.TreeliteCreateModelBuilder(ctypes.c_int(num_features),
+    _check_call(_LIB.TreeliteCreateModelBuilder(ctypes.c_int(num_feature),
+                                                ctypes.c_int(num_output_group),
                                                 ctypes.byref(self.handle)))
     _params = dict(params) if isinstance(params, list) else params
     self._set_param(_params or {})
@@ -231,7 +347,7 @@ class ModelBuilder(object):
     ret = _LIB.TreeliteModelBuilderInsertTree(self.handle,
                                               tree.handle,
                                               ctypes.c_int(index))
-    _check_call(ret)
+    _check_call(0 if ret == index else -1)
     if ret != index:
       raise ValueError('Somehow tree got inserted at wrong location')
     # delete the stale handle to the inserted tree and get a new one
@@ -239,6 +355,7 @@ class ModelBuilder(object):
     _check_call(_LIB.TreeliteModelBuilderGetTree(self.handle,
                                                  ctypes.c_int(index),
                                                  ctypes.byref(tree.handle)))
+    tree.ensemble = self
     self.trees.insert(index, tree)
 
   def append(self, tree):
@@ -265,6 +382,11 @@ class ModelBuilder(object):
     _check_call(_LIB.TreeliteModelBuilderCommitModel(self.handle,
                                                    ctypes.byref(model_handle)))
     return Model(model_handle)
+
+  def __del__(self):
+    if self.handle is not None:
+      _check_call(_LIB.TreeliteDeleteModelBuilder(self.handle))
+      self.handle = None
 
   """Implement list semantics whenever applicable"""
   def __len__(self):

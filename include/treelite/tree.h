@@ -50,6 +50,19 @@ class Tree {
     inline tl_float leaf_value() const {
       return (this->info_).leaf_value;
     }
+    /*!
+     * \return get leaf vector of leaf node; useful for multi-class
+     * random forest classifier
+     */
+    inline const std::vector<tl_float>& leaf_vector() const {
+      return this->leaf_vector_;
+    }
+    /*!
+     * \return tests whether leaf node has a non-empty leaf vector
+     */
+    inline bool has_leaf_vector() const {
+      return !(this->leaf_vector_.empty());
+    }
     /*! \return get threshold of the node */
     inline tl_float threshold() const {
       return (this->info_).threshold;
@@ -123,6 +136,17 @@ class Tree {
       this->split_type_ = SplitFeatureType::kNone;
     }
     /*!
+     * \brief set the leaf vector of the node; useful for multi-class
+     * random forest classifier
+     * \param leaf_vector leaf vector
+     */
+    inline void set_leaf_vector(const std::vector<tl_float>& leaf_vector) {
+      this->leaf_vector_ = leaf_vector;
+      this->cleft_ = -1;
+      this->cright_ = -1;
+      this->split_type_ = SplitFeatureType::kNone;
+    }
+    /*!
      * \brief set parent of the node
      * \param pidx node id of the parent
      * \param is_left_child whether the node is left child or not
@@ -139,6 +163,11 @@ class Tree {
       tl_float leaf_value;  // for leaf nodes
       tl_float threshold;   // for non-leaf nodes
     };
+    /*!
+     * \brief leaf vector: only used for random forests with
+     *                     multi-class classification
+     */
+    std::vector<tl_float> leaf_vector_;
     /*!
      * \brief pointer to parent
      * highest bit is used to indicate whether it's a left child or not
@@ -253,14 +282,8 @@ class Tree {
 };
 
 struct ModelParam : public dmlc::Parameter<ModelParam> {
-  /*! \brief number of output groups -- for multi-class classification */
-  int num_output_group;
-
   DMLC_DECLARE_PARAMETER(ModelParam) {
-    DMLC_DECLARE_FIELD(num_output_group).set_default(1)
-      .set_lower_bound(1)
-      .describe("number of output groups; >1 indicates multi-class "
-                "classification");
+    /* Empty for now -- can add more parameters later */
   }
 };
 
@@ -279,13 +302,21 @@ inline void InitParamAndCheck(ModelParam* param,
 
 /*! \brief thin wrapper for tree ensemble model */
 struct Model {
+  /*! \brief type of multiclass classification; kNA if not applicable */
+  enum class MulticlassType {
+    kNA, kGradientBoosting, kRandomForest
+  };
   /*! \brief member trees */
   std::vector<Tree> trees;
   /*!
    * \brief number of features used for the model.
-   * It is assumed that all feature indices are between 0 and [num_features]-1.
+   * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
-  int num_features;
+  int num_feature;
+  /*! \brief number of output groups -- for multi-class classification */
+  int num_output_group;
+  /*! \brief type of multiclass classification; kNA if not applicable */
+  MulticlassType multiclass_type;
   /*! \brief extra parameters */
   ModelParam param;
 

@@ -31,6 +31,10 @@ struct _Node {
     treelite::tl_float leaf_value;  // for leaf nodes
     treelite::tl_float threshold;   // for non-leaf nodes
   };
+  /*
+   * leaf vector: only used for random forests with multi-class classification
+   */
+  std::vector<treelite::tl_float> leaf_vector;
   _Status status;
   /* pointers to parent, left and right children */
   _Node* parent;
@@ -79,11 +83,15 @@ struct TreeBuilderImpl {
 
 struct ModelBuilderImpl {
   std::vector<TreeBuilder> trees;
-  int num_features;
+  int num_feature;
+  int num_output_group;
   std::vector<std::pair<std::string, std::string>> cfg;
-  inline ModelBuilderImpl(int num_features)
-    : trees(), num_features(num_features), cfg() {
-    CHECK_GT(num_features, 0) << "ModelBuilder: num_features must be positive";
+  inline ModelBuilderImpl(int num_feature, int num_output_group)
+    : trees(), num_feature(num_feature),
+      num_output_group(num_output_group), cfg() {
+    CHECK_GT(num_feature, 0) << "ModelBuilder: num_feature must be positive";
+    CHECK_GT(num_output_group, 0)
+      << "ModelBuilder: num_output_group must be positive";
   }
 };
 
@@ -226,8 +234,24 @@ TreeBuilder::SetLeafNode(int node_key, tl_float leaf_value) {
   return true;
 }
 
-ModelBuilder::ModelBuilder(int num_features)
-  : pimpl(common::make_unique<ModelBuilderImpl>(num_features)) {}
+bool
+TreeBuilder::SetLeafVectorNode(int node_key,
+                               const std::vector<tl_float>& leaf_vector) {
+  auto& tree = pimpl->tree;
+  auto& nodes = tree.nodes;
+  CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
+    "SetLeafVectorNode: no node found with node_key");
+  _Node* node = nodes[node_key].get();
+  CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
+    "SetLeafVectorNode: cannot modify a non-empty node");
+  node->status = _Node::_Status::kLeaf;
+  node->leaf_vector = leaf_vector;
+  return true;
+}
+
+ModelBuilder::ModelBuilder(int num_feature, int num_output_group)
+  : pimpl(common::make_unique<ModelBuilderImpl>(num_feature,
+                                                num_output_group)) {}
 ModelBuilder::~ModelBuilder() {}
 
 void
@@ -256,7 +280,7 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
     if (status == _Node::_Status::kNumericalTest ||
       status == _Node::_Status::kCategoricalTest) {
       const int fid = static_cast<int>(kv.second->feature_id);
-      if (fid < 0 || fid >= pimpl->num_features) {
+      if (fid < 0 || fid >= pimpl->num_feature) {
         std::ostringstream oss;
         oss << "InsertTree: tree has an invalid split at node "
           << kv.first << ": feature id " << kv.second->feature_id
@@ -310,13 +334,16 @@ ModelBuilder::DeleteTree(int index) {
 bool
 ModelBuilder::CommitModel(Model* out_model) {
   Model model;
-  model.num_features = pimpl->num_features;
+  model.num_feature = pimpl->num_feature;
+  model.num_output_group = pimpl->num_output_group;
   // extra parameters
   InitParamAndCheck(&model.param, pimpl->cfg);
 
-  CHECK_EARLY_RETURN(pimpl->trees.size() % model.param.num_output_group == 0,
-    "CommitModel: the number of trees must be evenly divisible by the number "
-    "of the output groups");
+  // flag to check consistent use of leaf vector
+  // 0: no leaf should use leaf vector
+  // 1: every leaf should use leaf vector
+  // -1: indeterminate
+  int8_t flag_leaf_vector = -1;
 
   for (const auto& _tree_builder : pimpl->trees) {
     const auto& _tree = _tree_builder.pimpl->tree;
@@ -335,7 +362,7 @@ ModelBuilder::CommitModel(Model* out_model) {
       int nid;
       std::tie(node, nid) = Q.front(); Q.pop();
       CHECK_EARLY_RETURN(node->status != _Node::_Status::kEmpty,
-              "CommitModel: encountered an empty node in the middle of a tree");
+             "CommitModel: encountered an empty node in the middle of a tree");
       if (node->status == _Node::_Status::kNumericalTest) {
         CHECK_EARLY_RETURN(node->left_child != nullptr,
                            "CommitModel: a test node lacks a left child");
@@ -368,9 +395,40 @@ ModelBuilder::CommitModel(Model* out_model) {
         CHECK_EARLY_RETURN(node->left_child == nullptr
                            && node->right_child == nullptr,
                            "CommitModel: a leaf node cannot have children");
-        tree[nid].set_leaf(node->info.leaf_value);
+        if (!node->leaf_vector.empty()) {  // leaf vector exists
+          CHECK_EARLY_RETURN(flag_leaf_vector != 0,
+                             "CommitModel: Inconsistent use of leaf vector: "
+                             "if one leaf node uses a leaf vector, "
+                             "*every* leaf node must use a leaf vector");
+          flag_leaf_vector = 1;  // now every leaf must use leaf vector
+          CHECK_EARLY_RETURN(node->leaf_vector.size() == model.num_output_group,
+                              "CommitModel: The length of leaf vector must be "
+                              "identical to the number of output groups");
+          tree[nid].set_leaf_vector(node->leaf_vector);
+        } else {  // ordinary leaf
+          CHECK_EARLY_RETURN(flag_leaf_vector != 1,
+                             "CommitModel: Inconsistent use of leaf vector: "
+                             "if one leaf node does not use a leaf vector, "
+                             "*no other* leaf node can use a leaf vector");
+          flag_leaf_vector = 0;  // now no leaf can use leaf vector
+          tree[nid].set_leaf(node->info.leaf_value);
+        }
       }
     }
+  }
+  if (flag_leaf_vector == 0) {
+    CHECK_EARLY_RETURN(pimpl->trees.size() % model.num_output_group == 0,
+      "For multi-class classifiers with gradient boosted trees, the number "
+      "of trees must be evenly divisible by the number of output groups");
+    if (model.num_output_group == 1) {
+      model.multiclass_type = Model::MulticlassType::kNA;
+    } else {
+      model.multiclass_type = Model::MulticlassType::kGradientBoosting;
+    }
+  } else if (flag_leaf_vector == 1) {
+    model.multiclass_type = Model::MulticlassType::kRandomForest;
+  } else {
+    LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
   *out_model = std::move(model);
   return true;

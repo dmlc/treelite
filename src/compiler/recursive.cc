@@ -84,24 +84,20 @@ class CategoricalSplitCondition : public treelite::semantic::Condition {
 };
 
 struct GroupPolicy {
+  void Init(const treelite::Model& model);
+
   std::string GroupQueryFunction() const;
   std::string Accumulator() const;
   std::string AccumulateTranslationUnit(size_t unit_id) const;
-  std::string AccumulateLeaf(treelite::tl_float leaf_value,
-                             size_t tree_id) const;
+  std::vector<std::string> AccumulateLeaf(const treelite::Tree::Node& node,
+                                          size_t tree_id) const;
   std::vector<std::string> Return() const;
+  std::vector<std::string> FinalReturn(size_t num_tree) const;
   std::string Prototype() const;
   std::string PrototypeTranslationUnit(size_t unit_id) const;
 
   int num_output_group;
-
-  inline GroupPolicy(const treelite::Model& model)
-    : num_output_group(model.param.num_output_group) {
-    CHECK_EQ(model.trees.size() % num_output_group, 0)
-      << "The number of trees (" << model.trees.size()
-      << ") must be evenly divisible by the number of output groups ("
-      << num_output_group << ")";
-  }
+  treelite::Model::MulticlassType multiclass_type;
 };
 
 }  // namespace anonymous
@@ -114,14 +110,14 @@ DMLC_REGISTRY_FILE_TAG(recursive);
 std::vector<std::vector<tl_float>> ExtractCutPoints(const Model& model);
 
 struct Metadata {
-  int num_features;
+  int num_feature;
   std::vector<std::vector<tl_float>> cut_pts;
   std::vector<bool> is_categorical;
 
   inline void Init(const Model& model, bool extract_cut_pts = false) {
-    num_features = model.num_features;
+    num_feature = model.num_feature;
     is_categorical.clear();
-    is_categorical.resize(num_features, false);
+    is_categorical.resize(num_feature, false);
     for (const Tree& tree : model.trees) {
       for (unsigned e : tree.GetCategoricalFeatures()) {
         is_categorical[e] = true;
@@ -156,8 +152,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     Metadata info;
     info.Init(model, QuantizePolicy::QuantizeFlag());
     QuantizePolicy::Init(std::move(info));
-
-    GroupPolicy group_policy(model);
+    group_policy.Init(model);
 
     std::vector<std::vector<size_t>> annotation;
     bool annotate = false;
@@ -176,43 +171,34 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
 
     SemanticModel semantic_model;
     SequenceBlock sequence;
+    sequence.Reserve(model.trees.size() + 3);
+    sequence.PushBack(PlainBlock(group_policy.Accumulator()));
+    sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
     if (param.parallel_comp > 0) {
-      if (param.verbose > 0) {
-        LOG(INFO) << "Parallel compilation enabled; member trees will be "
-                  << "divided into " << param.parallel_comp
-                  << " translation units.";
-      }
+      LOG(INFO) << "Parallel compilation enabled; member trees will be "
+                << "divided into " << param.parallel_comp
+                << " translation units.";
       const size_t nunit = param.parallel_comp;  // # translation units
-      sequence.Reserve(model.trees.size() + 3);
-      sequence.PushBack(PlainBlock(group_policy.Accumulator()));
-      sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
       for (size_t unit_id = 0; unit_id < nunit; ++unit_id) {
         sequence.PushBack(PlainBlock(
                              group_policy.AccumulateTranslationUnit(unit_id)));
       }
-      sequence.PushBack(PlainBlock(group_policy.Return()));
     } else {
-      if (param.verbose > 0) {
-        LOG(INFO) << "Parallel compilation disabled; all member trees will be "
-                  << "dump to a single source file. This may increase "
-                  << "compilation time and memory usage.";
-      }
-      sequence.Reserve(model.trees.size() + 3);
-      sequence.PushBack(PlainBlock(group_policy.Accumulator()));
-      sequence.PushBack(PlainBlock(QuantizePolicy::Preprocessing()));
+      LOG(INFO) << "Parallel compilation disabled; all member trees will be "
+                << "dump to a single source file. This may increase "
+                << "compilation time and memory usage.";
       for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
         const Tree& tree = model.trees[tree_id];
         if (!annotation.empty()) {
           sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
-                                                           annotation[tree_id],
-                                                           group_policy)));
+                                                        annotation[tree_id])));
         } else {
-          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id, {},
-                                                           group_policy)));
+          sequence.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
+                                                           {})));
         }
       }
-      sequence.PushBack(PlainBlock(group_policy.Return()));
     }
+    sequence.PushBack(PlainBlock(group_policy.FinalReturn(model.trees.size())));
 
     FunctionBlock query_func("size_t get_num_output_group(void)",
                              PlainBlock(group_policy.GroupQueryFunction()),
@@ -242,11 +228,10 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
           const Tree& tree = model.trees[tree_id];
           if (!annotation.empty()) {
             unit_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
-                                                            annotation[tree_id],
-                                                            group_policy)));
+                                                        annotation[tree_id])));
           } else {
             unit_seq.PushBack(common::MoveUniquePtr(WalkTree(tree, tree_id,
-                                                            {}, group_policy)));
+                                                            {})));
           }
         }
         unit_seq.PushBack(PlainBlock(group_policy.Return()));
@@ -275,23 +260,21 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
 
  private:
   CompilerParam param;
+  GroupPolicy group_policy;
 
   std::unique_ptr<CodeBlock> WalkTree(const Tree& tree, size_t tree_id,
-                                      const std::vector<size_t>& counts,
-                                      const GroupPolicy& group_policy) const {
-    return WalkTree_(tree, tree_id, counts, group_policy, 0);
+                                      const std::vector<size_t>& counts) const {
+    return WalkTree_(tree, tree_id, counts, 0);
   }
 
   std::unique_ptr<CodeBlock> WalkTree_(const Tree& tree, size_t tree_id,
                                        const std::vector<size_t>& counts,
-                                       const GroupPolicy& group_policy,
                                        int nid) const {
     using semantic::BranchHint;
     const Tree::Node& node = tree[nid];
     if (node.is_leaf()) {
-      const tl_float leaf_value = node.leaf_value();
       return std::unique_ptr<CodeBlock>(new PlainBlock(
-        group_policy.AccumulateLeaf(leaf_value, tree_id)));
+        group_policy.AccumulateLeaf(node, tree_id)));
     } else {
       BranchHint branch_hint = BranchHint::kNone;
       if (!counts.empty()) {
@@ -309,10 +292,8 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       }
       return std::unique_ptr<CodeBlock>(new IfElseBlock(
         common::MoveUniquePtr(condition),
-        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, group_policy,
-                                        node.cleft())),
-        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, group_policy,
-                                        node.cright())),
+        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, node.cleft())),
+        common::MoveUniquePtr(WalkTree_(tree, tree_id, counts, node.cright())),
         branch_hint)
       );
     }
@@ -377,7 +358,7 @@ class Quantize : private MetadataStore {
     MetadataStore::Init(std::forward<Args>(args)...);
     quant_preamble = {
       std::string("for (int i = 0; i < ")
-      + std::to_string(GetInfo().num_features) + "; ++i) {",
+      + std::to_string(GetInfo().num_feature) + "; ++i) {",
       "  if (data[i].missing != -1 && !is_categorical[i]) {",
       "    data[i].qvalue = quantize(data[i].fvalue, i);",
       "  }",
@@ -412,9 +393,9 @@ class Quantize : private MetadataStore {
       std::ostringstream oss, oss2;
       size_t length = 2;
       oss << "  ";
-      const int num_features = GetInfo().num_features;
+      const int num_feature = GetInfo().num_feature;
       const auto& is_categorical = GetInfo().is_categorical;
-      for (int fid = 0; fid < num_features; ++fid) {
+      for (int fid = 0; fid < num_feature; ++fid) {
         if (is_categorical[fid]) {
           common::WrapText(&oss, &length, "1", 80);
         } else {
@@ -517,8 +498,8 @@ ExtractCutPoints(const Model& model) {
   std::vector<std::vector<tl_float>> cut_pts;
 
   std::vector<std::set<tl_float>> thresh_;
-  cut_pts.resize(model.num_features);
-  thresh_.resize(model.num_features);
+  cut_pts.resize(model.num_feature);
+  thresh_.resize(model.num_feature);
   for (size_t i = 0; i < model.trees.size(); ++i) {
     const Tree& tree = model.trees[i];
     std::queue<int> Q;
@@ -540,7 +521,7 @@ ExtractCutPoints(const Model& model) {
       }
     }
   }
-  for (int i = 0; i < model.num_features; ++i) {
+  for (int i = 0; i < model.num_feature; ++i) {
     std::copy(thresh_[i].begin(), thresh_[i].end(),
               std::back_inserter(cut_pts[i]));
   }
@@ -560,6 +541,22 @@ TREELITE_REGISTER_COMPILER(RecursiveCompiler, "recursive")
 }  // namespace treelite
 
 namespace {
+
+
+inline void
+GroupPolicy::Init(const treelite::Model& model) {
+  this->num_output_group = model.num_output_group;
+  this->multiclass_type = model.multiclass_type;
+  if (this->num_output_group == 1) {
+    CHECK(this->multiclass_type == decltype(this->multiclass_type)::kNA)
+      << "Ill-formed model: multiclass_type must be kNA "
+      << "when num_output_group is 1";
+  } else {
+    CHECK(this->multiclass_type != decltype(this->multiclass_type)::kNA)
+      << "Ill-formed model: multiclass_type cannot be kNA "
+      << "when num_output_group > 1";
+  }
+}
 
 inline std::string
 GroupPolicy::GroupQueryFunction() const {
@@ -587,26 +584,58 @@ GroupPolicy::AccumulateTranslationUnit(size_t unit_id) const {
   }
 }
 
-inline std::string
-GroupPolicy::AccumulateLeaf(treelite::tl_float leaf_value,
+inline std::vector<std::string>
+GroupPolicy::AccumulateLeaf(const treelite::Tree::Node& node,
                             size_t tree_id) const {
-  if (num_output_group > 1) {
-    return std::string("sum[") + std::to_string(tree_id % num_output_group)
-         + "] += (float)" + treelite::common::FloatToString(leaf_value) + ";";
-  } else {
-    return std::string("sum += (float)")
-         + treelite::common::FloatToString(leaf_value) + ";";
+  if (multiclass_type == decltype(multiclass_type)::kGradientBoosting) {
+    const treelite::tl_float leaf_value = node.leaf_value();
+    return {std::string("sum[") + std::to_string(tree_id % num_output_group)
+      + "] += (float)" + treelite::common::FloatToString(leaf_value) + ";"};
+  } else if (multiclass_type == decltype(multiclass_type)::kRandomForest) {
+    const std::vector<treelite::tl_float>& leaf_vector = node.leaf_vector();
+    CHECK_EQ(leaf_vector.size(), static_cast<size_t>(num_output_group))
+      << "Ill-formed model: leaf vector must be of length [num_output_group]";
+    std::vector<std::string> lines;
+    lines.reserve(num_output_group);
+    for (int group_id = 0; group_id < num_output_group; ++group_id) {
+      lines.push_back(std::string("sum[") + std::to_string(group_id)
+        + "] += (float)"
+        + treelite::common::FloatToString(leaf_vector[group_id]) + ";");
+    }
+    return lines;
+  } else {  // kNA
+    const treelite::tl_float leaf_value = node.leaf_value();
+    return {std::string("sum += (float)")
+            + treelite::common::FloatToString(leaf_value) + ";" };
   }
 }
 
 inline std::vector<std::string>
 GroupPolicy::Return() const {
-  if (num_output_group > 1) {
+  if (multiclass_type == decltype(multiclass_type)::kNA) {
+    return {"return sum;"};
+  } else {
     return {std::string("for (int i = 0; i < ")
-               + std::to_string(num_output_group) + "; ++i) {",
+                + std::to_string(num_output_group) + "; ++i) {",
             "  result[i] += sum[i];",
             "}"};
-  } else {
+  }
+}
+
+inline std::vector<std::string>
+GroupPolicy::FinalReturn(size_t num_tree) const {
+  if (multiclass_type == decltype(multiclass_type)::kGradientBoosting) {
+    return {std::string("for (int i = 0; i < ")
+                + std::to_string(num_output_group) + "; ++i) {",
+            "  result[i] = sum[i];",
+            "}"};
+  } else if (multiclass_type == decltype(multiclass_type)::kRandomForest) {
+    return {std::string("for (int i = 0; i < ")
+                + std::to_string(num_output_group) + "; ++i) {",
+            std::string("  result[i] = sum[i] / ")
+                + std::to_string(num_tree) + ";",
+            "}"};
+  } else {  // kNA
     return {"return sum;"};
   }
 }

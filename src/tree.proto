@@ -4,8 +4,9 @@ package treelite_protobuf;
 
 message Model {
   repeated Tree trees = 1;
-  optional int32 num_features = 2;
-  map<string, string> extra_params = 3;  // extra parameters
+  optional int32 num_feature = 2;
+  optional int32 num_output_group = 3;
+  map<string, string> extra_params = 4;  // extra parameters
 }
 
 message Tree {
@@ -41,4 +42,7 @@ message Node {
                                      // will belong to the right child.
                                      // missing if leaf or numerical split
    optional float leaf_value = 9;    // Leaf value; missing if non-leaf
+                                     // also missing if leaf_vector field exists
+   repeated float leaf_vector = 10;  // Usually missing; only used for random
+                                     // forests with multi-class classification
 }

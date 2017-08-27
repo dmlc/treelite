@@ -512,10 +512,25 @@ int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle, int node_key,
   API_END();
 }
 
-int TreeliteCreateModelBuilder(int num_features,
+int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
+                                         int node_key,
+                                         const float* leaf_vector,
+                                         size_t leaf_vector_len) {
+  API_BEGIN();
+  auto builder = static_cast<frontend::TreeBuilder*>(handle);
+  std::vector<tl_float> vec(leaf_vector_len);
+  for (size_t i = 0; i < leaf_vector_len; ++i) {
+    vec[i] = static_cast<tl_float>(leaf_vector[i]);
+  }
+  return (builder->SetLeafVectorNode(node_key, vec)) ? 0 : -1;
+  API_END();
+}
+
+int TreeliteCreateModelBuilder(int num_feature,
+                               int num_output_group,
                                ModelBuilderHandle* out) {
   API_BEGIN();
-  auto builder = new frontend::ModelBuilder(num_features);
+  auto builder = new frontend::ModelBuilder(num_feature, num_output_group);
   *out = static_cast<ModelBuilderHandle>(builder);
   API_END();
 }
@@ -550,7 +565,7 @@ int TreeliteModelBuilderGetTree(ModelBuilderHandle handle, int index,
   API_BEGIN();
   auto model_builder = static_cast<frontend::ModelBuilder*>(handle);
   auto tree_builder = &model_builder->GetTree(index);
-  *out = static_cast<TreeBuilderHandle>(&model_builder->GetTree(index));
+  *out = static_cast<TreeBuilderHandle>(tree_builder);
   API_END();
 }
 

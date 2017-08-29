@@ -27,6 +27,7 @@ class Predictor {
   /*! \brief opaque handle types */
   typedef void* QueryFuncHandle;
   typedef void* PredFuncHandle;
+  typedef void* PredTransformFuncHandle;
   typedef void* LibraryHandle;
 
   Predictor();
@@ -45,14 +46,29 @@ class Predictor {
    */
   void Free();
   /*!
-   * \brief make predictions on a given dataset.
+   * \brief make predictions on a given dataset and output raw margin scores
    * \param dmat data matrix
    * \param nthread number of threads to use for predicting
    * \param verbose whether to produce extra messages
-   * \param out_result used to save predictions
+   * \param out_result resulting margin vector; use QueryResultSize() to
+   *                   allocate sufficient space. The margin vector is always
+   *                   as long as QueryResultSize().
    */
-  void Predict(const DMatrix* dmat, int nthread, int verbose,
-               float* out_result) const;
+  void PredictRaw(const DMatrix* dmat, int nthread, int verbose,
+                  float* out_result) const;
+
+  /*!
+   * \brief make predictions on a given dataset and output probabilities
+   * \param dmat data matrix
+   * \param nthread number of threads to use for predicting
+   * \param verbose whether to produce extra messages
+   * \param out_result resulting output probability vector; use
+   *                   QueryResultSize() to allocate sufficient space
+   * \return length of the output probability vector, which is less than or
+   *         equal to QueryResultSize()
+   */
+  size_t Predict(const DMatrix* dmat, int nthread, int verbose,
+                 float* out_result) const;
 
   /*!
    * \brief Given a data matrix, query the necessary size of array to
@@ -79,6 +95,7 @@ class Predictor {
   LibraryHandle lib_handle_;
   QueryFuncHandle query_func_handle_;
   PredFuncHandle pred_func_handle_;
+  PredTransformFuncHandle pred_transform_func_handle_;
   size_t num_output_group_;
 };
 

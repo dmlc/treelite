@@ -9,9 +9,6 @@
 #include <treelite/tree.h>
 #include <unordered_map>
 #include <queue>
-#include <cerrno>
-#include <cstdlib>
-#include <climits>
 
 namespace {
 
@@ -52,89 +49,6 @@ struct LGBTree {
   std::vector<int> left_child;
   std::vector<int> right_child;
 };
-
-template <typename T>
-inline T TextToEntry(const std::string& str) {
-  static_assert(std::is_same<T, double>::value || std::is_same<T, int>::value
-                || std::is_same<T, int8_t>::value
-                || std::is_same<T, uint32_t>::value,
-                "unsupported data type for TextToEntry; use double, int, "
-                                                    "int8_t, or uint32_t.");
-}
-
-template <>
-inline double TextToEntry(const std::string& str) {
-  errno = 0;
-  char *endptr;
-  double val = std::strtod(str.c_str(), &endptr);
-  if (errno == ERANGE) {
-    LOG(FATAL) << "Range error while converting string to double";
-  } else if (errno != 0) {
-    LOG(FATAL) << "Unknown error";
-  } else if (*endptr != '\0') {
-    LOG(FATAL) << "String does not represent a valid floating-point number";
-  }
-  return val;
-}
-
-template <>
-inline int TextToEntry(const std::string& str) {
-  errno = 0;
-  char *endptr;
-  long int val = std::strtol(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val < INT_MIN || val > INT_MAX) {
-    LOG(FATAL) << "Range error while converting string to int";
-  } else if (errno != 0) {
-    LOG(FATAL) << "Unknown error";
-  } else if (*endptr != '\0') {
-    LOG(FATAL) << "String does not represent a valid integer";
-  }
-  return static_cast<int>(val);
-}
-
-template <>
-inline int8_t TextToEntry(const std::string& str) {
-  errno = 0;
-  char *endptr;
-  long int val = std::strtol(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val < INT8_MIN || val > INT8_MAX) {
-    LOG(FATAL) << "Range error while converting string to int8_t";
-  } else if (errno != 0) {
-    LOG(FATAL) << "Unknown error";
-  } else if (*endptr != '\0') {
-    LOG(FATAL) << "String does not represent a valid integer";
-  }
-  return static_cast<int8_t>(val);
-}
-
-template <>
-inline uint32_t TextToEntry(const std::string& str) {
-  static_assert(sizeof(uint32_t) <= sizeof(unsigned long int),
-                "unsigned long int too small to hold uint32_t");
-  errno = 0;
-  char *endptr;
-  unsigned long int val = std::strtoul(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val > UINT32_MAX) {
-    LOG(FATAL) << "Range error while converting string to uint32_t";
-  } else if (errno != 0) {
-    LOG(FATAL) << "Unknown error";
-  } else if (*endptr != '\0') {
-    LOG(FATAL) << "String does not represent a valid integer";
-  }
-  return static_cast<uint32_t>(val);
-}
-
-template <typename T, typename S = T>
-inline std::vector<S> TextToArray(const std::string& text, int num_entry) {
-  std::vector<S> array;
-  std::istringstream ss(text);
-  std::string token;
-  for (int i = 0; i < num_entry; ++i) {
-    std::getline(ss, token, ' ');
-    array.push_back(static_cast<S>(TextToEntry<T>(token)));
-  }
-  return array;
-}
 
 inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
   return (decision_type & mask) > 0;
@@ -201,6 +115,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   int max_feature_idx_;
   int num_tree_per_iteration_;
   std::string obj_name_;
+  std::vector<std::string> obj_param_;
 
   /* 1. Parse input stream */
   std::vector<std::string> lines = LoadText(fi);
@@ -231,15 +146,18 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     auto it = global_dict.find("objective");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need objective";
-    obj_name_ = it->second;
+    auto obj_strs = treelite::common::Split(it->second, ' ');
+    obj_name_ = obj_strs[0];
+    obj_param_ = std::vector<std::string>(obj_strs.begin() + 1, obj_strs.end());
+
     it = global_dict.find("max_feature_idx");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need max_feature_idx";
-    max_feature_idx_ = TextToEntry<int>(it->second);
+    max_feature_idx_ = treelite::common::TextToNumber<int>(it->second);
     it = global_dict.find("num_tree_per_iteration");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need num_tree_per_iteration";
-    num_tree_per_iteration_ = TextToEntry<int>(it->second);
+    num_tree_per_iteration_ = treelite::common::TextToNumber<int>(it->second);
   }
 
   for (const auto& dict : tree_dict) {
@@ -249,16 +167,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     auto it = dict.find("num_leaves");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need num_leaves";
-    tree.num_leaves = TextToEntry<int>(it->second);
+    tree.num_leaves = treelite::common::TextToNumber<int>(it->second);
 
     it = dict.find("num_cat");
     CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need num_cat";
-    tree.num_cat = TextToEntry<int>(it->second);
+    tree.num_cat = treelite::common::TextToNumber<int>(it->second);
 
     it = dict.find("leaf_value");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need leaf_value";
-    tree.leaf_value = TextToArray<double>(it->second, tree.num_leaves);
+    tree.leaf_value
+      = treelite::common::TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
     CHECK(it != dict.end()) 
@@ -267,40 +186,47 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
     } else {
       tree.decision_type
-        = TextToArray<int8_t>(it->second, tree.num_leaves - 1);
+        = treelite::common::TextToArray<int8_t>(it->second,
+                                                tree.num_leaves - 1);
     }
 
     if (tree.num_cat > 0) {
       it = dict.find("cat_boundaries");
       CHECK(it != dict.end())
         << "Ill-formed LightGBM model file: need cat_boundaries";
-      tree.cat_boundaries = TextToArray<int>(it->second, tree.num_cat + 1);
+      tree.cat_boundaries
+        = treelite::common::TextToArray<int>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
       CHECK(it != dict.end())
         << "Ill-formed LightGBM model file: need cat_threshold";
       tree.cat_threshold
-        = TextToArray<uint32_t>(it->second, tree.cat_boundaries.back());
+        = treelite::common::TextToArray<uint32_t>(it->second,
+                                                  tree.cat_boundaries.back());
     }
 
     it = dict.find("split_feature");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need split_feature";
-    tree.split_feature = TextToArray<int>(it->second, tree.num_leaves - 1);
+    tree.split_feature
+      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("threshold");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need threshold";
-    tree.threshold = TextToArray<double>(it->second, tree.num_leaves - 1);
+    tree.threshold
+      = treelite::common::TextToArray<double>(it->second, tree.num_leaves - 1);
 
     it = dict.find("left_child");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need left_child";
-    tree.left_child = TextToArray<int>(it->second, tree.num_leaves - 1);
+    tree.left_child
+      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("right_child");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need right_child";
-    tree.right_child = TextToArray<int>(it->second, tree.num_leaves - 1);
+    tree.right_child
+      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
   }
 
   /* 2. Export model */
@@ -312,6 +238,74 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       treelite::Model::MulticlassType::kGradientBoosting
     : treelite::Model::MulticlassType::kNA;
 
+  // set correct prediction transform function, depending on objective function
+  if (obj_name_ == "multiclass") {
+    // validate num_class parameter
+    int num_class = -1;
+    int tmp;
+    for (const auto& str : obj_param_) {
+      auto tokens = treelite::common::Split(str, ':');
+      if (tokens.size() == 2 && tokens[0] == "num_class"
+        && (tmp = treelite::common::TextToNumber<int>(tokens[1])) >= 0) {
+        num_class = tmp;
+        break;
+      }
+    }
+    CHECK(num_class >= 0 && num_class == model.num_output_group)
+      << "Ill-formed LightGBM model file: not a valid multiclass objective";
+
+    model.param.pred_transform = "softmax";
+  } else if (obj_name_ == "multiclassova") {
+    // validate num_class and alpha parameters
+    int num_class = -1;
+    float alpha = -1.0f;
+    int tmp;
+    float tmp2;
+    for (const auto& str : obj_param_) {
+      auto tokens = treelite::common::Split(str, ':');
+      if (tokens.size() == 2) {
+        if (tokens[0] == "num_class"
+          && (tmp = treelite::common::TextToNumber<int>(tokens[1])) >= 0) {
+          num_class = tmp;
+        } else if (tokens[0] == "sigmoid"
+         && (tmp2 = treelite::common::TextToNumber<float>(tokens[1])) > 0.0f) {
+          alpha = tmp2;
+        }
+      }
+    }
+    CHECK(num_class >= 0 && num_class == model.num_output_group
+          && alpha > 0.0f)
+      << "Ill-formed LightGBM model file: not a valid multiclassova objective";
+
+    model.param.pred_transform = "multiclass_ova";
+    model.param.sigmoid_alpha = alpha;
+  } else if (obj_name_ == "binary") {
+    // validate alpha parameter
+    float alpha = -1.0f;
+    float tmp;
+    for (const auto& str : obj_param_) {
+      auto tokens = treelite::common::Split(str, ':');
+      if (tokens.size() == 2 && tokens[0] == "sigmoid"
+        && (tmp = treelite::common::TextToNumber<float>(tokens[1])) > 0.0f) {
+        alpha = tmp;
+        break;
+      }
+    }
+    CHECK_GT(alpha, 0.0f)
+      << "Ill-formed LightGBM model file: not a valid binary objective";
+
+    model.param.pred_transform = "sigmoid";
+    model.param.sigmoid_alpha = alpha;
+  } else if (obj_name_ == "xentropy" || obj_name_ == "cross_entropy") {
+    model.param.pred_transform = "sigmoid";
+    model.param.sigmoid_alpha = 1.0f;
+  } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
+    model.param.pred_transform = "logarithm_one_plus_exp";
+  } else {
+    model.param.pred_transform = "identity";
+  }
+
+  // traverse trees
   for (const auto& lgb_tree : lgb_trees_) {
     model.trees.emplace_back();
     treelite::Tree& tree = model.trees.back();

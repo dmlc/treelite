@@ -222,19 +222,42 @@ TREELITE_DLL int TreeliteCompilerFree(CompilerHandle handle);
 TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
                                        PredictorHandle* out);
 /*!
- * \brief make predictions on a dataset
+ * \brief make predictions on a given dataset and output raw margin scores
  * \param handle predictor
  * \param dmat data matrix
  * \param nthread number of threads to use
  * \param verbose whether to produce extra messages
- * \param out_result used to store result of prediction
+ * \param out_result resulting margin vector; use
+ *                   TreelitePredictorQueryResultSize() to allocate sufficient
+ *                   space. The margin vector is always as long as
+ *                   TreelitePredictorQueryResultSize().
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorPredictRaw(PredictorHandle handle,
+                                             DMatrixHandle dmat,
+                                             int nthread,
+                                             int verbose,
+                                             float* out_result);
+/*!
+ * \brief make predictions on a dataset and output probabilities
+ * \param handle predictor
+ * \param dmat data matrix
+ * \param nthread number of threads to use
+ * \param verbose whether to produce extra messages
+ * \param out_result resulting output probability vector; use
+ *                   TreelitePredictorQueryResultSize() to allocate sufficient
+ *                   space
+ * \param out_result_size used to save length of the output probability vector,
+ *                        which is less than or equal to
+ *                        TreelitePredictorQueryResultSize()
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorPredict(PredictorHandle handle,
                                           DMatrixHandle dmat,
                                           int nthread,
                                           int verbose,
-                                          float* out_result);
+                                          float* out_result,
+                                          size_t* out_result_size);
 
 /*!
  * \brief Given a data matrix, query the necessary size of array to

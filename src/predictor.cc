@@ -96,7 +96,8 @@ namespace treelite {
 
 Predictor::Predictor() : lib_handle_(nullptr),
                          query_func_handle_(nullptr),
-                         pred_func_handle_(nullptr) {}
+                         pred_func_handle_(nullptr),
+                         pred_transform_func_handle_(nullptr) {}
 Predictor::~Predictor() {
   Free();
 }
@@ -121,7 +122,7 @@ Predictor::Load(const char* name) {
   CHECK_GT(num_output_group_, 0) << "num_output_group cannot be zero";
   if (num_output_group_ > 1) {   // multi-class classification
     pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,
-                                                   "predict_margin_multiclass");
+                                                  "predict_margin_multiclass");
     using PredFunc = void (*)(Entry*, float*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
     CHECK(pred_func != nullptr)
@@ -136,6 +137,17 @@ Predictor::Load(const char* name) {
       << "Dynamic shared library `" << name
       << "' does not contain valid predict_margin() function";
   }
+
+  /* 3. load prediction transform function */
+  pred_transform_func_handle_
+    = LoadFunction<PredTransformFuncHandle>(lib_handle_,
+                                            "pred_transform_batch");
+  using PredTransformFunc = size_t (*)(float*, int64_t, int);
+  PredTransformFunc pred_transform_func
+    = reinterpret_cast<PredTransformFunc>(pred_transform_func_handle_);
+  CHECK(pred_transform_func != nullptr)
+    << "Dynamic shared library `" << name
+    << "' does not contain valid pred_transform_batch() function";
 }
 
 void
@@ -143,9 +155,21 @@ Predictor::Free() {
   CloseLibrary(lib_handle_);
 }
 
-void
+size_t
 Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
                    float* out_pred) const {
+  // predict margins and then transform them
+  std::vector<float> tmp(this->QueryResultSize(dmat));
+  this->PredictRaw(dmat, nthread, verbose, &tmp[0]);
+  using PredTransformFunc = size_t(*)(float*, int64_t, int);
+  PredTransformFunc pred_transform_func
+    = reinterpret_cast<PredTransformFunc>(pred_transform_func_handle_);
+  return pred_transform_func(&tmp[0], dmat->num_row, nthread);
+}
+
+void
+Predictor::PredictRaw(const DMatrix* dmat, int nthread, int verbose,
+                      float* out_pred) const {
   CHECK(pred_func_handle_ != nullptr)
     << "A shared library needs to be loaded first using Load()";
   const int max_thread = omp_get_max_threads();

@@ -313,6 +313,22 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       treelite::Model::MulticlassType::kGradientBoosting
     : treelite::Model::MulticlassType::kNA;
 
+  // set correct prediction transform function, depending on objective function
+  if (name_obj_ == "multi:softmax") {
+    model.param.pred_transform = "max_index";
+  } else if (name_obj_ == "multi:softprob") {
+    model.param.pred_transform = "softmax";
+  } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
+    model.param.pred_transform = "sigmoid";
+    model.param.sigmoid_alpha = 1.0f;
+  } else if (name_obj_ == "count:poisson" || name_obj_ == "reg:gamma"
+             || name_obj_ == "reg:tweedie") {
+    model.param.pred_transform = "exponential";
+  } else {
+    model.param.pred_transform = "identity";
+  }
+
+  // traverse trees
   for (const auto& xgb_tree : xgb_trees_) {
     model.trees.emplace_back();
     treelite::Tree& tree = model.trees.back();

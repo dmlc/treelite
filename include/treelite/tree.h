@@ -282,8 +282,21 @@ class Tree {
 };
 
 struct ModelParam : public dmlc::Parameter<ModelParam> {
+  /*! \brief name of prediction transform function */
+  std::string pred_transform;
+  /*!
+   * \brief scaling parameter for sigmoid function
+   * sigmoid(x) = 1 / (1 + exp(-alpha * x))
+   */
+  float sigmoid_alpha;
+
+  // declare parameters
   DMLC_DECLARE_PARAMETER(ModelParam) {
-    /* Empty for now -- can add more parameters later */
+    DMLC_DECLARE_FIELD(pred_transform).set_default("identity")
+      .describe("name of prediction transform function");
+    DMLC_DECLARE_FIELD(sigmoid_alpha).set_default(1.0f)
+      .set_lower_bound(0.0f)
+      .describe("scaling parameter for sigmoid function");
   }
 };
 

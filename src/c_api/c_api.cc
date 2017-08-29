@@ -369,15 +369,28 @@ int TreelitePredictorLoad(const char* library_path,
   API_END();
 }
 
+int TreelitePredictorPredictRaw(PredictorHandle handle,
+                                DMatrixHandle dmat,
+                                int nthread,
+                                int verbose,
+                                float* out_result) {
+  API_BEGIN();
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  const DMatrix* dmat_ = static_cast<DMatrix*>(dmat);
+  predictor_->PredictRaw(dmat_, nthread, verbose, out_result);
+  API_END();
+}
+
 int TreelitePredictorPredict(PredictorHandle handle,
                              DMatrixHandle dmat,
                              int nthread,
                              int verbose,
-                             float* out_result) {
+                             float* out_result,
+                             size_t* out_result_size) {
   API_BEGIN();
   const Predictor* predictor_ = static_cast<Predictor*>(handle);
   const DMatrix* dmat_ = static_cast<DMatrix*>(dmat);
-  predictor_->Predict(dmat_, nthread, verbose, out_result);
+  *out_result_size = predictor_->Predict(dmat_, nthread, verbose, out_result);
   API_END();
 }
 

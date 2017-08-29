@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <iterator>
 #include "param.h"
+#include "pred_transform.h"
 
 namespace {
 
@@ -203,12 +204,19 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     FunctionBlock query_func("size_t get_num_output_group(void)",
                              PlainBlock(group_policy.GroupQueryFunction()),
                              &semantic_model.function_registry, true);
+    FunctionBlock pred_transform_func(PredTransformPrototype(false),
+                             PlainBlock(PredTransformFunction(model, false)),
+                             &semantic_model.function_registry, true);
+    FunctionBlock pred_transform_batch_func(PredTransformPrototype(true),
+                             PlainBlock(PredTransformFunction(model, true)),
+                             &semantic_model.function_registry, true);
     FunctionBlock main_func(group_policy.Prototype(),
       std::move(sequence), &semantic_model.function_registry, true);
     SequenceBlock main_file;
-    main_file.Reserve(3);
+    main_file.Reserve(4);
     main_file.PushBack(std::move(query_func));
-    main_file.PushBack(PlainBlock(""));
+    main_file.PushBack(std::move(pred_transform_func));
+    main_file.PushBack(std::move(pred_transform_batch_func));
     main_file.PushBack(std::move(main_func));
     auto file_preamble = QuantizePolicy::ConstantsPreamble();
     semantic_model.units.emplace_back(PlainBlock(file_preamble),
@@ -334,6 +342,7 @@ class NoQuantize : private MetadataStore {
   }
   std::vector<std::string> CommonHeader() const {
     return {"#include <stdlib.h>",
+            "#include <string.h>",
             "",
             "union Entry {",
             "  int missing;",
@@ -379,6 +388,7 @@ class Quantize : private MetadataStore {
   }
   std::vector<std::string> CommonHeader() const {
     return {"#include <stdlib.h>",
+            "#include <string.h>",
             "",
             "union Entry {",
             "  int missing;",
@@ -590,7 +600,7 @@ GroupPolicy::AccumulateLeaf(const treelite::Tree::Node& node,
   if (multiclass_type == decltype(multiclass_type)::kGradientBoosting) {
     const treelite::tl_float leaf_value = node.leaf_value();
     return {std::string("sum[") + std::to_string(tree_id % num_output_group)
-      + "] += (float)" + treelite::common::FloatToString(leaf_value) + ";"};
+      + "] += (float)" + treelite::common::ToString(leaf_value) + ";"};
   } else if (multiclass_type == decltype(multiclass_type)::kRandomForest) {
     const std::vector<treelite::tl_float>& leaf_vector = node.leaf_vector();
     CHECK_EQ(leaf_vector.size(), static_cast<size_t>(num_output_group))
@@ -600,13 +610,13 @@ GroupPolicy::AccumulateLeaf(const treelite::Tree::Node& node,
     for (int group_id = 0; group_id < num_output_group; ++group_id) {
       lines.push_back(std::string("sum[") + std::to_string(group_id)
         + "] += (float)"
-        + treelite::common::FloatToString(leaf_vector[group_id]) + ";");
+        + treelite::common::ToString(leaf_vector[group_id]) + ";");
     }
     return lines;
   } else {  // kNA
     const treelite::tl_float leaf_value = node.leaf_value();
     return {std::string("sum += (float)")
-            + treelite::common::FloatToString(leaf_value) + ";" };
+            + treelite::common::ToString(leaf_value) + ";" };
   }
 }
 

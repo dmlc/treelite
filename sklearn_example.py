@@ -13,7 +13,8 @@ clf = RandomForestClassifier(random_state=1, n_estimators=ntree)
 clf.fit(X, y)
 
 builder = ModelBuilder(num_feature=clf.n_features_,
-                       num_output_group=clf.n_classes_)
+                       num_output_group=clf.n_classes_,
+                       params={'pred_transform':'max_index'})
 
 for i in range(ntree):
   clf_tree = clf.estimators_[i].tree_
@@ -35,7 +36,7 @@ for i in range(ntree):
                                   right_child_key=clf_tree.children_right[nid])
   builder.append(tree)
 model = builder.commit()
-compiler = Compiler("recursive")
+compiler = Compiler()
 compiler.generate_code(model, 'test_rf', params={}, verbose=True)
 
 # 2. gradient boosting
@@ -43,7 +44,8 @@ clf = GradientBoostingClassifier(random_state=1, n_estimators=ntree, max_depth=4
 clf.fit(X, y)
 
 builder = ModelBuilder(num_feature=clf.n_features_,
-                       num_output_group=clf.n_classes_)
+                       num_output_group=clf.n_classes_,
+                       params={'pred_transform':'softmax'})
 
 for i in range(ntree):
   for k in range(clf.n_classes_):    

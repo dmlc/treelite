@@ -243,13 +243,13 @@ class Compiler(object):
   Compiler object to translate a tree ensemble model into a semantic model
   """
   
-  def __init__(self, name):
+  def __init__(self, name='recursive'):
     """Compiler object to translate a tree ensemble model into a semantic model
 
     Parameters
     ----------
-    name : string
-        name of compiler
+    name : string, optional
+        name of compiler (default: 'recursive')
     """
     self.handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteCompilerCreate(c_str(name),

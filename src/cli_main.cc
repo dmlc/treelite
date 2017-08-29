@@ -78,6 +78,9 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   // number of threads to use if OpenMP is enabled
   // if equals 0, use system default
   int nthread;
+  /*! \brief whether to predict margin instead of
+             transformed probability */
+  int pred_margin;
   /*! \brief all the configurations */
   std::vector<std::pair<std::string, std::string> > cfg;
 
@@ -121,6 +124,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .describe("test set data format");
     DMLC_DECLARE_FIELD(nthread).set_default(0).describe(
         "Number of threads to use.");
+    DMLC_DECLARE_FIELD(pred_margin).set_default(0).describe(
+        "if >0, predict margin instead of transformed probability");
 
     // alias
     DMLC_DECLARE_ALIAS(train_data_path, data);
@@ -247,20 +252,26 @@ void CLIPredict(const CLIParam& param) {
   CHECK_NE(param.codelib_path, "NULL")
     << "Need to specify codelib_path paramter for prediction task";
   CHECK_NE(param.test_data_path, "NULL")
-    << "Need to specify test_data_path paramter for annotation task";
+    << "Need to specify test_data_path paramter for prediction task";
   std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.test_data_path.c_str(),
                                          FileFormatString(param.test_format),
                                          param.nthread, param.verbose));
   Predictor predictor;
   predictor.Load(param.codelib_path.c_str());
-  std::vector<float> result(predictor.QueryResultSize(dmat.get()));
-  predictor.Predict(dmat.get(), param.nthread, param.verbose, &result[0]);
+  size_t result_size = predictor.QueryResultSize(dmat.get());
+  std::vector<float> result(result_size);
+  if (param.pred_margin > 0) {
+    predictor.PredictRaw(dmat.get(), param.nthread, param.verbose, &result[0]);
+  } else {
+    result_size
+     = predictor.Predict(dmat.get(), param.nthread, param.verbose, &result[0]);
+  }
   // write to text file
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_pred.c_str(), "w"));
   dmlc::ostream os(fo.get());
-  for (float e : result) {
-    os << e << std::endl;
+  for (size_t i = 0; i < result_size; ++i) {
+    os << result[i] << std::endl;
   }
   // force flush before fo destruct.
   os.set_stream(nullptr);

@@ -16,12 +16,13 @@
 #include <functional>
 #include <cfloat>
 #include <cmath>
+#include <cerrno>
+#include <cstdlib>
+#include <climits>
 
 #ifndef _WIN32
 #include <libgen.h>
 #include <cstring>
-#else
-#include <cstdlib>
 #endif
 
 namespace treelite {
@@ -161,11 +162,12 @@ Iter binary_search(Iter begin, Iter end, const T& val)
 }
 
 /*!
- * \brief obtain a string representation of a floating-point number
- * \param value floating-point number
+ * \brief obtain a string representation of primitive type using ostringstream
+ * \param value a value of primitive type
  * \return string representation
  */
-inline std::string FloatToString(tl_float value) {
+template <typename T>
+inline std::string ToString(T value) {
   std::ostringstream oss;
   oss << value;
   return oss.str();
@@ -215,6 +217,144 @@ inline bool CheckNAN(T value) {
 #else
   return std::isnan(value);
 #endif
+}
+
+/*!
+ * \brief convert text to number
+ * \param str string containing number
+ * \return number converted to type T
+ * \tparam T type of value (should be a floating-point or integer type)
+ */
+template <typename T>
+inline T TextToNumber(const std::string& str) {
+  static_assert(std::is_same<T, float>::value
+                || std::is_same<T, double>::value
+                || std::is_same<T, int>::value
+                || std::is_same<T, int8_t>::value
+                || std::is_same<T, uint32_t>::value,
+                "unsupported data type for TextToNumber; use float, double, "
+                "int, int8_t, or uint32_t.");
+}
+
+template <>
+inline float TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  float val = std::strtof(str.c_str(), &endptr);
+  if (errno == ERANGE) {
+    LOG(FATAL) << "Range error while converting string to double";
+  }
+  else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  }
+  else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid floating-point number";
+  }
+  return val;
+}
+
+template <>
+inline double TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  double val = std::strtod(str.c_str(), &endptr);
+  if (errno == ERANGE) {
+    LOG(FATAL) << "Range error while converting string to double";
+  }
+  else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  }
+  else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid floating-point number";
+  }
+  return val;
+}
+
+template <>
+inline int TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  long int val = std::strtol(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val < INT_MIN || val > INT_MAX) {
+    LOG(FATAL) << "Range error while converting string to int";
+  }
+  else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  }
+  else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<int>(val);
+}
+
+template <>
+inline int8_t TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  long int val = std::strtol(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val < INT8_MIN || val > INT8_MAX) {
+    LOG(FATAL) << "Range error while converting string to int8_t";
+  }
+  else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  }
+  else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<int8_t>(val);
+}
+
+template <>
+inline uint32_t TextToNumber(const std::string& str) {
+  static_assert(sizeof(uint32_t) <= sizeof(unsigned long int),
+    "unsigned long int too small to hold uint32_t");
+  errno = 0;
+  char *endptr;
+  unsigned long int val = std::strtoul(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val > UINT32_MAX) {
+    LOG(FATAL) << "Range error while converting string to uint32_t";
+  }
+  else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  }
+  else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<uint32_t>(val);
+}
+
+/*!
+ * \brief convert text to number array
+ * \param str string containing numbers, separated by spaces in between
+ * \return std::vector of numbers, converted to type T
+ * \tparam T type of value (should be a floating-point or integer type)
+ */
+template <typename T>
+inline std::vector<T> TextToArray(const std::string& text, int num_entry) {
+  std::vector<T> array;
+  std::istringstream ss(text);
+  std::string token;
+  for (int i = 0; i < num_entry; ++i) {
+    std::getline(ss, token, ' ');
+    array.push_back(TextToNumber<T>(token));
+  }
+  return array;
+}
+
+/*!
+ * \brief split text using a delimiter
+ * \param str text
+ * \param delim delimiter
+ * \return std::vector of strings, split by a delimiter
+ */
+inline std::vector<std::string> Split(const std::string& text, char delim) {
+  std::vector<std::string> array;
+  std::istringstream ss(text);
+  std::string token;
+  while (std::getline(ss, token, delim)) {
+    array.push_back(token);
+  }
+  return array;
 }
 
 /*!

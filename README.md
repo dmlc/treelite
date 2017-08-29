@@ -1,7 +1,10 @@
 # tree-lite
-**UNDER CONSTRUCTION: to be released soon**
 
 fast tree inference
+
+## =======UNDER CONSTRUCTION: to be released soon=======
+
+## [To-do list](https://github.com/dmlc/tree-lite/issues/1)
 
 ## How to install (UNIX-like systems)
 ```bash

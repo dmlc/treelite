@@ -425,4 +425,4 @@ class ModelBuilder(object):
     for key, val in params:
       _check_call(_LIB.TreeliteModelBuilderSetModelParam(self.handle,
                                                          c_str(key),
-                                                  c_str(STRING_TYPES[0](val))))
+                                                         c_str(val)))

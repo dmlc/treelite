@@ -343,6 +343,8 @@ class NoQuantize : private MetadataStore {
   std::vector<std::string> CommonHeader() const {
     return {"#include <stdlib.h>",
             "#include <string.h>",
+            "#include <math.h>",
+            "#include <stdint.h>",
             "",
             "union Entry {",
             "  int missing;",
@@ -389,6 +391,8 @@ class Quantize : private MetadataStore {
   std::vector<std::string> CommonHeader() const {
     return {"#include <stdlib.h>",
             "#include <string.h>",
+            "#include <math.h>",
+            "#include <stdint.h>",
             "",
             "union Entry {",
             "  int missing;",

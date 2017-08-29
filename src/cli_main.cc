@@ -98,7 +98,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .add_enum("lightgbm", kLGBModel)
         .add_enum("protobuf", kProtobuf)
         .describe("Model format");
-    DMLC_DECLARE_FIELD(model_in).describe("Input model path");
+    DMLC_DECLARE_FIELD(model_in).set_default("NULL")
+        .describe("Input model path");
     DMLC_DECLARE_FIELD(name_codegen).set_default("dump.c")
         .describe("generated code file");
     DMLC_DECLARE_FIELD(name_annotate).set_default("annotate.json")
@@ -142,6 +143,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
 DMLC_REGISTER_PARAMETER(CLIParam);
 
 Model ParseModel(const CLIParam& param) {
+  CHECK(param.model_in != "NULL") << "model_in parameter must be provided";
   switch (param.format) {
    case kXGBModel:
     return frontend::LoadXGBoostModel(param.model_in.c_str());

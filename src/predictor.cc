@@ -159,12 +159,11 @@ size_t
 Predictor::Predict(const DMatrix* dmat, int nthread, int verbose,
                    float* out_pred) const {
   // predict margins and then transform them
-  std::vector<float> tmp(this->QueryResultSize(dmat));
-  this->PredictRaw(dmat, nthread, verbose, &tmp[0]);
+  this->PredictRaw(dmat, nthread, verbose, out_pred);
   using PredTransformFunc = size_t(*)(float*, int64_t, int);
   PredTransformFunc pred_transform_func
     = reinterpret_cast<PredTransformFunc>(pred_transform_func_handle_);
-  return pred_transform_func(&tmp[0], dmat->num_row, nthread);
+  return pred_transform_func(out_pred, dmat->num_row, nthread);
 }
 
 void

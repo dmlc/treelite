@@ -40,7 +40,7 @@ sigmoid(const Model& model, bool batch) {
       "const float alpha = (float)") + treelite::common::ToString(alpha) + ";",
       "int64_t i;",
       "#pragma omp parallel for schedule(static) num_threads(nthread) \\",
-      "   default(none) firstprivate(alpha) shared(pred) private(i) \\",
+      "   default(none) firstprivate(alpha) shared(pred) private(i)",
       "for (i = 0; i < ndata; ++i) {",
       "  pred[i] = 1.0f / (1 + expf(-alpha * pred[i]));",
       "}",

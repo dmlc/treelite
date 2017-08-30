@@ -13,7 +13,7 @@ clf = RandomForestClassifier(random_state=1, n_estimators=ntree)
 clf.fit(X, y)
 
 builder = ModelBuilder(num_feature=clf.n_features_,
-                       num_output_group=clf.n_classes_)
+                       num_output_group=clf.n_classes_,
                        params={'pred_transform':'identity'})
                        # no need for softmax here, as each leaf node already
                        # produces a probability distribution

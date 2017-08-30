@@ -6,13 +6,15 @@
  */
 
 #include <treelite/semantic.h>
+#include "./common/filesystem.h"
 
 namespace treelite {
 namespace semantic {
 
 std::vector<std::string>
 TranslationUnit::Compile(const std::string& header_filename) const {
-  std::string header_basename = common::GetBasename(header_filename);
+  std::string header_basename
+    = common::filesystem::GetBasename(header_filename);
   std::vector<std::string> lines{std::string("#include \"")
                                  + header_basename + "\"", ""};
   auto preamble_lines = preamble->Compile();

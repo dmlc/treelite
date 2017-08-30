@@ -17,13 +17,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cerrno>
-#include <cstdlib>
 #include <climits>
-
-#ifndef _WIN32
-#include <libgen.h>
-#include <cstring>
-#endif
 
 namespace treelite {
 namespace common {
@@ -356,34 +350,6 @@ inline std::vector<std::string> Split(const std::string& text, char delim) {
   }
   return array;
 }
-
-/*!
- * \brief extract the base name from a full path. The base name is defined as
- *        the component that follows the last '/' in the full path.
- * \code
- *   GetBaseName("./food/bar.txt");  // returns bar.txt
- * \endcode
- * \param path full path
- */
-#ifndef _WIN32
-// basename for UNIX-like systems
-inline std::string GetBasename(const std::string& path) {
-  char* path_ = strdup(path.c_str());
-  char* base = basename(path_);
-  std::string ret(base);
-  free(path_);
-  return ret;
-}
-#else
-// basename for Windows
-inline std::string GetBasename(const std::string& path) {
-  std::vector<char> fname(path.length() + 1);
-  std::vector<char> ext(path.length() + 1);
-  _splitpath_s(path.c_str(), NULL, 0, NULL, 0,
-      &fname[0], path.length() + 1, &ext[0], path.length() + 1);
-  return std::string(&fname[0]) + std::string(&ext[0]);
-}
-#endif
 
 }  // namespace common
 }  // namespace treelite

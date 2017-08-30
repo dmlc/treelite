@@ -20,6 +20,7 @@
 #include <string>
 #include <omp.h>
 #include "./compiler/param.h"
+#include "./common/filesystem.h"
 
 namespace treelite {
 
@@ -59,8 +60,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   int format;
   /*! \brief model file */
   std::string model_in;
-  /*! \brief generated code file */
-  std::string name_codegen;
+  /*! \brief directory name for generated code files */
+  std::string name_codegen_dir;
   /*! \brief name of generated annotation file */
   std::string name_annotate;
   /*! \brief name of text file to save prediction */
@@ -100,8 +101,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .describe("Model format");
     DMLC_DECLARE_FIELD(model_in).set_default("NULL")
         .describe("Input model path");
-    DMLC_DECLARE_FIELD(name_codegen).set_default("dump")
-        .describe("generated code file");
+    DMLC_DECLARE_FIELD(name_codegen_dir).set_default("codegen")
+        .describe("directory name for generated code files");
     DMLC_DECLARE_FIELD(name_annotate).set_default("annotate.json")
         .describe("Name of generated annotation file");
     DMLC_DECLARE_FIELD(name_pred).set_default("pred.txt")
@@ -164,10 +165,16 @@ void CLICodegen(const CLIParam& param) {
   Model model = ParseModel(param);
   LOG(INFO) << "model size = " << model.trees.size();
 
+  // create directory named name_codegen_dir
+  common::filesystem::CreateDirectoryIfNotExist(param.name_codegen_dir.c_str());
+  const std::string basename
+    = common::filesystem::GetBasename(param.name_codegen_dir);
+
   std::unique_ptr<Compiler> compiler(Compiler::Create("recursive", cparam));
   auto semantic_model = compiler->Compile(model);
   /* write header */
-  const std::string header_filename = param.name_codegen + ".h";
+  const std::string header_filename
+    = param.name_codegen_dir + "/" + basename + ".h";
   {
     std::vector<std::string> lines;
     common::TransformPushBack(&lines, semantic_model.common_header->Compile(),
@@ -187,18 +194,20 @@ void CLICodegen(const CLIParam& param) {
   std::vector<std::string> source_list;
   std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = param.name_codegen + ".c";
-    const std::string objname = param.name_codegen + ".o";
-    source_list.push_back(common::GetBasename(filename));
-    object_list.push_back(common::GetBasename(objname));
+    const std::string filename = param.name_codegen_dir + "/" + basename + ".c";
+    const std::string objname = param.name_codegen_dir + "/" + basename + ".o";
+    source_list.push_back(common::filesystem::GetBasename(filename));
+    object_list.push_back(common::filesystem::GetBasename(objname));
     auto lines = semantic_model.units[0].Compile(header_filename);
     common::WriteToFile(filename, lines);
   } else {  // multiple files (translation units)
     for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename = param.name_codegen + std::to_string(i)+ ".c";
-      const std::string objname = param.name_codegen + std::to_string(i) + ".o";
-      source_list.push_back(common::GetBasename(filename));
-      object_list.push_back(common::GetBasename(objname));
+      const std::string filename
+        = param.name_codegen_dir + "/" + basename + std::to_string(i) + ".c";
+      const std::string objname
+        = param.name_codegen_dir + "/" + basename + std::to_string(i) + ".o";
+      source_list.push_back(common::filesystem::GetBasename(filename));
+      object_list.push_back(common::filesystem::GetBasename(objname));
       auto lines = semantic_model.units[i].Compile(header_filename);
       common::WriteToFile(filename, lines);
     }
@@ -207,7 +216,8 @@ void CLICodegen(const CLIParam& param) {
 #ifdef __linux__
   {
     const std::string library_name
-      = common::GetBasename(param.name_codegen + ".so");
+      = common::filesystem::GetBasename(param.name_codegen_dir + "/"
+                                        + basename + ".so");
     std::ostringstream oss;
     oss << "all: " << library_name << std::endl << std::endl
         << library_name << ": ";
@@ -227,7 +237,8 @@ void CLICodegen(const CLIParam& param) {
     for (const auto& e : object_list) {
       oss << e << " ";
     }
-    common::WriteToFile(param.name_codegen + ".Makefile", {oss.str()});
+    common::WriteToFile(param.name_codegen_dir + "/" + basename + ".Makefile",
+                        {oss.str()});
   }
 #endif
 }

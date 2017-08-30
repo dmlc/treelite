@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "./c_api_error.h"
 #include "../compiler/param.h"
+#include "../common/filesystem.h"
 
 using namespace treelite;
 
@@ -254,7 +255,7 @@ int TreeliteCompilerSetParam(CompilerHandle handle,
 int TreeliteCompilerGenerateCode(CompilerHandle compiler,
                                  ModelHandle model,
                                  int verbose,
-                                 const char* path_prefix) {
+                                 const char* dirpath) {
   API_BEGIN();
   if (verbose > 0) {  // verbose enabled
     int ret = TreeliteCompilerSetParam(compiler, "verbose",
@@ -265,7 +266,12 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   }
   const Model* model_ = static_cast<Model*>(model);
   CompilerHandleImpl* impl = static_cast<CompilerHandleImpl*>(compiler);
-  std::string path_prefix_(path_prefix);
+
+  // create directory named dirpath
+  const std::string& dirpath_(dirpath);
+  common::filesystem::CreateDirectoryIfNotExist(dirpath);
+  const std::string basename = common::filesystem::GetBasename(dirpath);
+
   compiler::CompilerParam cparam;
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
 
@@ -277,7 +283,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   }
 
   /* write header */
-  const std::string header_filename = path_prefix_ + ".h";
+  const std::string header_filename = dirpath_ + "/" + basename + ".h";
   if (verbose > 0) {
     LOG(INFO) << "Writing " << header_filename << " ...";
   }
@@ -300,10 +306,10 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   std::vector<std::string> source_list;
   std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = path_prefix_ + ".c";
-    const std::string objname = path_prefix_ + ".o";
-    source_list.push_back(common::GetBasename(filename));
-    object_list.push_back(common::GetBasename(objname));
+    const std::string filename = dirpath_ + "/" + basename + ".c";
+    const std::string objname = dirpath_ + "/" + basename + ".o";
+    source_list.push_back(common::filesystem::GetBasename(filename));
+    object_list.push_back(common::filesystem::GetBasename(objname));
     if (verbose > 0) {
       LOG(INFO) << "Writing " << filename << " ...";
     }
@@ -311,10 +317,12 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     common::WriteToFile(filename, lines);
   } else {  // multiple files (translation units)
     for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename = path_prefix_ + std::to_string(i) + ".c";
-      const std::string objname = path_prefix_ + std::to_string(i) + ".o";
-      source_list.push_back(common::GetBasename(filename));
-      object_list.push_back(common::GetBasename(objname));
+      const std::string filename
+        = dirpath_ + "/" + basename + std::to_string(i) + ".c";
+      const std::string objname
+        = dirpath_ + "/" + basename + std::to_string(i) + ".o";
+      source_list.push_back(common::filesystem::GetBasename(filename));
+      object_list.push_back(common::filesystem::GetBasename(objname));
       if (verbose > 0) {
         LOG(INFO) << "Writing " << filename << " ...";
       }
@@ -325,7 +333,8 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   /* write Makefile if on Linux */
 #ifdef __linux__
   {
-    std::string library_name = common::GetBasename(path_prefix_ + ".so");
+    std::string library_name
+      = common::filesystem::GetBasename(dirpath_ + "/" + basename + ".so");
     std::ostringstream oss;
     oss << "all: " << library_name << std::endl << std::endl
         << library_name << ": ";
@@ -345,9 +354,9 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     for (const auto& e : object_list) {
       oss << e << " ";
     }
-    common::WriteToFile(path_prefix_ + ".Makefile", {oss.str()});
+    common::WriteToFile(dirpath_ + "/" + basename + ".Makefile", {oss.str()});
     if (verbose > 0) {
-      LOG(INFO) << "Writing " << path_prefix_ << ".Makefile ...";
+      LOG(INFO) << "Writing " << dirpath_ + "/" + basename << ".Makefile ...";
     }
   }
 #endif
@@ -438,6 +447,12 @@ int TreeliteLoadProtobufModel(const char* filename,
   API_BEGIN();
   Model* model = new Model(std::move(frontend::LoadProtobufModel(filename)));
   *out = static_cast<ModelHandle>(model);
+  API_END();
+}
+
+int TreeliteFreeModel(ModelHandle handle) {
+  API_BEGIN();
+  delete static_cast<Model*>(handle);
   API_END();
 }
 

@@ -35,7 +35,7 @@ class Model(object):
 
   def __del__(self):
     if self.handle is not None:
-      _check_call(_LIB.TreelitePredictorFree(self.handle))
+      _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
 def load_model_from_file(filename, format):

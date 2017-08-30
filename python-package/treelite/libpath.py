@@ -10,14 +10,21 @@ class TreeliteLibraryNotFound(Exception):
     pass
 
 
-def find_lib_path():
+def find_lib_path(runtime=False):
     """Find the path to tree-lite dynamic library files.
+    
+    Parameters
+    ----------
+    runtime : boolean, optional (default False)
+        whether to load the runtime instead of the main library
 
     Returns
     -------
     lib_path: list(string)
        List of all found library path to tree-lite
     """
+    lib_name = 'treelite_runtime' if runtime else 'treelite'
+    
     curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
     # make pythonpack hack: copy this directory one level upper for setup.py
     dll_path = [curr_path, os.path.join(curr_path, '../../lib/'),
@@ -32,11 +39,11 @@ def find_lib_path():
             dll_path.append(os.path.join(curr_path, '../../windows/Release/'))
             # hack for pip installation when copy all parent source directory here
             dll_path.append(os.path.join(curr_path, './windows/Release/'))
-        dll_path = [os.path.join(p, 'treelite.dll') for p in dll_path]
+        dll_path = [os.path.join(p, '{}.dll'.format(lib_name)) for p in dll_path]
     elif sys.platform.startswith('linux'):
-        dll_path = [os.path.join(p, 'libtreelite.so') for p in dll_path]
+        dll_path = [os.path.join(p, 'lib{}.so'.format(lib_name)) for p in dll_path]
     elif sys.platform == 'darwin':
-        dll_path = [os.path.join(p, 'libtreelite.dylib') for p in dll_path]
+        dll_path = [os.path.join(p, 'lib{}.dylib'.format(lib_name)) for p in dll_path]
 
     lib_path = [p for p in dll_path if os.path.exists(p) and os.path.isfile(p)]
 

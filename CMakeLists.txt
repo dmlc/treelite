@@ -30,8 +30,24 @@ file(GLOB_RECURSE SOURCES
     src/*.h
     include/*.h
 )
+
+# SOURCES: sources included only in the main package
+# RUNTIME_SOURCES: sources included only in the runtime
+# COMMON_SOURCES: sources included both in the main pakcage and in the runtime
+set(COMMON_SOURCES src/data.cc src/c_api/c_api_common.h src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc src/common/math.h include/treelite/data.h include/treelite/c_api_common.h)
+set(RUNTIME_SOURCES src/c_api/c_api_runtime.cc src/predictor.cc include/treelite/predictor.h include/treelite/c_api_runtime.h)
+
 # Only add main function for executable target
-list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc)
+# Only add runtime functions for runtime library
+set(COMMON_SOURCES_WITH_PREFIX "")
+set(RUNTIME_SOURCES_WITH_PREFIX "")
+foreach(f ${COMMON_SOURCES})
+  list(APPEND COMMON_SOURCES_WITH_PREFIX ${PROJECT_SOURCE_DIR}/${f})
+endforeach(f)
+foreach(g ${RUNTIME_SOURCES})
+  list(APPEND RUNTIME_SOURCES_WITH_PREFIX ${PROJECT_SOURCE_DIR}/${g})
+endforeach(g)
+list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
 
@@ -45,11 +61,14 @@ endif()
 
 # dmlc-core
 add_subdirectory(dmlc-core)
-set(LINK_LIBRARIES dmlc)
+# separate sets of dependencies for main package and runtime
+set(LINK_LIBRARIES "")
+set(RUNTIME_LINK_LIBRARIES "")
+set(COMMON_LINK_LIBRARIES dmlc)  # dmlc is needed by both runtime and main package
 
 # -ldl for UNIX-like systems
 if (UNIX)
-  list(APPEND LINK_LIBRARIES dl)
+  list(APPEND RUNTIME_LINK_LIBRARIES dl)
 endif (UNIX)
 
 # Protobuf library
@@ -58,22 +77,28 @@ if (Protobuf_FOUND)
 endif()
 
 add_library(objtreelite OBJECT ${SOURCES})
+add_library(objtreelite_runtime OBJECT ${RUNTIME_SOURCES})
+add_library(objtreelite_common OBJECT ${COMMON_SOURCES})
 
 # Executable
-add_executable(runtreelite $<TARGET_OBJECTS:objtreelite> src/cli_main.cc)
+add_executable(runtreelite $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common> src/cli_main.cc)
 set_target_properties(runtreelite PROPERTIES
   OUTPUT_NAME treelite
 )
 set_output_directory(runtreelite ${PROJECT_SOURCE_DIR})
-target_link_libraries(runtreelite ${LINK_LIBRARIES})
+target_link_libraries(runtreelite ${LINK_LIBRARIES} ${RUNTIME_LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
 
 # Shared library
-add_library(treelite SHARED $<TARGET_OBJECTS:objtreelite>)
-target_link_libraries(treelite ${LINK_LIBRARIES})
+add_library(treelite SHARED $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_common>)
+add_library(treelite_runtime SHARED $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common>)
+target_link_libraries(treelite ${LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
+target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
 set_output_directory(treelite ${PROJECT_SOURCE_DIR}/lib)
+set_output_directory(treelite_runtime ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite PROPERTIES PREFIX "")
+  set_target_properties(treelite_runtime PROPERTIES PREFIX "")
 endif()
 
 # Ensure these two targets do not build simultaneously, as they produce outputs with conflicting names
@@ -81,3 +106,5 @@ add_dependencies(treelite runtreelite)
 
 # Group sources
 auto_source_group("${SOURCES}")
+auto_source_group("${RUNTIME_SOURCES}")
+auto_source_group("${COMMON_SOURCES}")

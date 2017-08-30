@@ -14,8 +14,6 @@
 #include <memory>
 #include <iterator>
 #include <functional>
-#include <cfloat>
-#include <cmath>
 #include <cerrno>
 #include <climits>
 
@@ -196,21 +194,6 @@ inline void TransformPushBack(std::vector<std::string>* p_dest,
                               std::function<std::string(std::string)> func) {
   auto& dest = *p_dest;
   std::transform(lines.begin(), lines.end(), std::back_inserter(dest), func);
-}
-
-/*!
- * \brief check for NaN (Not a Number)
- * \param value value to check
- * \return whether the given value is NaN or not
- * \tparam type of value (should be a floating-point value)
- */
-template <typename T>
-inline bool CheckNAN(T value) {
-#ifdef _MSC_VER
-  return (_isnan(value) != 0);
-#else
-  return std::isnan(value);
-#endif
 }
 
 /*!

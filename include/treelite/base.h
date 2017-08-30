@@ -7,6 +7,7 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
+#include <string>
 #include <unordered_map>
 #include <cstdint>
 

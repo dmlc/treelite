@@ -100,7 +100,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .describe("Model format");
     DMLC_DECLARE_FIELD(model_in).set_default("NULL")
         .describe("Input model path");
-    DMLC_DECLARE_FIELD(name_codegen).set_default("dump.c")
+    DMLC_DECLARE_FIELD(name_codegen).set_default("dump")
         .describe("generated code file");
     DMLC_DECLARE_FIELD(name_annotate).set_default("annotate.json")
         .describe("Name of generated annotation file");

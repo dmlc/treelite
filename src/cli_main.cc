@@ -237,7 +237,7 @@ void CLICodegen(const CLIParam& param) {
     for (const auto& e : object_list) {
       oss << e << " ";
     }
-    common::WriteToFile(param.name_codegen_dir + "/" + basename + ".Makefile",
+    common::WriteToFile(param.name_codegen_dir + "/Makefile",
                         {oss.str()});
   }
 #endif

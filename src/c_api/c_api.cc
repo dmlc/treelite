@@ -201,9 +201,9 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     for (const auto& e : object_list) {
       oss << e << " ";
     }
-    common::WriteToFile(dirpath_ + "/" + basename + ".Makefile", {oss.str()});
+    common::WriteToFile(dirpath_ + "/Makefile", {oss.str()});
     if (verbose > 0) {
-      LOG(INFO) << "Writing " << dirpath_ + "/" + basename << ".Makefile ...";
+      LOG(INFO) << "Writing " << dirpath_ + "/Makefile ...";
     }
   }
 #endif

@@ -11,7 +11,7 @@ import os
 import subprocess
 import json
 import ctypes
-import multiprocessing
+from multiprocessing import cpu_count
 
 def _str_decode(str):
   if PY3:
@@ -29,7 +29,7 @@ def _varsall_bat_path():
   _LIB.TreeliteVarsallBatPath.restype = ctypes.c_char_p
   return _str_decode(_LIB.TreeliteVarsallBatPath())
 
-def _process_queue(args):
+def _enqueue(args):
   queue = args[0]
   id = args[1]
   dirpath = args[2]
@@ -46,6 +46,11 @@ def _process_queue(args):
                                  .format(id)))
   proc.stdin.flush()
 
+  return proc
+
+def _wait(proc, args):
+  id = args[1]
+  dirpath = args[2]
   stdout, _ = proc.communicate()
   with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(id)), 'r') as f:
     retcode = [int(line) for line in f]
@@ -66,73 +71,58 @@ def _create_dll(dirpath, target, sources):
     retcode = int(f.readline())
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
-def create_shared(dirpath, nthread=None, options=None):
-    """Create shared library.
+def _create_shared(dirpath, nthread=None, options=None):
+  if nthread is not None and nthread <= 0:
+    raise TreeliteError('nthread must be positive integer')
+  if not os.path.isdir(dirpath):
+    raise TreeliteError('Directory {} does not exist'.format(dirpath))
+  try:
+    with open(os.path.join(dirpath, 'recipe.json')) as f:
+      recipe = json.load(f)
+  except IOError:
+    raise TreeliteError('Fail to open recipe.json')
 
-    Parameters
-    ----------
-    dirpath : string
-        directory containing the header and source files previously generated
-        by compiler.Compiler.compile(). The directory must contain recipe.json
-        which specifies build dependencies.
+  if 'sources' not in recipe or 'target' not in recipe:
+    raise TreeliteError('Malfored recipe.json')
 
-    nthread : int, optional
-        number of threads to use while compiling source files in parallel.
-        Defaults to the number of cores in the system.
+  # 1. Compile sources in parallel
+  ncore = cpu_count()
+  ncpu = min(ncore, nthread) if nthread is not None else ncore
+  workqueues = [([], id, os.path.abspath(dirpath)) for id in range(ncpu)]
+  long_time_warning = False
+  for i, source in enumerate(recipe['sources']):
+    workqueues[i % ncpu][0].append(source[0])
+    if source[1] > 10000:
+      long_time_warning = True
 
-    options : str, optional (default: None)
-        Additional options
-    """
-    if nthread is not None and nthread <= 0:
-      raise TreeliteError('nthread must be positive integer')
-    if not os.path.isdir(dirpath):
-      raise TreeliteError('Directory {} does not exist'.format(dirpath))
-    try:
-      with open(os.path.join(dirpath, 'recipe.json')) as f:
-        recipe = json.load(f)
-    except IOError:
-      raise TreeliteError('Fail to open recipe.json')
+  if long_time_warning:
+    print('\033[1;31mWARNING: some of the source files are long. ' +\
+          'Expect long compilation time.\u001B[0m\n'+\
+          '         You may want to adjust the parameter ' +\
+          '\x1B[33mparallel_comp\u001B[0m.\n')
 
-    if 'sources' not in recipe or 'target' not in recipe:
-      raise TreeliteError('Malfored recipe.json')
+  procs = [_enqueue(workqueues[id]) for id in range(ncpu)]
+  result = []
+  for id in range(ncpu):
+    result.append(_wait(procs[id], workqueues[id]))
 
-    # 1. Compile sources in parallel
-    ncore = multiprocessing.cpu_count()
-    ncpu = min(ncore, nthread) if nthread is not None else ncore
-    workqueues = [([], id, os.path.abspath(dirpath)) for id in range(ncpu)]
-    long_time_warning = False
-    for i, source in enumerate(recipe['sources']):
-      workqueues[i % ncpu][0].append(source[0])
-      if source[1] > 10000:
-        long_time_warning = True
+  for id in range(ncpu):
+    if not all(x == 0 for x in result[id]['retcode']):
+      with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(id)), 'w') as f:
+        f.write(result[id]['stdout'] + '\n')
+      raise TreeliteError('Error occured in worker #{}. '.format(id) +\
+                          'See log_cpu{}.txt for details'.format(id))
 
-    if long_time_warning:
-      print('\033[1;31mWARNING: some of the source files are long. ' +\
-            'Expect long compilation time.\u001B[0m\n'+\
-            '         You may want to adjust the parameter ' +\
-            '\x1B[33mparallel_comp\u001B[0m.\n')
+  # 2. Package objects into a dynamic shared library (.dll)
+  result = _create_dll(os.path.abspath(dirpath),
+                        recipe['target'], recipe['sources'])
+  if result['retcode'] != 0:
+    with open(os.path.join(dirpath, 'log_dll.txt'), 'w') as f:
+        f.write(result['stdout'] + '\n')
+    raise TreeliteError('Error occured while creating DLL.' +\
+                        'See log_dll.txt for details.')
 
-    p = multiprocessing.Pool(ncpu)
-    result = p.map(_process_queue, workqueues)
-    for id in range(ncpu):
-      if not all(x == 0 for x in result[id]['retcode']):
-        with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(id)), 'w') as f:
-          f.write(result[id]['stdout'] + '\n')
-        raise TreeliteError('Error occured in worker #{}. '.format(id) +\
-                            'See log_cpu{}.txt for details'.format(id))
-
-    # 2. Package objects into a dynamic shared library (.dll)
-    result = _create_dll(os.path.abspath(dirpath),
-                         recipe['target'], recipe['sources'])
-    if result['retcode'] != 0:
-      with open(os.path.join(dirpath, 'log_dll.txt'), 'w') as f:
-          f.write(result['stdout'] + '\n')
-      raise TreeliteError('Error occured while creating DLL.' +\
-                          'See log_dll.txt for details.')
-
-    # 3. Clean up
-    for id in range(ncpu):
-      os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
-    os.remove(os.path.join(dirpath, 'retcode_dll.txt'))
-
-__all__ = ['create_shared']
+  # 3. Clean up
+  for id in range(ncpu):
+    os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
+  os.remove(os.path.join(dirpath, 'retcode_dll.txt'))

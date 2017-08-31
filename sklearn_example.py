@@ -1,5 +1,6 @@
 from treelite.compiler import Compiler
 from treelite.frontend import ModelBuilder
+from treelite.contrib import create_shared
 
 from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -43,6 +44,7 @@ for i in range(ntree):
 model = builder.commit()
 compiler = Compiler()
 compiler.compile(model, dirpath='test_rf', params={}, verbose=True)
+create_shared('msvc', 'test_rf')
 
 # 2. gradient boosting
 clf = GradientBoostingClassifier(random_state=1, n_estimators=ntree,
@@ -81,3 +83,4 @@ for i in range(ntree):
     builder.append(tree)
 model = builder.commit()
 compiler.compile(model, dirpath='test_gbm', params={'parallel_comp':5}, verbose=True)
+create_shared('msvc', 'test_gbm')

@@ -27,6 +27,11 @@ else:
   def _str_encode(str):
     return str
 
+if PY3:
+  from json import JSONDecodeError
+else:
+  JSONDecodeError = ValueError
+
 # use cPickle if available
 try:
   import cPickle as pickle

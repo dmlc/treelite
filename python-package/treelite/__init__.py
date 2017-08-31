@@ -10,5 +10,6 @@ from .core import DMatrix
 from . import compiler
 from . import frontend
 from . import predictor
+from . import annotator
 
-__all__ = ['DMatrix', 'compiler', 'frontend', 'predictor']
+__all__ = ['DMatrix', 'compiler', 'frontend', 'predictor', 'annotator']

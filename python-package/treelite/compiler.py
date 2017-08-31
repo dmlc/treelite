@@ -40,7 +40,7 @@ class Compiler(object):
 
     Parameters
     ----------
-    model : `Model`
+    model : object of type `Model`
         decision tree ensemble model
     dirpath : string
         directory to store header and source files

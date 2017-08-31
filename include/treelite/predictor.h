@@ -34,10 +34,6 @@ class Predictor {
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.
-   *        The library must contain a function with the signature
-   * \code
-   *        float predict_margin(union Entry*);
-   * \endcode
    * \param name name of dynamic shared library (.so/.dll/.dylib).
    */
   void Load(const char* name);

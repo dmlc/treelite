@@ -9,5 +9,6 @@ import os
 from .core import DMatrix
 from . import compiler
 from . import frontend
+from . import predictor
 
-__all__ = ['DMatrix', 'compiler', 'frontend']
+__all__ = ['DMatrix', 'compiler', 'frontend', 'predictor']

@@ -19,7 +19,7 @@ def _load_lib():
   """Load tree-lite Library."""
   lib_path = find_lib_path()
   if len(lib_path) == 0:
-      return None
+    return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
   return lib
@@ -115,7 +115,7 @@ class DMatrix(object):
       _check_call(_LIB.TreeliteDMatrixCreateFromFile(c_str(data),
                                                      c_str(data_format),
                                                      ctypes.c_int(nthread),
-                                                     ctypes.c_int(verbose),
+                                             ctypes.c_int(1 if verbose else 0),
                                                     ctypes.byref(self.handle)))
     elif isinstance(data, scipy.sparse.csr_matrix):
       self._init_from_csr(data)

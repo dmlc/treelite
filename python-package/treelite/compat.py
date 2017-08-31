@@ -13,11 +13,19 @@ if PY3:
   def py_str(x):
     """Convert C string back to Python string"""
     return x.decode('utf-8')
+  def _str_decode(str):
+    return str.decode('utf-8')
+  def _str_encode(str):
+    return str.encode('utf-8')
 else:
   STRING_TYPES = basestring,
   def py_str(x):
     """Convert C string back to Python string"""
     return x
+  def _str_decode(str):
+    return str
+  def _str_encode(str):
+    return str
 
 # use cPickle if available
 try:

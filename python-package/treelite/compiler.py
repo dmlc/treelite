@@ -55,7 +55,7 @@ class Compiler(object):
       raise ValueError('model parameter must be of Model type')
     _check_call(_LIB.TreeliteCompilerGenerateCode(self.handle,
                                                   model.handle,
-                                                  ctypes.c_int(verbose),
+                                             ctypes.c_int(1 if verbose else 0),
                                                   c_str(dirpath)))
 
   def __del__(self):

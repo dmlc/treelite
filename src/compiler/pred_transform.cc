@@ -30,6 +30,19 @@ identity(const Model& model, bool batch) {
 }
 
 std::vector<std::string>
+identity_multiclass(const Model& model, bool batch) {
+  CHECK(model.multiclass_type != decltype(model.multiclass_type)::kNA
+        && model.num_output_group > 1)
+    << "identity_multiclass: model is not a proper multi-class classifier";
+  const int num_class = model.num_output_group;
+  if (batch) {
+    return {std::string("return ndata * ") + std::to_string(num_class) + ";"};
+  } else {
+    return {std::string("return ") + std::to_string(num_class) + ";"};
+  }
+}
+
+std::vector<std::string>
 sigmoid(const Model& model, bool batch) {
   const float alpha = model.param.sigmoid_alpha;
   CHECK_GT(alpha, 0.0f) << "sigmoid: alpha must be strictly positive";
@@ -254,6 +267,7 @@ multiclass_ova(const Model& model, bool batch) {
 const std::unordered_map<std::string, PredTransformFuncGenerator>
 pred_transform_db = {
   PRED_TRANSFORM_FUNC(identity),
+  PRED_TRANSFORM_FUNC(identity_multiclass),
   PRED_TRANSFORM_FUNC(sigmoid),
   PRED_TRANSFORM_FUNC(exponential),
   PRED_TRANSFORM_FUNC(logarithm_one_plus_exp),

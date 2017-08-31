@@ -5,8 +5,8 @@ Tools to interact with Microsoft Visual C++ (MSVC) compiler
 
 from __future__ import absolute_import as _abs
 from ..core import _LIB, _check_call, TreeliteError
-from ..compat import PY3
-from .util import _str_decode, _str_encode
+from ..compat import _str_decode, _str_encode
+from .util import lineno, log_info
 
 import os
 import subprocess
@@ -60,22 +60,17 @@ def _create_dll(dirpath, target, sources):
     retcode = int(f.readline())
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
-def _create_shared(dirpath, recipe, nthread, options):
+def _create_shared(dirpath, recipe, nthread, options, verbose):
   # 1. Compile sources in parallel
+  if verbose:
+    log_info(__file__, lineno(),
+             'Compiling sources files in directory {} '.format(dirpath) +\
+             'into object files (*.obj)...')
   ncore = cpu_count()
   ncpu = min(ncore, nthread) if nthread is not None else ncore
   workqueues = [([], id, os.path.abspath(dirpath)) for id in range(ncpu)]
-  long_time_warning = False
   for i, source in enumerate(recipe['sources']):
     workqueues[i % ncpu][0].append(source[0])
-    if source[1] > 10000:
-      long_time_warning = True
-
-  if long_time_warning:
-    print('\033[1;31mWARNING: some of the source files are long. ' +\
-          'Expect long compilation time.\u001B[0m\n'+\
-          '         You may want to adjust the parameter ' +\
-          '\x1B[33mparallel_comp\u001B[0m.\n')
 
   procs = [_enqueue(workqueues[id]) for id in range(ncpu)]
   result = []
@@ -90,6 +85,10 @@ def _create_shared(dirpath, recipe, nthread, options):
                           'See log_cpu{}.txt for details'.format(id))
 
   # 2. Package objects into a dynamic shared library (.dll)
+  if verbose:
+    log_info(__file__, lineno(),
+             'Generating dynamic shared library {}...'\
+                     .format(os.path.join(dirpath, recipe['target'] + '.dll')))
   result = _create_dll(os.path.abspath(dirpath),
                         recipe['target'], recipe['sources'])
   if result['retcode'] != 0:

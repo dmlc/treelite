@@ -194,30 +194,28 @@ void CLICodegen(const CLIParam& param) {
   std::vector<std::string> source_list;
   std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = param.name_codegen_dir + "/" + basename + ".c";
-    const std::string objname = param.name_codegen_dir + "/" + basename + ".o";
-    source_list.push_back(common::filesystem::GetBasename(filename));
-    object_list.push_back(common::filesystem::GetBasename(objname));
+    const std::string filename = basename + ".c";
+    const std::string filename_full = param.name_codegen_dir + "/" + filename;
+    const std::string objname = basename + ".o";
+    source_list.push_back(filename);
+    object_list.push_back(objname);
     auto lines = semantic_model.units[0].Compile(header_filename);
-    common::WriteToFile(filename, lines);
+    common::WriteToFile(filename_full, lines);
   } else {  // multiple files (translation units)
     for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename
-        = param.name_codegen_dir + "/" + basename + std::to_string(i) + ".c";
-      const std::string objname
-        = param.name_codegen_dir + "/" + basename + std::to_string(i) + ".o";
-      source_list.push_back(common::filesystem::GetBasename(filename));
-      object_list.push_back(common::filesystem::GetBasename(objname));
+      const std::string filename = basename + std::to_string(i) + ".c";
+      const std::string filename_full = param.name_codegen_dir + "/" + filename;
+      const std::string objname = basename + std::to_string(i) + ".o";
+      source_list.push_back(filename);
+      object_list.push_back(objname);
       auto lines = semantic_model.units[i].Compile(header_filename);
-      common::WriteToFile(filename, lines);
+      common::WriteToFile(filename_full, lines);
     }
   }
   /* write Makefile */
 #ifdef __linux__
   {
-    const std::string library_name
-      = common::filesystem::GetBasename(param.name_codegen_dir + "/"
-                                        + basename + ".so");
+    const std::string library_name = basename + ".so";
     std::ostringstream oss;
     oss << "all: " << library_name << std::endl << std::endl
         << library_name << ": ";

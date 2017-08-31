@@ -13,6 +13,12 @@
 
 using namespace treelite;
 
+#if _MSC_VER
+const char* TreeliteVarsallBatPath() {
+  return TREELITE_MSVC_VARSALL_BAT;
+}
+#endif
+
 int TreeliteDMatrixCreateFromFile(const char* path,
                                   const char* format,
                                   int nthread,

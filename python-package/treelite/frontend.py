@@ -1,6 +1,6 @@
 # coding: utf-8
 """Frontend collection for tree-lite"""
-from __future__ import absolute_import
+from __future__ import absolute_import as _abs
 from .core import _LIB, c_str, c_array, _check_call, TreeliteError
 from .compat import STRING_TYPES
 import ctypes
@@ -426,3 +426,5 @@ class ModelBuilder(object):
       _check_call(_LIB.TreeliteModelBuilderSetModelParam(self.handle,
                                                          c_str(key),
                                                          c_str(val)))
+
+__all__ = ['Model', 'load_model_from_file', 'ModelBuilder']

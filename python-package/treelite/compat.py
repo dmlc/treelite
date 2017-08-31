@@ -1,7 +1,7 @@
 # coding: utf-8
 """Compatibility layer"""
 
-from __future__ import absolute_import
+from __future__ import absolute_import as _abs
 
 import sys
 

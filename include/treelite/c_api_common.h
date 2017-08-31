@@ -38,6 +38,14 @@ typedef void* DMatrixHandle;
  */
 TREELITE_DLL const char* TreeliteGetLastError();
 
+#if _MSC_VER
+/*!
+ * \brief return full path of varsall.bat (only applicable for MSVC)
+ * \return string containing full path of compiler
+ */
+TREELITE_DLL const char* TreeliteVarsallBatPath();
+#endif
+
 /***************************************************************************
  * Part 1: data matrix interface                                           *
  ***************************************************************************/

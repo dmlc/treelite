@@ -1,9 +1,7 @@
 # coding: utf-8
 """Core tree-lite library."""
-from __future__ import absolute_import
+from __future__ import absolute_import as _abs
 
-import sys
-import os
 import ctypes
 import collections
 
@@ -11,37 +9,37 @@ import numpy as np
 import scipy.sparse
 
 from .libpath import find_lib_path
-from .compat import STRING_TYPES, PY3, DataFrame, py_str, PANDAS_INSTALLED
+from .compat import STRING_TYPES, DataFrame, py_str
 
 class TreeliteError(Exception):
-    """Error thrown by tree-lite"""
-    pass
+  """Error thrown by tree-lite"""
+  pass
 
 def _load_lib():
-    """Load tree-lite Library."""
-    lib_path = find_lib_path()
-    if len(lib_path) == 0:
-        return None
-    lib = ctypes.cdll.LoadLibrary(lib_path[0])
-    lib.TreeliteGetLastError.restype = ctypes.c_char_p
-    return lib
+  """Load tree-lite Library."""
+  lib_path = find_lib_path()
+  if len(lib_path) == 0:
+      return None
+  lib = ctypes.cdll.LoadLibrary(lib_path[0])
+  lib.TreeliteGetLastError.restype = ctypes.c_char_p
+  return lib
 
 # load the tree-lite library globally
 _LIB = _load_lib()
 
 def _check_call(ret):
-    """Check the return value of C API call
+  """Check the return value of C API call
 
-    This function will raise exception when error occurs.
-    Wrap every API call with this function
+  This function will raise exception when error occurs.
+  Wrap every API call with this function
 
-    Parameters
-    ----------
-    ret : int
-        return value from API calls
-    """
-    if ret != 0:
-        raise TreeliteError(_LIB.TreeliteGetLastError())
+  Parameters
+  ----------
+  ret : int
+      return value from API calls
+  """
+  if ret != 0:
+    raise TreeliteError(_LIB.TreeliteGetLastError())
 
 def c_str(string):
   """Convert a Python string to C string"""
@@ -50,9 +48,6 @@ def c_str(string):
 def c_array(ctype, values):
   """Convert a Python byte array to C array"""
   return (ctype * len(values))(*values)
-
-# import frontend later to break circular reference
-from .frontend import Model, load_model_from_file, ModelBuilder
 
 PANDAS_DTYPE_MAPPER = {'int8': 'int', 'int16': 'int', 'int32': 'int',
                        'int64': 'int', 'uint8': 'int', 'uint16': 'int',
@@ -237,77 +232,3 @@ class DMatrix(object):
     _check_call(_LIB.TreeliteDMatrixGetPreview(self.handle,
                                                ctypes.byref(preview)))
     return py_str(preview.value)
-
-class Compiler(object):
-  """
-  Compiler object to translate a tree ensemble model into a semantic model
-  """
-  
-  def __init__(self, name='recursive'):
-    """Compiler object to translate a tree ensemble model into a semantic model
-
-    Parameters
-    ----------
-    name : string, optional
-        name of compiler (default: 'recursive')
-    """
-    self.handle = ctypes.c_void_p()
-    _check_call(_LIB.TreeliteCompilerCreate(c_str(name),
-                                            ctypes.byref(self.handle)))
-
-  def generate_code(self, model, path_prefix, params, verbose=False):
-    """
-    generate prediction code from a tree ensemble model. The code will be C99
-    compliant. One header file (.h) will be generated, along with one or more
-    source files (.c).
-
-    Usage
-    -----
-    compiler.generate_code(model, path_prefix="./my/model", verbose=True);
-    // files to generate: ./my/model.h, ./my/model.c
-    // if parallel compilation is enabled:
-    // ./my/model.h, ./my/model0.c, ./my/model1.c, ./my/model2.c, and so forth
-
-    Parameters
-    ----------
-    model : `Model`
-      decision tree ensemble model
-    path_prefix : string
-      path prefix for header and source files
-    params : dict
-        parameters for compiler
-    verbose : boolean, optional
-        Whether to print extra messages during compilation
-    """
-    _params = dict(params) if isinstance(params, list) else params
-    self._set_param(_params or {})
-    if not isinstance(model, Model):
-      raise ValueError('model parameter must be of Model type')
-    _check_call(_LIB.TreeliteCompilerGenerateCode(self.handle,
-                                                  model.handle,
-                                                  ctypes.c_int(verbose),
-                                                  c_str(path_prefix)))
-
-  def __del__(self):
-    if self.handle is not None:
-      _check_call(_LIB.TreeliteCompilerFree(self.handle))
-      self.handle = None
-
-  def _set_param(self, params, value=None):
-    """
-    Set parameter(s)
-
-    Parameters
-    ----------
-    params: dict / list / string
-        list of key-alue pairs, dict or simply string key
-    value: optional
-        value of the specified parameter, when params is a single string
-    """
-    if isinstance(params, collections.Mapping):
-      params = params.items()
-    elif isinstance(params, STRING_TYPES) and value is not None:
-      params = [(params, value)]
-    for key, val in params:
-      _check_call(_LIB.TreeliteCompilerSetParam(self.handle, c_str(key),
-                                                c_str(STRING_TYPES[0](val))))

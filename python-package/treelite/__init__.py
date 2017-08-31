@@ -2,12 +2,12 @@
 """tree-lite: compiler for fast decision tree inference
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import as _abs
 
 import os
 
-from .core import DMatrix, Compiler
-from .frontend import Model, load_model_from_file, ModelBuilder
+from .core import DMatrix
+from . import compiler
+from . import frontend
 
-__all__ = ['DMatrix', 'Compiler', 'Model',
-           'load_model_from_file', 'ModelBuilder']
+__all__ = ['DMatrix', 'compiler', 'frontend']

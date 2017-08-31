@@ -10,6 +10,7 @@
 #include <treelite/compiler.h>
 #include <treelite/frontend.h>
 #include <treelite/semantic.h>
+#include <dmlc/json.h>
 #include <memory>
 #include <unordered_map>
 #include <algorithm>
@@ -150,38 +151,62 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     common::WriteToFile(header_filename, lines);
   }
   /* write source file(s) */
-  std::vector<std::string> source_list;
+  std::vector<std::pair<std::string, size_t>> source_list;
   std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = dirpath_ + "/" + basename + ".c";
-    const std::string objname = dirpath_ + "/" + basename + ".o";
-    source_list.push_back(common::filesystem::GetBasename(filename));
-    object_list.push_back(common::filesystem::GetBasename(objname));
+    const std::string filename = basename + ".c";
+    const std::string filename_full = dirpath_ + "/" + filename;
+    const std::string objname = basename + ".o";
     if (verbose > 0) {
-      LOG(INFO) << "Writing " << filename << " ...";
+      LOG(INFO) << "Writing " << filename_full << " ...";
     }
     auto lines = semantic_model.units[0].Compile(header_filename);
-    common::WriteToFile(filename, lines);
+    source_list.emplace_back(filename, lines.size());
+    object_list.push_back(objname);
+    common::WriteToFile(filename_full, lines);
   } else {  // multiple files (translation units)
     for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename
-        = dirpath_ + "/" + basename + std::to_string(i) + ".c";
-      const std::string objname
-        = dirpath_ + "/" + basename + std::to_string(i) + ".o";
-      source_list.push_back(common::filesystem::GetBasename(filename));
-      object_list.push_back(common::filesystem::GetBasename(objname));
+      const std::string filename = basename + std::to_string(i) + ".c";
+      const std::string filename_full = dirpath_ + "/" + filename;
+      const std::string objname = basename + std::to_string(i) + ".o";
       if (verbose > 0) {
-        LOG(INFO) << "Writing " << filename << " ...";
+        LOG(INFO) << "Writing " << filename_full << " ...";
       }
       auto lines = semantic_model.units[i].Compile(header_filename);
-      common::WriteToFile(filename, lines);
+      source_list.emplace_back(filename, lines.size());
+      object_list.push_back(objname);
+      common::WriteToFile(filename_full, lines);
     }
+  }
+  /* write build recipe, to be used by Python binding */
+  {
+    std::vector<std::pair<std::string, size_t>> sources;
+    std::transform(source_list.begin(), source_list.end(),
+      std::back_inserter(sources),
+      [](const std::pair<std::string, size_t>& x) {
+        return std::make_pair(x.first.substr(0, x.first.length() - 2),
+                              x.second);
+      });
+
+    const std::string recipe_name = dirpath_ + "/recipe.json";
+    if (verbose > 0) {
+      LOG(INFO) << "Writing " << recipe_name << " ...";
+    }
+    std::unique_ptr<dmlc::Stream> fo(
+                               dmlc::Stream::Create(recipe_name.c_str(), "w"));
+    dmlc::ostream os(fo.get());
+    auto writer = common::make_unique<dmlc::JSONWriter>(&os);
+    writer->BeginObject();
+    writer->WriteObjectKeyValue("target", basename);
+    writer->WriteObjectKeyValue("sources", sources);
+    writer->EndObject();
+    // force flush before fo destruct.
+    os.set_stream(nullptr);
   }
   /* write Makefile if on Linux */
 #ifdef __linux__
   {
-    std::string library_name
-      = common::filesystem::GetBasename(dirpath_ + "/" + basename + ".so");
+    std::string library_name = basename + ".so";
     std::ostringstream oss;
     oss << "all: " << library_name << std::endl << std::endl
         << library_name << ": ";

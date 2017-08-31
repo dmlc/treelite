@@ -18,3 +18,17 @@ else:
 
     def __exit__(self, exc_type, exc_value, traceback):
         shutil.rmtree(self.name)
+
+def _str_decode(str):
+  if PY3:
+    return str.decode('utf-8')
+  else:
+    return str
+
+def _str_encode(str):
+  if PY3:
+    return str.encode('utf-8')
+  else:
+    return str
+
+__all__ = ['TemporaryDirectory']

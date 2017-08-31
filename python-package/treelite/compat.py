@@ -34,3 +34,5 @@ except ImportError:
     """dummy for pandas.DataFrame"""
     pass
   PANDAS_INSTALLED = False
+
+__all__ = ['']

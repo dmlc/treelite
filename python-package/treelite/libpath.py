@@ -52,3 +52,5 @@ def find_lib_path(runtime=False):
             'Cannot find tree-lite library in the candidate path: ' +
             'List of candidates:\n' + ('\n'.join(dll_path)))
     return lib_path
+
+__all__ = ['']

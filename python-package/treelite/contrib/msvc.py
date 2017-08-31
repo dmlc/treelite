@@ -6,24 +6,13 @@ Tools to interact with Microsoft Visual C++ (MSVC) compiler
 from __future__ import absolute_import as _abs
 from ..core import _LIB, _check_call, TreeliteError
 from ..compat import PY3
+from .util import _str_decode, _str_encode
 
 import os
 import subprocess
 import json
 import ctypes
 from multiprocessing import cpu_count
-
-def _str_decode(str):
-  if PY3:
-    return str.decode('utf-8')
-  else:
-    return str
-
-def _str_encode(str):
-  if PY3:
-    return str.encode('utf-8')
-  else:
-    return str
 
 def _varsall_bat_path():
   _LIB.TreeliteVarsallBatPath.restype = ctypes.c_char_p
@@ -71,20 +60,7 @@ def _create_dll(dirpath, target, sources):
     retcode = int(f.readline())
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
-def _create_shared(dirpath, nthread=None, options=None):
-  if nthread is not None and nthread <= 0:
-    raise TreeliteError('nthread must be positive integer')
-  if not os.path.isdir(dirpath):
-    raise TreeliteError('Directory {} does not exist'.format(dirpath))
-  try:
-    with open(os.path.join(dirpath, 'recipe.json')) as f:
-      recipe = json.load(f)
-  except IOError:
-    raise TreeliteError('Fail to open recipe.json')
-
-  if 'sources' not in recipe or 'target' not in recipe:
-    raise TreeliteError('Malfored recipe.json')
-
+def _create_shared(dirpath, recipe, nthread, options):
   # 1. Compile sources in parallel
   ncore = cpu_count()
   ncpu = min(ncore, nthread) if nthread is not None else ncore
@@ -126,3 +102,5 @@ def _create_shared(dirpath, nthread=None, options=None):
   for id in range(ncpu):
     os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
   os.remove(os.path.join(dirpath, 'retcode_dll.txt'))
+
+__all__ = ['']

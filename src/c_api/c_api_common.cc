@@ -13,6 +13,14 @@
 
 using namespace treelite;
 
+int TreeliteOpenMPSupported() {
+#if OPENMP_SUPPORT
+  return 1;
+#else
+  return 0;
+#endif
+}
+
 #if _MSC_VER
 const char* TreeliteVarsallBatPath() {
   return TREELITE_MSVC_VARSALL_BAT;

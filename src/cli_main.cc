@@ -10,6 +10,7 @@
 #include <treelite/compiler.h>
 #include <treelite/semantic.h>
 #include <treelite/predictor.h>
+#include <treelite/omp.h>
 #include <dmlc/config.h>
 #include <dmlc/data.h>
 #include <fstream>
@@ -18,7 +19,6 @@
 #include <queue>
 #include <iterator>
 #include <string>
-#include <omp.h>
 #include "./compiler/param.h"
 #include "./common/filesystem.h"
 

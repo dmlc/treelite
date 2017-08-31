@@ -27,7 +27,7 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
   verbose : boolean, optional (defaults to False)
       whether to produce extra messages
   options : str, optional (defaults to None)
-      Additional options
+      Additional options to pass to compiler
   """
 
   if nthread is not None and nthread <= 0:
@@ -42,6 +42,14 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
 
   if 'sources' not in recipe or 'target' not in recipe:
     raise TreeliteError('Malformed recipe.json')
+  if options is not None:
+    try:
+      iterator = iter(options)
+      options = [str(x) for x in options]
+    except TypeError:
+      raise TreeliteError('options must be a list of string')
+  else:
+    options = []
 
   # write warning for potentially long compile time
   long_time_warning = False
@@ -61,6 +69,9 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
     _create_shared(dirpath, recipe, nthread, options, verbose)
   elif compiler == 'gcc':
     from .gcc import _create_shared
+    _create_shared(dirpath, recipe, nthread, options, verbose)
+  elif compiler == 'clang':
+    from .clang import _create_shared
     _create_shared(dirpath, recipe, nthread, options, verbose)
   else:
     raise NotImplementedError('compiler {} not implemented yet'.format(compiler))

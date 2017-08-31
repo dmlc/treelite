@@ -6,10 +6,10 @@
  */
 
 #include <treelite/data.h>
+#include <treelite/omp.h>
 #include <memory>
 #include <limits>
 #include <cstdint>
-#include <omp.h>
 
 namespace treelite {
 

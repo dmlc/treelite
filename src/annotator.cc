@@ -6,7 +6,7 @@
  */
 
 #include <treelite/annotator.h>
-#include <omp.h>
+#include <treelite/omp.h>
 #include <cstdint>
 #include <limits>
 

@@ -38,6 +38,12 @@ typedef void* DMatrixHandle;
  */
 TREELITE_DLL const char* TreeliteGetLastError();
 
+/*!
+ * \brief check whether the package was compiled with OpenMP support
+ * \return 1 if supported; 0 if not
+ */
+TREELITE_DLL int TreeliteOpenMPSupported();
+
 #if _MSC_VER
 /*!
  * \brief return full path of varsall.bat (only applicable for MSVC)

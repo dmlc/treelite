@@ -6,9 +6,9 @@
  */
 
 #include <treelite/predictor.h>
+#include <treelite/omp.h>
 #include <dmlc/logging.h>
 #include <dmlc/timer.h>
-#include <omp.h>
 #include <cstdint>
 #include <limits>
 #include <functional>

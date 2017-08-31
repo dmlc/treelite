@@ -6,13 +6,18 @@ find_package(Protobuf)
 
 # define CMake info macros
 msvc_locate_vcvarsall_bat()
-set_property(SOURCE src/c_api/c_api_common.cc
-             APPEND
-             PROPERTY COMPILE_DEFINITIONS
-             TREELITE_MSVC_VARSALL_BAT="${VCVARSALL_BAT}")
+set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS TREELITE_MSVC_VARSALL_BAT="${VCVARSALL_BAT}")
 
 set_default_configuration_release()
 msvc_use_static_runtime()
+
+# OpenMP check
+if(OpenMP_FOUND)
+  set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS OPENMP_SUPPORT)
+else()
+  include(dmlc-core/cmake/Utils.cmake)
+  dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)
+endif()
 
 # Compiler flags
 set(CMAKE_CXX_STANDARD 11)
@@ -57,7 +62,7 @@ endforeach(g)
 list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
-if (Protobuf_FOUND)
+if(Protobuf_FOUND)
   set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
   include_directories(${PROTOBUF_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_BINARY_DIR})

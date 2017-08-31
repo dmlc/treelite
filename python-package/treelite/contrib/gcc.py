@@ -12,11 +12,18 @@ import os
 import subprocess
 import ctypes
 from multiprocessing import cpu_count
+from sys import platform as _platform
+
+if _platform == 'darwin':
+  libext = '.dylib'
+else:
+  libext = '.so'
 
 def _enqueue(args):
   queue = args[0]
   id = args[1]
   dirpath = args[2]
+  options = args[3]
   proc = subprocess.Popen(os.environ['SHELL'], shell=True,
                           stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
@@ -26,7 +33,8 @@ def _enqueue(args):
   for source in queue:
     proc.stdin.write(_str_encode('gcc -c -O3 -o {} {} '\
                                  .format(source + '.o', source + '.c') +\
-                                 '-fPIC -std=c99 -flto -fopenmp\n'))
+                                 '-fPIC -std=c99 -flto -fopenmp {}\n'\
+                                 .format(' '.join(options))))
     proc.stdin.write(_str_encode('echo $? >> retcode_cpu{}.txt\n'.format(id)))
   proc.stdin.flush()
 
@@ -40,16 +48,17 @@ def _wait(proc, args):
     retcode = [int(line) for line in f]
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
-def _create_lib(dirpath, target, sources):
+def _create_lib(dirpath, target, sources, options):
   proc = subprocess.Popen(os.environ['SHELL'], shell=True,
                           stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
   proc.stdin.write(_str_encode('gcc -shared -O3 -o {} {} '\
-                               .format(target + '.so',
+                               .format(target + libext,
                                   ' '.join([x[0] + '.o' for x in sources]))+\
-                               '-std=c99 -flto -fopenmp\n'))
+                               '-std=c99 -flto -fopenmp {}\n'\
+                               .format(' '.join(options)))
   proc.stdin.write(_str_encode('echo $? > retcode_lib.txt\n'))
   proc.stdin.flush()
   stdout, _ = proc.communicate()
@@ -65,7 +74,8 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
              'into object files (*.o)...')
   ncore = cpu_count()
   ncpu = min(ncore, nthread) if nthread is not None else ncore
-  workqueues = [([], id, os.path.abspath(dirpath)) for id in range(ncpu)]
+  workqueues = [([], id, os.path.abspath(dirpath), options) \
+                for id in range(ncpu)]
   for i, source in enumerate(recipe['sources']):
     workqueues[i % ncpu][0].append(source[0])
 
@@ -85,9 +95,9 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   if verbose:
     log_info(__file__, lineno(),
              'Generating dynamic shared library {}...'\
-                     .format(os.path.join(dirpath, recipe['target'] + '.so')))
+                     .format(os.path.join(dirpath, recipe['target'] + libext)))
   result = _create_lib(os.path.abspath(dirpath),
-                        recipe['target'], recipe['sources'])
+                       recipe['target'], recipe['sources'], options)
   if result['retcode'] != 0:
     with open(os.path.join(dirpath, 'log_lib.txt'), 'w') as f:
         f.write(result['stdout'] + '\n')

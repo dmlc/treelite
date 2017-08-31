@@ -223,11 +223,11 @@ void CLICodegen(const CLIParam& param) {
       oss << e << " ";
     }
     oss << std::endl
-        << "\tgcc -shared -O3 -o $@ $? -fPIC -std=c99 -flto"
+        << "\tgcc -shared -O3 -o $@ $? -fPIC -std=c99 -flto -fopenmp"
         << std::endl << std::endl;
     for (size_t i = 0; i < object_list.size(); ++i) {
       oss << object_list[i] << ": " << source_list[i] << std::endl
-          << "\tgcc -c -O3 -o $@ $? -fPIC -std=c99 -flto" << std::endl;
+          << "\tgcc -c -O3 -o $@ $? -fPIC -std=c99 -flto -fopenmp" << std::endl;
     }
     oss << std::endl
         << "clean:" << std::endl

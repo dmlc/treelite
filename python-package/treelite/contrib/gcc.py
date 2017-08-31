@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Tools to interact with Microsoft Visual C++ (MSVC) compiler
+Tools to interact with gcc compiler
 """
 
 from __future__ import absolute_import as _abs
@@ -13,25 +13,21 @@ import subprocess
 import ctypes
 from multiprocessing import cpu_count
 
-def _varsall_bat_path():
-  _LIB.TreeliteVarsallBatPath.restype = ctypes.c_char_p
-  return _str_decode(_LIB.TreeliteVarsallBatPath())
-
 def _enqueue(args):
   queue = args[0]
   id = args[1]
   dirpath = args[2]
-  proc = subprocess.Popen('cmd.exe', shell=True, stdin=subprocess.PIPE,
+  proc = subprocess.Popen(os.environ['SHELL'], shell=True,
+                          stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('\"{}\" x64\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode('type NUL > retcode_cpu{}.txt\n'.format(id)))
+  proc.stdin.write(_str_encode(' > retcode_cpu{}.txt\n'.format(id)))
   for source in queue:
-    proc.stdin.write(_str_encode('cl.exe /c /openmp /Ox {}\n'
-                                 .format(source + '.c')))
-    proc.stdin.write(_str_encode('echo %errorlevel% >> retcode_cpu{}.txt\n'
-                                 .format(id)))
+    proc.stdin.write(_str_encode('gcc -c -O3 -o {} {} '\
+                                 .format(source + '.o', source + '.c') +\
+                                 '-fPIC -std=c99 -flto -fopenmp\n'))
+    proc.stdin.write(_str_encode('echo $? >> retcode_cpu{}.txt\n'.format(id)))
   proc.stdin.flush()
 
   return proc
@@ -44,18 +40,20 @@ def _wait(proc, args):
     retcode = [int(line) for line in f]
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
-def _create_dll(dirpath, target, sources):
-  proc = subprocess.Popen('cmd.exe', shell=True, stdin=subprocess.PIPE,
+def _create_lib(dirpath, target, sources):
+  proc = subprocess.Popen(os.environ['SHELL'], shell=True,
+                          stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('\"{}\" x64\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode('cl.exe /LD /Fe{} /openmp {}\n'
-                  .format(target, ' '.join([x[0] + '.obj' for x in sources]))))
-  proc.stdin.write(_str_encode('echo %errorlevel% > retcode_dll.txt\n'))
+  proc.stdin.write(_str_encode('gcc -shared -O3 -o {} {} '\
+                               .format(target + '.so',
+                                  ' '.join([x[0] + '.o' for x in sources]))+\
+                               '-std=c99 -flto -fopenmp\n'))
+  proc.stdin.write(_str_encode('echo $? > retcode_lib.txt\n'))
   proc.stdin.flush()
   stdout, _ = proc.communicate()
-  with open(os.path.join(dirpath, 'retcode_dll.txt'), 'r') as f:
+  with open(os.path.join(dirpath, 'retcode_lib.txt'), 'r') as f:
     retcode = int(f.readline())
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
@@ -64,7 +62,7 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   if verbose:
     log_info(__file__, lineno(),
              'Compiling sources files in directory {} '.format(dirpath) +\
-             'into object files (*.obj)...')
+             'into object files (*.o)...')
   ncore = cpu_count()
   ncpu = min(ncore, nthread) if nthread is not None else ncore
   workqueues = [([], id, os.path.abspath(dirpath)) for id in range(ncpu)]
@@ -83,22 +81,22 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
       raise TreeliteError('Error occured in worker #{}. '.format(id) +\
                           'See log_cpu{}.txt for details'.format(id))
 
-  # 2. Package objects into a dynamic shared library (.dll)
+  # 2. Package objects into a dynamic shared library (.so)
   if verbose:
     log_info(__file__, lineno(),
              'Generating dynamic shared library {}...'\
-                     .format(os.path.join(dirpath, recipe['target'] + '.dll')))
-  result = _create_dll(os.path.abspath(dirpath),
+                     .format(os.path.join(dirpath, recipe['target'] + '.so')))
+  result = _create_lib(os.path.abspath(dirpath),
                         recipe['target'], recipe['sources'])
   if result['retcode'] != 0:
-    with open(os.path.join(dirpath, 'log_dll.txt'), 'w') as f:
+    with open(os.path.join(dirpath, 'log_lib.txt'), 'w') as f:
         f.write(result['stdout'] + '\n')
-    raise TreeliteError('Error occured while creating DLL.' +\
-                        'See log_dll.txt for details.')
+    raise TreeliteError('Error occured while creating dynamic library.' +\
+                        'See log_lib.txt for details.')
 
   # 3. Clean up
   for id in range(ncpu):
     os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
-  os.remove(os.path.join(dirpath, 'retcode_dll.txt'))
+  os.remove(os.path.join(dirpath, 'retcode_lib.txt'))
 
 __all__ = ['']

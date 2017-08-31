@@ -59,6 +59,9 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
   if compiler == 'msvc':
     from .msvc import _create_shared
     _create_shared(dirpath, recipe, nthread, options, verbose)
+  elif compiler == 'gcc':
+    from .gcc import _create_shared
+    _create_shared(dirpath, recipe, nthread, options, verbose)
   else:
     raise NotImplementedError('compiler {} not implemented yet'.format(compiler))
   if verbose:

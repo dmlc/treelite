@@ -58,7 +58,7 @@ def _create_lib(dirpath, target, sources, options):
                                .format(target + libext,
                                   ' '.join([x[0] + '.o' for x in sources]))+\
                                '-std=c99 -flto -fopenmp {}\n'\
-                               .format(' '.join(options)))
+                               .format(' '.join(options))))
   proc.stdin.write(_str_encode('echo $? > retcode_lib.txt\n'))
   proc.stdin.flush()
   stdout, _ = proc.communicate()

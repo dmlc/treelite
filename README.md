@@ -17,6 +17,7 @@ make
 ```
 
 ## How to install (Windows with Visual Studio)
+Visual Studio 2015 or newer is required.
 On the command-line:
 ```cmd
 git clone --recursive https://github.com/dmlc/tree-lite.git

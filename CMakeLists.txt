@@ -4,6 +4,13 @@ include(cmake/Utils.cmake)
 find_package(OpenMP)
 find_package(Protobuf)
 
+# check MSVC version
+if(MSVC)
+  if(MSVC_VERSION LESS 1900)
+    message(FATAL_ERROR "Need Visual Studio 2015 or newer to compile tree-lite")
+  endif()
+endif()
+
 # define CMake info macros
 msvc_locate_vcvarsall_bat()
 set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS TREELITE_MSVC_VARSALL_BAT="${VCVARSALL_BAT}")

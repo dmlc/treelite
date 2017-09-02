@@ -33,7 +33,8 @@
 typedef void* DMatrixHandle;
 
 /*!
- * \brief display last error; can be called by different threads
+ * \brief display last error; can be called by multiple threads
+ * Note. Each thread will get the last error occured in its own context.
  * \return error string
  */
 TREELITE_DLL const char* TreeliteGetLastError();
@@ -51,6 +52,15 @@ TREELITE_DLL int TreeliteOpenMPSupported();
  */
 TREELITE_DLL const char* TreeliteVarsallBatPath();
 #endif
+
+/*!
+ * \brief register callback function for LOG(INFO) messages -- helpful messages
+ *        that are not errors.
+ * Note: this function can be called by multiple threads. The callback function
+ *       will run on the thread that registered it
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
 
 /***************************************************************************
  * Part 1: data matrix interface                                           *

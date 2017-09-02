@@ -6,6 +6,7 @@
  */
 
 #include <treelite/data.h>
+#include <treelite/logging.h>
 #include <treelite/c_api_common.h>
 #include "./c_api_common.h"
 #include "./c_api_error.h"
@@ -26,6 +27,13 @@ const char* TreeliteVarsallBatPath() {
   return TREELITE_MSVC_VARSALL_BAT;
 }
 #endif
+
+int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
+  API_BEGIN();
+  LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
+  registry->Register(callback);
+  API_END();
+}
 
 int TreeliteDMatrixCreateFromFile(const char* path,
                                   const char* format,

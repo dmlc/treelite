@@ -10,6 +10,7 @@
 #include <treelite/compiler.h>
 #include <treelite/semantic.h>
 #include <treelite/predictor.h>
+#include <treelite/logging.h>
 #include <treelite/omp.h>
 #include <dmlc/config.h>
 #include <dmlc/data.h>
@@ -327,5 +328,10 @@ int CLIRunTask(int argc, char* argv[]) {
 }  // namespace treelite
 
 int main(int argc, char* argv[]) {
+  treelite::LogCallbackRegistry* registry
+    = treelite::LogCallbackRegistryStore::Get();
+  registry->Register([] (const char* msg) {
+    std::cerr << msg << std::endl;
+  });
   return treelite::CLIRunTask(argc, argv);
 }

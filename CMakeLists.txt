@@ -4,6 +4,9 @@ include(cmake/Utils.cmake)
 find_package(OpenMP)
 find_package(Protobuf)
 
+# enable custom logging facility in dmlc-core
+add_definitions(-DDMLC_LOG_CUSTOMIZE)
+
 # check MSVC version
 if(MSVC)
   if(MSVC_VERSION LESS 1900)
@@ -53,7 +56,7 @@ file(GLOB_RECURSE SOURCES
 # SOURCES: sources included only in the main package
 # RUNTIME_SOURCES: sources included only in the runtime
 # COMMON_SOURCES: sources included both in the main pakcage and in the runtime
-set(COMMON_SOURCES src/data.cc src/c_api/c_api_common.h src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc src/common/math.h include/treelite/data.h include/treelite/c_api_common.h)
+set(COMMON_SOURCES src/data.cc src/logging.cc src/c_api/c_api_common.h src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc src/common/math.h include/treelite/data.h include/treelite/c_api_common.h include/treelite/logging.h)
 set(RUNTIME_SOURCES src/c_api/c_api_runtime.cc src/predictor.cc include/treelite/predictor.h include/treelite/c_api_runtime.h)
 
 # Only add main function for executable target

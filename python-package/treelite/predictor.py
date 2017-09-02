@@ -1,7 +1,7 @@
 # coding: utf-8
 """predictor module"""
 
-from .core import c_str, DMatrix, TreeliteError
+from .core import c_str, _get_log_callback_func, DMatrix, TreeliteError
 from .libpath import find_lib_path
 from .contrib.util import lineno, log_info
 import ctypes
@@ -15,6 +15,9 @@ def _load_runtime_lib():
     return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
+  lib.callback = _get_log_callback_func()
+  if lib.TreeliteRegisterLogCallback(lib.callback) != 0:
+    raise TreeliteError(lib.TreeliteGetLastError())
   return lib
 
 # load the tree-lite runtime

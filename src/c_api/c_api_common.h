@@ -19,5 +19,5 @@ struct TreeliteAPIThreadLocalEntry {
 // define threadlocal store for returning information
 using TreeliteAPIThreadLocalStore
   = dmlc::ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
-  
+
 #endif  // TREELITE_C_API_C_API_COMMON_H_

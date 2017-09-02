@@ -15,6 +15,15 @@ class TreeliteError(Exception):
   """Error thrown by tree-lite"""
   pass
 
+def _log_callback(msg):
+  """Redirect logs from native library into Python console"""
+  print("{0:s}".format(msg))
+
+def _get_log_callback_func():
+  """Wrap log_callback() method in ctypes callback type"""
+  CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
+  return CALLBACK(_log_callback)
+
 def _load_lib():
   """Load tree-lite Library."""
   lib_path = find_lib_path()
@@ -22,6 +31,9 @@ def _load_lib():
     return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
+  lib.callback = _get_log_callback_func()
+  if lib.TreeliteRegisterLogCallback(lib.callback) != 0:
+    raise TreeliteError(lib.TreeliteGetLastError())
   return lib
 
 # load the tree-lite library globally

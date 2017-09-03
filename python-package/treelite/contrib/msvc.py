@@ -53,8 +53,8 @@ def _create_dll(dirpath, target, sources, options):
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
   proc.stdin.write(_str_encode('cl.exe /LD /Fe{} /openmp {} {}\n'
                                .format(target,
-                                      ' '.join([x[0] + '.obj' for x in sources],
-                                      ' '.join(options)))))
+                                      ' '.join([x[0] + '.obj' for x in sources]),
+                                      ' '.join(options))))
   proc.stdin.write(_str_encode('echo %errorlevel% > retcode_dll.txt\n'))
   proc.stdin.flush()
   stdout, _ = proc.communicate()

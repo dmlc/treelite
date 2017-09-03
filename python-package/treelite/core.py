@@ -17,7 +17,7 @@ class TreeliteError(Exception):
 
 def _log_callback(msg):
   """Redirect logs from native library into Python console"""
-  print("{0:s}".format(msg))
+  print("{0:s}".format(py_str(msg)))
 
 def _get_log_callback_func():
   """Wrap log_callback() method in ctypes callback type"""

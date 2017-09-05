@@ -66,7 +66,7 @@ inline void PredLoop(const treelite::CSRBatch* batch, int nthread, int verbose,
   const size_t* row_ptr = batch->row_ptr;
   #pragma omp parallel for schedule(static) num_threads(nthread) \
     default(none) firstprivate(num_row, num_col, data, col_ind, row_ptr) \
-    shared(inst, func)
+    shared(inst, func, out_pred)
   for (int64_t rid = 0; rid < num_row; ++rid) {
     const int tid = omp_get_thread_num();
     const size_t off = num_col * tid;
@@ -99,7 +99,7 @@ inline void PredLoop(const treelite::DenseBatch* batch, int nthread,
   #pragma omp parallel for schedule(static) num_threads(nthread) \
     default(none) \
     firstprivate(num_row, num_col, data, missing_value, nan_missing) \
-    private(row) shared(inst, func)
+    private(row) shared(inst, func, out_pred)
   for (int64_t rid = 0; rid < num_row; ++rid) {
     const int tid = omp_get_thread_num();
     const size_t off = num_col * tid;

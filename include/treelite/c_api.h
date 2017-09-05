@@ -15,6 +15,7 @@
 #include "c_api_common.h"
 
 /* opaque handles */
+typedef void* DMatrixHandle;
 typedef void* ModelHandle;
 typedef void* TreeBuilderHandle;
 typedef void* ModelBuilderHandle;
@@ -22,7 +23,98 @@ typedef void* AnnotationHandle;
 typedef void* CompilerHandle;
 
 /***************************************************************************
- * Part 1: branch annotator interface
+ * Part 1: data matrix interface                                           *
+ ***************************************************************************/
+/*!
+ * \brief create DMatrix from a file
+ * \param path file path
+ * \param format file format
+ * \param nthread number of threads to use
+ * \param verbose whether to produce extra messages
+ * \param out the created DMatrix
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixCreateFromFile(const char* path,
+                                               const char* format,
+                                               int nthread,
+                                               int verbose,
+                                               DMatrixHandle* out);
+/*!
+ * \brief create DMatrix from a (in-memory) CSR matrix
+ * \param data feature values
+ * \param col_ind feature indices
+ * \param row_ptr pointer to row headers
+ * \param num_row number of rows
+ * \param num_col number of columns
+ * \param out the created DMatrix
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixCreateFromCSR(const float* data,
+                                              const unsigned* col_ind,
+                                              const size_t* row_ptr,
+                                              size_t num_row,
+                                              size_t num_col,
+                                              DMatrixHandle* out);
+/*!
+ * \brief create DMatrix from a (in-memory) dense matrix
+ * \param data feature values
+ * \param num_row number of rows
+ * \param num_col number of columns
+ * \param missing_value value to represent missing value
+ * \param out the created DMatrix
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixCreateFromMat(const float* data,
+                                              size_t num_row,
+                                              size_t num_col,
+                                              float missing_value,
+                                              DMatrixHandle* out);
+/*!
+ * \brief get dimensions of a DMatrix
+ * \param handle handle to DMatrix
+ * \param out_num_row used to set number of rows
+ * \param out_num_col used to set number of columns
+ * \param out_nelem used to set number of nonzero entries
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixGetDimension(DMatrixHandle handle,
+                                             size_t* out_num_row,
+                                             size_t* out_num_col,
+                                             size_t* out_nelem);
+
+/*!
+ * \brief produce a human-readable preview of a DMatrix
+ * Will print first and last 25 non-zero entries, along with their locations
+ * \param handle handle to DMatrix
+ * \param out_preview used to save the address of the string literal
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixGetPreview(DMatrixHandle handle,
+                                           const char** out_preview);
+
+/*!
+ * \brief extract three arrays (data, col_ind, row_ptr) that define a DMatrix.
+ * \param handle handle to DMatrix
+ * \param out_data used to save pointer to array containing feature values
+ * \param out_col_ind used to save pointer to array containing feature indices
+ * \param out_row_ptr used to save pointer to array containing pointers to
+ *                    row headers
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixGetArrays(DMatrixHandle handle,
+                                          const float** out_data,
+                                          const uint32_t** out_col_ind,
+                                          const size_t** out_row_ptr);
+
+/*!
+ * \brief delete DMatrix from memory
+ * \param handle handle to DMatrix
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDMatrixFree(DMatrixHandle handle);
+
+/***************************************************************************
+ * Part 2: branch annotator interface
  ***************************************************************************/
 /*!
  * \brief annotate branches in a given model using frequency patterns in the
@@ -63,7 +155,7 @@ TREELITE_DLL int TreeliteAnnotationSave(AnnotationHandle handle,
 TREELITE_DLL int TreeliteAnnotationFree(AnnotationHandle handle);
 
 /***************************************************************************
- * Part 2: compiler interface
+ * Part 3: compiler interface
  ***************************************************************************/
 /*!
  * \brief create a compiler with a given name
@@ -113,7 +205,7 @@ TREELITE_DLL int TreeliteCompilerGenerateCode(CompilerHandle compiler,
 TREELITE_DLL int TreeliteCompilerFree(CompilerHandle handle);
 
 /***************************************************************************
- * Part 3. model loader interface: read trees from the disk
+ * Part 4. model loader interface: read trees from the disk
  ***************************************************************************/
 /*!
  * \brief load a model file generated by LightGBM (Microsoft/LightGBM). The
@@ -151,7 +243,7 @@ TREELITE_DLL int TreeliteLoadProtobufModel(const char* filename,
 TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 
 /***************************************************************************
- * Part 4. model builder interface: build trees incrementally
+ * Part 5. model builder interface: build trees incrementally
  ***************************************************************************/
 /*!
  * \brief Create a new tree builder

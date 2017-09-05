@@ -56,7 +56,7 @@ file(GLOB_RECURSE SOURCES
 # SOURCES: sources included only in the main package
 # RUNTIME_SOURCES: sources included only in the runtime
 # COMMON_SOURCES: sources included both in the main pakcage and in the runtime
-set(COMMON_SOURCES src/data.cc src/logging.cc src/c_api/c_api_common.h src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc src/common/math.h include/treelite/data.h include/treelite/c_api_common.h include/treelite/logging.h)
+set(COMMON_SOURCES src/logging.cc src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc include/treelite/c_api_common.h include/treelite/logging.h)
 set(RUNTIME_SOURCES src/c_api/c_api_runtime.cc src/predictor.cc include/treelite/predictor.h include/treelite/c_api_runtime.h)
 
 # Only add main function for executable target
@@ -83,9 +83,8 @@ endif()
 # dmlc-core
 add_subdirectory(dmlc-core)
 # separate sets of dependencies for main package and runtime
-set(LINK_LIBRARIES "")
+set(LINK_LIBRARIES dmlc)
 set(RUNTIME_LINK_LIBRARIES "")
-set(COMMON_LINK_LIBRARIES dmlc)  # dmlc is needed by both runtime and main package
 
 # -ldl for UNIX-like systems
 if (UNIX)
@@ -107,13 +106,13 @@ set_target_properties(runtreelite PROPERTIES
   OUTPUT_NAME treelite
 )
 set_output_directory(runtreelite ${PROJECT_SOURCE_DIR})
-target_link_libraries(runtreelite ${LINK_LIBRARIES} ${RUNTIME_LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
+target_link_libraries(runtreelite ${LINK_LIBRARIES} ${RUNTIME_LINK_LIBRARIES})
 
 # Shared library
 add_library(treelite SHARED $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_common>)
 add_library(treelite_runtime SHARED $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common>)
-target_link_libraries(treelite ${LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
-target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES} ${COMMON_LINK_LIBRARIES})
+target_link_libraries(treelite ${LINK_LIBRARIES})
+target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES})
 set_output_directory(treelite ${PROJECT_SOURCE_DIR}/lib)
 set_output_directory(treelite_runtime ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)

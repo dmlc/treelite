@@ -7,9 +7,36 @@
 #ifndef TREELITE_PREDICTOR_H_
 #define TREELITE_PREDICTOR_H_
 
-#include <treelite/data.h>
+#include <dmlc/logging.h>
+#include <cstdint>
 
 namespace treelite {
+
+/*! \brief sparse batch in Compressed Sparse Row (CSR) format */
+struct CSRBatch {
+  /*! \brief feature values */
+  const float* data;
+  /*! \brief feature indices */
+  const uint32_t* col_ind;
+  /*! \brief pointer to row headers; length of [num_row] + 1 */
+  const size_t* row_ptr;
+  /*! \brief number of rows */
+  size_t num_row;
+  /*! \brief number of columns (i.e. # of features used) */
+  size_t num_col;
+};
+
+/*! \brief dense batch */
+struct DenseBatch {
+  /*! \brief feature values */
+  const float* data;
+  /*! \brief value representing the missing value (usually nan) */
+  float missing_value;
+  /*! \brief number of rows */
+  size_t num_row;
+  /*! \brief number of columns (i.e. # of features used) */
+  size_t num_col;
+};
 
 /*! \brief predictor class: wrapper for optimized prediction code */
 class Predictor {
@@ -41,41 +68,39 @@ class Predictor {
    * \brief unload the prediction function
    */
   void Free();
-  /*!
-   * \brief make predictions on a given dataset and output raw margin scores
-   * \param dmat data matrix
-   * \param nthread number of threads to use for predicting
-   * \param verbose whether to produce extra messages
-   * \param out_result resulting margin vector; use QueryResultSize() to
-   *                   allocate sufficient space. The margin vector is always
-   *                   as long as QueryResultSize().
-   */
-  void PredictRaw(const DMatrix* dmat, int nthread, int verbose,
-                  float* out_result) const;
 
   /*!
-   * \brief make predictions on a given dataset and output probabilities
-   * \param dmat data matrix
+   * \brief make predictions on a batch of data rows
+   * \param batch a batch of rows
    * \param nthread number of threads to use for predicting
    * \param verbose whether to produce extra messages
-   * \param out_result resulting output probability vector; use
+   * \param pred_margin whether to produce raw margin scores instead of
+   *                    transformed probabilities
+   * \param out_result resulting output vector; use
    *                   QueryResultSize() to allocate sufficient space
-   * \return length of the output probability vector, which is less than or
-   *         equal to QueryResultSize()
+   * \return length of the output vector, which is guaranteed to be less than
+   *         or equal to QueryResultSize()
    */
-  size_t Predict(const DMatrix* dmat, int nthread, int verbose,
-                 float* out_result) const;
+  size_t PredictBatch(const CSRBatch* batch, int nthread, int verbose,
+                      bool pred_margin, float* out_result) const;
+  size_t PredictBatch(const DenseBatch* batch, int nthread, int verbose,
+                      bool pred_margin, float* out_result) const;
 
   /*!
-   * \brief Given a data matrix, query the necessary size of array to
+   * \brief Given a batch of data rows, query the necessary size of array to
    *        hold predictions for all data points.
-   * \param dmat data matrix
+   * \param batch a batch of rows
    * \return length of prediction array
    */
-  inline size_t QueryResultSize(const DMatrix* dmat) const {
+  inline size_t QueryResultSize(const CSRBatch* batch) const {
     CHECK(pred_func_handle_ != nullptr)
       << "A shared library needs to be loaded first using Load()";
-    return dmat->num_row * num_output_group_;
+    return batch->num_row * num_output_group_;
+  }
+  inline size_t QueryResultSize(const DenseBatch* batch) const {
+    CHECK(pred_func_handle_ != nullptr)
+      << "A shared library needs to be loaded first using Load()";
+    return batch->num_row * num_output_group_;
   }
   /*!
    * \brief Get the number of output groups in the loaded model

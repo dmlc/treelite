@@ -221,10 +221,20 @@ class DMatrix(object):
     num_col = ctypes.c_size_t()
     nelem = ctypes.c_size_t()
     _check_call(_LIB.TreeliteDMatrixGetDimension(self.handle,
-                                                  ctypes.byref(num_row),
-                                                  ctypes.byref(num_col),
-                                                  ctypes.byref(nelem)))
+                                                 ctypes.byref(num_row),
+                                                 ctypes.byref(num_col),
+                                                 ctypes.byref(nelem)))
     return (num_row.value, num_col.value, nelem.value)
+
+  def _get_internals(self):
+    data = ctypes.POINTER(ctypes.c_float)()
+    col_ind = ctypes.POINTER(ctypes.c_uint32)()
+    row_ptr = ctypes.POINTER(ctypes.c_size_t)()
+    _check_call(_LIB.TreeliteDMatrixGetArrays(self.handle,
+                                              ctypes.byref(data),
+                                              ctypes.byref(col_ind),
+                                              ctypes.byref(row_ptr)))
+    return (data, col_ind, row_ptr) + self._get_dims()
 
   def __del__(self):
     if self.handle is not None:

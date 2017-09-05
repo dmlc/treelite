@@ -1,8 +1,7 @@
-from treelite import DMatrix
 from treelite.compiler import Compiler
 from treelite.frontend import ModelBuilder
 from treelite.contrib import create_shared
-from treelite.predictor import Predictor
+from treelite.predictor import Predictor, Batch
 
 from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -46,10 +45,10 @@ for i in range(ntree):
 model = builder.commit()
 compiler = Compiler()
 compiler.compile(model, dirpath='test_rf', params={}, verbose=True)
-create_shared('clang', 'test_rf', verbose=True)
+create_shared('msvc', 'test_rf', verbose=True)
 predictor = Predictor('test_rf', verbose=True)
-dmat = DMatrix(X, verbose=True)
-out_pred = predictor.predict(dmat, verbose=True)
+batch = Batch.from_npy2d(X, 10)
+out_pred = predictor.predict(batch, verbose=True)
 
 # 2. gradient boosting
 clf = GradientBoostingClassifier(random_state=1, n_estimators=ntree,
@@ -88,7 +87,6 @@ for i in range(ntree):
     builder.append(tree)
 model = builder.commit()
 compiler.compile(model, dirpath='test_gbm', params={'parallel_comp':5}, verbose=True)
-create_shared('clang', 'test_gbm', verbose=True)
+create_shared('msvc', 'test_gbm', verbose=True)
 predictor = Predictor('test_gbm', verbose=True)
-dmat = DMatrix(X, verbose=True)
-out_pred = predictor.predict(dmat, verbose=True)
+out_pred = predictor.predict(batch, verbose=True)

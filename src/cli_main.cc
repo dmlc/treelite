@@ -268,16 +268,19 @@ void CLIPredict(const CLIParam& param) {
   std::unique_ptr<DMatrix> dmat(DMatrix::Create(param.test_data_path.c_str(),
                                          FileFormatString(param.test_format),
                                          param.nthread, param.verbose));
+  std::unique_ptr<CSRBatch> batch = common::make_unique<CSRBatch>();
+  batch->data = &dmat->data[0];
+  batch->col_ind = &dmat->col_ind[0];
+  batch->row_ptr = &dmat->row_ptr[0];
+  batch->num_row = dmat->num_row;
+  batch->num_col = dmat->num_col;
   Predictor predictor;
   predictor.Load(param.codelib_path.c_str());
-  size_t result_size = predictor.QueryResultSize(dmat.get());
+  size_t result_size = predictor.QueryResultSize(batch.get());
   std::vector<float> result(result_size);
-  if (param.pred_margin > 0) {
-    predictor.PredictRaw(dmat.get(), param.nthread, param.verbose, &result[0]);
-  } else {
-    result_size
-     = predictor.Predict(dmat.get(), param.nthread, param.verbose, &result[0]);
-  }
+  result_size = predictor.PredictBatch(batch.get(), param.nthread,
+                                       param.verbose, param.pred_margin,
+                                       &result[0]);
   // write to text file
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(
                                    param.name_pred.c_str(), "w"));

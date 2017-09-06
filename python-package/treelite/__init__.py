@@ -8,7 +8,7 @@ assert_python_min_ver('2.7', '3.1', 'importlib')
 from importlib import import_module
 
 # package will re-export public members of the following scripts/subpackages:
-core_packages = ['.core', '.compiler', '.frontend', '.annotator', '.contrib']
+core_packages = ['.core', '.frontend', '.annotator', '.contrib']
 
 __all__ = []
 for package in core_packages:

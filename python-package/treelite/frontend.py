@@ -38,6 +38,65 @@ class Model(object):
       _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
+  def compile(self, dirpath, params, compiler='recursive', verbose=False):
+    """
+    Generate prediction code from a tree ensemble model. The code will be C99
+    compliant. One header file (.h) will be generated, along with one or more
+    source files (.c). Use contrib.*.create_shared() to package prediction code
+    as a dynamic shared library (.so/.dll/.dylib).
+
+    Usage
+    -----
+    model.compile(dirpath='./my/model', params={}, verbose=True)
+    # files to generate: ./my/model/model.h, ./my/model/model.c
+    # if parallel compilation is enabled:
+    # ./my/model/model.h, ./my/model/model0.c, ./my/model/model1.c,
+    # ./my/model/model2.c, and so forth
+
+    Parameters
+    ----------
+    dirpath : string
+        directory to store header and source files
+    params : dict
+        parameters for compiler
+    compiler : string, optional (defaults to 'recursive')
+        name of compiler to use
+    verbose : boolean, optional (defaults to False)
+        Whether to print extra messages during compilation
+    """
+    compiler_handle = ctypes.c_void_p()
+    _check_call(_LIB.TreeliteCompilerCreate(c_str(compiler),
+                                            ctypes.byref(compiler_handle)))
+    _params = dict(params) if isinstance(params, list) else params
+    self._set_compiler_param(compiler_handle, _params or {})
+    _check_call(_LIB.TreeliteCompilerGenerateCode(compiler_handle,
+                                                  self.handle,
+                                             ctypes.c_int(1 if verbose else 0),
+                                                  c_str(dirpath)))
+    _check_call(_LIB.TreeliteCompilerFree(compiler_handle))
+
+  @staticmethod
+  def _set_compiler_param(compiler_handle, params, value=None):
+    """
+    Set parameter(s) for compiler
+
+    Parameters
+    ----------
+    params: dict / list / string
+        list of key-alue pairs, dict or simply string key
+    compiler_handle: object of type `ctypes.c_void_p`
+        handle to compiler
+    value: optional
+        value of the specified parameter, when params is a single string
+    """
+    if isinstance(params, collections.Mapping):
+      params = params.items()
+    elif isinstance(params, STRING_TYPES) and value is not None:
+      params = [(params, value)]
+    for key, val in params:
+      _check_call(_LIB.TreeliteCompilerSetParam(compiler_handle, c_str(key),
+                                                c_str(str(val))))
+
 def load_model_from_file(filename, format):
   """
   Loads a tree ensemble model from a file.

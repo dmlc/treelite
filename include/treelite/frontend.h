@@ -36,6 +36,13 @@ Model LoadLightGBMModel(const char* filename);
  */
 Model LoadXGBoostModel(const char* filename);
 /*!
+ * \brief load an XGBoost model from a memory buffer.
+ * \param buf memory buffer
+ * \param len size of memory buffer
+ * \return loaded model
+ */
+Model LoadXGBoostModel(const void* buf, size_t len);
+/*!
  * \brief load a model in Protocol Buffers format. Protocol Buffers
  *        (google/protobuf) is a language- and platform-neutral mechanism for
  *        serializing structured data. See tree.proto for format spec.

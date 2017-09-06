@@ -226,6 +226,16 @@ TREELITE_DLL int TreeliteLoadLightGBMModel(const char* filename,
 TREELITE_DLL int TreeliteLoadXGBoostModel(const char* filename,
                                           ModelHandle* out);
 /*!
+ * \brief load an XGBoost model from a memory buffer.
+ * \param buf memory buffer
+ * \param len size of memory buffer
+ * \param out loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
+                                                          size_t len,
+                                                          ModelHandle* out);
+/*!
  * \brief load a model in Protocol Buffers format. Protocol Buffers
  *        (google/protobuf) is a language- and platform-neutral mechanism for
  *        serializing structured data. See tree.proto for format spec.

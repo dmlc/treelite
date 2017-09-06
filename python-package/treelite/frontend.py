@@ -66,7 +66,7 @@ class Model(object):
                                    verbose, options)
       shutil.move(temp_libpath, libpath)
 
-  def compile(self, dirpath, params, compiler='recursive', verbose=False):
+  def compile(self, dirpath, params=None, compiler='recursive', verbose=False):
     """
     Generate prediction code from a tree ensemble model. The code will be C99
     compliant. One header file (.h) will be generated, along with one or more
@@ -85,7 +85,7 @@ class Model(object):
     ----------
     dirpath : string
         directory to store header and source files
-    params : dict
+    params : dict, optional
         parameters for compiler
     compiler : string, optional (defaults to 'recursive')
         name of compiler to use
@@ -124,41 +124,80 @@ class Model(object):
     for key, val in params:
       _check_call(_LIB.TreeliteCompilerSetParam(compiler_handle, c_str(key),
                                                 c_str(str(val))))
+  @classmethod
+  def from_xgboost(cls, booster):
+    """
+    Load a tree ensemble model from an XGBoost Booster object
 
-def load_model_from_file(filename, format):
-  """
-  Loads a tree ensemble model from a file.
+    Usage
+    -----
+    bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
+    xgb_model = Model.from_xgboost(bst)
 
-  Parameters
-  ----------
-  filename : string
-      path to model file
-  format : string
-      model file format
+    Parameters
+    ----------
+    booster : object of type `xgboost.Booster`
+        Python handle to XGBoost model
 
-  Returns
-  -------
-  model : `Model` object
-      loaded model
-  """
-  if not _isascii(format):
-    raise ValueError('format parameter must be an ASCII string')
-  format = format.lower()
-  handle = ctypes.c_void_p()
-  if format == 'lightgbm':
-    _check_call(_LIB.TreeliteLoadLightGBMModel(c_str(filename),
-                                               ctypes.byref(handle)))
-  elif format == 'xgboost':
-    _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
-                                              ctypes.byref(handle)))
-  elif format == 'protobuf':
-    _check_call(_LIB.TreeliteLoadProtobufModel(c_str(filename),
-                                               ctypes.byref(handle)))
-  else:
-    raise ValueError('Unknown format: must be one of ' \
-                     + '{lightgbm, xgboost, protobuf}')
-  model = Model(handle)
-  return model
+    Returns
+    -------
+    model : `Model` object
+        loaded model
+    """
+    handle = ctypes.c_void_p()
+    # attempt to load xgboost
+    try:
+      import xgboost
+    except ImportError:
+      raise TreeliteError('xgboost module must be installed to read from '+\
+                          '`xgboost.Booster` object')
+    if not isinstance(booster, xgboost.Booster):
+      raise ValueError('booster must be of type `xgboost.Booster`')
+    buffer = booster.save_raw()
+    ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
+    length = ctypes.c_size_t(len(buffer))
+    _check_call(_LIB.TreeliteLoadXGBoostModelFromMemoryBuffer(ptr, length,
+                                                         ctypes.byref(handle)))
+    return Model(handle)
+
+  @classmethod
+  def load(cls, filename, format):
+    """
+    Load a tree ensemble model from a file
+
+    Usage
+    -----
+    xgb_model = Model.load('xgboost_model.model', 'xgboost')
+
+    Parameters
+    ----------
+    filename : string
+        path to model file
+    format : string
+        model file format; must be given if filename is given
+
+    Returns
+    -------
+    model : `Model` object
+        loaded model
+    """
+    handle = ctypes.c_void_p()
+    if not _isascii(format):
+      raise ValueError('format parameter must be an ASCII string')
+    format = format.lower()
+    if format == 'lightgbm':
+      _check_call(_LIB.TreeliteLoadLightGBMModel(c_str(filename),
+                                                  ctypes.byref(handle)))
+    elif format == 'xgboost':
+      _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
+                                                ctypes.byref(handle)))
+    elif format == 'protobuf':
+      _check_call(_LIB.TreeliteLoadProtobufModel(c_str(filename),
+                                                  ctypes.byref(handle)))
+    else:
+      raise ValueError('Unknown format: must be one of ' \
+                        + '{lightgbm, xgboost, protobuf}')
+    return Model(handle)
 
 class ModelBuilder(object):
   """
@@ -514,4 +553,4 @@ class ModelBuilder(object):
                                                          c_str(key),
                                                          c_str(val)))
 
-__all__ = ['Model', 'load_model_from_file', 'ModelBuilder']
+__all__ = ['Model', 'ModelBuilder']

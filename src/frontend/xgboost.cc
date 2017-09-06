@@ -6,6 +6,7 @@
  */
 
 #include <dmlc/data.h>
+#include <dmlc/memory_io.h>
 #include <treelite/tree.h>
 #include <memory>
 #include <queue>
@@ -25,6 +26,11 @@ DMLC_REGISTRY_FILE_TAG(xgboost);
 Model LoadXGBoostModel(const char* filename) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
   return ParseStream(fi.get());
+}
+
+Model LoadXGBoostModel(const void* buf, size_t len) {
+  dmlc::MemoryFixedSizeStream fs((void*)buf, len);
+  return ParseStream(&fs);
 }
 
 }  // namespace frontend

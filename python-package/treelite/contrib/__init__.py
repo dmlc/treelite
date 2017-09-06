@@ -10,16 +10,33 @@ import time
 from ..core import TreeliteError
 from .util import lineno, log_info
 
-def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
+def _check_ext(toolchain, dllpath):
+  if toolchain == 'msvc':
+    from .msvc import _check_ext
+  elif toolchain == 'gcc':
+    from .gcc import _check_ext
+  elif toolchain == 'clang':
+    from .clang import _check_ext
+  else:
+    raise ValueError('toolchain {} not supported'.format(toolchain))
+  _check_ext(dllpath)
+
+def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
   """Create shared library.
+
+  Usage
+  -----
+  model.compile(dirpath='./my/model', params={}, verbose=True)
+  create_shared(toolchain='msvc', dirpath='./my/model', verbose=True)
+  # resulting shared library is ./my/model/model.dll (assuming Windows platform)
 
   Parameters
   ----------
-  compiler : string
-      which compiler to use
+  toolchain : string
+      which toolchain to use (e.g. msvc, clang, gcc)
   dirpath : string
       directory containing the header and source files previously generated
-      by compiler.Compiler.compile(). The directory must contain recipe.json
+      by model.compile(). The directory must contain recipe.json
       which specifies build dependencies.
   nthread : int, optional
       number of threads to use while compiling source files in parallel.
@@ -27,7 +44,11 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
   verbose : boolean, optional (defaults to False)
       whether to produce extra messages
   options : str, optional (defaults to None)
-      Additional options to pass to compiler
+      Additional options to pass to toolchain
+
+  Returns
+  -------
+  absolute path of created shared library
   """
 
   if nthread is not None and nthread <= 0:
@@ -64,20 +85,19 @@ def create_shared(compiler, dirpath, nthread=None, verbose=False, options=None):
              '\x1B[33mparallel_comp\u001B[0m.\n')
 
   tstart = time.time()
-  if compiler == 'msvc':
+  if toolchain == 'msvc':
     from .msvc import _create_shared
-    _create_shared(dirpath, recipe, nthread, options, verbose)
-  elif compiler == 'gcc':
+  elif toolchain == 'gcc':
     from .gcc import _create_shared
-    _create_shared(dirpath, recipe, nthread, options, verbose)
-  elif compiler == 'clang':
+  elif toolchain == 'clang':
     from .clang import _create_shared
-    _create_shared(dirpath, recipe, nthread, options, verbose)
   else:
-    raise NotImplementedError('compiler {} not implemented yet'.format(compiler))
+    raise ValueError('toolchain {} not supported'.format(toolchain))
+  libpath = _create_shared(dirpath, recipe, nthread, options, verbose)
   if verbose:
     log_info(__file__, lineno(),
              'Generated shared library in '+\
              '{0:.2f} seconds'.format(time.time() - tstart))
+  return libpath
 
 __all__ = ['create_shared']

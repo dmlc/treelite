@@ -3,8 +3,12 @@
 from __future__ import absolute_import as _abs
 from .core import _LIB, c_str, c_array, _check_call, TreeliteError
 from .compat import STRING_TYPES
+from .contrib import create_shared, _check_ext
+from .contrib.util import TemporaryDirectory
 import ctypes
 import collections
+import os
+import shutil
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""
@@ -38,11 +42,35 @@ class Model(object):
       _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
+  def export_lib(self, toolchain, libpath, params, compiler='recursive',
+                 verbose=False, nthread=None, options=None):
+    """
+    Convenience function: Generate prediction code and immediately turn it
+    into a dynamic shared library. A temporary directory will be created to
+    hold the source files.
+
+    Usage
+    -----
+    model.export_lib(toolchain='msvc', libpath='./mymodel.dll',
+                     params={}, verbose=True)
+    # this is equivalent to writing
+    # model.compile(dirpath='/temporary/directory', params={}, verbose=True)
+    # create_shared(toolchain='msvc', dirpath='/temporary/directory',
+    #               verbose=True)
+    # shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
+    """
+    _check_ext(toolchain, libpath)  # check for file extension
+    with TemporaryDirectory() as temp_dir:
+      self.compile(temp_dir, params, compiler, verbose)
+      temp_libpath = create_shared(toolchain, temp_dir, nthread,
+                                   verbose, options)
+      shutil.move(temp_libpath, libpath)
+
   def compile(self, dirpath, params, compiler='recursive', verbose=False):
     """
     Generate prediction code from a tree ensemble model. The code will be C99
     compliant. One header file (.h) will be generated, along with one or more
-    source files (.c). Use contrib.*.create_shared() to package prediction code
+    source files (.c). Use create_shared() to package prediction code
     as a dynamic shared library (.so/.dll/.dylib).
 
     Usage

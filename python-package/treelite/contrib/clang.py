@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Tools to interact with clang compiler
+Tools to interact with clang toolchain
 """
 
 from __future__ import absolute_import as _abs
@@ -115,5 +115,13 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   for id in range(ncpu):
     os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
   os.remove(os.path.join(dirpath, 'retcode_lib.txt'))
+
+  # Return full path of shared library
+  return os.path.join(os.path.abspath(dirpath), recipe['target'] + libext)
+
+def _check_ext(dllpath):
+  fileext = os.path.splitext(dllpath)[1]
+  if fileext != libext:
+    raise ValueError('Library file should have {} extension'.format(libext))
 
 __all__ = ['']

@@ -12,6 +12,7 @@ import time
 if PY3:
   from tempfile import TemporaryDirectory
 else:
+  import tempfile
   class TemporaryDirectory(object):
     """Context manager for tempfile.mkdtemp()"""
     def __enter__(self):

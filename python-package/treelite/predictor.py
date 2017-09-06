@@ -1,7 +1,7 @@
 # coding: utf-8
 """predictor module"""
 
-from .core import c_str, _get_log_callback_func, TreeliteError, DMatrix
+from .core import c_str, _get_log_callback_func, TreeliteError
 from .libpath import find_lib_path
 from .contrib.util import lineno, log_info
 import ctypes
@@ -71,7 +71,7 @@ class Batch(object):
     return (num_row.value, num_col.value)
 
   @classmethod
-  def from_npy2d(self, mat, rbegin, rend=None, missing=None):
+  def from_npy2d(self, mat, rbegin=0, rend=None, missing=None):
     """
     Get a dense batch from a 2D numpy matrix.
     If ``mat`` does not have ``order='C'`` (also known as row-major) or is not
@@ -85,7 +85,7 @@ class Batch(object):
     ----------
     mat : 2D numpy array
         data matrix
-    rbegin : integer
+    rbegin : integer, optional (defaults to 0)
         the index of the first row in the subset
     rend : integer, optional (defaults to the end of matrix)
         one past the index of the last row in the subset
@@ -99,6 +99,7 @@ class Batch(object):
       raise ValueError('mat must be of type numpy.ndarray')
     if len(mat.shape) != 2:
       raise ValueError('Input numpy.ndarray must be two-dimensional')
+    rbegin = rbegin if rbegin is not None else 0
     rend = rend if rend is not None else mat.shape[0]
     if rbegin >= rend:
       raise TreeliteError('rbegin must be less than rend')
@@ -125,16 +126,16 @@ class Batch(object):
     return batch
 
   @classmethod
-  def from_dmatrix(cls, dmat, rbegin, rend=None):
+  def from_csr(cls, csr, rbegin=None, rend=None):
     """
-    Get a sparse batch from a subset of matrix rows. The subset is given by
-    the range [rbegin, rend).
+    Get a sparse batch from a subset of rows in a CSR (Compressed Sparse Row)
+    matrix. The subset is given by the range [rbegin, rend).
     
     Parameters
     ----------
-    dmat : object of class `DMatrix`
+    csr : object of class `DMatrix` or `scipy.sparse.csr_matrix`
         data matrix
-    rbegin : integer
+    rbegin : integer, optional (defaults to 0)
         the index of the first row in the subset
     rend : integer, optional (defaults to the end of matrix)
         one past the index of the last row in the subset
@@ -143,46 +144,50 @@ class Batch(object):
     -------
     a sparse batch consisting of rows [rbegin, rend)
     """
-    if not isinstance(dmat, DMatrix):
-      raise ValueError('dmat must be of type DMatrix')
-    # get internal members of data matrix
-    data, col_ind, row_ptr, num_row, num_col, nelem = dmat._get_internals()
+    # use duck typing so as to accomodate both scipy.sparse.csr_matrix
+    # and DMatrix without explictly importing any of them
+    try:
+      num_row = csr.shape[0]
+      num_col = csr.shape[1]
+    except AttributeError:
+      raise ValueError('csr must contain shape attribute')
+    except TypeError:
+      raise ValueError('csr.shape must be of tuple type')
+    except IndexError:
+      raise ValueError('csr.shape must be of length 2 (indicating 2D matrix)')
+    rbegin = rbegin if rbegin is not None else 0
     rend = rend if rend is not None else num_row
     if rbegin >= rend:
       raise TreeliteError('rbegin must be less than rend')
     if rbegin < 0:
       raise TreeliteError('rbegin must be nonnegative')
     if rend > num_row:
-      raise TreeliteError('rend must be less than number of rows in dmat')
-    
-    buffer_from_memory = ctypes.pythonapi.PyBuffer_FromMemory
-    buffer_from_memory.restype = ctypes.py_object
+      raise TreeliteError('rend must be less than number of rows in csr')
 
-    data_subset = np.frombuffer(buffer_from_memory(data,
-                                     ctypes.sizeof(ctypes.c_float) \
-                                       * (row_ptr[rend] - row_ptr[rbegin])),
-                                np.float32)
-    col_ind_subset = np.frombuffer(buffer_from_memory(col_ind,
-                                        ctypes.sizeof(ctypes.c_uint32) \
-                                          * (row_ptr[rend] - row_ptr[rbegin])),
-                                   np.uint32)
-    # need to re-compute row_ptr for subset; store new copy to Python object
-    buffer = buffer_from_memory(row_ptr,
-                                ctypes.sizeof(ctypes.c_size_t) * (num_row + 1))
-    self.row_ptr_subset \
-      = np.copy(np.frombuffer(buffer, np.uintp)[rbegin:(rend+1)])
-    self.row_ptr_subset -= self.row_ptr_subset[0]
+    # compute submatrix with rows [rbegin, rend)
+    ibegin = csr.indptr[rbegin]
+    iend = csr.indptr[rend]
+    data_subset = np.array(csr.data[ibegin:iend], copy=False,
+                           dtype=np.float32, order='C')
+    indices_subset = np.array(csr.indices[ibegin:iend], copy=False,
+                              dtype=np.uint32, order='C')
+    indptr_subset = np.array(csr.indptr[rbegin:(rend+1)] - ibegin, copy=False,
+                             dtype=np.uintp, order='C')
 
     batch = Batch()
     batch.handle = ctypes.c_void_p()
     batch.kind = 'sparse'
     _check_call(_LIB.TreeliteAssembleSparseBatch(
-                                     c_array(ctypes.c_float, data_subset),
-                                     c_array(ctypes.c_uint32, col_ind_subset),
-                                     c_array(ctypes.c_size_t, row_ptr_subset),
-                                     ctypes.c_size_t(num_row),
-                                     ctypes.c_size_t(num_col),
-                                     ctypes.byref(batch.handle)))
+                data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                indices_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+                indptr_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
+                ctypes.c_size_t(num_row),
+                ctypes.c_size_t(num_col),
+                ctypes.byref(batch.handle)))
+    # save handles for internal arrays
+    batch.data = data_subset
+    batch.indices = indices_subset
+    batch.indptr = indptr_subset
     return batch
 
 class Predictor(object):

@@ -47,7 +47,7 @@ compiler = Compiler()
 compiler.compile(model, dirpath='test_rf', params={}, verbose=True)
 create_shared('msvc', 'test_rf', verbose=True)
 predictor = Predictor('test_rf', verbose=True)
-batch = Batch.from_npy2d(X, 10)
+batch = Batch.from_npy2d(X)
 out_pred = predictor.predict(batch, verbose=True)
 
 # 2. gradient boosting

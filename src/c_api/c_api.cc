@@ -160,20 +160,23 @@ int TreeliteDMatrixGetPreview(DMatrixHandle handle,
   const DMatrix* dmat = static_cast<DMatrix*>(handle);
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
   std::ostringstream oss;
-  for (size_t i = 0; i < 25; ++i) {
+  const size_t iend = (dmat->nelem <= 50) ? dmat->nelem : 25;
+  for (size_t i = 0; i < iend; ++i) {
     const size_t row_ind =
       std::upper_bound(&dmat->row_ptr[0], &dmat->row_ptr[dmat->num_row + 1], i)
         - &dmat->row_ptr[0] - 1;
     oss << "  (" << row_ind << ", " << dmat->col_ind[i] << ")\t"
         << dmat->data[i] << "\n";
   }
-  oss << "  :\t:\n";
-  for (size_t i = dmat->nelem - 25; i < dmat->nelem; ++i) {
-    const size_t row_ind =
-      std::upper_bound(&dmat->row_ptr[0], &dmat->row_ptr[dmat->num_row + 1], i)
-      - &dmat->row_ptr[0] - 1;
-    oss << "  (" << row_ind << ", " << dmat->col_ind[i] << ")\t"
-      << dmat->data[i] << "\n";
+  if (dmat->nelem > 50) {
+    oss << "  :\t:\n";
+    for (size_t i = dmat->nelem - 25; i < dmat->nelem; ++i) {
+      const size_t row_ind =
+        std::upper_bound(&dmat->row_ptr[0], &dmat->row_ptr[dmat->num_row + 1], i)
+        - &dmat->row_ptr[0] - 1;
+      oss << "  (" << row_ind << ", " << dmat->col_ind[i] << ")\t"
+        << dmat->data[i] << "\n";
+    }
   }
   ret_str = oss.str();
   *out_preview = ret_str.c_str();

@@ -9,7 +9,7 @@ import numpy as np
 import scipy.sparse
 
 from .libpath import find_lib_path
-from .compat import STRING_TYPES, DataFrame, py_str
+from .compat import STRING_TYPES, DataFrame, py_str, buffer_from_memory
 
 class TreeliteError(Exception):
   """Error thrown by tree-lite"""
@@ -58,7 +58,15 @@ def c_str(string):
   return ctypes.c_char_p(string.encode('utf-8'))
 
 def c_array(ctype, values):
-  """Convert a Python byte array to C array"""
+  """
+  Convert a Python byte array to C array
+
+  WARNING
+  -------
+  DO NOT USE THIS FUNCTION if performance is critical. Instead, use np.array(*)
+  with dtype option to explicitly convert type and then use
+  ndarray.ctypes.data_as(*) to expose underlying buffer as C pointer.
+  """
   return (ctype * len(values))(*values)
 
 PANDAS_DTYPE_MAPPER = {'int8': 'int', 'int16': 'int', 'int32': 'int',
@@ -144,28 +152,7 @@ class DMatrix(object):
                         .format(type(data).__name__))
     self.feature_names = feature_names
     self.feature_types = feature_types
-
-  def shape(self):
-    """
-    Get dimensions of the DMatrix
-
-    Returns
-    -------
-    tuple (number of rows, number of columns)
-    """
-    num_row, num_col, _ = self._get_dims()
-    return (num_row, num_col)
-
-  def nnz(self):
-    """
-    Get number of nonzero entries in the DMatrix
-
-    Returns
-    -------
-    number of nonzero entries
-    """
-    _, _, nelem = self._get_dims()
-    return nelem
+    self._get_internals()              # save handles for internal arrays
 
   def _init_from_csr(self, csr):
     """Initialize data from a CSR (Compressed Sparse Row) matrix"""
@@ -181,13 +168,17 @@ class DMatrix(object):
                         + 'indptr[-1] = {} vs len(data) = {}'
                           .format(indptr[-1], len(data)))
     self.handle = ctypes.c_void_p()
+    data = np.array(csr.data, copy=False, dtype=np.float32, order='C')
+    indices = np.array(csr.indices, copy=False, dtype=np.uintc, order='C')
+    indptr = np.array(csr.indptr, copy=False, dtype=np.uintp, order='C')
     _check_call(
-      _LIB.TreeliteDMatrixCreateFromCSR(c_array(ctypes.c_float, csr.data),
-                                        c_array(ctypes.c_uint, csr.indices),
-                                        c_array(ctypes.c_size_t, csr.indptr),
-                                        ctypes.c_size_t(csr.shape[0]),
-                                        ctypes.c_size_t(csr.shape[1]),
-                                        ctypes.byref(self.handle)))
+      _LIB.TreeliteDMatrixCreateFromCSR(
+                data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+                indices.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+                indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
+                ctypes.c_size_t(csr.shape[0]),
+                ctypes.c_size_t(csr.shape[1]),
+                ctypes.byref(self.handle)))
 
   def _init_from_npy2d(self, mat, missing):
     """
@@ -234,7 +225,21 @@ class DMatrix(object):
                                               ctypes.byref(data),
                                               ctypes.byref(col_ind),
                                               ctypes.byref(row_ptr)))
-    return (data, col_ind, row_ptr) + self._get_dims()
+    num_row, num_col, nelem = self._get_dims()
+    
+    # DMatrix should mimick scipy.sparse.csr_matrix for
+    # proper duck typing in Predictor.from_csr()
+    self.data = np.frombuffer(buffer_from_memory(data,
+                               ctypes.sizeof(ctypes.c_float * nelem)),
+                               dtype=np.float32)
+    self.indices = np.frombuffer(buffer_from_memory(col_ind,
+                               ctypes.sizeof(ctypes.c_uint32 * nelem)),
+                               dtype=np.uint32)
+    self.indptr = np.frombuffer(buffer_from_memory(row_ptr,
+                               ctypes.sizeof(ctypes.c_size_t * (num_row + 1))),
+                               dtype=np.uintp)
+    self.shape = (num_row, num_col)
+    self.size = nelem
 
   def __del__(self):
     if self.handle is not None:
@@ -242,11 +247,10 @@ class DMatrix(object):
       self.handle = None
 
   def __repr__(self):
-    num_row, num_col, nelem = self._get_dims()
     return '<{}x{} sparse matrix of type treelite.DMatrix\n'\
-           .format(num_row, num_col) \
+           .format(self.shape[0], self.shape[1]) \
         + '        with {} stored elements in Compressed Sparse Row format>'\
-           .format(nelem)
+           .format(self.size)
   
   def __str__(self):
     # Print first and last 25 non-zero entries

@@ -4,6 +4,7 @@
 from __future__ import absolute_import as _abs
 
 import sys
+import ctypes
 
 PY3 = (sys.version_info[0] == 3)
 
@@ -31,6 +32,21 @@ if PY3:
   from json import JSONDecodeError
 else:
   JSONDecodeError = ValueError
+
+# expose C buffer as Python buffer
+if PY3:
+  if sys.version_info[1] < 3:
+    raise RuntimeError('Python 3.3 or newer is required.')
+  def buffer_from_memory(ptr, size):
+    func = ctypes.pythonapi.PyMemoryView_FromMemory
+    func.restype = ctypes.py_object
+    PyBUF_READ = 0x100
+    return func(ptr, size, PyBUF_READ)
+else:
+  def buffer_from_memory(ptr, size):
+    func = ctypes.pythonapi.PyBuffer_FromMemory
+    func.restype = ctypes.py_object
+    return func(ptr, size)
 
 # use cPickle if available
 try:

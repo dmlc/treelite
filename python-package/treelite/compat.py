@@ -8,6 +8,22 @@ import ctypes
 
 PY3 = (sys.version_info[0] == 3)
 
+# Enforce minimum Python version for Python 2.x and 3.x
+def assert_python_min_ver(py2_ver, py3_ver, info_str):
+  py2_ver_ = py2_ver.split('.')
+  py3_ver_ = py3_ver.split('.')
+  if len(py2_ver_) != 2 or len(py3_ver_) != 2 or \
+     py2_ver_[0] != '2' or py3_ver_[0] != '3':
+    raise ValueError('Incorrect version format')
+  if PY3:
+    if sys.version_info[1] < int(py3_ver_[1]):
+      raise RuntimeError('Python {} or newer is required. Feature: {}'\
+                         .format(py3_ver, info_str))
+  else:
+    if sys.version_info[1] < int(py2_ver_[1]):
+      raise RuntimeError('Python {} or newer is required. Feature: {}'\
+                         .format(py2_ver, info_str))
+
 # String handling for Python 2 and 3
 if PY3:
   STRING_TYPES = str,
@@ -34,9 +50,8 @@ else:
   JSONDecodeError = ValueError
 
 # expose C buffer as Python buffer
+assert_python_min_ver('2.5', '3.3', 'buffer_from_memory')
 if PY3:
-  if sys.version_info[1] < 3:
-    raise RuntimeError('Python 3.3 or newer is required.')
   def buffer_from_memory(ptr, size):
     func = ctypes.pythonapi.PyMemoryView_FromMemory
     func.restype = ctypes.py_object

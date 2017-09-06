@@ -1,9 +1,9 @@
 # coding: utf-8
 """predictor module"""
 
-from .core import c_str, _get_log_callback_func, TreeliteError
-from .libpath import find_lib_path
-from .contrib.util import lineno, log_info
+from ..core import c_str, _get_log_callback_func, TreeliteError
+from ..libpath import find_lib_path
+from ..contrib.util import lineno, log_info
 import ctypes
 import os
 import numpy as np

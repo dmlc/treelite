@@ -259,4 +259,4 @@ class DMatrix(object):
                                                ctypes.byref(preview)))
     return py_str(preview.value)
 
-__all__ = ['']
+__all__ = ['DMatrix']

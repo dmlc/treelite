@@ -1,7 +1,5 @@
-from treelite.compiler import Compiler
-from treelite.frontend import ModelBuilder
-from treelite.contrib import create_shared
-from treelite.predictor import Predictor, Batch
+from treelite import *
+from treelite.runtime import *
 
 from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier

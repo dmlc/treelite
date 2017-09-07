@@ -52,7 +52,7 @@ clf = GradientBoostingClassifier(random_state=1, n_estimators=ntree,
                                  max_depth=4, init='zero')
                            # set init='zero' to start boosting from zero.
                            # scikit-learn by default starts boosting from
-                           # the prior distribution of classes, but tree-lite
+                           # the prior distribution of classes, but treelite
                            # does not yet support boosting from nonzero.
 clf.fit(X, y)
 

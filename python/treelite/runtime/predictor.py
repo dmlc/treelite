@@ -9,7 +9,7 @@ import os
 import numpy as np
 
 def _load_runtime_lib():
-  """Load tree-lite runtime"""
+  """Load treelite runtime"""
   lib_path = find_lib_path(runtime=True)
   if len(lib_path) == 0:
     return None
@@ -20,7 +20,7 @@ def _load_runtime_lib():
     raise TreeliteError(lib.TreeliteGetLastError())
   return lib
 
-# load the tree-lite runtime
+# load the treelite runtime
 _LIB = _load_runtime_lib()
 
 def _check_call(ret):

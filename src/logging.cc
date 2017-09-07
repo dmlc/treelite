@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file logging.cc
  * \author Philip Cho
- * \brief logging facility for tree-lite
+ * \brief logging facility for treelite
  */
 
 #include <dmlc/logging.h>

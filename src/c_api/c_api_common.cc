@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file c_api_common.cc
  * \author Philip Cho
- * \brief C API of tree-lite (this file is used by both runtime and main package)
+ * \brief C API of treelite (this file is used by both runtime and main package)
  */
 
 #include <treelite/logging.h>

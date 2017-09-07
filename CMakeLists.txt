@@ -10,7 +10,7 @@ add_definitions(-DDMLC_LOG_CUSTOMIZE)
 # check MSVC version
 if(MSVC)
   if(MSVC_VERSION LESS 1900)
-    message(FATAL_ERROR "Need Visual Studio 2015 or newer to compile tree-lite")
+    message(FATAL_ERROR "Need Visual Studio 2015 or newer to compile treelite")
   endif()
 endif()
 

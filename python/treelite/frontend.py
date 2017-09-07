@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Frontend collection for tree-lite"""
+"""Frontend collection for treelite"""
 from __future__ import absolute_import as _abs
 from .core import _LIB, c_str, c_array, _check_call, TreeliteError
 from .compat import STRING_TYPES

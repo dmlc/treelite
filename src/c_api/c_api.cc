@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file c_api.cc
  * \author Philip Cho
- * \brief C API of tree-lite, used for interfacing with other languages
+ * \brief C API of treelite, used for interfacing with other languages
  */
 
 #include <treelite/annotator.h>

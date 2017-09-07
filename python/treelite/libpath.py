@@ -1,17 +1,17 @@
 # coding: utf-8
-"""Find the path to tree-lite dynamic library files."""
+"""Find the path to treelite dynamic library files."""
 
 import os
 import platform
 import sys
 
 class TreeliteLibraryNotFound(Exception):
-    """Error thrown by when tree-lite is not found"""
+    """Error thrown by when treelite is not found"""
     pass
 
 
 def find_lib_path(runtime=False):
-    """Find the path to tree-lite dynamic library files.
+    """Find the path to treelite dynamic library files.
     
     Parameters
     ----------
@@ -21,7 +21,7 @@ def find_lib_path(runtime=False):
     Returns
     -------
     lib_path: list(string)
-       List of all found library path to tree-lite
+       List of all found library path to treelite
     """
     lib_name = 'treelite_runtime' if runtime else 'treelite'
     
@@ -49,7 +49,7 @@ def find_lib_path(runtime=False):
 
     if not lib_path:
         raise TreeliteLibraryNotFound(
-            'Cannot find tree-lite library in the candidate path: ' +
+            'Cannot find treelite library in the candidate path: ' +
             'List of candidates:\n' + ('\n'.join(dll_path)))
     return lib_path
 

@@ -1,7 +1,7 @@
 /*!
  * Copyright 2017 by Contributors
  * \file logging.h
- * \brief logging facility for tree-lite
+ * \brief logging facility for treelite
  * \author Philip Cho
  */
 #ifndef TREELITE_LOGGING_H_

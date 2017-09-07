@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file c_api_runtime.cc
  * \author Philip Cho
- * \brief C API of tree-lite (runtime portion)
+ * \brief C API of treelite (runtime portion)
  */
  
 #include <treelite/predictor.h>

@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Core tree-lite library."""
+"""Core treelite library."""
 from __future__ import absolute_import as _abs
 
 import ctypes
@@ -12,7 +12,7 @@ from .libpath import find_lib_path
 from .compat import STRING_TYPES, DataFrame, py_str, buffer_from_memory
 
 class TreeliteError(Exception):
-  """Error thrown by tree-lite"""
+  """Error thrown by treelite"""
   pass
 
 def _log_callback(msg):
@@ -25,7 +25,7 @@ def _get_log_callback_func():
   return CALLBACK(_log_callback)
 
 def _load_lib():
-  """Load tree-lite Library."""
+  """Load treelite Library."""
   lib_path = find_lib_path()
   if len(lib_path) == 0:
     return None
@@ -36,7 +36,7 @@ def _load_lib():
     raise TreeliteError(lib.TreeliteGetLastError())
   return lib
 
-# load the tree-lite library globally
+# load the treelite library globally
 _LIB = _load_lib()
 
 def _check_call(ret):

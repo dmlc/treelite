@@ -1,15 +1,15 @@
-# tree-lite
+# treelite
 
 fast tree inference
 
 ## =======UNDER CONSTRUCTION: to be released soon=======
 
-## [To-do list](https://github.com/dmlc/tree-lite/issues/1)
+## [To-do list](https://github.com/dmlc/treelite/issues/1)
 
 ## How to install (UNIX-like systems)
 ```bash
-git clone --recursive https://github.com/dmlc/tree-lite.git
-cd tree-lite
+git clone --recursive https://github.com/dmlc/treelite.git
+cd treelite
 mkdir build
 cd build
 cmake ..
@@ -20,8 +20,8 @@ make
 Visual Studio 2015 or newer is required.
 On the command-line:
 ```cmd
-git clone --recursive https://github.com/dmlc/tree-lite.git
-cd tree-lite
+git clone --recursive https://github.com/dmlc/treelite.git
+cd treelite
 mkdir build
 cd build
 
@@ -36,6 +36,6 @@ Now the `build` folder should have the solution file `treelite.sln`.
 ## Optional Protobuf support
 If your system has Protobuf
 ([google/protobuf](https://github.com/google/protobuf)) library installed,
-tree-lite will be compiled with Protobuf support. It can be compiled without
+treelite will be compiled with Protobuf support. It can be compiled without
 Protobuf, but in this case you won't be able to read models from Protobuf
 files.

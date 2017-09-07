@@ -38,7 +38,7 @@ def _check_call(ret):
     raise TreeliteError(_LIB.TreeliteGetLastError())
 
 class Batch(object):
-  """batch of rows to be used for prediction"""
+  """Batch of rows to be used for prediction"""
   def __init__(self):
     self.handle = None
     self.kind = None
@@ -60,7 +60,8 @@ class Batch(object):
 
     Returns
     -------
-    tuple (number of rows, number of columns)
+    dims : :py:class:`tuple <python:tuple>` of length 2
+        (number of rows, number of columns)
     """
     num_row = ctypes.c_size_t()
     num_col = ctypes.c_size_t()
@@ -83,17 +84,20 @@ class Batch(object):
 
     Parameters
     ----------
-    mat : 2D numpy array
+    mat : object of type :py:class:`numpy.ndarray`, with dimension 2
         data matrix
-    rbegin : integer, optional (defaults to 0)
+    rbegin : :py:class:`int <python:int>`, optional
         the index of the first row in the subset
-    rend : integer, optional (defaults to the end of matrix)
-        one past the index of the last row in the subset
-    missing : float, optional (defaults to np.nan)
-        value indicating missing value
+    rend : :py:class:`int <python:int>`, optional
+        one past the index of the last row in the subset. If missing, set to
+        the end of the matrix.
+    missing : :py:class:`float <python:float>`, optional
+        value indicating missing value. If missing, set to ``numpy.nan``.
+
     Returns
     -------
-    a dense batch consisting of rows [rbegin, rend)
+    dense_batch : :py:class:`Batch`
+        a dense batch consisting of rows ``[rbegin, rend)``
     """
     if not isinstance(mat, np.ndarray):
       raise ValueError('mat must be of type numpy.ndarray')
@@ -129,20 +133,23 @@ class Batch(object):
   def from_csr(cls, csr, rbegin=None, rend=None):
     """
     Get a sparse batch from a subset of rows in a CSR (Compressed Sparse Row)
-    matrix. The subset is given by the range [rbegin, rend).
+    matrix. The subset is given by the range ``[rbegin, rend)``.
     
     Parameters
     ----------
-    csr : object of class `DMatrix` or `scipy.sparse.csr_matrix`
+    csr : object of class :py:class:`treelite.DMatrix` or \
+          :py:class:`scipy.sparse.csr_matrix`
         data matrix
-    rbegin : integer, optional (defaults to 0)
+    rbegin : :py:class:`int <python:int>`, optional
         the index of the first row in the subset
-    rend : integer, optional (defaults to the end of matrix)
-        one past the index of the last row in the subset
+    rend : :py:class:`int <python:int>`, optional
+        one past the index of the last row in the subset. If missing, set to
+        the end of the matrix.
 
     Returns
     -------
-    a sparse batch consisting of rows [rbegin, rend)
+    sparse_batch : :py:class:`Batch`
+        a sparse batch consisting of rows ``[rbegin, rend)``
     """
     # use duck typing so as to accomodate both scipy.sparse.csr_matrix
     # and DMatrix without explictly importing any of them
@@ -191,18 +198,18 @@ class Batch(object):
     return batch
 
 class Predictor(object):
-  """Predictor class"""
-  def __init__(self, libpath, verbose=False):
-    """
-    Predictor class: load a compiled shared library
+  """
+  Predictor class: loader for compiled shared libraries
 
-    Parameters
-    ----------
-    libpath: string
-        location of dynamic shared library (.dll/.so/.dylib)
-    verbose : boolean, optional (default to False)
-        Whether to print extra messages during construction
-    """
+  Parameters
+  ----------
+  libpath: :py:class:`str <python:str>`
+      location of dynamic shared library (.dll/.so/.dylib)
+  verbose : :py:class:`bool <python:bool>`, optional
+      Whether to print extra messages during construction
+  """
+  def __init__(self, libpath, verbose=False):
+    
     if os.path.isdir(libpath):  # libpath is a diectory
       # directory is given; locate shared library inside it
       basename = os.path.basename(libpath.rstrip('/\\'))
@@ -239,13 +246,13 @@ class Predictor(object):
 
     Parameters
     ----------
-    batch: object of type `Batch`
+    batch: object of type :py:class:`Batch`
         batch of rows for which predictions will be made
-    nthread : integer, optional
+    nthread : :py:class:`int <python:int>`, optional
         Number of threads (default to number of cores)
-    verbose : boolean, optional (default to False)
+    verbose : :py:class:`bool <python:bool>`, optional
         Whether to print extra messages during prediction
-    pred_margin: boolean, optional (default to False)
+    pred_margin: :py:class:`bool <python:bool>`, optional
         whether to produce raw margins rather than transformed probabilities
     """
     if not isinstance(batch, Batch):

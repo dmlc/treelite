@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Runtime API of tree-lite python package.
+Runtime API of treelite Python package.
 
 Runtime API provides the *minimum necessary* tools to deploy tree prediction
 modules in the wild.

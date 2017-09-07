@@ -20,16 +20,15 @@ def _isascii(string):
     return False
 
 class Model(object):
-  """Decision tree ensemble model"""
-  def __init__(self, handle=None):
-    """
-    Decision tree ensemble model
+  """
+  Decision tree ensemble model
 
-    Parameters
-    ----------
-    handle : `ctypes.c_void_p`, optional
-        Initial value of model handle
-    """
+  Parameters
+  ----------
+  handle : :py:class:`ctypes.c_void_p <python:ctypes.c_void_p>`, optional
+      Initial value of model handle
+  """
+  def __init__(self, handle=None):
     if handle is None:
       self.handle = None
     else:
@@ -42,22 +41,49 @@ class Model(object):
       _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
-  def export_lib(self, toolchain, libpath, params, compiler='recursive',
+  def export_lib(self, toolchain, libpath, params=None, compiler='recursive',
                  verbose=False, nthread=None, options=None):
     """
     Convenience function: Generate prediction code and immediately turn it
     into a dynamic shared library. A temporary directory will be created to
     hold the source files.
 
-    Usage
-    -----
-    model.export_lib(toolchain='msvc', libpath='./mymodel.dll',
-                     params={}, verbose=True)
-    # this is equivalent to writing
-    # model.compile(dirpath='/temporary/directory', params={}, verbose=True)
-    # create_shared(toolchain='msvc', dirpath='/temporary/directory',
-    #               verbose=True)
-    # shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
+    Parameters
+    ----------
+    toolchain : :py:class:`str <python:str>`
+        which toolchain to use (e.g. 'msvc', 'clang', 'gcc')
+    libpath : :py:class:`str <python:str>`
+        location to save the generated dynamic shared library
+    params : :py:class:`dict <python:dict>`, optional
+        parameters to be passed to the compiler
+    compiler : :py:class:`str <python:str>`, optional
+        name of compiler to use in code generation
+    verbose : :py:class:`bool <python:bool>`, optional
+        whether to produce extra messages
+    nthread : :py:class:`int <python:int>`, optional
+        number of threads to use in creating the shared library.
+        Defaults to the number of cores in the system.
+    options : :py:class:`str <python:str>`, optional
+        Additional options to pass to toolchain
+
+    Example
+    -------
+    The one-line command
+
+    .. code-block:: python
+
+       model.export_lib(toolchain='msvc', libpath='./mymodel.dll',
+                        params={}, verbose=True)
+                         
+    is equivalent to the following sequence of commands:
+
+    .. code-block:: python
+
+       model.compile(dirpath='/temporary/directory', params={}, verbose=True)
+       create_shared(toolchain='msvc', dirpath='/temporary/directory',
+                     verbose=True)
+       # move the library out of the temporary directory
+       shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
     """
     _check_ext(toolchain, libpath)  # check for file extension
     with TemporaryDirectory() as temp_dir:
@@ -70,27 +96,34 @@ class Model(object):
     """
     Generate prediction code from a tree ensemble model. The code will be C99
     compliant. One header file (.h) will be generated, along with one or more
-    source files (.c). Use create_shared() to package prediction code
-    as a dynamic shared library (.so/.dll/.dylib).
-
-    Usage
-    -----
-    model.compile(dirpath='./my/model', params={}, verbose=True)
-    # files to generate: ./my/model/model.h, ./my/model/model.c
-    # if parallel compilation is enabled:
-    # ./my/model/model.h, ./my/model/model0.c, ./my/model/model1.c,
-    # ./my/model/model2.c, and so forth
+    source files (.c). Use :py:meth:`create_shared` method to package
+    prediction code as a dynamic shared library (.so/.dll/.dylib).
 
     Parameters
     ----------
-    dirpath : string
+    dirpath : :py:class:`str <python:str>`
         directory to store header and source files
-    params : dict, optional
+    params : :py:class:`dict <python:dict>`, optional
         parameters for compiler
-    compiler : string, optional (defaults to 'recursive')
+    compiler : :py:class:`str <python:str>`, optional
         name of compiler to use
-    verbose : boolean, optional (defaults to False)
+    verbose : :py:class:`bool <python:bool>`, optional
         Whether to print extra messages during compilation
+
+    Example
+    -------
+    The following populates the directory ``./model`` with source and header
+    files:
+
+    .. code-block:: python
+
+       model.compile(dirpath='./my/model', params={}, verbose=True)
+
+    If parallel compilation is enabled (parameter ``parallel_comp``), the files
+    are in the form of ``./my/model/model.h``, ``./my/model/model0.c``,
+    ``./my/model/model1.c``, ``./my/model/model2.c`` and so forth, depending on
+    the value of ``parallel_comp``. Otherwise, there will be exactly two files:
+    ``./model/model.h``, ``./my/model/model.c``
     """
     compiler_handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteCompilerCreate(c_str(compiler),
@@ -129,20 +162,24 @@ class Model(object):
     """
     Load a tree ensemble model from an XGBoost Booster object
 
-    Usage
-    -----
-    bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
-    xgb_model = Model.from_xgboost(bst)
-
     Parameters
     ----------
-    booster : object of type `xgboost.Booster`
+    booster : object of type :py:class:`xgboost.Booster`
         Python handle to XGBoost model
 
     Returns
     -------
-    model : `Model` object
+    model : :py:class:`Model` object
         loaded model
+
+    Example
+    -------
+
+    .. code-block:: python
+       :emphasize-lines: 2
+
+       bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
+       xgb_model = Model.from_xgboost(bst)
     """
     handle = ctypes.c_void_p()
     # attempt to load xgboost
@@ -165,21 +202,24 @@ class Model(object):
     """
     Load a tree ensemble model from a file
 
-    Usage
-    -----
-    xgb_model = Model.load('xgboost_model.model', 'xgboost')
-
     Parameters
     ----------
-    filename : string
+    filename : :py:class:`str <python:str>`
         path to model file
-    format : string
+    format : :py:class:`str <python:str>`
         model file format; must be given if filename is given
 
     Returns
     -------
-    model : `Model` object
+    model : :py:class:`Model` object
         loaded model
+
+    Example
+    -------
+
+    .. code-block:: python
+
+       xgb_model = Model.load('xgboost_model.model', 'xgboost')
     """
     handle = ctypes.c_void_p()
     if not _isascii(format):
@@ -203,6 +243,16 @@ class ModelBuilder(object):
   """
   Builder class for tree ensemble model: provides tools to iteratively build
   an ensemble of decision trees
+
+  Parameters
+  ----------
+  num_feature : :py:class:`int <python:int>`
+      number of features used in model being built. We assume that all
+      feature indices are between ``0`` and (``num_feature - 1``)
+  num_output_group : :py:class:`int <python:int>`, optional
+      number of output groups; ``>1`` indicates multiclass classification
+  params : :py:class:`dict <python:dict>`, optional
+      parameters to be used with the resulting model
   """
   class Node(object):
     """Handle to a node in a tree"""
@@ -215,7 +265,8 @@ class ModelBuilder(object):
 
       Returns
       -------
-      self (for method chaining)
+      self : :py:class:`.Node` object
+          for method chaining
       """
       try:
         _check_call(_LIB.TreeliteTreeBuilderSetRootNode(self.tree.handle,
@@ -231,14 +282,16 @@ class ModelBuilder(object):
 
       Parameters
       ----------
-      leaf_value : float / list of float
-          Usually a single leaf value (weight) of the leaf node
-          For multiclass random forest classifier, leaf_value should be a list
-          of leaf weights
+      leaf_value : :py:class:`float <python:float>` / \
+                   :py:class:`list <python:list>` of \
+                   :py:class:`float <python:float>`
+          Usually a single leaf value (weight) of the leaf node. For multiclass
+          random forest classifier, leaf_value should be a list of leaf weights.
       
       Returns
       -------
-      self (for method chaining)
+      self : :py:class:`.Node` object
+          for method chaining
       """
       # check if leaf_value is a list-like object
       try:
@@ -278,27 +331,29 @@ class ModelBuilder(object):
                                 default_left, left_child_key, right_child_key):
       """
       Set the node as a test node with numerical split. The test is in the form
-      [feature value] OP [threshold]. Depending on the result of the test,
+      ``[feature value] OP [threshold]``. Depending on the result of the test,
       either left or right child would be taken.
 
       Parameters
       ----------
-      feature_id : int
+      feature_id : :py:class:`int <python:int>`
           feature index
-      opname : string
+      opname : :py:class:`str <python:str>`
           binary operator to use in the test
-      threshold : float
+      threshold : :py:class:`float <python:float>`
           threshold value
-      default_left : boolean
-          default direction for missing values (True for left; False for right)
-      left_child_key : int
+      default_left : :py:class:`bool <python:bool>`
+          default direction for missing values
+          (``True`` for left; ``False`` for right)
+      left_child_key : :py:class:`int <python:int>`
           unique integer key to identify the left child node
-      right_child_key : int
+      right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
   
       Returns
       -------
-      self (for method chaining)
+      self : :py:class:`.Node` object
+          for method chaining
       """
       try:
         # automatically create child nodes that don't exist yet
@@ -325,25 +380,29 @@ class ModelBuilder(object):
       """
       Set the node as a test node with categorical split. A list defines all
       categories that would be classified as the left side. Categories are
-      integers ranging from 0 to (n-1), where n is the number of categories in
-      that particular feature. Let's assume n <= 64.
+      integers ranging from ``0`` to ``n-1``, where ``n`` is the number of
+      categories in that particular feature. Let's assume ``n <= 64``.
 
       Parameters
       ----------
-      feature_id : int
+      feature_id : :py:class:`int <python:int>`
           feature index
-      left_categories : list of int, with every element not exceeding 63
+      left_categories : :py:class:`list <python:list>` of \
+                        :py:class:`int <python:int>`, with every element \
+                        not exceeding 63
           list of categories belonging to the left child.
-      default_left : boolean
-          default direction for missing values (True for left; False for right)
-      left_child_key : int
+      default_left : :py:class:`bool <python:bool>`
+          default direction for missing values
+          (``True`` for left; ``False`` for right)
+      left_child_key : :py:class:`int <python:int>`
           unique integer key to identify the left child node
-      right_child_key : int
+      right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
 
       Returns
       -------
-      self (for method chaining)
+      self : :py:class:`.Node` object
+          for method chaining
       """
       try:
         # automatically create child nodes that don't exist yet
@@ -424,19 +483,6 @@ class ModelBuilder(object):
       return self.nodes.__reversed__()
 
   def __init__(self, num_feature, num_output_group=1, params={}):
-    """
-    Builder class for tree ensemble model
-
-    Parameters
-    ----------
-    num_feature : integer
-        number of features used in model being built. We assume that all
-        feature indices are between 0 and (num_feature - 1)
-    num_output_group : integer, optional (defaults to 1)
-        number of output groups; >1 indicates multiclass classification
-    params : dict, optional (defaults to {})
-        parameters to be used with the resulting model
-    """
     if not isinstance(num_feature, int):
       raise ValueError('num_feature must be of int type')
     if num_feature <= 0:
@@ -459,10 +505,21 @@ class ModelBuilder(object):
 
     Parameters
     ----------
-    tree : `ModelBuilder.Tree` object
+    tree : :py:class:`.Tree` object
         tree to be inserted
-    index : integer
+    index : :py:class:`int <python:int>`
         index of the element before which to insert the tree
+
+    Example
+    -------
+
+    .. code-block:: python
+       :emphasize-lines: 3
+
+       builder = ModelBuilder(num_feature=4227)
+       tree = ...               # build tree somehow
+       builder.insert(tree, 0)  # insert tree at index 0
+
     """
     if not isinstance(index, int):
       raise ValueError('index must be of int type')
@@ -490,8 +547,17 @@ class ModelBuilder(object):
 
     Parameters
     ----------
-    tree : `ModelBuilder.Tree` object
+    tree : :py:class:`.Tree` object
         tree to be added
+
+    Example
+    -------
+    .. code-block:: python
+       :emphasize-lines: 3
+
+       builder = ModelBuilder(num_feature=4227)
+       tree = ...               # build tree somehow
+       builder.append(tree)     # add tree at the end of the ensemble
     """
     self.insert(tree, len(self))
 
@@ -501,8 +567,21 @@ class ModelBuilder(object):
 
     Returns
     -------
-    model : `Model` object
+    model : :py:class:`Model` object
         finished model
+
+    Example
+    -------
+    .. code-block:: python
+       :emphasize-lines: 6
+
+       builder = ModelBuilder(num_feature=4227)
+       for i in range(100):
+         tree = ...                    # build tree somehow
+         builder.append(tree)          # add one tree at a time
+       
+       model = builder.commit()        # now get a Model object
+       model.compile(dirpath='test')   # compile model into C code
     """
     model_handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteModelBuilderCommitModel(self.handle,

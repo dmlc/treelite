@@ -24,31 +24,49 @@ def _check_ext(toolchain, dllpath):
 def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
   """Create shared library.
 
-  Usage
-  -----
-  model.compile(dirpath='./my/model', params={}, verbose=True)
-  create_shared(toolchain='msvc', dirpath='./my/model', verbose=True)
-  # resulting shared library is ./my/model/model.dll (assuming Windows platform)
-
   Parameters
   ----------
-  toolchain : string
-      which toolchain to use (e.g. msvc, clang, gcc)
-  dirpath : string
+  toolchain : :py:class:`str <python:str>`
+      which toolchain to use (e.g. 'msvc', 'clang', 'gcc')
+  dirpath : :py:class:`str <python:str>`
       directory containing the header and source files previously generated
-      by model.compile(). The directory must contain recipe.json
+      by :py:meth:`Model.compile`. The directory must contain recipe.json
       which specifies build dependencies.
-  nthread : int, optional
-      number of threads to use while compiling source files in parallel.
+  nthread : :py:class:`int <python:int>`, optional
+      number of threads to use in creating the shared library.
       Defaults to the number of cores in the system.
-  verbose : boolean, optional (defaults to False)
+  verbose : :py:class:`bool <python:bool>`, optional
       whether to produce extra messages
-  options : str, optional (defaults to None)
+  options : :py:class:`str <python:str>`, optional
       Additional options to pass to toolchain
 
   Returns
   -------
-  absolute path of created shared library
+  libpath : :py:class:`str <python:str>`
+      absolute path of created shared library
+
+  Example
+  -------
+  The following command uses Visual C++ toolchain to generate
+  ``./my/model/model.dll``:
+  
+  .. code-block:: python
+
+     model.compile(dirpath='./my/model', params={}, verbose=True)
+     create_shared(toolchain='msvc', dirpath='./my/model', verbose=True)
+
+  Later, the shared library can be referred to by its directory name:
+  
+  .. code-block:: python
+  
+     predictor = Predictor(libpath='./my/model', verbose=True)
+     # looks for ./my/model/model.dll
+
+  Alternatively, one may specify the library down to its file name:
+
+  .. code-block:: python
+
+     predictor = Predictor(libpath='./my/model/model.dll', verbose=True)
   """
 
   if nthread is not None and nthread <= 0:

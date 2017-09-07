@@ -93,34 +93,33 @@ def _maybe_pandas_data(data, feature_names, feature_types):
   return data, feature_names, feature_types
 
 class DMatrix(object):
-  """Data matrix used in tree-lite."""
-  
+  """Data matrix used in treelite.
+
+  Parameters
+  ----------
+  data : :py:class:`str <python:str>` / :py:class:`numpy.ndarray` /\
+         :py:class:`scipy.sparse.csr_matrix` / :py:class:`pandas.DataFrame`
+      Data source. When data is :py:class:`str <python:str>` type, it indicates
+      that data should be read from a file.
+  data_format : :py:class:`str <python:str>`, optional
+      Format of input data file. Applicable only when data is read from a
+      file. If missing, the svmlight (.libsvm) format is assumed.
+  missing : :py:class:`float <python:float>`, optional
+      Value in the data that represents a missing entry. If set to ``None``,
+      ``numpy.nan`` will be used.
+  verbose : :py:class:`bool <python:bool>`, optional
+      Whether to print extra messages during construction
+  feature_names : :py:class:`list <python:list>`, optional
+      Human-readable names for features
+  feature_types : :py:class:`list <python:list>`, optional
+      Types for features
+  nthread : :py:class:`int <python:int>`, optional
+      Number of threads
+  """
+
   def __init__(self, data, data_format=None, missing=None,
                feature_names=None, feature_types=None,
                verbose=False, nthread=None):
-    """Data matrix used in tree-lite.
-
-    Parameters
-    ----------
-    data : string/numpy array/scipy.sparse/pd.DataFrame
-        Data source of DMatrix.
-        When data is string type, it indicates that data should be read from
-        a file.
-    data_format: string, optional
-        Format of input data file. Applicable only when data is read from a
-        file. When unspecified, the svmlight (*.libsvm) format is assumed.
-    missing : float, optional
-        Value in the data that represents a missing entry. If None, defaults to
-        np.nan.
-    verbose : boolean, optional
-        Whether to print extra messages during construction
-    feature_names : list, optional
-        Human-readable names for features
-    feature_types : list, optional
-        Types for features
-    nthread : integer, optional
-        Number of threads
-    """
     if data is None:  # empty DMatrix
       self.handle = None
       return

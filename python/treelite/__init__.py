@@ -1,6 +1,4 @@
 # coding: utf-8
-"""tree-lite: compiler for fast decision tree inference
-"""
 
 from __future__ import absolute_import as _abs
 from .compat import assert_python_min_ver

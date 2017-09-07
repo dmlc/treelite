@@ -10,18 +10,17 @@ import os
 import json
 
 class Annotator(object):
-  """Branch annotator class"""
-  def __init__(self, path=None):
-    """
-    Branch annotator class: annotate branches in a given model using frequency
-    patterns in the training data
+  """
+  Branch annotator class: annotate branches in a given model using frequency
+  patterns in the training data
 
-    Parameters
-    ----------
-    path: string, optional
-        if path is given, the predictor will load branch frequency information
-        from the path
-    """
+  Parameters
+  ----------
+  path: :py:class:`str <python:str>`, optional
+      if given, the predictor will load branch frequency information
+      from the path
+  """
+  def __init__(self, path=None):
     if path is None:
       self.handle = None
     else:
@@ -42,13 +41,14 @@ class Annotator(object):
 
     Parameters
     ----------
-    model : object of type `Model`
+    model : object of type :py:class:`Model`
         decision tree ensemble model
-    dmat : object of type `DMatrix`
+    dmat : object of type :py:class:`DMatrix`
         data matrix representing the training data
-    nthread : integer, optional (defaults to number of cores in the system)
-        number of threads to use while annotating
-    verbose : boolean, optional (defaults to Fales)
+    nthread : :py:class:`int <python:int>`, optional
+        number of threads to use while annotating. If missing, use all physical
+        cores in the system.
+    verbose : :py:class:`bool <python:bool>`, optional
         whether to produce extra messages
     """
     if not isinstance(model, Model):
@@ -74,7 +74,7 @@ class Annotator(object):
 
     Parameters
     ----------
-    path : string
+    path : :py:class:`str <python:str>`
         location of saved JSON file
     """
     if self.handle is None:

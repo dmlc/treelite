@@ -19,12 +19,6 @@ int TreeliteOpenMPSupported() {
 #endif
 }
 
-#if _MSC_VER
-const char* TreeliteVarsallBatPath() {
-  return TREELITE_MSVC_VARSALL_BAT;
-}
-#endif
-
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();

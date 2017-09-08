@@ -5,7 +5,7 @@ Tools to interact with Microsoft Visual C++ (MSVC) toolchain
 
 from __future__ import absolute_import as _abs
 from ..core import _LIB, _check_call, TreeliteError
-from ..compat import _str_decode, _str_encode
+from ..compat import _str_decode, _str_encode, PY3
 from .util import lineno, log_info
 
 import os
@@ -13,9 +13,52 @@ import subprocess
 import ctypes
 from multiprocessing import cpu_count
 
+if PY3:
+  import winreg
+else:
+  import _winreg as winreg
+
+def _is_64bit_windows():
+  return 'PROGRAMFILES(X86)' in os.environ
+  
 def _varsall_bat_path():
-  _LIB.TreeliteVarsallBatPath.restype = ctypes.c_char_p
-  return _str_decode(_LIB.TreeliteVarsallBatPath())
+  if _is_64bit_windows():
+    key_name = 'SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7'
+  else:
+    key_name = 'SOFTWARE\\Microsoft\\VisualStudio\\SxS\\VC7'
+  key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_name)
+  i = 0
+  vs_installs = []         # list of all Visual Studio installations
+  while True:
+    try:
+      version, location, _ = winreg.EnumValue(key, i)
+      vs_installs.append((version, location))
+    except WindowsError:
+      break
+    i += 1
+
+  # if a custom location is given, try that first
+  if 'TREELITE_VCVARSALL' in os.environ:
+    candidate = os.environ['TREELITE_VCVARSALL']
+    if os.path.basename(candidate).lower() != 'vcvarsall.bat':
+      raise OSError('Environment variable TREELITE_VCVARSALL must point to '+\
+                    'file vcvarsall.bat')
+    if os.path.isfile(candidate):
+      return candidate
+    else:
+      raise OSError('Environment variable TREELITE_VCVARSALL does not refer '+\
+                    'to existing vcvarsall.bat')
+
+  # scan all detected Visual Studio installations, with most recent first
+  for version, vcroot in sorted(vs_installs, key=lambda x: x[0], reverse=True):
+    if version == '15.0':   # Visual Studio 2017 revamped directory structure
+      candidate = os.path.join(vcroot, 'VC\\Auxiliary\\Build\\vcvarsall.bat')
+    else:
+      candidate = os.path.join(vcroot, 'VC\\vcvarsall.bat')
+    if os.path.isfile(candidate):
+      return candidate
+  raise OSError('vcvarsall.bat not found; please specify its full path in '+\
+                'the environment variable TREELITE_VCVARSALL')
 
 def _enqueue(args):
   queue = args[0]
@@ -25,7 +68,7 @@ def _enqueue(args):
   proc = subprocess.Popen('cmd.exe', shell=True, stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('\"{}\" x64\n'.format(_varsall_bat_path())))
+  proc.stdin.write(_str_encode('\"{}\" amd64\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
   proc.stdin.write(_str_encode('type NUL > retcode_cpu{}.txt\n'.format(id)))
   for source in queue:

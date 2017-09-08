@@ -14,10 +14,6 @@ if(MSVC)
   endif()
 endif()
 
-# define CMake info macros
-msvc_locate_vcvarsall_bat()
-set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS TREELITE_MSVC_VARSALL_BAT="${VCVARSALL_BAT}")
-
 set_default_configuration_release()
 msvc_use_static_runtime()
 

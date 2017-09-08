@@ -19,8 +19,16 @@ install:
 
 script:
   - pwd
-  - make
+  - make -j4
 
 after_success:
-  - cd python
+  - cd ${TRAVIS_BUILD_DIR}/python
   - python setup-pip.py bdist_wheel
+
+addons:
+  artifacts: true
+
+addons:
+  artifacts:
+    s3_region: "us-west-1"  # NorCal
+    working_dir: ${TRAVIS_BUILD_DIR}/python/dist

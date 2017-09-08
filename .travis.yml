@@ -1,0 +1,26 @@
+language: cpp
+
+os:
+  - osx
+  - linux
+
+osx_image: xcode8.3
+dist: trusty
+sudo: false
+
+compiler:
+  - gcc
+  - clang
+
+install:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script:
+  - pwd
+  - make
+
+after_success:
+  - cd python
+  - python setup-pip.py bdist_wheel

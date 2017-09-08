@@ -2,6 +2,7 @@
 """Core treelite library."""
 from __future__ import absolute_import as _abs
 
+import sys
 import ctypes
 import collections
 
@@ -37,7 +38,11 @@ def _load_lib():
   return lib
 
 # load the treelite library globally
-_LIB = _load_lib()
+# (do not load if called by sphinx)
+if 'sphinx' not in sys.modules:
+  _LIB = _load_lib()
+else:
+  _LIB = None
 
 def _check_call(ret):
   """Check the return value of C API call

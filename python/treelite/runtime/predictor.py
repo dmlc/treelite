@@ -5,6 +5,7 @@ from ..core import c_str, _get_log_callback_func, TreeliteError
 from ..libpath import find_lib_path
 from ..contrib.util import lineno, log_info
 import ctypes
+import sys
 import os
 import numpy as np
 
@@ -21,7 +22,11 @@ def _load_runtime_lib():
   return lib
 
 # load the treelite runtime
-_LIB = _load_runtime_lib()
+# (do not load if called by sphinx)
+if 'sphinx' not in sys.modules:
+  _LIB = _load_runtime_lib()
+else:
+  _LIB = None
 
 def _check_call(ret):
   """Check the return value of C API call

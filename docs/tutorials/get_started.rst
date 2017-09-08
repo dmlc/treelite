@@ -9,7 +9,7 @@ optimize decision tree ensembles for fast prediction.
 
 In this tutorial, we will demonstrate the basic workflow.
 
-.. code:: ipython3
+.. code:: python
 
     from __future__ import absolute_import, print_function
     
@@ -29,7 +29,7 @@ Let us use the Boston house prices dataset from scikit-learn
 (:py:func:`sklearn.datasets.load_boston`). It consists of 506 houses
 with 13 distinct features:
 
-.. code:: ipython3
+.. code:: python
 
     from sklearn.datasets import load_boston
     X, y = load_boston(return_X_y=True)
@@ -42,7 +42,7 @@ Train a tree ensemble model using XGBoost
 The first step is to train a tree ensemble model using XGBoost
 (`dmlc/xgboost <https://github.com/dmlc/xgboost/>`_).
 
-.. code:: ipython3
+.. code:: python
 
     import xgboost
     dtrain = xgboost.DMatrix(X, label=y)
@@ -56,7 +56,7 @@ Pass XGBoost model into treelite
 Next, we feed the trained model into treelite. If you used XGBoost to
 train the model, it takes only one line of code:
 
-.. code:: ipython3
+.. code:: python
 
     model = Model.from_xgboost(bst)
 
@@ -77,7 +77,7 @@ appropriately:
 -  ``clang``
 -  ``msvc`` (Microsoft Visual C++)
 
-.. code:: ipython3
+.. code:: python
 
     toolchain = 'clang'   # change this value as necessary
 
@@ -86,7 +86,7 @@ subroutine into native code.
 
 Now we are ready to generate the library.
 
-.. code:: ipython3
+.. code:: python
 
     model.export_lib(toolchain=toolchain, libpath='./mymodel.dylib', verbose=True)
                                 #                            ^^^^^
@@ -107,7 +107,7 @@ module (:py:mod:`treelite.runtime`) known as the runtime. The
 optimized prediction subroutine is exposed through the
 :py:class:`~treelite.runtime.Predictor` class:
 
-.. code:: ipython3
+.. code:: python
 
     from treelite.runtime import *     # runtime module
     predictor = Predictor('./mymodel.dylib', verbose=True)
@@ -115,7 +115,7 @@ optimized prediction subroutine is exposed through the
 We decide on which of the houses in ``X`` we should make predictions
 for. Say, from 10th house to 20th:
 
-.. code:: ipython3
+.. code:: python
 
     batch = Batch.from_npy2d(X, rbegin=10, rend=20)
 
@@ -124,7 +124,7 @@ because the matrix ``X`` was a dense NumPy array (:py:class:`numpy.ndarray`).
 If ``X`` were a sparse matrix (:py:class:`scipy.sparse.csr_matrix`), we would
 have used the method :py:meth:`~treelite.runtime.Batch.from_csr` instead.
 
-.. code:: ipython3
+.. code:: python
 
     out_pred = predictor.predict(batch, verbose=True)
     print(out_pred)

@@ -19,8 +19,9 @@
 #
 import os
 import sys
+import subprocess
+subprocess.call('cd .. && mkdir build && cd build && cmake .. && make -j2', shell=True)
 sys.path.insert(0, os.path.abspath('../python'))
-
 
 # -- General configuration ------------------------------------------------
 

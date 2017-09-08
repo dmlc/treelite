@@ -34,10 +34,10 @@ sys.path.insert(0, os.path.abspath('../python'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx']
-    #'sphinx.ext.todo',
-    #'sphinx.ext.coverage',
-    #'sphinx.ext.imgmath']
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.imgmath']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -112,7 +112,8 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
+html_static_path = []
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -176,4 +177,5 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.4', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy/', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
                        'pandas': ('http://pandas-docs.github.io/pandas-docs-travis/', None),
-                       'xgboost': ('http://xgboost.readthedocs.io/en/latest', None)}
+                       'xgboost': ('http://xgboost.readthedocs.io/en/latest', None),
+                       'sklearn': ('http://scikit-learn.org/stable', None)}

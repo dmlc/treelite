@@ -1,4 +1,3 @@
-
 Get Started with treelite
 =========================
 
@@ -92,12 +91,13 @@ Now we are ready to generate the library.
                                 #                            ^^^^^
                                 # set correct file extension here; see the following paragraph
 
-**Note**. Make sure to use the correct file extension for the library,
-depending on the operating system:
+.. note:: File extension for shared library
+  Make sure to use the correct file extension for the library,
+  depending on the operating system:
 
--  Windows: ``.dll``
--  Mac OS X: ``.dylib``
--  Linux: ``.so``
+  -  Windows: ``.dll``
+  -  Mac OS X: ``.dylib``
+  -  Linux: ``.so``
 
 Use the shared library to make predictions
 ------------------------------------------

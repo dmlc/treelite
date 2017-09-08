@@ -8,6 +8,7 @@ Welcome to treelite documentation.
    :maxdepth: 1
    :caption: Contents:
    
+   install
    tutorials/index
    treelite-api
    treelite-runtime-api

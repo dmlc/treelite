@@ -1,41 +1,13 @@
 # treelite
 
-fast tree inference
+Treelite is a framework to optimize decision tree ensembles for
+**fast prediction**.
 
-## =======UNDER CONSTRUCTION: to be released soon=======
+**Treelite is now in public beta!**
 
-## [To-do list](https://github.com/dmlc/treelite/issues/1)
+* Documentation: [treelite.io](http://treelite.io)
+* [To-do list](https://github.com/dmlc/treelite/issues/1)
+* Acknowledgement
+* Contributors
+* Roadmap (coming soon)
 
-## How to install (UNIX-like systems)
-```bash
-git clone --recursive https://github.com/dmlc/treelite.git
-cd treelite
-mkdir build
-cd build
-cmake ..
-make
-```
-
-## How to install (Windows with Visual Studio)
-Visual Studio 2015 or newer is required.
-On the command-line:
-```cmd
-git clone --recursive https://github.com/dmlc/treelite.git
-cd treelite
-mkdir build
-cd build
-
-:: if using Protobuf, specify its location; otherwise remove the following line
-set CMAKE_PREFIX_PATH=C:\path\to\protobuf
-
-:: be sure to specify "Win64" at the end
-cmake .. -G"Visual Studio 15 2017 Win64"
-```
-Now the `build` folder should have the solution file `treelite.sln`.
-
-## Optional Protobuf support
-If your system has Protobuf
-([google/protobuf](https://github.com/google/protobuf)) library installed,
-treelite will be compiled with Protobuf support. It can be compiled without
-Protobuf, but in this case you won't be able to read models from Protobuf
-files.

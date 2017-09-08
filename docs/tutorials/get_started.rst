@@ -62,7 +62,7 @@ train the model, it takes only one line of code:
 Generate shared library
 -----------------------
 
-Gvien a tree ensemble model, treelite will produce an **optimized
+Given a tree ensemble model, treelite will produce an **optimized
 prediction subroutine** (internally represented as a C program). To use
 the subroutine for prediction task, we package it as a `dynamic shared
 library <https://en.wikipedia.org/wiki/Library_(computing)#Shared_libraries>`_,

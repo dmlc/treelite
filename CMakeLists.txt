@@ -19,7 +19,9 @@ msvc_use_static_runtime()
 
 # OpenMP check
 if(OpenMP_FOUND)
+  include(dmlc-core/cmake/Utils.cmake)
   set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS OPENMP_SUPPORT)
+  dmlccore_option(USE_OPENMP "Build with OpenMP" ON)
 else()
   include(dmlc-core/cmake/Utils.cmake)
   dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)

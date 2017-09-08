@@ -31,6 +31,10 @@ setup(
     name='treelite',
     version='0.1',
     description='treelite: fast tree prediction',
+    url='http://treelite.io',
+    author='DMLC',
+    maintainer='Hyunsu Cho',
+    maintainer_email='chohyu01@cs.washington.edu',
     packages=find_packages(),
     package_data={
         'treelite': [lib_basename, rt_basename],

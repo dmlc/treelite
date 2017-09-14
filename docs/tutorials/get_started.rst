@@ -92,6 +92,7 @@ Now we are ready to generate the library.
                                 # set correct file extension here; see the following paragraph
 
 .. note:: File extension for shared library
+
   Make sure to use the correct file extension for the library,
   depending on the operating system:
 

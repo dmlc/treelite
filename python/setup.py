@@ -17,15 +17,22 @@ RT_PATH = libpath['find_lib_path'](runtime=True)   # runtime lib path
 if len(LIB_PATH) == 0 or len(RT_PATH) == 0:
   raise RuntimeError('Please compile the C++ package first')
 
+if os.path.abspath(os.path.dirname(LIB_PATH[0])) == os.path.abspath('./treelite'):
+  # remove stale copies of library
+  del LIB_PATH[0]
+  del RT_PATH[0]
+
 lib_basename = os.path.basename(LIB_PATH[0])
 lib_dest = os.path.join('./treelite', lib_basename)
 rt_basename = os.path.basename(RT_PATH[0])
 rt_dest = os.path.join('./treelite', rt_basename)
 
-if not os.path.exists(lib_dest):
-  shutil.copy(LIB_PATH[0], lib_dest)
-if not os.path.exists(rt_dest):
-  shutil.copy(RT_PATH[0], rt_dest)
+if os.path.exists(lib_dest):
+  os.remove(lib_dest)
+if os.path.exists(rt_dest):
+  os.remove(rt_dest)
+shutil.copy(LIB_PATH[0], lib_dest)
+shutil.copy(RT_PATH[0], rt_dest)
 
 setup(
     name='treelite',

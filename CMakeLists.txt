@@ -70,7 +70,7 @@ endforeach(g)
 list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
-if(Protobuf_FOUND)
+if (Protobuf_FOUND OR PROTOBUF_FOUND)
   set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
   include_directories(${PROTOBUF_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -90,7 +90,7 @@ if (UNIX)
 endif (UNIX)
 
 # Protobuf library
-if (Protobuf_FOUND)
+if (Protobuf_FOUND OR PROTOBUF_FOUND)
   list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
 endif()
 

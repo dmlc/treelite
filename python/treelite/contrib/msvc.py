@@ -9,6 +9,7 @@ from ..compat import _str_decode, _str_encode, PY3
 from .util import lineno, log_info
 
 import os
+import sys
 import subprocess
 import ctypes
 from multiprocessing import cpu_count
@@ -92,7 +93,10 @@ def _create_dll(dirpath, target, sources, options):
   proc = subprocess.Popen('cmd.exe', shell=True, stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('\"{}\" x64\n'.format(_varsall_bat_path())))
+  if _is_64bit_windows():
+    proc.stdin.write(_str_encode('\"{}\" x64\n'.format(_varsall_bat_path())))
+  else:
+    proc.stdin.write(_str_encode('\"{}\" x86\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
   proc.stdin.write(_str_encode('cl.exe /LD /Fe{} /openmp {} {}\n'
                                .format(target,

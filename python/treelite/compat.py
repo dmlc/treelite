@@ -44,8 +44,8 @@ else:
   def _str_encode(str):
     return str
 
-if PY3:
-  from json import JSONDecodeError
+if sys.version_info[0] == 3 and sys.version_info[1] >= 5:
+  from json import JSONDecodeError   # Python 3.5 or newer
 else:
   JSONDecodeError = ValueError
 

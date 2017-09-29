@@ -36,7 +36,7 @@ shutil.copy(RT_PATH[0], rt_dest)
 
 setup(
     name='treelite',
-    version='0.1',
+    version='0.1a1',
     description='treelite: fast tree prediction',
     url='http://treelite.io',
     author='DMLC',

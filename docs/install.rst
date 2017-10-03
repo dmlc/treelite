@@ -135,3 +135,18 @@ If your system has Protobuf
 treelite will be compiled with Protobuf support. It can be compiled without
 Protobuf, but in this case you won't be able to read models from Protobuf
 files. See ``src/tree.proto`` for schematics.
+
+.. note:: Specifying the path of Protobuf installation on Windows
+
+  On Windows, you should specify the root directory containing Protobuf
+  compilers and libraries by setting the environment variable
+  ``CMAKE_PREFIX_PATH`` as follows:
+
+  .. code:: dosbatch
+
+    mkdir build
+    cd build
+
+    :: Specify location of Protobuf
+    set CMAKE_PREFIX_PATH=C:\path\to\protobuf
+    cmake .. -G"Visual Studio 15 2017 Win64"

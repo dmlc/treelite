@@ -14,14 +14,24 @@
 
 #include "c_api_common.h"
 
-/* opaque handles */
+/*!
+ * \addtogroup opaque_handles
+ * opaque handles
+ * \{
+ */
+/*! \brief handle to predictor class */
 typedef void* PredictorHandle;
+/*! \brief handle to batch of sparse data rows */
 typedef void* CSRBatchHandle;
+/*! \brief handle to batch of dense data rows */
 typedef void* DenseBatchHandle;
+/*! \} */
 
-/***************************************************************************
- * Part 1: predictor interface
- ***************************************************************************/
+/*!
+ * \defgroup predictor
+ * Predictor interface
+ * \{
+ */
 /*!
  * \brief assemble a sparse batch
  * \param data feature values
@@ -69,7 +79,6 @@ TREELITE_DLL int TreeliteDeleteDenseBatch(DenseBatchHandle handle);
  * \param batch_sparse whether the batch is sparse (true) or dense (false)
  * \param out_num_row used to set number of rows
  * \param out_num_col used to set number of columns
- * \param out_nelem used to set number of nonzero entries
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteBatchGetDimension(void* handle,
@@ -142,5 +151,6 @@ TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle,
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorFree(PredictorHandle handle);
+/*! \} */
 
 #endif  // TREELITE_C_API_RUNTIME_H_

@@ -12,6 +12,7 @@ Welcome to treelite documentation.
    tutorials/index
    treelite-api
    treelite-runtime-api
+   treelite-c-api
 
 
 Contents

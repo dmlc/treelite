@@ -1,5 +1,5 @@
-Get Started with treelite
-=========================
+Quick Start
+===========
 
 **Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
 

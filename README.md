@@ -1,7 +1,8 @@
 # treelite
 
-Treelite is a framework to optimize decision tree ensembles for
-**fast prediction**.
+[![Documentation Status](https://readthedocs.org/projects/treelite/badge/?version=latest)](http://treelite.readthedocs.io/en/latest/?badge=latest)
+
+Treelite is a framework to optimize decision tree ensembles for **fast prediction**.
 
 **Treelite is now in public beta!**
 

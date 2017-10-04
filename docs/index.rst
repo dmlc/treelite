@@ -9,6 +9,7 @@ Welcome to treelite documentation.
    :caption: Contents:
    
    install
+   quick_start
    tutorials/index
    treelite-api
    treelite-runtime-api

@@ -8,4 +8,4 @@ This page contains tutorials about treelite.
    :maxdepth: 1
    :caption: Contents:
    
-   get_started
+   builder

@@ -43,13 +43,13 @@ Installation consists of two steps:
    optimized prediction subroutines; and the runtime library, for deploying
    these subroutines in the wild for actual prediction tasks.
 
-   ================ ===================== =============================
-   Operating System Main library          Runtime library
-   ================ ===================== =============================
-   Windows          ``treelite.dll``      ``treelite_runtime.dll``
-   Mac OS X         ``libtreelite.dylib`` ``libtreelite_runtime.dylib``
-   Linux            ``libtreelite.so``    ``libtreelite_runtime.so``
-   ================ ===================== =============================
+   ================== ===================== =============================
+   Operating System   Main library          Runtime library
+   ================== ===================== =============================
+   Windows            ``treelite.dll``      ``treelite_runtime.dll``
+   Mac OS X           ``libtreelite.dylib`` ``libtreelite_runtime.dylib``
+   Linux / other UNIX ``libtreelite.so``    ``libtreelite_runtime.so``
+   ================== ===================== =============================
 
 To get started, clone treelite repo from GitHub. It is important to clone the
 submodules with ``--recursive`` option.
@@ -92,7 +92,7 @@ on the copy that's installed on your system.
   cd build
   cmake .. -G"Visual Studio 15 2017 Win64"
 
-.. note:: Visual Studio 2015 or new is required
+.. note:: Visual Studio 2015 or newer is required
 
   A large part of treelite has been written using the C++ 2011 standard.
   Visual Studio 2015 is the `first version that supports the new standard

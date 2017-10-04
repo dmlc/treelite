@@ -3,15 +3,35 @@ Installation
 
 **Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
 
-Installing from the source
---------------------------
+You may choose one of two methods to install treelite on your system:
 
-.. note:: Binary distribution coming soon
+* :ref:`install-pip`
+* :ref:`install-source`
 
-  For the time being, only source installation is available. We are currently
-  working hard to provide binary distribution on ``pip``. We apologize for
-  your inconvenience.
+.. _install-pip:
 
+Download binary releases from PyPI (Recommended)
+------------------------------------------------
+This is probably the most convenient method. Simply type
+
+.. code:: bash
+
+  pip install treelite --user
+
+to install the treelite package. The command will locate the binary release that
+is compatible with your current platform. Check the installation by running
+
+.. code:: python
+
+  import treelite
+
+in an interactive Python session. This method is available for only Windows,
+Mac OS X, and Linux. For other operating systems, see the next section.
+
+.. _install-source:
+
+Compile treelite from the source
+--------------------------------
 Installation consists of two steps:
 
 1. Build the shared libraries from C++ code (See the note below for the list.)
@@ -128,17 +148,17 @@ to C++ code will be immediately visible to Python side without re-running
   export PYTHONPATH=path/to/treelite/python
   python          # enter interactive session
 
-Optional Protobuf support
--------------------------
-If your system has Protobuf
-(`google/protobuf <https://github.com/google/protobuf>`_) library installed,
-treelite will be compiled with Protobuf support. It can be compiled without
-Protobuf, but in this case you won't be able to read models from Protobuf
-files. See ``src/tree.proto`` for schematics.
+.. note:: Compiling with Protobuf support
 
-.. note:: Specifying the path of Protobuf installation on Windows
+  If your system has Protobuf
+  (`google/protobuf <https://github.com/google/protobuf>`_) library installed,
+  treelite will be compiled with Protobuf support. It can be compiled without
+  Protobuf, but in this case you won't be able to read models from Protobuf
+  files. See ``src/tree.proto`` for schematics.
 
-  On Windows, you should specify the root directory containing Protobuf
+  **Binary releases hosted on PyPI have been compiled with Protobuf support.**
+
+  **On Windows,** you should specify the root directory containing Protobuf
   compilers and libraries by setting the environment variable
   ``CMAKE_PREFIX_PATH`` as follows:
 

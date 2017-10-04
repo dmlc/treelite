@@ -30,7 +30,10 @@ def setup(app):
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
   from subprocess import call 
-  call('doxygen')
+  call('doxygen', shell=True)
+
+import pip
+pip.main(['install', 'breathe'])
 
 # -- General configuration ------------------------------------------------
 
@@ -104,7 +107,6 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-import pip
 pip.main(['install', 'guzzle_sphinx_theme'])
 import guzzle_sphinx_theme
 

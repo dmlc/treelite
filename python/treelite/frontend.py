@@ -259,19 +259,16 @@ class ModelBuilder(object):
     def __init__(self):
       self.empty = True
 
+    def __repr__(self):
+      return '<treelite.ModelBuilder.Node object>'
+
     def set_root(self):
       """
       Set the node as the root
-
-      Returns
-      -------
-      self : :py:class:`.Node` object
-          for method chaining
       """
       try:
         _check_call(_LIB.TreeliteTreeBuilderSetRootNode(self.tree.handle,
                                                   ctypes.c_int(self.node_key)))
-        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                            + 'a node must be inserted before it can be a root')
@@ -287,11 +284,6 @@ class ModelBuilder(object):
                    :py:class:`float <python:float>`
           Usually a single leaf value (weight) of the leaf node. For multiclass
           random forest classifier, leaf_value should be a list of leaf weights.
-      
-      Returns
-      -------
-      self : :py:class:`.Node` object
-          for method chaining
       """
       # check if leaf_value is a list-like object
       try:
@@ -322,7 +314,6 @@ class ModelBuilder(object):
                                                    ctypes.c_int(self.node_key),
                                                    ctypes.c_float(leaf_value)))
         self.empty = False
-        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a leaf node')
@@ -349,11 +340,6 @@ class ModelBuilder(object):
           unique integer key to identify the left child node
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
-  
-      Returns
-      -------
-      self : :py:class:`.Node` object
-          for method chaining
       """
       try:
         # automatically create child nodes that don't exist yet
@@ -369,7 +355,6 @@ class ModelBuilder(object):
                                  ctypes.c_int(left_child_key),
                                  ctypes.c_int(right_child_key)))
         self.empty = False
-        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a test node')
@@ -398,11 +383,6 @@ class ModelBuilder(object):
           unique integer key to identify the left child node
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
-
-      Returns
-      -------
-      self : :py:class:`.Node` object
-          for method chaining
       """
       try:
         # automatically create child nodes that don't exist yet
@@ -419,7 +399,6 @@ class ModelBuilder(object):
                                  ctypes.c_int(left_child_key),
                                  ctypes.c_int(right_child_key)))
         self.empty = False
-        return self
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a test node')

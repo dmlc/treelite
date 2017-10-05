@@ -1,5 +1,5 @@
 ==============
-treelite C API
+Treelite C API
 ==============
 
 Treelite exposes a set of C functions to enable interfacing with a variety of

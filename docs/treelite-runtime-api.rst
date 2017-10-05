@@ -1,5 +1,5 @@
 ====================
-treelite runtime API
+Treelite runtime API
 ====================
 
 .. automodule:: treelite.runtime

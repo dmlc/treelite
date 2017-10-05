@@ -1,5 +1,5 @@
 ============
-treelite API
+Treelite API
 ============
 
 API of treelite Python package.

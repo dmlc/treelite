@@ -482,6 +482,10 @@ class ModelBuilder(object):
     def __reversed__(self):
       return self.nodes.__reversed__()
 
+    def __repr__(self):
+      return '<treelite.ModelBuilder.Tree object containing {} nodes>\n'\
+             .format(len(self.nodes))
+
   def __init__(self, num_feature, num_output_group=1, params={}):
     if not isinstance(num_feature, int):
       raise ValueError('num_feature must be of int type')
@@ -611,6 +615,10 @@ class ModelBuilder(object):
 
   def __reversed__(self):
     return self.trees.__reversed__()
+
+  def __repr__(self):
+    return '<treelite.ModelBuilder object storing {} decision trees>\n'\
+           .format(len(self.trees))
 
   def _set_param(self, params, value=None):
     """

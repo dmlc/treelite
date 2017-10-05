@@ -1,5 +1,5 @@
 ============================================
-treelite : fast inference for decision trees
+Treelite : fast inference for decision trees
 ============================================
 
 Welcome to treelite documentation.

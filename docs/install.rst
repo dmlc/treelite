@@ -14,14 +14,14 @@ Download binary releases from PyPI (Recommended)
 ------------------------------------------------
 This is probably the most convenient method. Simply type
 
-.. code:: bash
+.. code-block:: bash
 
   pip install treelite --user
 
 to install the treelite package. The command will locate the binary release that
 is compatible with your current platform. Check the installation by running
 
-.. code:: python
+.. code-block:: python
 
   import treelite
 
@@ -54,7 +54,7 @@ Installation consists of two steps:
 To get started, clone treelite repo from GitHub. It is important to clone the
 submodules with ``--recursive`` option.
 
-.. code:: bash
+.. code-block:: bash
 
   git clone --recursive https://github.com/dmlc/treelite.git
   cd treelite
@@ -65,7 +65,7 @@ The next step is to build the shared libraries.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Here, we use CMake to generate a Makefile:
 
-.. code:: bash
+.. code-block:: bash
 
   mkdir build
   cd build
@@ -74,7 +74,7 @@ Here, we use CMake to generate a Makefile:
 Once CMake finished running, simply invoke GNU Make to obtain the shared
 libraries.
 
-.. code:: bash
+.. code-block:: bash
 
   make
 
@@ -86,7 +86,7 @@ We can use CMake to generate a Visual Studio project. The following snippet
 assumes that Visual Studio 2017 is installed. Adjust the version depending
 on the copy that's installed on your system.
 
-.. code:: dosbatch
+.. code-block:: dosbatch
 
   mkdir build
   cd build
@@ -109,7 +109,7 @@ ways to install the package:
 
 **1. Install system-wide, which requires root permission**
 
-.. code:: bash
+.. code-block:: bash
 
   cd python
   sudo python setup.py install
@@ -118,7 +118,7 @@ You will need Python `setuptools <https://pypi.python.org/pypi/setuptools>`_
 module for this to work. It is often part of the core Python installation.
 Should it be necessary, the package can be installed using ``pip``:
 
-.. code:: bash
+.. code-block:: bash
 
   pip install -U pip setuptools
 
@@ -126,7 +126,7 @@ Should it be necessary, the package can be installed using ``pip``:
 
 This is useful if you do not have the administrative rights.
 
-.. code:: bash
+.. code-block:: bash
 
   cd python
   python setup.py develop --user
@@ -143,30 +143,33 @@ the treelite package. This is useful for developers, as any changes made
 to C++ code will be immediately visible to Python side without re-running
 ``setup.py``.
 
-.. code:: bash
+.. code-block:: bash
 
   export PYTHONPATH=path/to/treelite/python
   python          # enter interactive session
 
-.. note:: Compiling with Protobuf support
+.. note:: Compiling with Protocol Buffers support
 
-  If your system has Protobuf
+  If your system has Protocol Buffers
   (`google/protobuf <https://github.com/google/protobuf>`_) library installed,
-  treelite will be compiled with Protobuf support. It can be compiled without
-  Protobuf, but in this case you won't be able to read models from Protobuf
-  files. See ``src/tree.proto`` for schematics.
+  treelite will be compiled with Protocol Buffers support. That is, you will
+  able to read tree ensemble models that had been serialized using Protocol
+  Buffers. Protocol Buffers support is strictly optional; treelite can be
+  compiled without it. Should you decide to use Protocol Buffers, you should
+  specify your ensemble model according to the specification `src/tree.proto
+  <https://github.com/dmlc/treelite/blob/master/src/tree.proto>`_.
 
-  **Binary releases hosted on PyPI have been compiled with Protobuf support.**
+  **Binary releases hosted on PyPI have been compiled with Protocol Buffers support.**
 
   **On Windows,** you should specify the root directory containing Protobuf
   compilers and libraries by setting the environment variable
   ``CMAKE_PREFIX_PATH`` as follows:
 
-  .. code:: dosbatch
+  .. code-block:: dosbatch
 
     mkdir build
     cd build
 
-    :: Specify location of Protobuf
+    :: Specify location of protobuf (Protocol Buffers)
     set CMAKE_PREFIX_PATH=C:\path\to\protobuf
     cmake .. -G"Visual Studio 15 2017 Win64"

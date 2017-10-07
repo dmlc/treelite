@@ -49,9 +49,12 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'breathe',
+    'sphinx.ext.graphviz',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.imgmath']
+
+graphviz_output_format = 'png'
 
 # Breathe extension variables
 breathe_projects = { "treelite": "doxyxml/" }

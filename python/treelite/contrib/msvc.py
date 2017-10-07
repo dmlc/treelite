@@ -131,8 +131,8 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
     if not all(x == 0 for x in result[id]['retcode']):
       with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(id)), 'w') as f:
         f.write(result[id]['stdout'] + '\n')
-      raise TreeliteError('Error occured in worker #{}. '.format(id) +\
-                          'See log_cpu{}.txt for details'.format(id))
+      raise TreeliteError('Error occured in worker #{}: '.format(id) +\
+                          '{}'.format(result[id]['stdout']))
 
   # 2. Package objects into a dynamic shared library (.dll)
   if verbose:
@@ -144,8 +144,8 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   if result['retcode'] != 0:
     with open(os.path.join(dirpath, 'log_dll.txt'), 'w') as f:
         f.write(result['stdout'] + '\n')
-    raise TreeliteError('Error occured while creating DLL.' +\
-                        'See log_dll.txt for details.')
+    raise TreeliteError('Error occured while creating DLL: ' +\
+                        '{}'.format(result['stdout']))
 
   # 3. Clean up
   for id in range(ncpu):

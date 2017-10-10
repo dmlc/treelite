@@ -34,9 +34,12 @@ if os.path.exists(rt_dest):
 shutil.copy(LIB_PATH[0], lib_dest)
 shutil.copy(RT_PATH[0], rt_dest)
 
+with open('../VERSION', 'r') as f:
+  VERSION = f.readlines()[0]
+
 setup(
     name='treelite',
-    version='0.1a3',
+    version=VERSION,
     description='treelite: fast tree prediction',
     url='http://treelite.io',
     author='DMLC',

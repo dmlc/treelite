@@ -21,6 +21,10 @@ languages. This page will be most useful for:
   `this page <https://softwareengineering.stackexchange.com/q/281882>`_ for
   more details.
 
+.. contents:: Contents
+  :local:
+  :backlinks: none
+
 Data matrix interface
 ---------------------
 Use the following functions to load and manipulate data from a variety of

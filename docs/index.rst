@@ -4,6 +4,8 @@ Treelite : fast inference for decision trees
 
 Welcome to treelite documentation.
 
+Current version: |version|
+
 .. toctree::
  :maxdepth: 2
  :caption: Contents:

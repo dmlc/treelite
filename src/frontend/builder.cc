@@ -85,10 +85,13 @@ struct ModelBuilderImpl {
   std::vector<TreeBuilder> trees;
   int num_feature;
   int num_output_group;
+  bool random_forest_flag;
   std::vector<std::pair<std::string, std::string>> cfg;
-  inline ModelBuilderImpl(int num_feature, int num_output_group)
+  inline ModelBuilderImpl(int num_feature, int num_output_group,
+                          bool random_forest_flag)
     : trees(), num_feature(num_feature),
-      num_output_group(num_output_group), cfg() {
+      num_output_group(num_output_group),
+      random_forest_flag(random_forest_flag), cfg() {
     CHECK_GT(num_feature, 0) << "ModelBuilder: num_feature must be positive";
     CHECK_GT(num_output_group, 0)
       << "ModelBuilder: num_output_group must be positive";
@@ -249,9 +252,11 @@ TreeBuilder::SetLeafVectorNode(int node_key,
   return true;
 }
 
-ModelBuilder::ModelBuilder(int num_feature, int num_output_group)
+ModelBuilder::ModelBuilder(int num_feature, int num_output_group,
+                           bool random_forest_flag)
   : pimpl(common::make_unique<ModelBuilderImpl>(num_feature,
-                                                num_output_group)) {}
+                                                num_output_group,
+                                                random_forest_flag)) {}
 ModelBuilder::~ModelBuilder() {}
 
 void
@@ -336,6 +341,7 @@ ModelBuilder::CommitModel(Model* out_model) {
   Model model;
   model.num_feature = pimpl->num_feature;
   model.num_output_group = pimpl->num_output_group;
+  model.random_forest_flag = pimpl->random_forest_flag;
   // extra parameters
   InitParamAndCheck(&model.param, pimpl->cfg);
 
@@ -417,16 +423,21 @@ ModelBuilder::CommitModel(Model* out_model) {
     }
   }
   if (flag_leaf_vector == 0) {
-    CHECK_EARLY_RETURN(pimpl->trees.size() % model.num_output_group == 0,
-      "For multi-class classifiers with gradient boosted trees, the number "
-      "of trees must be evenly divisible by the number of output groups");
-    if (model.num_output_group == 1) {
-      model.multiclass_type = Model::MulticlassType::kNA;
-    } else {
-      model.multiclass_type = Model::MulticlassType::kGradientBoosting;
+    if (model.num_output_group > 1) {
+      // multiclass classification with gradient boosted trees
+      CHECK_EARLY_RETURN(!model.random_forest_flag,
+        "To use a random forest for multi-class classification, each leaf "
+        "node must output a leaf vector specifying a probability "
+        "distribution");
+      CHECK_EARLY_RETURN(pimpl->trees.size() % model.num_output_group == 0,
+        "For multi-class classifiers with gradient boosted trees, the number "
+        "of trees must be evenly divisible by the number of output groups");
     }
   } else if (flag_leaf_vector == 1) {
-    model.multiclass_type = Model::MulticlassType::kRandomForest;
+    // multiclass classification with a random forest
+    CHECK_EARLY_RETURN(model.random_forest_flag,
+      "In multi-class classifiers with gradient boosted trees, each leaf "
+      "node must output a single floating-point value.");
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }

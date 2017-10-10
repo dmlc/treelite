@@ -114,6 +114,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   std::vector<LGBTree> lgb_trees_;
   int max_feature_idx_;
   int num_tree_per_iteration_;
+  bool average_output_;
   std::string obj_name_;
   std::vector<std::string> obj_param_;
 
@@ -158,6 +159,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need num_tree_per_iteration";
     num_tree_per_iteration_ = treelite::common::TextToNumber<int>(it->second);
+
+    it = global_dict.find("average_output");
+    average_output_ = (it != global_dict.end());
   }
 
   for (const auto& dict : tree_dict) {
@@ -233,10 +237,15 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   treelite::Model model;
   model.num_feature = max_feature_idx_ + 1;
   model.num_output_group = num_tree_per_iteration_;
-  model.multiclass_type
-    = (model.num_output_group > 1) ?
-      treelite::Model::MulticlassType::kGradientBoosting
-    : treelite::Model::MulticlassType::kNA;
+  if (model.num_output_group > 1) {
+    // multiclass classification with gradient boosted trees
+    CHECK(!average_output_)
+      << "Ill-formed LightGBM model file: cannot use random forest mode "
+      << "for multi-class classification";
+    model.random_forest_flag = false;
+  } else {
+    model.random_forest_flag = average_output_;
+  }
 
   // set correct prediction transform function, depending on objective function
   if (obj_name_ == "multiclass") {

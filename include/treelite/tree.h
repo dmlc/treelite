@@ -315,10 +315,6 @@ inline void InitParamAndCheck(ModelParam* param,
 
 /*! \brief thin wrapper for tree ensemble model */
 struct Model {
-  /*! \brief type of multiclass classification; kNA if not applicable */
-  enum class MulticlassType {
-    kNA, kGradientBoosting, kRandomForest
-  };
   /*! \brief member trees */
   std::vector<Tree> trees;
   /*!
@@ -326,10 +322,12 @@ struct Model {
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
   int num_feature;
-  /*! \brief number of output groups -- for multi-class classification */
+  /*! \brief number of output groups -- for multi-class classification
+   *  Set to 1 for everything else */
   int num_output_group;
-  /*! \brief type of multiclass classification; kNA if not applicable */
-  MulticlassType multiclass_type;
+  /*! \brief flag for random forest;
+   *  True for random forests and False for gradient boosted trees */
+  bool random_forest_flag; 
   /*! \brief extra parameters */
   ModelParam param;
 

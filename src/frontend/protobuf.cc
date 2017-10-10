@@ -84,6 +84,10 @@ Model LoadProtobufModel(const char* filename) {
   CHECK_GT(num_output_group, 0) << "num_output_group must be positive";
   model.num_output_group = static_cast<int>(protomodel.num_output_group());
 
+  CHECK(protomodel.has_random_forest_flag())
+    << "random_forest_flag must exist";
+  model.random_forest_flag = protomodel.random_forest_flag();
+
   // extra parameters field
   const auto& ep = protomodel.extra_params();
   std::vector<std::pair<std::string, std::string>> cfg;
@@ -172,16 +176,21 @@ Model LoadProtobufModel(const char* filename) {
     }
   }
   if (flag_leaf_vector == 0) {
-    CHECK_EQ(ntree % model.num_output_group, 0)
-      << "For multi-class classifiers with gradient boosted trees, the number "
-      << "of trees must be evenly divisible by the number of output groups";
-    if (model.num_output_group == 1) {
-      model.multiclass_type = Model::MulticlassType::kNA;
-    } else {
-      model.multiclass_type = Model::MulticlassType::kGradientBoosting;
+    if (model.num_output_group > 1) {
+      // multiclass classification with gradient boosted trees
+      CHECK(!model.random_forest_flag)
+        << "To use a random forest for multi-class classification, each leaf "
+        << "node must output a leaf vector specifying a probability "
+        << "distribution";
+      CHECK_EQ(ntree % model.num_output_group, 0)
+        << "For multi-class classifiers with gradient boosted trees, the number "
+        << "of trees must be evenly divisible by the number of output groups";
     }
   } else if (flag_leaf_vector == 1) {
-    model.multiclass_type = Model::MulticlassType::kRandomForest;
+    // multiclass classification with a random forest
+    CHECK(model.random_forest_flag)
+      << "In multi-class classifiers with gradient boosted trees, each leaf "
+      << "node must output a single floating-point value.";
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }

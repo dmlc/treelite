@@ -251,6 +251,9 @@ class ModelBuilder(object):
       feature indices are between ``0`` and (``num_feature - 1``)
   num_output_group : :py:class:`int <python:int>`, optional
       number of output groups; ``>1`` indicates multiclass classification
+  random_forest : :py:class:`bool <python:bool>`, optional
+      whether the model is a random forest; ``True`` indicates a random forest
+      and ``False`` indicates gradient boosted trees
   params : :py:class:`dict <python:dict>`, optional
       parameters to be used with the resulting model
   """
@@ -465,7 +468,8 @@ class ModelBuilder(object):
       return '<treelite.ModelBuilder.Tree object containing {} nodes>\n'\
              .format(len(self.nodes))
 
-  def __init__(self, num_feature, num_output_group=1, params={}):
+  def __init__(self, num_feature, num_output_group=1,
+               random_forest=False, params={}):
     if not isinstance(num_feature, int):
       raise ValueError('num_feature must be of int type')
     if num_feature <= 0:
@@ -477,6 +481,7 @@ class ModelBuilder(object):
     self.handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteCreateModelBuilder(ctypes.c_int(num_feature),
                                                 ctypes.c_int(num_output_group),
+                                       ctypes.c_int(1 if random_forest else 0),
                                                 ctypes.byref(self.handle)))
     _params = dict(params) if isinstance(params, list) else params
     self._set_param(_params or {})

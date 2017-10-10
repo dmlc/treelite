@@ -151,7 +151,18 @@ class TreeBuilder {
 /*! \brief model builder class */
 class ModelBuilder {
  public:
-  ModelBuilder(int num_feature, int num_output_group);  // constructor
+  /*!
+   * \brief Constructor
+   * \param num_feature number of features used in model being built. We assume
+   *                    that all feature indices are between 0 and
+   *                    (num_feature - 1).
+   * \param num_output_group number of output groups. Set to 1 for binary
+   *                         classification and regression; >1 for multiclass
+   *                         classification
+   * \param random_forest_flag whether the model is a random forest (true) or
+   *                           gradient boosted trees (false)
+   */
+  ModelBuilder(int num_feature, int num_output_group, bool random_forest_flag);
   ~ModelBuilder();  // destructor
   /*!
    * \brief Set a model parameter

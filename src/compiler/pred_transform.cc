@@ -31,8 +31,7 @@ identity(const Model& model, bool batch) {
 
 std::vector<std::string>
 identity_multiclass(const Model& model, bool batch) {
-  CHECK(model.multiclass_type != decltype(model.multiclass_type)::kNA
-        && model.num_output_group > 1)
+  CHECK(model.num_output_group > 1)
     << "identity_multiclass: model is not a proper multi-class classifier";
   const int num_class = model.num_output_group;
   if (batch) {
@@ -102,8 +101,7 @@ logarithm_one_plus_exp(const Model& model, bool batch) {
 
 std::vector<std::string>
 max_index(const Model& model, bool batch) {
-  CHECK(model.multiclass_type != decltype(model.multiclass_type)::kNA
-        && model.num_output_group > 1)
+  CHECK(model.num_output_group > 1)
     << "max_index: model is not a proper multi-class classifier";
   const int num_class = model.num_output_group;
 
@@ -155,8 +153,7 @@ max_index(const Model& model, bool batch) {
 
 std::vector<std::string>
 softmax(const Model& model, bool batch) {
-  CHECK(model.multiclass_type != decltype(model.multiclass_type)::kNA
-    && model.num_output_group > 1)
+  CHECK(model.num_output_group > 1)
     << "softmax: model is not a proper multi-class classifier";
   const int num_class = model.num_output_group;
 
@@ -224,8 +221,7 @@ softmax(const Model& model, bool batch) {
 
 std::vector<std::string>
 multiclass_ova(const Model& model, bool batch) {
-  CHECK(model.multiclass_type == decltype(model.multiclass_type)::kNA
-    && model.num_output_group > 1)
+  CHECK(model.num_output_group > 1)
     << "multiclass_ova: model is not a proper multi-class classifier";
   const int num_class = model.num_output_group;
   const float alpha = model.param.sigmoid_alpha;

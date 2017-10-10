@@ -397,11 +397,16 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
  * \param num_output_group number of output groups. Set to 1 for binary
  *                         classification and regression; >1 for multiclass
  *                         classification
+ * \param random_forest_flag whether the model is a random forest. Set to 0 if
+ *                           the model is gradient boosted trees. Any nonzero
+ *                           value shall indicate that the model is a
+ *                           random forest.
  * \param out newly created model builder
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteCreateModelBuilder(int num_feature,
                                             int num_output_group,
+                                            int random_forest_flag,
                                             ModelBuilderHandle* out);
 /*!
  * \brief Set a model parameter

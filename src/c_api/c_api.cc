@@ -547,9 +547,11 @@ int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
 
 int TreeliteCreateModelBuilder(int num_feature,
                                int num_output_group,
+                               int random_forest_flag,
                                ModelBuilderHandle* out) {
   API_BEGIN();
-  auto builder = new frontend::ModelBuilder(num_feature, num_output_group);
+  auto builder = new frontend::ModelBuilder(num_feature, num_output_group,
+                                            (random_forest_flag != 0));
   *out = static_cast<ModelBuilderHandle>(builder);
   API_END();
 }

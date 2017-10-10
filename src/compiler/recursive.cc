@@ -98,7 +98,7 @@ struct GroupPolicy {
   std::string PrototypeTranslationUnit(size_t unit_id) const;
 
   int num_output_group;
-  treelite::Model::MulticlassType multiclass_type;
+  bool random_forest_flag;
 };
 
 }  // namespace anonymous
@@ -560,16 +560,7 @@ namespace {
 inline void
 GroupPolicy::Init(const treelite::Model& model) {
   this->num_output_group = model.num_output_group;
-  this->multiclass_type = model.multiclass_type;
-  if (this->num_output_group == 1) {
-    CHECK(this->multiclass_type == decltype(this->multiclass_type)::kNA)
-      << "Ill-formed model: multiclass_type must be kNA "
-      << "when num_output_group is 1";
-  } else {
-    CHECK(this->multiclass_type != decltype(this->multiclass_type)::kNA)
-      << "Ill-formed model: multiclass_type cannot be kNA "
-      << "when num_output_group > 1";
-  }
+  this->random_forest_flag = model.random_forest_flag;
 }
 
 inline std::string
@@ -601,23 +592,27 @@ GroupPolicy::AccumulateTranslationUnit(size_t unit_id) const {
 inline std::vector<std::string>
 GroupPolicy::AccumulateLeaf(const treelite::Tree::Node& node,
                             size_t tree_id) const {
-  if (multiclass_type == decltype(multiclass_type)::kGradientBoosting) {
-    const treelite::tl_float leaf_value = node.leaf_value();
-    return {std::string("sum[") + std::to_string(tree_id % num_output_group)
-      + "] += (float)" + treelite::common::ToString(leaf_value) + ";"};
-  } else if (multiclass_type == decltype(multiclass_type)::kRandomForest) {
-    const std::vector<treelite::tl_float>& leaf_vector = node.leaf_vector();
-    CHECK_EQ(leaf_vector.size(), static_cast<size_t>(num_output_group))
-      << "Ill-formed model: leaf vector must be of length [num_output_group]";
-    std::vector<std::string> lines;
-    lines.reserve(num_output_group);
-    for (int group_id = 0; group_id < num_output_group; ++group_id) {
-      lines.push_back(std::string("sum[") + std::to_string(group_id)
-        + "] += (float)"
-        + treelite::common::ToString(leaf_vector[group_id]) + ";");
+  if (num_output_group > 1) {
+    if (random_forest_flag) {
+      // multi-class classification with random forest
+      const std::vector<treelite::tl_float>& leaf_vector = node.leaf_vector();
+      CHECK_EQ(leaf_vector.size(), static_cast<size_t>(num_output_group))
+        << "Ill-formed model: leaf vector must be of length [num_output_group]";
+      std::vector<std::string> lines;
+      lines.reserve(num_output_group);
+      for (int group_id = 0; group_id < num_output_group; ++group_id) {
+        lines.push_back(std::string("sum[") + std::to_string(group_id)
+          + "] += (float)"
+          + treelite::common::ToString(leaf_vector[group_id]) + ";");
+      }
+      return lines;
+    } else {
+      // multi-class classification with gradient boosted trees
+      const treelite::tl_float leaf_value = node.leaf_value();
+      return { std::string("sum[") + std::to_string(tree_id % num_output_group)
+             + "] += (float)" + treelite::common::ToString(leaf_value) + ";" };
     }
-    return lines;
-  } else {  // kNA
+  } else {
     const treelite::tl_float leaf_value = node.leaf_value();
     return {std::string("sum += (float)")
             + treelite::common::ToString(leaf_value) + ";" };
@@ -626,31 +621,39 @@ GroupPolicy::AccumulateLeaf(const treelite::Tree::Node& node,
 
 inline std::vector<std::string>
 GroupPolicy::Return() const {
-  if (multiclass_type == decltype(multiclass_type)::kNA) {
-    return {"return sum;"};
-  } else {
+  if (num_output_group > 1) {
     return {std::string("for (int i = 0; i < ")
                 + std::to_string(num_output_group) + "; ++i) {",
             "  result[i] += sum[i];",
-            "}"};
+            "}" };
+  } else {
+    return { "return sum;" };
   }
 }
 
 inline std::vector<std::string>
 GroupPolicy::FinalReturn(size_t num_tree) const {
-  if (multiclass_type == decltype(multiclass_type)::kGradientBoosting) {
-    return {std::string("for (int i = 0; i < ")
+  if (num_output_group > 1) {
+    if (random_forest_flag) {
+      // multi-class classification with random forest
+      return {std::string("for (int i = 0; i < ")
                 + std::to_string(num_output_group) + "; ++i) {",
-            "  result[i] = sum[i];",
-            "}"};
-  } else if (multiclass_type == decltype(multiclass_type)::kRandomForest) {
-    return {std::string("for (int i = 0; i < ")
-                + std::to_string(num_output_group) + "; ++i) {",
-            std::string("  result[i] = sum[i] / ")
-                + std::to_string(num_tree) + ";",
-            "}"};
-  } else {  // kNA
-    return {"return sum;"};
+              std::string("  result[i] = sum[i] / ")
+                  + std::to_string(num_tree) + ";",
+              "}"};
+    } else {
+      // multi-class classification with gradient boosted trees
+      return {std::string("for (int i = 0; i < ")
+                  + std::to_string(num_output_group) + "; ++i) {",
+              "  result[i] = sum[i];",
+              "}"};
+    }
+  } else {
+    if (random_forest_flag) {
+      return { std::string("return sum / ") + std::to_string(num_tree) + ";" };
+    } else {
+      return { "return sum;" };
+    }
   }
 }
 

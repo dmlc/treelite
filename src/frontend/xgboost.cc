@@ -314,10 +314,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   treelite::Model model;
   model.num_feature = gbm_param_.num_feature;
   model.num_output_group = gbm_param_.num_output_group;
-  model.multiclass_type
-    = (model.num_output_group > 1) ?
-      treelite::Model::MulticlassType::kGradientBoosting
-    : treelite::Model::MulticlassType::kNA;
+  model.random_forest_flag = false;
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {

@@ -306,7 +306,7 @@ by scikit-learn. In particular, it will be able to work with
 .. note:: Why scikit-learn? How about other packages?
 
   We had to pick a specific example for programmatic tree construction, so we
-  chose scikit-learn. If you're using another package, don't use heart. As you
+  chose scikit-learn. If you're using another package, don't lose heart. As you
   read through the rest of section, notice how specific pieces of information
   about the tree ensemble model are being extracted. As long as your choice
   of package exposes equivalent information, you'll be able to adapt the example
@@ -317,9 +317,20 @@ by scikit-learn. In particular, it will be able to work with
   Treelite currently does not support weighting of member trees, so you won't
   be able to use Adaboost ensembles.
 
+Regression with RandomForestRegressor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Let's start with the `Boston house prices dataset <https://archive.ics.uci.edu/
 ml/machine-learning-databases/housing/housing.names>`_, a regression problem.
 (Classification problems are somewhat trickier, so we'll save them for later.)
+
+We'll be using :py:class:`~sklearn.ensemble.RandomForestRegressor`, a random
+forest for regression. A **random forest** is an ensemble of decision trees
+that are independently trained on random samples from the training data. See
+`this page
+<http://scikit-learn.org/stable/modules/ensemble.html#random-forests>`_ for
+more details. For now, just remember to specify ``random_forest=True`` in the
+:py:class:`~treelite.ModelBuilder` constructor.
 
 .. code-block:: python
 
@@ -346,7 +357,9 @@ returns the completed :py:class:`~treelite.Model` object:
 
   def process_model(sklearn_model):
     # Initialize treelite model builder
-    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_)
+    # Set random_forest=True for random forests
+    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
+                                    random_forest=True)
 
     # Iterate over individual trees
     for i in range(sklearn_model.n_estimators):
@@ -449,3 +462,88 @@ Explanations:
     leaf_value = sklearn_tree.value[node_id].squeeze()
     # Initialize the leaf node with given node ID
     treelite_tree[node_id].set_leaf_node(leaf_value)
+
+Let's test it out:
+
+.. code-block:: python
+
+  model = process_model(clf)
+  model.export_lib(libpath='./libtest.dylib', toolchain='gcc', verbose=True)
+
+  import treelite.runtime
+  predictor = treelite.runtime.Predictor(libpath='./libtest.dylib')
+  predictor.predict(treelite.runtime.Batch.from_npy2d(X))
+
+Regression with GradientBoostingRegressor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Gradient boosting** is an algorithm where decision trees are trained one at a
+time, ensuring that latter trees complement former trees. See `this page
+<http://scikit-learn.org/stable/modules/ensemble.html#gradient-tree-boosting>`_
+for more details. Treelite makes distinction between random forests and
+gradient boosted trees by the value of ``random_forest`` flag in the
+:py:class:`~treelite.ModelBuilder` constructor.
+
+.. note:: Set ``init='zero'`` to ensure compatibility
+
+  To make sure that the gradient boosted model is compatible with treelite,
+  make sure to set ``init='zero'`` in the
+  :py:class:`~sklearn.ensemble.GradientBoostingRegressor` constructor. This
+  ensures that the compiled prediction subroutine will produce the correct
+  prediction output.
+
+.. code-block:: python
+
+  # Gradient boosting regressor
+  # Notice the argument init='zero'
+  clf = sklearn.ensemble.GradientBoostingRegressor(n_estimators=10,
+                                                   init='zero')
+  clf.fit(X, y)
+
+We will recycle most of the helper code we wrote earlier. Only the
+**process_model()** function needs to be modified.
+
+.. code-block:: python
+
+  def process_model(sklearn_model):
+    # Initialize treelite model builder
+    # Set random_forest=False for gradient boosted trees
+    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
+                                    random_forest=False)
+    for i in range(sklearn_model.n_estimators):
+      # Process i-th tree and add to the builder
+      builder.append( process_tree(sklearn_model.estimators_[i][0].tree_) )
+
+    return builder.commit()
+
+Another little detail is that we use ``estimators_[i][0].tree_`` to access
+each tree object. This is because ``estimators_[i]`` returns an array consisting
+of a single tree (``i``-th tree).
+
+Let's test it:
+
+.. code-block:: python
+
+  # Convert to treelite model
+  model = process_model(clf)
+  # Generate shared library
+  model.export_lib(libpath='./libtest2.dylib', toolchain='gcc', verbose=True)
+  # Make prediction with predictor
+  predictor = treelite.runtime.Predictor(libpath='./libtest2.dylib')
+  predictor.predict(treelite.runtime.Batch.from_npy2d(X))
+
+Binary Classification with RandomForestClassifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**[COMING SOON]**
+
+Multi-class Classification with RandomForestClassifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**[COMING SOON]**
+
+Binary Classification with GradientBoostingClassifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**[COMING SOON]**
+
+Multi-class Classification with GradientBoostingClassifier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**[COMING SOON]**

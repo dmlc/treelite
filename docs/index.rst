@@ -17,7 +17,7 @@ Current version: |version|
  treelite-api
  treelite-runtime-api
  treelite-c-api
-
+ Internal docs <./dev#://>
 
 Contents
 ==================

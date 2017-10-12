@@ -8,9 +8,10 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = TREELITE_DLL= TREELITE_EXTERN_C=
-INPUT            = ../include/treelite/c_api.h ../include/treelite/c_api_runtime.h
+INPUT            = ../include/ ../src/
 RECURSIVE        = YES
 QUIET            = YES
 JAVADOC_AUTOBRIEF = YES
-GENERATE_HTML = NO
+SOURCE_BROWSER = YES
+GENERATE_HTML = YES
 GENERATE_XML = YES

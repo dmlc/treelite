@@ -25,12 +25,9 @@ sys.path.insert(0, os.path.abspath('../python'))
 def setup(app):
   app.add_stylesheet('custom.css')
 
-# hack for readthedocs to cause it to run doxygen first
-# https://github.com/rtfd/readthedocs.org/issues/388
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-  from subprocess import call 
-  call('doxygen', shell=True)
+# Run Doxygen first
+from subprocess import call 
+call('doxygen; mkdir tmp; mv html tmp/dev', shell=True)
 
 import pip
 pip.main(['install', 'breathe'])
@@ -99,6 +96,7 @@ language = None
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+html_extra_path = ['./tmp']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

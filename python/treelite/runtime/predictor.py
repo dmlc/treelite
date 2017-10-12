@@ -108,30 +108,35 @@ class Batch(object):
       raise ValueError('mat must be of type numpy.ndarray')
     if len(mat.shape) != 2:
       raise ValueError('Input numpy.ndarray must be two-dimensional')
+    num_row = mat.shape[0]
+    num_col = mat.shape[1]
     rbegin = rbegin if rbegin is not None else 0
-    rend = rend if rend is not None else mat.shape[0]
+    rend = rend if rend is not None else num_row
     if rbegin >= rend:
       raise TreeliteError('rbegin must be less than rend')
     if rbegin < 0:
       raise TreeliteError('rbegin must be nonnegative')
-    if rend > mat.shape[0]:
+    if rend > num_row:
       raise TreeliteError('rend must be less than number of rows in mat')
     # flatten the array by rows and ensure it is float32.
     # we try to avoid data copies if possible
     # (reshape returns a view when possible and we explicitly tell np.array to
     #  avoid copying)
-    data = np.array(mat.reshape(mat.size), copy=False, dtype=np.float32)
+    data_subset = np.array(mat[rbegin:rend,:].reshape((rend - rbegin)*num_col),
+                           copy=False, dtype=np.float32)
     missing = missing if missing is not None else np.nan
 
     batch = Batch()
     batch.handle = ctypes.c_void_p()
     batch.kind = 'dense'
     _check_call(_LIB.TreeliteAssembleDenseBatch(
-            data[rbegin:].ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
             ctypes.c_float(missing),
             ctypes.c_size_t(rend - rbegin),
-            ctypes.c_size_t(mat.shape[1]),
+            ctypes.c_size_t(num_col),
             ctypes.byref(batch.handle)))
+    # save handles for internal arrays
+    batch.data = data_subset
     return batch
 
   @classmethod
@@ -193,7 +198,7 @@ class Batch(object):
                 data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
                 indices_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
                 indptr_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
-                ctypes.c_size_t(num_row),
+                ctypes.c_size_t(rend - rbegin),
                 ctypes.c_size_t(num_col),
                 ctypes.byref(batch.handle)))
     # save handles for internal arrays

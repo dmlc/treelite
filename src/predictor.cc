@@ -115,9 +115,7 @@ inline void PredLoop(const treelite::DenseBatch* batch, int nthread,
     }
     func(rid, &inst[off], out_pred);
     for (size_t j = 0; j < num_col; ++j) {
-      if (inst[off + j].missing != -1) {
-        inst[off + j].missing = -1;
-      }
+      inst[off + j].missing = -1;
     }
   }
 }

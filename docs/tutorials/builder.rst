@@ -459,6 +459,7 @@ Explanations:
 .. code-block:: python
 
   def process_leaf_node(treelite_tree, sklearn_tree, node_id):
+    # the `value` attribute stores the output for every leaf node.
     leaf_value = sklearn_tree.value[node_id].squeeze()
     # Initialize the leaf node with given node ID
     treelite_tree[node_id].set_leaf_node(leaf_value)
@@ -500,8 +501,8 @@ gradient boosted trees by the value of ``random_forest`` flag in the
                                                    init='zero')
   clf.fit(X, y)
 
-We will recycle most of the helper code we wrote earlier. Only the
-**process_model()** function needs to be modified.
+We will recycle most of the helper code we wrote earlier. Only two functions
+will need to be modified:
 
 .. code-block:: python
 
@@ -516,9 +517,22 @@ We will recycle most of the helper code we wrote earlier. Only the
 
     return builder.commit()
 
-Another little detail is that we use ``estimators_[i][0].tree_`` to access
-each tree object. This is because ``estimators_[i]`` returns an array consisting
-of a single tree (``i``-th tree).
+  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
+    # Need to shrink each leaf output by the learning rate
+    leaf_value = clf.learning_rate * sklearn_tree.value[node_id].squeeze()
+    # Initialize the leaf node with given node ID
+    treelite_tree[node_id].set_leaf_node(leaf_value)
+
+Some details specific to :py:class:`~sklearn.ensemble.GradientBoostingRegressor`:
+
+* To indicate the use of gradient boosting (as opposed to random forests), we
+  set ``random_forest=False`` in the :py:class:`~treelite.ModelBuilder`
+  constructor.
+* Each tree object is now accessed with the expression
+  ``estimators_[i][0].tree_``, as ``estimators_[i]`` returns an array consisting
+  of a single tree (``i``-th tree).
+* Each leaf output in gradient boosted trees are "unscaled": it needs to be
+  scaled by the learning rate.
 
 Let's test it:
 
@@ -534,7 +548,108 @@ Let's test it:
 
 Binary Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**[COMING SOON]**
+
+For binary classification, let's use `the digits dataset
+<http://scikit-learn.org/stable/auto_examples/datasets/plot_digits_last_image.html>`_.
+
+.. code-block:: python
+
+  # load a binary classification problem
+  # set n_class=2 to produce two classes
+  digits = sklearn.datasets.load_digits(n_class=2)
+  X, y = digits['data'], digits['target']
+  # should print [0 1]
+  print(np.unique(y))
+  
+  # train a random forest classifier
+  clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
+  clf.fit(X, y)
+
+Random forest classifiers in scikit-learn store **frequency counts** for the
+positive and negative class. For instance, a leaf node may output a set of
+counts
+
+.. code-block:: none
+
+  [ 100, 200 ]
+
+which indicates the following:
+
+* 300 data points in the training set "belong" to this leaf node, in the sense
+  that they all satisfy the precise sequence of conditions leading to that
+  particular leaf node. The picture below shows that each leaf node represents
+  a unique sequence of conditions: 
+
+.. digraph:: leaf_count_illustration
+
+  graph [fontname = "helvetica"];
+  node [fontname = "helvetica"];
+  edge [fontname = "helvetica"];
+  0 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
+  1 [label="Feature X < x.x ?", shape=box];
+  2 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
+  3 [label="...", shape=none];
+  4 [label="...", shape=none];
+  5 [label="...", shape=none, fontcolor=red];
+  6 [label="...", shape=none];
+  7 [label="...", shape=none];
+  8 [label="Leaf node", color=red, fontcolor=red, fontname = "helvetica bold"];
+  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+  0 -> 2 [labeldistance=2.0, labelangle=-45,
+          headlabel="No", color=red, fontcolor=red];
+  1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+  1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+  2 -> 5 [labeldistance=2.0, labelangle=45, headlabel="Yes",
+          color=red, fontcolor=red];
+  2 -> 6 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+  5 -> 7;
+  5 -> 8 [color=red];
+
+* 100 of them are labeled negative; and
+* the remaining 200 are labeled positive.
+
+Again, most of the helper functions may be re-used; only two functions need to
+be rewritten. Explanation will follow after the code:
+
+.. code-block:: python
+
+  def process_model(sklearn_model):
+    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
+                                    random_forest=True)
+    for i in range(sklearn_model.n_estimators):
+      # Process i-th tree and add to the builder
+      builder.append( process_tree(sklearn_model.estimators_[i].tree_) )
+  
+    return builder.commit()
+  
+  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
+    # Get counts for each label (+/-) at this leaf node
+    leaf_count = sklearn_tree.value[node_id].squeeze()
+    # Compute the fraction of positive data points at this leaf node
+    fraction_positive = float(leaf_count[1]) / leaf_count.sum()
+    # The fraction above is now the leaf output
+    treelite_tree[node_id].set_leaf_node(fraction_positive)
+
+As noted earlier, we access the frequency counts at each leaf node, reading the 
+``value`` attribute of each tree. Then we compute the fraction of positive
+data points with respect to all training data points belonging to the leaf.
+This fraction then becomes the leaf output. This way, leaf nodes now produce
+single numbers rather than frequency count arrays.
+
+Why did we have to compute a fraction? **For binary classification,
+treelite expects each tree to produce a single number output.** At prediction
+time, the outputs from the member trees will get **averaged** to produce the
+final prediction, which is also a single number. By setting the positive
+fraction as the leaf output, we ensure that the final prediction is a proper
+probability value. For instance, if an ensemble consisting of 5 trees produces
+the following set of outputs
+
+.. code-block:: none
+
+  [ 0.1, 0.7, 0.4, 0.3, 0.7 ]
+
+then the final prediction will be 0.44, which we interpret as 44% confidence
+for the positive class.
 
 Multi-class Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

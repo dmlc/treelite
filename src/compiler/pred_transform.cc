@@ -263,13 +263,18 @@ multiclass_ova(const Model& model, bool batch) {
 const std::unordered_map<std::string, PredTransformFuncGenerator>
 pred_transform_db = {
   PRED_TRANSFORM_FUNC(identity),
-  PRED_TRANSFORM_FUNC(identity_multiclass),
   PRED_TRANSFORM_FUNC(sigmoid),
   PRED_TRANSFORM_FUNC(exponential),
   PRED_TRANSFORM_FUNC(logarithm_one_plus_exp),
+};
+
+// prediction transform function for *multi-class classifiers* only
+const std::unordered_map<std::string, PredTransformFuncGenerator>
+pred_transform_multiclass_db = {
+  PRED_TRANSFORM_FUNC(identity_multiclass),
   PRED_TRANSFORM_FUNC(max_index),
   PRED_TRANSFORM_FUNC(softmax),
-  PRED_TRANSFORM_FUNC(multiclass_ova)
+  PRED_TRANSFORM_FUNC(multiclass_ova),
 };
 
 }  // namespace anonymous
@@ -277,5 +282,31 @@ pred_transform_db = {
 
 std::vector<std::string>
 treelite::compiler::PredTransformFunction(const Model& model, bool batch) {
-  return (pred_transform_db.at(model.param.pred_transform))(model, batch);
+  if (model.num_output_group > 1) {  // multi-class classification
+    auto it = pred_transform_multiclass_db.find(model.param.pred_transform);
+    if (it == pred_transform_multiclass_db.end()) {
+      std::ostringstream oss;
+      for (const auto& e : pred_transform_multiclass_db) {
+        oss << "'" << e.first << "', ";
+      }
+      LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
+                 << "For multi-class classification, you should set "
+                 << "`pred_transform` to one of the following: "
+                 << "{ " << oss.str() << " }";
+    }
+    return (it->second)(model, batch);
+  } else {
+    auto it = pred_transform_db.find(model.param.pred_transform);
+    if (it == pred_transform_db.end()) {
+      std::ostringstream oss;
+      for (const auto& e : pred_transform_db) {
+        oss << "'" << e.first << "', ";
+      }
+      LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
+                 << "For any task that is NOT multi-class classification, you "
+                 << "should set `pred_transform` to one of the following: "
+                 << "{ " << oss.str() << " }";
+    }
+    return (it->second)(model, batch);
+  }
 }

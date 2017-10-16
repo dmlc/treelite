@@ -551,6 +551,8 @@ Binary Classification with RandomForestClassifier
 
 For binary classification, let's use `the digits dataset
 <http://scikit-learn.org/stable/auto_examples/datasets/plot_digits_last_image.html>`_.
+We will take 0's and 1's from the dataset and treat 0's as the negative class
+and 1's as the positive.
 
 .. code-block:: python
 
@@ -653,7 +655,83 @@ for the positive class.
 
 Multi-class Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**[COMING SOON]**
+Let's use `the digits dataset
+<http://scikit-learn.org/stable/auto_examples/datasets/plot_digits_last_image.html>`_
+again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
+
+.. code-block:: python
+
+  # load a multi-class classification problem
+  # set n_class=4 to produce four classes
+  digits = sklearn.datasets.load_digits(n_class=4)
+  X, y = digits['data'], digits['target']
+  # should print [0 1 2 3]
+  print(np.unique(y))
+  
+  # train a random forest classifier
+  clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
+  clf.fit(X, y)
+
+Random forest classifiers in scikit-learn store frequency counts (see the
+explanation in the previous section). For instance, a leaf node may output a
+set of counts
+
+.. code-block:: none
+
+  [ 100, 400, 300, 200 ]
+
+which shows that the total of 1000 training data points belong to this leaf node
+and that 100, 400, 300, and 200 of them are labeled class 0, 1, 2, and 3,
+respectively.
+
+We will have to re-write the **process_leaf_node()** function to accomodate
+multiple classes.
+
+.. code-block:: python
+
+  def process_model(sklearn_model):
+    # must specify num_output_group and pred_transform
+    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
+                                    num_output_group=sklearn_model.n_classes_,
+                                    random_forest=True,
+                                    params={'pred_transform':'identity_multiclass'})
+    for i in range(sklearn_model.n_estimators):
+      # Process i-th tree and add to the builder
+      builder.append( process_tree(sklearn_model.estimators_[i].tree_) )
+  
+    return builder.commit()
+  
+  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
+    # Get counts for each label class (0, 1, 2, 3) at this leaf node
+    leaf_count = sklearn_tree.value[node_id].squeeze()
+    # Compute the probability distribution over label classes
+    prob_distribution = leaf_count / leaf_count.sum()
+    # The leaf output is the probability distribution
+    treelite_tree[node_id].set_leaf_node(prob_distribution)
+
+The process_leaf_node() function is quite similar to what we had for the binary
+classification case. Only different is that, instead of computing the fraction
+of the positive class, we compute the **probability distribution** for all
+possible classes. Each leaf node thus will store the probability distribution
+of possible class outcomes.
+
+The process_model() function is also similar to what we had before. The crucial
+difference is the existence of parameters ``num_output_group`` and
+``pred_transform``. The ``num_output_group`` parameter is used only for
+multi-class classification: it should store the number of classes (in this
+example, 4). The ``pred_transform`` parameter, which is tucked into the
+``params`` dictionary, should be set to ``'identity_multiclass'``, to indicate
+that the prediction should be made simply by averaging the probability
+distribution outputed by each leaf node. For instance, if an ensemble 
+consisting of 3 trees produces the following set of outputs
+
+.. code-block:: none
+
+  [ [ 0.5, 0.5, 0.0 ], [ 0.1, 0.6, 0.3 ], [ 0.2, 0.5, 0.3 ] ]
+
+then the final prediction will be the average
+``[ 0.26666667, 0.53333333, 0.2 ]``, which indicates 26.7% probability for the
+first class, 53.3% for the second, and 20.0% for the third.
 
 Binary Classification with GradientBoostingClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

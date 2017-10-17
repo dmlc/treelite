@@ -491,7 +491,8 @@ gradient boosted trees by the value of ``random_forest`` flag in the
   make sure to set ``init='zero'`` in the
   :py:class:`~sklearn.ensemble.GradientBoostingRegressor` constructor. This
   ensures that the compiled prediction subroutine will produce the correct
-  prediction output.
+  prediction output. **Gradient boosting models trained without specifying**
+  ``init='zero'`` **in the constructor are NOT supported by treelite!**
 
 .. code-block:: python
 
@@ -648,9 +649,13 @@ the following set of outputs
 
 .. code-block:: none
 
-  [ 0.1, 0.7, 0.4, 0.3, 0.7 ]
+  Tree 0    0.1
+  Tree 1    0.7
+  Tree 2    0.4
+  Tree 3    0.3
+  Tree 4    0.7
 
-then the final prediction will be 0.44, which we interpret as 44% confidence
+then the final prediction will be 0.44, which we interpret as 44% probability
 for the positive class.
 
 Multi-class Classification with RandomForestClassifier
@@ -727,11 +732,14 @@ consisting of 3 trees produces the following set of outputs
 
 .. code-block:: none
 
-  [ [ 0.5, 0.5, 0.0 ], [ 0.1, 0.6, 0.3 ], [ 0.2, 0.5, 0.3 ] ]
+  Tree 0    [ 0.5, 0.5, 0.0, 0.0 ]
+  Tree 1    [ 0.1, 0.5, 0.3, 0.1 ]
+  Tree 2    [ 0.2, 0.5, 0.2, 0.1 ]
 
 then the final prediction will be the average
-``[ 0.26666667, 0.53333333, 0.2 ]``, which indicates 26.7% probability for the
-first class, 53.3% for the second, and 20.0% for the third.
+``[ 0.26666667,  0.5, 0.16666667, 0.06666667 ]``, which indicates 26.7%
+probability for the first class, 50.0% for the second, 16.7% for the third,
+and 6.7% for the fourth.
 
 Binary Classification with GradientBoostingClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

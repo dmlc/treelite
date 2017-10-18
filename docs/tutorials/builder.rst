@@ -298,10 +298,10 @@ of models and algorithms.
 Treelite will be able to work with any decision tree ensemble models produced
 by scikit-learn. In particular, it will be able to work with
 
-* :py:class:`sklearn.ensemble.GradientBoostingClassifier`
-* :py:class:`sklearn.ensemble.GradientBoostingRegressor`
-* :py:class:`sklearn.ensemble.RandomForestClassifier`
 * :py:class:`sklearn.ensemble.RandomForestRegressor`
+* :py:class:`sklearn.ensemble.RandomForestClassifier`
+* :py:class:`sklearn.ensemble.GradientBoostingRegressor`
+* :py:class:`sklearn.ensemble.GradientBoostingClassifier`
 
 .. note:: Why scikit-learn? How about other packages?
 
@@ -311,6 +311,17 @@ by scikit-learn. In particular, it will be able to work with
   about the tree ensemble model are being extracted. As long as your choice
   of package exposes equivalent information, you'll be able to adapt the example
   to your needs.
+
+.. note:: In a hurry? Try the gallery module
+
+  The rest of this document explains in detail how to import scikit-learn
+  models using the builder class. If you prefer to skip all the gory details,
+  simply import the module :py:mod:`treelite.gallery.sklearn`.
+
+  .. code-block:: python
+
+    import treelite.gallery.sklearn
+    model = treelite.gallery.sklearn.import_model(clf)
 
 .. note:: Adaboost ensembles not yet supported
 
@@ -353,20 +364,8 @@ to scikit-learn. Many details have been adopted from `this reference page <http:
 **The function process_model()** takes in a scikit-learn ensemble object and
 returns the completed :py:class:`~treelite.Model` object:
 
-.. code-block:: python
-
-  def process_model(sklearn_model):
-    # Initialize treelite model builder
-    # Set random_forest=True for random forests
-    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                    random_forest=True)
-
-    # Iterate over individual trees
-    for i in range(sklearn_model.n_estimators):
-      # Process the i-th tree and add to the builder
-      builder.append( process_tree(sklearn_model.estimators_[i].tree_) )
-    
-    return builder.commit()
+.. literalinclude:: ../../python/treelite/gallery/sklearn/rf_regressor.py
+  :pyobject: process_model
 
 The usage of this function is as follows:
 
@@ -388,18 +387,8 @@ a few details should be noted:
 **The function process_tree()** takes in a single scikit-learn tree object
 and returns an object of type :py:class:`~treelite.ModelBuilder.Tree`:
 
-.. code-block:: python
-
-  def process_tree(sklearn_tree):
-    treelite_tree = treelite.ModelBuilder.Tree()
-    # Node #0 is always root for scikit-learn decision trees
-    treelite_tree[0].set_root()
-
-    # Iterate over each node: node ID ranges from 0 to [node_count]-1
-    for node_id in range(sklearn_tree.node_count):
-      process_node(treelite_tree, sklearn_tree, node_id)
-
-    return treelite_tree
+.. literalinclude:: ../../python/treelite/gallery/sklearn/common.py
+  :pyobject: process_tree
 
 Explanations:
 
@@ -411,29 +400,15 @@ or a test node. It does so by looking at the attribute ``children_left``:
 If the left child of the node is set to -1, that node is thought to be
 a leaf node.
 
-.. code-block:: python
-
-  def process_node(treelite_tree, sklearn_tree, node_id):
-    if sklearn_tree.children_left[node_id] == -1:  # leaf node
-      process_leaf_node(treelite_tree, sklearn_tree, node_id)
-    else:                                          # test node
-      process_test_node(treelite_tree, sklearn_tree, node_id)
+.. literalinclude:: ../../python/treelite/gallery/sklearn/common.py
+  :pyobject: process_node
 
 **The function process_test_node()** extracts the content of a test node
 and passes it to the :py:class:`~treelite.ModelBuilder.Tree` object that is
 being constructed.
 
-.. code-block:: python
-
-  def process_test_node(treelite_tree, sklearn_tree, node_id):
-    # Initialize the test node with given node ID
-    treelite_tree[node_id].set_numerical_test_node(
-                          feature_id=sklearn_tree.feature[node_id],
-                          opname='<=',
-                          threshold=sklearn_tree.threshold[node_id],
-                          default_left=True,            # see note
-                          left_child_key=sklearn_tree.children_left[node_id],
-                          right_child_key=sklearn_tree.children_right[node_id])
+.. literalinclude:: ../../python/treelite/gallery/sklearn/common.py
+  :pyobject: process_test_node
 
 Explanations:
 
@@ -456,13 +431,8 @@ Explanations:
 
 **The function process_leaf_node()** defines a leaf node:
 
-.. code-block:: python
-
-  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
-    # the `value` attribute stores the output for every leaf node.
-    leaf_value = sklearn_tree.value[node_id].squeeze()
-    # Initialize the leaf node with given node ID
-    treelite_tree[node_id].set_leaf_node(leaf_value)
+.. literalinclude:: ../../python/treelite/gallery/sklearn/rf_regressor.py
+  :pyobject: process_leaf_node
 
 Let's test it out:
 
@@ -505,24 +475,7 @@ gradient boosted trees by the value of ``random_forest`` flag in the
 We will recycle most of the helper code we wrote earlier. Only two functions
 will need to be modified:
 
-.. code-block:: python
-
-  def process_model(sklearn_model):
-    # Initialize treelite model builder
-    # Set random_forest=False for gradient boosted trees
-    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                    random_forest=False)
-    for i in range(sklearn_model.n_estimators):
-      # Process i-th tree and add to the builder
-      builder.append( process_tree(sklearn_model.estimators_[i][0].tree_) )
-
-    return builder.commit()
-
-  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
-    # Need to shrink each leaf output by the learning rate
-    leaf_value = clf.learning_rate * sklearn_tree.value[node_id].squeeze()
-    # Initialize the leaf node with given node ID
-    treelite_tree[node_id].set_leaf_node(leaf_value)
+.. literalinclude:: ../../python/treelite/gallery/sklearn/gbm_regressor.py
 
 Some details specific to :py:class:`~sklearn.ensemble.GradientBoostingRegressor`:
 
@@ -558,13 +511,13 @@ and 1's as the positive.
 .. code-block:: python
 
   # load a binary classification problem
-  # set n_class=2 to produce two classes
+  # Set n_class=2 to produce two classes
   digits = sklearn.datasets.load_digits(n_class=2)
   X, y = digits['data'], digits['target']
-  # should print [0 1]
+  # Should print [0 1]
   print(np.unique(y))
   
-  # train a random forest classifier
+  # Train a random forest classifier
   clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
   clf.fit(X, y)
 
@@ -614,24 +567,7 @@ which indicates the following:
 Again, most of the helper functions may be re-used; only two functions need to
 be rewritten. Explanation will follow after the code:
 
-.. code-block:: python
-
-  def process_model(sklearn_model):
-    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                    random_forest=True)
-    for i in range(sklearn_model.n_estimators):
-      # Process i-th tree and add to the builder
-      builder.append( process_tree(sklearn_model.estimators_[i].tree_) )
-  
-    return builder.commit()
-  
-  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
-    # Get counts for each label (+/-) at this leaf node
-    leaf_count = sklearn_tree.value[node_id].squeeze()
-    # Compute the fraction of positive data points at this leaf node
-    fraction_positive = float(leaf_count[1]) / leaf_count.sum()
-    # The fraction above is now the leaf output
-    treelite_tree[node_id].set_leaf_node(fraction_positive)
+.. literalinclude:: ../../python/treelite/gallery/sklearn/rf_classifier.py
 
 As noted earlier, we access the frequency counts at each leaf node, reading the 
 ``value`` attribute of each tree. Then we compute the fraction of positive
@@ -666,14 +602,14 @@ again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
 
 .. code-block:: python
 
-  # load a multi-class classification problem
-  # set n_class=4 to produce four classes
+  # Load a multi-class classification problem
+  # Set n_class=4 to produce four classes
   digits = sklearn.datasets.load_digits(n_class=4)
   X, y = digits['data'], digits['target']
-  # should print [0 1 2 3]
+  # Should print [0 1 2 3]
   print(np.unique(y))
   
-  # train a random forest classifier
+  # Train a random forest classifier
   clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
   clf.fit(X, y)
 
@@ -692,42 +628,23 @@ respectively.
 We will have to re-write the **process_leaf_node()** function to accomodate
 multiple classes.
 
-.. code-block:: python
+.. literalinclude:: ../../python/treelite/gallery/sklearn/rf_multi_classifier.py
 
-  def process_model(sklearn_model):
-    # must specify num_output_group and pred_transform
-    builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                    num_output_group=sklearn_model.n_classes_,
-                                    random_forest=True,
-                                    params={'pred_transform':'identity_multiclass'})
-    for i in range(sklearn_model.n_estimators):
-      # Process i-th tree and add to the builder
-      builder.append( process_tree(sklearn_model.estimators_[i].tree_) )
-  
-    return builder.commit()
-  
-  def process_leaf_node(treelite_tree, sklearn_tree, node_id):
-    # Get counts for each label class (0, 1, 2, 3) at this leaf node
-    leaf_count = sklearn_tree.value[node_id].squeeze()
-    # Compute the probability distribution over label classes
-    prob_distribution = leaf_count / leaf_count.sum()
-    # The leaf output is the probability distribution
-    treelite_tree[node_id].set_leaf_node(prob_distribution)
+The ``process_leaf_node()`` function is quite similar to what we had for the
+binary classification case. Only difference is that, instead of computing the
+fraction of the positive class, we compute the **probability distribution** for
+all possible classes. Each leaf node thus will store the probability
+distribution of possible class outcomes.
 
-The process_leaf_node() function is quite similar to what we had for the binary
-classification case. Only different is that, instead of computing the fraction
-of the positive class, we compute the **probability distribution** for all
-possible classes. Each leaf node thus will store the probability distribution
-of possible class outcomes.
-
-The process_model() function is also similar to what we had before. The crucial
-difference is the existence of parameters ``num_output_group`` and
+The ``process_model()`` function is also similar to what we had before. The
+crucial difference is the existence of parameters ``num_output_group`` and
 ``pred_transform``. The ``num_output_group`` parameter is used only for
 multi-class classification: it should store the number of classes (in this
 example, 4). The ``pred_transform`` parameter, which is tucked into the
 ``params`` dictionary, should be set to ``'identity_multiclass'``, to indicate
 that the prediction should be made simply by averaging the probability
-distribution outputed by each leaf node. For instance, if an ensemble 
+distribution produced by each leaf node. (Leaf outputs are averaged rather 
+than summed because we set ``random_forest=True``.) For instance, if an ensemble 
 consisting of 3 trees produces the following set of outputs
 
 .. code-block:: none
@@ -737,14 +654,243 @@ consisting of 3 trees produces the following set of outputs
   Tree 2    [ 0.2, 0.5, 0.2, 0.1 ]
 
 then the final prediction will be the average
-``[ 0.26666667,  0.5, 0.16666667, 0.06666667 ]``, which indicates 26.7%
+``[ 0.26666667, 0.5, 0.16666667, 0.06666667 ]``, which indicates 26.7%
 probability for the first class, 50.0% for the second, 16.7% for the third,
 and 6.7% for the fourth.
 
 Binary Classification with GradientBoostingClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**[COMING SOON]**
+
+We use `the digits dataset
+<http://scikit-learn.org/stable/auto_examples/datasets/plot_digits_last_image.html>`_.
+We will take 0's and 1's from the dataset and treat 0's as the negative class
+and 1's as the positive.
+
+.. code-block:: python
+
+  # Load a binary classification problem
+  # Set n_class=2 to produce two classes
+  digits = sklearn.datasets.load_digits(n_class=2)
+  X, y = digits['data'], digits['target']
+  # Should print [0 1]
+  print(np.unique(y))
+
+  # Train a gradient boosting classifier
+  # Notice the argument init='zero'
+  clf = sklearn.ensemble.GradientBoostingClassifier(n_estimators=10,
+                                                    init='zero')
+  clf.fit(X, y)
+
+.. note:: Set ``init='zero'`` to ensure compatibility
+
+  To make sure that the gradient boosted model is compatible with treelite,
+  make sure to set ``init='zero'`` in the
+  :py:class:`~sklearn.ensemble.GradientBoostingClassifier` constructor. This
+  ensures that the compiled prediction subroutine will produce the correct
+  prediction output. **Gradient boosting models trained without specifying**
+  ``init='zero'`` **in the constructor are NOT supported by treelite!**
+
+Here are the functions ``process_model()`` and ``process_leaf_node()`` for this
+scenario:
+
+.. literalinclude:: ../../python/treelite/gallery/sklearn/gbm_classifier.py
+
+Some details specific to :py:class:`~sklearn.ensemble.GradientBoostingClassifier`:
+
+* To indicate the use of gradient boosting (as opposed to random forests), we
+  set ``random_forest=False`` in the :py:class:`~treelite.ModelBuilder`
+  constructor.
+* Each tree object is now accessed with the expression
+  ``estimators_[i][0].tree_``, as ``estimators_[i]`` returns an array consisting
+  of a single tree (``i``-th tree).
+* Each leaf output in gradient boosted trees are "unscaled": it needs to be
+  scaled by the learning rate.
+
+In addition, we specify the parameter ``pred_transform='sigmoid'`` so that
+the final prediction yields the probability for the positive class. For example,
+suppose that an ensemble consisting of 4 trees produces the following set of
+outputs:
+
+.. code-block:: none
+
+  Tree 0    +0.5
+  Tree 1    -2.3
+  Tree 2    +1.5
+  Tree 3    -1.5
+
+Unlike the random forest example earlier, we do not assume that each leaf output
+is between 0 and 1; it can be any real number, negative or positive. These
+numbers are referred to as **margin scores**, to distinguish them from
+probabilities.
+
+To obtain the probability for the positive class, we first **sum** the margin
+scores (outputs) from the member trees.
+
+.. code-block:: none
+
+  Tree 0    +0.5
+  Tree 1    -2.3
+  Tree 2    +1.5
+  Tree 3    -1.5
+  --------------
+  Total     -1.8
+
+Then we apply the **sigmoid function**:
+
+.. math::
+
+  \sigma(x) = \frac{1}{1 + e^{-x}}
+
+The resulting value is the final prediction. You may interpret this value as a
+probability. For the particular example, the sigmoid value of -1.8 is
+0.14185106, which we interpret as 14.2% probability for the positive class.
 
 Multi-class Classification with GradientBoostingClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**[COMING SOON]**
+
+Let's use `the digits dataset
+<http://scikit-learn.org/stable/auto_examples/datasets/plot_digits_last_image.html>`_
+again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
+
+.. code-block:: python
+
+  # Load a multi-class classification problem
+  # Set n_class=4 to produce four classes
+  digits = sklearn.datasets.load_digits(n_class=4)
+  X, y = digits['data'], digits['target']
+  # Should print [0 1 2 3]
+  print(np.unique(y))
+  
+  # Train a gradient boosting classifier
+  # Notice the argument init='zero'
+  clf = sklearn.ensemble.GradientBoostingClassifier(n_estimators=10,
+                                                    init='zero')
+  clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
+  clf.fit(X, y)
+
+.. note:: Set ``init='zero'`` to ensure compatibility
+
+  To make sure that the gradient boosted model is compatible with treelite,
+  make sure to set ``init='zero'`` in the
+  :py:class:`~sklearn.ensemble.GradientBoostingClassifier` constructor. This
+  ensures that the compiled prediction subroutine will produce the correct
+  prediction output. **Gradient boosting models trained without specifying**
+  ``init='zero'`` **in the constructor are NOT supported by treelite!**
+
+Here are the functions ``process_model()`` and ``process_leaf_node()`` for this
+scenario:
+
+.. literalinclude:: ../../python/treelite/gallery/sklearn/gbm_multi_classifier.py
+
+The ``process_leaf_node()`` function is identical to one in the previous
+section: as before, each leaf node produces a single real-number output.
+
+On the other hand, the ``process_model()`` function needs some explanation.
+First of all, the attribute ``estimators_`` of the scikit-learn model object
+now stores **output groups**, which are simply groups of decision trees.
+The expression ``estimators_[i]`` thus refers to the ``i`` th output group.
+Each output group contains as many trees as there are label classes. For the
+digits example with 4 label classes, we'd have 4 trees for each output group:
+``estimators_[i][0]``, ``estimators_[i][1]``, ``estimators_[i][2]``, and
+``estimators_[i][3]``. Since there are as many output groups as the number of
+iterations used for training, the total number of member trees is
+``[number of iterations] * [number of classes]``. We have to call ``append()``
+once for each member tree; hence the use of nested loop.
+
+We also set ``pred_transform='softmax'``, which indicates the way margin
+outputs should be transformed to produce probability predictions. Let us look
+at a concrete example: suppose we train an ensemble model with 3 rounds of
+gradient boosting. It would produce a total of 12 decision trees (3 rounds *
+4 classes). Suppose also that, given a single test data point, the model
+produces the following set of margins:
+
+.. code-block:: none
+
+  Output group 0:
+    Tree  0 produces  +0.5
+    Tree  1 produces  +1.5
+    Tree  2 produces  -2.3
+    Tree  3 produces  -1.5
+  Output group 1:
+    Tree  4 produces  +0.1
+    Tree  5 produces  +0.7
+    Tree  6 produces  +1.5
+    Tree  7 produces  -0.9
+  Output group 2:
+    Tree  8 produces  -0.1
+    Tree  9 produces  +0.3
+    Tree 10 produces  -0.7
+    Tree 11 produces  +0.2
+
+How do we compute probabilities for each of the 4 classes? First, we compute the
+**sum** of the margin scores for each output group:
+
+.. code-block:: none
+
+  Output group 0:
+    Tree  0 produces  +0.5
+    Tree  1 produces  +1.5
+    Tree  2 produces  -2.3
+    Tree  3 produces  -1.5
+    ----------------------
+    SUBTOTAL          -1.8
+  Output group 1:
+    Tree  4 produces  +0.1
+    Tree  5 produces  +0.7
+    Tree  6 produces  +1.5
+    Tree  7 produces  -0.9
+    ----------------------
+    SUBTOTAL          +1.4
+  Output group 2:
+    Tree  8 produces  -0.1
+    Tree  9 produces  +0.3
+    Tree 10 produces  -0.7
+    Tree 11 produces  +0.2
+    ----------------------
+    SUBTOTAL          -0.3
+
+The vector ``[-1.8, +1.4, -0.3]`` consisting of the subtotals quantifies the
+relative likelihood of the label classes. Since the second element (1.4) is 
+the largest, the second class must be the most likely outcome for the particular
+data point. This vector is not yet a probability distribution, since its
+elements do not sum to 1.
+
+The **softmax function** transforms any real-valued vector into a probability
+distribution as follows:
+
+1. Apply the exponential function (``exp``) to every element in the vector.
+   This step ensures that every element is positive.
+2. Divide every element by the sum over the vector. This step is also known
+   as **normalizing** the vector. After thie step, the elements of the vector
+   will add up to 1.
+
+Let's walk through the steps with the vector ``[-1.8, +1.4, -0.3]``. Applying
+the exponential function is simple with Python:
+
+.. code-block:: python
+
+  x = np.exp([-1.8, +1.4, -0.3])
+  print(x)
+
+which yields
+
+.. code-block:: python
+
+  [ 0.16529889  4.05519997  0.74081822]
+
+Note that every element is now positive. Then we normalize the vector by
+writing
+
+.. code-block:: python
+
+  x = x / x.sum()
+  print(x)
+
+which gives a proper probability distribution:
+
+.. code-block:: python
+
+  [ 0.03331754  0.8173636   0.14931886]
+
+We can now interpret the result as giving 3.3% probability for the first class,
+81.7% probability for the second, and 14.9% probability for the third.

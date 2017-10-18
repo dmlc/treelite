@@ -8,10 +8,10 @@ def process_model(sklearn_model):
                     "the option init='zero'")
   # Initialize treelite model builder
   # Set random_forest=False for gradient boosted trees
-  # Set pred_transform=sigmoid
+  # Set pred_transform='sigmoid' to obtain probability predictions
   builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
                                   random_forest=False,
-                                  params={'pred_transform':'sigmoid'})
+                                  pred_transform='sigmoid')
   for i in range(sklearn_model.n_estimators):
     # Process i-th tree and add to the builder
     builder.append( process_tree(sklearn_model.estimators_[i][0].tree_,

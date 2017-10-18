@@ -254,8 +254,8 @@ class ModelBuilder(object):
   random_forest : :py:class:`bool <python:bool>`, optional
       whether the model is a random forest; ``True`` indicates a random forest
       and ``False`` indicates gradient boosted trees
-  params : :py:class:`dict <python:dict>`, optional
-      parameters to be used with the resulting model
+  **kwargs
+      additional parameters, to be used with the resulting model
   """
   class Node(object):
     """Handle to a node in a tree"""
@@ -469,7 +469,7 @@ class ModelBuilder(object):
              .format(len(self.nodes))
 
   def __init__(self, num_feature, num_output_group=1,
-               random_forest=False, params={}):
+               random_forest=False, **kwargs):
     if not isinstance(num_feature, int):
       raise ValueError('num_feature must be of int type')
     if num_feature <= 0:
@@ -483,8 +483,7 @@ class ModelBuilder(object):
                                                 ctypes.c_int(num_output_group),
                                        ctypes.c_int(1 if random_forest else 0),
                                                 ctypes.byref(self.handle)))
-    _params = dict(params) if isinstance(params, list) else params
-    self._set_param(_params or {})
+    self._set_param(kwargs)
     self.trees = []
 
   def insert(self, tree, index):

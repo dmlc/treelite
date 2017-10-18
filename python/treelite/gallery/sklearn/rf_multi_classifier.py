@@ -6,7 +6,7 @@ def process_model(sklearn_model):
   builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
                                   num_output_group=sklearn_model.n_classes_,
                                   random_forest=True,
-                                  params={'pred_transform':'identity_multiclass'})
+                                  pred_transform='identity_multiclass')
   for i in range(sklearn_model.n_estimators):
     # Process i-th tree and add to the builder
     builder.append( process_tree(sklearn_model.estimators_[i].tree_,

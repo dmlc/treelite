@@ -9,11 +9,11 @@ def process_model(sklearn_model):
   # Initialize treelite model builder
   # Set random_forest=False for gradient boosted trees
   # Set num_output_group for multiclass classification
-  # Set pred_transform=softmax to obtain probability predictions
+  # Set pred_transform='softmax' to obtain probability predictions
   builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
                                   num_output_group=sklearn_model.n_classes_,
                                   random_forest=False,
-                                  params={'pred_transform':'softmax'})
+                                  pred_transform='softmax')
   # Process [number of iterations] * [number of classes] trees
   for i in range(sklearn_model.n_estimators):
     for k in range(sklearn_model.n_classes_):

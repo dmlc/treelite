@@ -640,8 +640,8 @@ The ``process_model()`` function is also similar to what we had before. The
 crucial difference is the existence of parameters ``num_output_group`` and
 ``pred_transform``. The ``num_output_group`` parameter is used only for
 multi-class classification: it should store the number of classes (in this
-example, 4). The ``pred_transform`` parameter, which is tucked into the
-``params`` dictionary, should be set to ``'identity_multiclass'``, to indicate
+example, 4). The ``pred_transform`` parameter should be set to
+``'identity_multiclass'``, to indicate
 that the prediction should be made simply by averaging the probability
 distribution produced by each leaf node. (Leaf outputs are averaged rather 
 than summed because we set ``random_forest=True``.) For instance, if an ensemble 

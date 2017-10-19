@@ -87,7 +87,7 @@ class Tree {
     inline const std::vector<uint8_t>& left_categories() const {
       return left_categories_;
     }
-    /*! \briet get feature split type */
+    /*! \brief get feature split type */
     inline SplitFeatureType split_type() const {
       return split_type_;
     }
@@ -281,12 +281,34 @@ class Tree {
   }
 };
 
+/*!
+ * \defgroup model_param
+ * Extra parameters for tree ensemble models
+ * \{
+ */
 struct ModelParam : public dmlc::Parameter<ModelParam> {
-  /*! \brief name of prediction transform function */
+  /*!
+   * \brief name of prediction transform function
+   *
+   * This parameter specifies how to transform raw margin values into
+   * final predictions. By default, this is set to `'identity'`, which
+   * means no transformation.
+   *
+   * For the **multi-class classification task**, `pred_transfrom` must be one
+   * of the following values:
+   * \snippet src/compiler/pred_transform.cc pred_transform_multiclass_db
+   *
+   * For **all other tasks** (e.g. regression, binary classification, ranking
+   * etc.), `pred_transfrom` must be one of the following values:
+   * \snippet src/compiler/pred_transform.cc pred_transform_db
+   *
+   */
   std::string pred_transform;
   /*!
    * \brief scaling parameter for sigmoid function
-   * sigmoid(x) = 1 / (1 + exp(-alpha * x))
+   * `sigmoid(x) = 1 / (1 + exp(-alpha * x))`
+   *
+   * Valid only when `pred_transform='sigmoid'`
    */
   float sigmoid_alpha;
 
@@ -299,6 +321,7 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
       .describe("scaling parameter for sigmoid function");
   }
 };
+/*! \} */ 
 
 inline void InitParamAndCheck(ModelParam* param,
                   const std::vector<std::pair<std::string, std::string>> cfg) {

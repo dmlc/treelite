@@ -9,6 +9,7 @@ MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = TREELITE_DLL= TREELITE_EXTERN_C=
 INPUT            = ../include/ ../src/
+EXAMPLE_PATH     = ../
 RECURSIVE        = YES
 QUIET            = YES
 JAVADOC_AUTOBRIEF = YES

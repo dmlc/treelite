@@ -143,7 +143,8 @@ class Model(object):
 
     Parameters
     ----------
-    params: dict / list / string
+    params: :py:class:`dict <python:dict>` / :py:class:`list <python:list>` / \
+            :py:class:`str <python:str>`
         list of key-alue pairs, dict or simply string key
     compiler_handle: object of type `ctypes.c_void_p`
         handle to compiler
@@ -256,6 +257,15 @@ class ModelBuilder(object):
       and ``False`` indicates gradient boosted trees
   **kwargs
       additional parameters, to be used with the resulting model
+
+  Other Parameters
+  ----------------
+  pred_transform : :py:class:`str <python:str>`
+    See `this page <http://treelite.readthedocs.io/en/latest/dev/
+    structtreelite_1_1_model_param.html>`_ for more information
+  alpha_transform : :py:class:`float <python:float>`
+    See `this page <http://treelite.readthedocs.io/en/latest/dev/
+    structtreelite_1_1_model_param.html>`_ for more information
   """
   class Node(object):
     """Handle to a node in a tree"""

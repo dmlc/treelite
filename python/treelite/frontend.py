@@ -263,7 +263,7 @@ class ModelBuilder(object):
   pred_transform : :py:class:`str <python:str>`
     See `this page <http://treelite.readthedocs.io/en/latest/dev/
     structtreelite_1_1_model_param.html>`_ for more information
-  alpha_transform : :py:class:`float <python:float>`
+  sigmoid_alpha : :py:class:`float <python:float>`
     See `this page <http://treelite.readthedocs.io/en/latest/dev/
     structtreelite_1_1_model_param.html>`_ for more information
   """

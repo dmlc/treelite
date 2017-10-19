@@ -308,7 +308,8 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
    * \brief scaling parameter for sigmoid function
    * `sigmoid(x) = 1 / (1 + exp(-alpha * x))`
    *
-   * Valid only when `pred_transform='sigmoid'`
+   * This parameter is used only when `pred_transform` is set to `'sigmoid'`. 
+   * It must be strictly positive; if unspecified, it is set to 1.0.
    */
   float sigmoid_alpha;
 

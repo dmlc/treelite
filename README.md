@@ -8,6 +8,7 @@ Treelite is a framework to optimize decision tree ensembles for **fast predictio
 
 * Documentation: [treelite.io](http://treelite.io)
 * [To-do list](https://github.com/dmlc/treelite/issues/1)
+* [Binary release builds](https://github.com/hcho3/treelite-wheels)
 * Acknowledgement
 * Contributors
 * Roadmap (coming soon)

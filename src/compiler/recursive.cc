@@ -93,7 +93,7 @@ struct GroupPolicy {
   std::vector<std::string> AccumulateLeaf(const treelite::Tree::Node& node,
                                           size_t tree_id) const;
   std::vector<std::string> Return() const;
-  std::vector<std::string> FinalReturn(size_t num_tree) const;
+  std::vector<std::string> FinalReturn(size_t num_tree, float global_bias) const;
   std::string Prototype() const;
   std::string PrototypeTranslationUnit(size_t unit_id) const;
 
@@ -199,7 +199,8 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
         }
       }
     }
-    sequence.PushBack(PlainBlock(group_policy.FinalReturn(model.trees.size())));
+    sequence.PushBack(PlainBlock(group_policy.FinalReturn(model.trees.size(),
+                                                     model.param.global_bias)));
 
     FunctionBlock query_func("size_t get_num_output_group(void)",
                              PlainBlock(group_policy.GroupQueryFunction()),
@@ -632,27 +633,31 @@ GroupPolicy::Return() const {
 }
 
 inline std::vector<std::string>
-GroupPolicy::FinalReturn(size_t num_tree) const {
+GroupPolicy::FinalReturn(size_t num_tree, float global_bias) const {
   if (num_output_group > 1) {
     if (random_forest_flag) {
       // multi-class classification with random forest
       return {std::string("for (int i = 0; i < ")
                 + std::to_string(num_output_group) + "; ++i) {",
               std::string("  result[i] = sum[i] / ")
-                  + std::to_string(num_tree) + ";",
+                  + std::to_string(num_tree) + " + ("
+                  + treelite::common::ToString(global_bias) + ");",
               "}"};
     } else {
       // multi-class classification with gradient boosted trees
       return {std::string("for (int i = 0; i < ")
                   + std::to_string(num_output_group) + "; ++i) {",
-              "  result[i] = sum[i];",
+              "  result[i] = sum[i] + ("
+                  + treelite::common::ToString(global_bias) + ");",
               "}"};
     }
   } else {
     if (random_forest_flag) {
-      return { std::string("return sum / ") + std::to_string(num_tree) + ";" };
+      return { std::string("return sum / ") + std::to_string(num_tree) + " + ("
+                  + treelite::common::ToString(global_bias) + ");" };
     } else {
-      return { "return sum;" };
+      return { std::string("return sum + (")
+                  + treelite::common::ToString(global_bias) + ");" };
     }
   }
 }

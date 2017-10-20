@@ -312,6 +312,13 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
    * It must be strictly positive; if unspecified, it is set to 1.0.
    */
   float sigmoid_alpha;
+  /*!
+   * \brief global bias of the model
+   *
+   * Predicted margin scores of all instances will be adjusted by the global
+   * bias. If unspecified, the bias is set to zero.
+   */
+  float global_bias;
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(ModelParam) {
@@ -320,6 +327,8 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
     DMLC_DECLARE_FIELD(sigmoid_alpha).set_default(1.0f)
       .set_lower_bound(0.0f)
       .describe("scaling parameter for sigmoid function");
+    DMLC_DECLARE_FIELD(global_bias).set_default(0.0f)
+      .describe("global bias of the model");
   }
 };
 /*! \} */ 

@@ -136,6 +136,12 @@ inline void CONSUME_BYTES(const T& fi, size_t size) {
     << " bytes from the file";
 }
 
+struct LearnerModelParam {
+  bst_float base_score;  // global bias
+  unsigned pad1;
+  int pad2[32];
+};
+
 struct GBTreeModelParam {
   int num_trees;
   int pad0;
@@ -248,7 +254,8 @@ class XGBTree {
 
 inline treelite::Model ParseStream(dmlc::Stream* fi) {
   std::vector<XGBTree> xgb_trees_;
-  GBTreeModelParam gbm_param_;
+  LearnerModelParam mparam_;    // model parameter
+  GBTreeModelParam gbm_param_;  // GBTree training parameter
   std::string name_gbm_;
   std::string name_obj_;
 
@@ -265,7 +272,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
   }
   // read parameter
-  CONSUME_BYTES(fp, sizeof(bst_float) + sizeof(unsigned) + 32 * sizeof(int));
+  CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
+      << "Ill-formed XGBoost model file: corrupted header";
+  LOG(INFO) << "Global bias of the model: " << mparam_.base_score;
   {
     // backward compatibility code for compatible with old model type
     // for new model, Read(&name_obj_) is suffice
@@ -315,6 +324,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   model.num_feature = gbm_param_.num_feature;
   model.num_output_group = gbm_param_.num_output_group;
   model.random_forest_flag = false;
+
+  // set global bias
+  model.param.global_bias = static_cast<float>(mparam_.base_score);
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {

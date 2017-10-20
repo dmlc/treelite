@@ -280,7 +280,7 @@ which produces the output
         sum += (float)-0.3;
       }
     }
-    return sum;
+    return sum + (0);
   }
 
 The toy example has been helpful as an illustration, but it is impractical

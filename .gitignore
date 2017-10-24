@@ -45,3 +45,9 @@ treelite
 
 # Project files
 *.pyproj
+
+# Mac system file
+.DS_Store
+
+# Python wheel binaries
+python/dist/

@@ -1,18 +1,18 @@
 # coding: utf-8
+# pylint: disable=W0201
 """predictor module"""
-
-from ..core import c_str, _get_log_callback_func, TreeliteError
-from ..libpath import find_lib_path
-from ..contrib.util import lineno, log_info
 import ctypes
 import sys
 import os
 import numpy as np
+from ..core import c_str, _get_log_callback_func, TreeliteError
+from ..libpath import find_lib_path
+from ..contrib.util import lineno, log_info
 
 def _load_runtime_lib():
   """Load treelite runtime"""
   lib_path = find_lib_path(runtime=True)
-  if len(lib_path) == 0:
+  if not lib_path:
     return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
@@ -70,14 +70,15 @@ class Batch(object):
     """
     num_row = ctypes.c_size_t()
     num_col = ctypes.c_size_t()
-    _check_call(_LIB.TreeliteBatchGetDimension(self.handle,
-                               ctypes.c_int(1 if self.kind == 'sparse' else 0),
-                                               ctypes.byref(num_row),
-                                               ctypes.byref(num_col)))
+    _check_call(_LIB.TreeliteBatchGetDimension(
+        self.handle,
+        ctypes.c_int(1 if self.kind == 'sparse' else 0),
+        ctypes.byref(num_row),
+        ctypes.byref(num_col)))
     return (num_row.value, num_col.value)
 
   @classmethod
-  def from_npy2d(self, mat, rbegin=0, rend=None, missing=None):
+  def from_npy2d(cls, mat, rbegin=0, rend=None, missing=None):
     """
     Get a dense batch from a 2D numpy matrix.
     If ``mat`` does not have ``order='C'`` (also known as row-major) or is not
@@ -122,7 +123,7 @@ class Batch(object):
     # we try to avoid data copies if possible
     # (reshape returns a view when possible and we explicitly tell np.array to
     #  avoid copying)
-    data_subset = np.array(mat[rbegin:rend,:].reshape((rend - rbegin)*num_col),
+    data_subset = np.array(mat[rbegin:rend, :].reshape((rend - rbegin)*num_col),
                            copy=False, dtype=np.float32)
     missing = missing if missing is not None else np.nan
 
@@ -130,11 +131,11 @@ class Batch(object):
     batch.handle = ctypes.c_void_p()
     batch.kind = 'dense'
     _check_call(_LIB.TreeliteAssembleDenseBatch(
-            data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            ctypes.c_float(missing),
-            ctypes.c_size_t(rend - rbegin),
-            ctypes.c_size_t(num_col),
-            ctypes.byref(batch.handle)))
+        data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        ctypes.c_float(missing),
+        ctypes.c_size_t(rend - rbegin),
+        ctypes.c_size_t(num_col),
+        ctypes.byref(batch.handle)))
     # save handles for internal arrays
     batch.data = data_subset
     return batch
@@ -144,7 +145,7 @@ class Batch(object):
     """
     Get a sparse batch from a subset of rows in a CSR (Compressed Sparse Row)
     matrix. The subset is given by the range ``[rbegin, rend)``.
-    
+
     Parameters
     ----------
     csr : object of class :py:class:`treelite.DMatrix` or \
@@ -195,12 +196,12 @@ class Batch(object):
     batch.handle = ctypes.c_void_p()
     batch.kind = 'sparse'
     _check_call(_LIB.TreeliteAssembleSparseBatch(
-                data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-                indices_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
-                indptr_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
-                ctypes.c_size_t(rend - rbegin),
-                ctypes.c_size_t(num_col),
-                ctypes.byref(batch.handle)))
+        data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        indices_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+        indptr_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
+        ctypes.c_size_t(rend - rbegin),
+        ctypes.c_size_t(num_col),
+        ctypes.byref(batch.handle)))
     # save handles for internal arrays
     batch.data = data_subset
     batch.indices = indices_subset
@@ -218,8 +219,9 @@ class Predictor(object):
   verbose : :py:class:`bool <python:bool>`, optional
       Whether to print extra messages during construction
   """
+  # pylint: disable=R0903
+
   def __init__(self, libpath, verbose=False):
-    
     if os.path.isdir(libpath):  # libpath is a diectory
       # directory is given; locate shared library inside it
       basename = os.path.basename(libpath.rstrip('/\\'))
@@ -271,18 +273,21 @@ class Predictor(object):
       raise TreeliteError('batch cannot be empty')
     nthread = nthread if nthread is not None else 0
     result_size = ctypes.c_size_t()
-    _check_call(_LIB.TreelitePredictorQueryResultSize(self.handle,
-                                                      batch.handle,
-                              ctypes.c_int(1 if batch.kind == 'sparse' else 0),
-                                                    ctypes.byref(result_size)))
+    _check_call(_LIB.TreelitePredictorQueryResultSize(
+        self.handle,
+        batch.handle,
+        ctypes.c_int(1 if batch.kind == 'sparse' else 0),
+        ctypes.byref(result_size)))
     out_result = np.zeros(result_size.value, dtype=np.float32, order='C')
     out_result_size = ctypes.c_size_t()
-    _check_call(_LIB.TreelitePredictorPredictBatch(self.handle, batch.handle,
-                    ctypes.c_int(1 if batch.kind == 'sparse' else 0),
-                    ctypes.c_int(nthread), ctypes.c_int(1 if verbose else 0),
-                    ctypes.c_int(1 if pred_margin else 0),
-                    out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-                    ctypes.byref(out_result_size)))
+    _check_call(_LIB.TreelitePredictorPredictBatch(
+        self.handle,
+        batch.handle,
+        ctypes.c_int(1 if batch.kind == 'sparse' else 0),
+        ctypes.c_int(nthread), ctypes.c_int(1 if verbose else 0),
+        ctypes.c_int(1 if pred_margin else 0),
+        out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        ctypes.byref(out_result_size)))
     idx = out_result_size.value
     return out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
 

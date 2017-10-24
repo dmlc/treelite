@@ -4,24 +4,21 @@ Tools to interact with Microsoft Visual C++ (MSVC) toolchain
 """
 
 from __future__ import absolute_import as _abs
-from ..core import _LIB, _check_call, TreeliteError
+import os
+import subprocess
+from multiprocessing import cpu_count
+from ..core import TreeliteError
 from ..compat import _str_decode, _str_encode, PY3
 from .util import lineno, log_info
 
-import os
-import sys
-import subprocess
-import ctypes
-from multiprocessing import cpu_count
-
 if PY3:
-  import winreg
+  import winreg                 # pylint: disable=E0401
 else:
-  import _winreg as winreg
+  import _winreg as winreg      # pylint: disable=E0401
 
 def _is_64bit_windows():
   return 'PROGRAMFILES(X86)' in os.environ
-  
+
 def _varsall_bat_path():
   if _is_64bit_windows():
     key_name = 'SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7'
@@ -34,7 +31,7 @@ def _varsall_bat_path():
     try:
       version, location, _ = winreg.EnumValue(key, i)
       vs_installs.append((version, location))
-    except WindowsError:
+    except WindowsError:   # pylint: disable=E0602
       break
     i += 1
 
@@ -63,7 +60,7 @@ def _varsall_bat_path():
 
 def _enqueue(args):
   queue = args[0]
-  id = args[1]
+  tid = args[1]
   dirpath = args[2]
   options = args[3]
   proc = subprocess.Popen('cmd.exe', shell=True, stdin=subprocess.PIPE,
@@ -71,21 +68,21 @@ def _enqueue(args):
                           stderr=subprocess.STDOUT)
   proc.stdin.write(_str_encode('\"{}\" amd64\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode('type NUL > retcode_cpu{}.txt\n'.format(id)))
+  proc.stdin.write(_str_encode('type NUL > retcode_cpu{}.txt\n'.format(tid)))
   for source in queue:
     proc.stdin.write(_str_encode('cl.exe /c /openmp /Ox {} {}\n'
                                  .format(source + '.c', ' '.join(options))))
     proc.stdin.write(_str_encode('echo %errorlevel% >> retcode_cpu{}.txt\n'
-                                 .format(id)))
+                                 .format(tid)))
   proc.stdin.flush()
 
   return proc
 
 def _wait(proc, args):
-  id = args[1]
+  tid = args[1]
   dirpath = args[2]
   stdout, _ = proc.communicate()
-  with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(id)), 'r') as f:
+  with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(tid)), 'r') as f:
     retcode = [int(line) for line in f]
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
@@ -98,10 +95,11 @@ def _create_dll(dirpath, target, sources, options):
   else:
     proc.stdin.write(_str_encode('\"{}\" x86\n'.format(_varsall_bat_path())))
   proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode('cl.exe /LD /Fe{} /openmp {} {}\n'
-                               .format(target,
-                                      ' '.join([x[0] + '.obj' for x in sources]),
-                                      ' '.join(options))))
+  proc.stdin.write(_str_encode(
+      'cl.exe /LD /Fe{} /openmp {} {}\n'
+      .format(target,
+              ' '.join([x[0] + '.obj' for x in sources]),
+              ' '.join(options))))
   proc.stdin.write(_str_encode('echo %errorlevel% > retcode_dll.txt\n'))
   proc.stdin.flush()
   stdout, _ = proc.communicate()
@@ -117,22 +115,22 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
              'into object files (*.obj)...')
   ncore = cpu_count()
   ncpu = min(ncore, nthread) if nthread is not None else ncore
-  workqueues = [([], id, os.path.abspath(dirpath), options) \
-                for id in range(ncpu)]
+  workqueues = [([], tid, os.path.abspath(dirpath), options) \
+                for tid in range(ncpu)]
   for i, source in enumerate(recipe['sources']):
     workqueues[i % ncpu][0].append(source[0])
 
-  procs = [_enqueue(workqueues[id]) for id in range(ncpu)]
+  procs = [_enqueue(workqueues[tid]) for tid in range(ncpu)]
   result = []
-  for id in range(ncpu):
-    result.append(_wait(procs[id], workqueues[id]))
+  for tid in range(ncpu):
+    result.append(_wait(procs[tid], workqueues[tid]))
 
-  for id in range(ncpu):
-    if not all(x == 0 for x in result[id]['retcode']):
-      with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(id)), 'w') as f:
-        f.write(result[id]['stdout'] + '\n')
-      raise TreeliteError('Error occured in worker #{}: '.format(id) +\
-                          '{}'.format(result[id]['stdout']))
+  for tid in range(ncpu):
+    if not all(x == 0 for x in result[tid]['retcode']):
+      with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(tid)), 'w') as f:
+        f.write(result[tid]['stdout'] + '\n')
+      raise TreeliteError('Error occured in worker #{}: '.format(tid) +\
+                          '{}'.format(result[tid]['stdout']))
 
   # 2. Package objects into a dynamic shared library (.dll)
   if verbose:
@@ -143,13 +141,13 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
                        recipe['target'], recipe['sources'], options)
   if result['retcode'] != 0:
     with open(os.path.join(dirpath, 'log_dll.txt'), 'w') as f:
-        f.write(result['stdout'] + '\n')
+      f.write(result['stdout'] + '\n')
     raise TreeliteError('Error occured while creating DLL: ' +\
                         '{}'.format(result['stdout']))
 
   # 3. Clean up
-  for id in range(ncpu):
-    os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(id))
+  for tid in range(ncpu):
+    os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(tid))
   os.remove(os.path.join(dirpath, 'retcode_dll.txt'))
 
   # Return full path of shared library
@@ -160,4 +158,4 @@ def _check_ext(dllpath):
   if fileext != '.dll':
     raise ValueError('Library file should have .dll extension')
 
-__all__ = ['']
+__all__ = []

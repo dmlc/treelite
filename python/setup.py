@@ -1,20 +1,23 @@
-from setuptools import setup, Distribution, find_packages
+"""Setup script"""
 import os
 import shutil
+from setuptools import setup, Distribution, find_packages
 
 class BinaryDistribution(Distribution):
-  def has_ext_modules(foo):
+  """Overrides Distribution class to bundle platform-specific binaries"""
+  # pylint: disable=R0201
+  def has_ext_modules(self):
+    """Has an extension module"""
     return True
 
-lib_name = 'treelite'
-
-libpath_py = os.path.abspath('./treelite/libpath.py')
-libpath = {'__file__': libpath_py}
-exec(compile(open(libpath_py, "rb").read(), libpath_py, 'exec'),
-     libpath, libpath)
-LIB_PATH = libpath['find_lib_path']()              # main lib path
-RT_PATH = libpath['find_lib_path'](runtime=True)   # runtime lib path
-if len(LIB_PATH) == 0 or len(RT_PATH) == 0:
+LIBPATH_PY = os.path.abspath('./treelite/libpath.py')
+LIBPATH = {'__file__': LIBPATH_PY}
+# pylint: disable=W0122
+exec(compile(open(LIBPATH_PY, "rb").read(), LIBPATH_PY, 'exec'),
+     LIBPATH, LIBPATH)
+LIB_PATH = LIBPATH['find_lib_path']()              # main lib path
+RT_PATH = LIBPATH['find_lib_path'](runtime=True)   # runtime lib path
+if (not LIB_PATH) or (not RT_PATH):
   raise RuntimeError('Please compile the C++ package first')
 
 if os.path.abspath(os.path.dirname(LIB_PATH[0])) == os.path.abspath('./treelite'):
@@ -22,17 +25,17 @@ if os.path.abspath(os.path.dirname(LIB_PATH[0])) == os.path.abspath('./treelite'
   del LIB_PATH[0]
   del RT_PATH[0]
 
-lib_basename = os.path.basename(LIB_PATH[0])
-lib_dest = os.path.join('./treelite', lib_basename)
-rt_basename = os.path.basename(RT_PATH[0])
-rt_dest = os.path.join('./treelite', rt_basename)
+LIB_BASENAME = os.path.basename(LIB_PATH[0])
+LIB_DEST = os.path.join('./treelite', LIB_BASENAME)
+RT_BASENAME = os.path.basename(RT_PATH[0])
+RT_DEST = os.path.join('./treelite', RT_BASENAME)
 
-if os.path.exists(lib_dest):
-  os.remove(lib_dest)
-if os.path.exists(rt_dest):
-  os.remove(rt_dest)
-shutil.copy(LIB_PATH[0], lib_dest)
-shutil.copy(RT_PATH[0], rt_dest)
+if os.path.exists(LIB_DEST):
+  os.remove(LIB_DEST)
+if os.path.exists(RT_DEST):
+  os.remove(RT_DEST)
+shutil.copy(LIB_PATH[0], LIB_DEST)
+shutil.copy(RT_PATH[0], RT_DEST)
 
 with open('../VERSION', 'r') as f:
   VERSION = f.readlines()[0]
@@ -47,7 +50,7 @@ setup(
     maintainer_email='chohyu01@cs.washington.edu',
     packages=find_packages(),
     package_data={
-        'treelite': [lib_basename, rt_basename],
+        'treelite': [LIB_BASENAME, RT_BASENAME],
     },
     distclass=BinaryDistribution
 )

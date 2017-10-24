@@ -1,13 +1,10 @@
 # coding: utf-8
 """branch annotator module"""
 
-from .core import _LIB, _check_call, c_str, DMatrix, TreeliteError
-from .contrib.util import lineno, log_info
-from .compat import JSONDecodeError
-from .frontend import Model
 import ctypes
 import os
-import json
+from .core import _LIB, _check_call, c_str, DMatrix, TreeliteError
+from .frontend import Model
 
 class Annotator(object):
   """

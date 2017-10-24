@@ -49,16 +49,16 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
   -------
   The following command uses Visual C++ toolchain to generate
   ``./my/model/model.dll``:
-  
+
   .. code-block:: python
 
      model.compile(dirpath='./my/model', params={}, verbose=True)
      create_shared(toolchain='msvc', dirpath='./my/model', verbose=True)
 
   Later, the shared library can be referred to by its directory name:
-  
+
   .. code-block:: python
-  
+
      predictor = Predictor(libpath='./my/model', verbose=True)
      # looks for ./my/model/model.dll
 
@@ -68,6 +68,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
 
      predictor = Predictor(libpath='./my/model/model.dll', verbose=True)
   """
+
+  # pylint: disable=R0912
 
   if nthread is not None and nthread <= 0:
     raise TreeliteError('nthread must be positive integer')
@@ -83,7 +85,7 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
     raise TreeliteError('Malformed recipe.json')
   if options is not None:
     try:
-      iterator = iter(options)
+      _ = iter(options)
       options = [str(x) for x in options]
     except TypeError:
       raise TreeliteError('options must be a list of string')

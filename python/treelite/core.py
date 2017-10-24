@@ -4,7 +4,6 @@ from __future__ import absolute_import as _abs
 
 import sys
 import ctypes
-import collections
 
 import numpy as np
 import scipy.sparse
@@ -22,13 +21,14 @@ def _log_callback(msg):
 
 def _get_log_callback_func():
   """Wrap log_callback() method in ctypes callback type"""
+  #pylint: disable=invalid-name
   CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
   return CALLBACK(_log_callback)
 
 def _load_lib():
   """Load treelite Library."""
   lib_path = find_lib_path()
-  if len(lib_path) == 0:
+  if not lib_path:
     return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
@@ -85,8 +85,8 @@ def _maybe_pandas_data(data, feature_names, feature_types):
     return data, feature_names, feature_types
   data_dtypes = data.dtypes
   if not all(dtype.name in PANDAS_DTYPE_MAPPER for dtype in data_dtypes):
-    bad_fields = [data.columns[i] for i, dtype in
-               enumerate(data_dtypes) if dtype.name not in PANDAS_DTYPE_MAPPER]
+    bad_fields = [data.columns[i] for i, dtype in enumerate(data_dtypes) \
+                  if dtype.name not in PANDAS_DTYPE_MAPPER]
     msg = "DataFrame.dtypes for data must be in, float, or bool. Did not " \
           + "expect the data types in fields "
     raise ValueError(msg + ', '.join(bad_fields))
@@ -122,6 +122,8 @@ class DMatrix(object):
       Number of threads
   """
 
+  # pylint: disable=R0902,R0903,R0913
+
   def __init__(self, data, data_format=None, missing=None,
                feature_names=None, feature_types=None,
                verbose=False, nthread=None):
@@ -136,11 +138,12 @@ class DMatrix(object):
       self.handle = ctypes.c_void_p()
       nthread = nthread if nthread is not None else 0
       data_format = data_format if data_format is not None else "libsvm"
-      _check_call(_LIB.TreeliteDMatrixCreateFromFile(c_str(data),
-                                                     c_str(data_format),
-                                                     ctypes.c_int(nthread),
-                                             ctypes.c_int(1 if verbose else 0),
-                                                    ctypes.byref(self.handle)))
+      _check_call(_LIB.TreeliteDMatrixCreateFromFile(
+          c_str(data),
+          c_str(data_format),
+          ctypes.c_int(nthread),
+          ctypes.c_int(1 if verbose else 0),
+          ctypes.byref(self.handle)))
     elif isinstance(data, scipy.sparse.csr_matrix):
       self._init_from_csr(data)
     elif isinstance(data, scipy.sparse.csc_matrix):
@@ -162,27 +165,26 @@ class DMatrix(object):
     """Initialize data from a CSR (Compressed Sparse Row) matrix"""
     if len(csr.indices) != len(csr.data):
       raise ValueError('indices and data not of same length: {} vs {}'
-                        .format(len(csr.indices), len(csr.data)))
+                       .format(len(csr.indices), len(csr.data)))
     if len(csr.indptr) != csr.shape[0] + 1:
       raise ValueError('len(indptr) must be equal to 1 + [number of rows]' \
                         + 'len(indptr) = {} vs 1 + [number of rows] = {}'
-                          .format(len(indptr), 1 + csr.shape[0]))
+                       .format(len(csr.indptr), 1 + csr.shape[0]))
     if csr.indptr[-1] != len(csr.data):
       raise ValueError('last entry of indptr must be equal to len(data)' \
                         + 'indptr[-1] = {} vs len(data) = {}'
-                          .format(indptr[-1], len(data)))
+                       .format(csr.indptr[-1], len(csr.data)))
     self.handle = ctypes.c_void_p()
     data = np.array(csr.data, copy=False, dtype=np.float32, order='C')
     indices = np.array(csr.indices, copy=False, dtype=np.uintc, order='C')
     indptr = np.array(csr.indptr, copy=False, dtype=np.uintp, order='C')
-    _check_call(
-      _LIB.TreeliteDMatrixCreateFromCSR(
-                data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-                indices.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
-                indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
-                ctypes.c_size_t(csr.shape[0]),
-                ctypes.c_size_t(csr.shape[1]),
-                ctypes.byref(self.handle)))
+    _check_call(_LIB.TreeliteDMatrixCreateFromCSR(
+        data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        indices.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+        indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
+        ctypes.c_size_t(csr.shape[0]),
+        ctypes.c_size_t(csr.shape[1]),
+        ctypes.byref(self.handle)))
 
   def _init_from_npy2d(self, mat, missing):
     """
@@ -210,7 +212,6 @@ class DMatrix(object):
         ctypes.c_float(missing),
         ctypes.byref(self.handle)))
 
-    
   def _get_dims(self):
     num_row = ctypes.c_size_t()
     num_col = ctypes.c_size_t()
@@ -230,18 +231,21 @@ class DMatrix(object):
                                               ctypes.byref(col_ind),
                                               ctypes.byref(row_ptr)))
     num_row, num_col, nelem = self._get_dims()
-    
+
     # DMatrix should mimick scipy.sparse.csr_matrix for
     # proper duck typing in Predictor.from_csr()
-    self.data = np.frombuffer(buffer_from_memory(data,
-                               ctypes.sizeof(ctypes.c_float * nelem)),
-                               dtype=np.float32)
-    self.indices = np.frombuffer(buffer_from_memory(col_ind,
-                               ctypes.sizeof(ctypes.c_uint32 * nelem)),
-                               dtype=np.uint32)
-    self.indptr = np.frombuffer(buffer_from_memory(row_ptr,
-                               ctypes.sizeof(ctypes.c_size_t * (num_row + 1))),
-                               dtype=np.uintp)
+    self.data = np.frombuffer(buffer_from_memory(
+        data,
+        ctypes.sizeof(ctypes.c_float * nelem)),
+                              dtype=np.float32)
+    self.indices = np.frombuffer(buffer_from_memory(
+        col_ind,
+        ctypes.sizeof(ctypes.c_uint32 * nelem)),
+                                 dtype=np.uint32)
+    self.indptr = np.frombuffer(buffer_from_memory(
+        row_ptr,
+        ctypes.sizeof(ctypes.c_size_t * (num_row + 1))),
+                                dtype=np.uintp)
     self.shape = (num_row, num_col)
     self.size = nelem
 
@@ -255,7 +259,7 @@ class DMatrix(object):
            .format(self.shape[0], self.shape[1]) \
         + '        with {} stored elements in Compressed Sparse Row format>'\
            .format(self.size)
-  
+
   def __str__(self):
     # Print first and last 25 non-zero entries
     preview = ctypes.c_char_p()

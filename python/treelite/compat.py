@@ -1,4 +1,5 @@
 # coding: utf-8
+# pylint: disable=W0611
 """Compatibility layer"""
 
 from __future__ import absolute_import as _abs
@@ -8,8 +9,8 @@ import ctypes
 
 PY3 = (sys.version_info[0] == 3)
 
-# Enforce minimum Python version for Python 2.x and 3.x
 def assert_python_min_ver(py2_ver, py3_ver, info_str):
+  """Enforce minimum Python version for Python 2.x and 3.x"""
   py2_ver_ = py2_ver.split('.')
   py3_ver_ = py3_ver.split('.')
   if len(py2_ver_) != 2 or len(py3_ver_) != 2 or \
@@ -26,23 +27,23 @@ def assert_python_min_ver(py2_ver, py3_ver, info_str):
 
 # String handling for Python 2 and 3
 if PY3:
-  STRING_TYPES = str,
-  def py_str(x):
+  STRING_TYPES = (str,)
+  def py_str(string):
     """Convert C string back to Python string"""
-    return x.decode('utf-8')
-  def _str_decode(str):
-    return str.decode('utf-8')
-  def _str_encode(str):
-    return str.encode('utf-8')
+    return string.decode('utf-8')
+  def _str_decode(string):
+    return string.decode('utf-8')
+  def _str_encode(string):
+    return string.encode('utf-8')
 else:
-  STRING_TYPES = basestring,
-  def py_str(x):
+  STRING_TYPES = (basestring,)   # pylint: disable=E0602
+  def py_str(string):
     """Convert C string back to Python string"""
-    return x
-  def _str_decode(str):
-    return str
-  def _str_encode(str):
-    return str
+    return string
+  def _str_decode(string):
+    return string
+  def _str_encode(string):
+    return string
 
 if sys.version_info[0] == 3 and sys.version_info[1] >= 5:
   from json import JSONDecodeError   # Python 3.5 or newer
@@ -53,12 +54,14 @@ else:
 assert_python_min_ver('2.5', '3.3', 'buffer_from_memory')
 if PY3:
   def buffer_from_memory(ptr, size):
+    """Make Python buffer from raw memory"""
     func = ctypes.pythonapi.PyMemoryView_FromMemory
     func.restype = ctypes.py_object
-    PyBUF_READ = 0x100
+    PyBUF_READ = 0x100         # pylint: disable=C0103
     return func(ptr, size, PyBUF_READ)
 else:
   def buffer_from_memory(ptr, size):
+    """Make Python buffer from raw memory"""
     func = ctypes.pythonapi.PyBuffer_FromMemory
     func.restype = ctypes.py_object
     return func(ptr, size)
@@ -76,7 +79,8 @@ try:
 except ImportError:
   class DataFrame(object):
     """dummy for pandas.DataFrame"""
+    # pylint: disable=R0903
     pass
   PANDAS_INSTALLED = False
 
-__all__ = ['']
+__all__ = []

@@ -3,7 +3,8 @@
 
 import ctypes
 import os
-from .core import _LIB, _check_call, c_str, DMatrix, TreeliteError
+from .common.util import c_str, TreeliteError
+from .core import _LIB, DMatrix, _check_call
 from .frontend import Model
 
 class Annotator(object):

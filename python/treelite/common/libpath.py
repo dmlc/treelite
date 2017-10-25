@@ -26,6 +26,8 @@ def find_lib_path(runtime=False):
   lib_name = 'treelite_runtime' if runtime else 'treelite'
 
   curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
+  # go one level up, as this script is in common/ directory
+  curr_path = os.path.abspath(os.path.join(curr_path, os.pardir))
   # make pythonpack hack: copy this directory one level upper for setup.py
   dll_path = [curr_path, os.path.join(curr_path, '../../lib/'),
               os.path.join(curr_path, './lib/'),

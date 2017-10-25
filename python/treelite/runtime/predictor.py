@@ -5,9 +5,9 @@ import ctypes
 import sys
 import os
 import numpy as np
-from ..core import c_str, _get_log_callback_func, TreeliteError
-from ..libpath import find_lib_path
-from ..contrib.util import lineno, log_info
+from ..common.util import c_str, _get_log_callback_func, TreeliteError, \
+                          lineno, log_info
+from ..common.libpath import find_lib_path
 
 def _load_runtime_lib():
   """Load treelite runtime"""

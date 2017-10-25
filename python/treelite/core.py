@@ -8,22 +8,10 @@ import ctypes
 import numpy as np
 import scipy.sparse
 
-from .libpath import find_lib_path
-from .compat import STRING_TYPES, DataFrame, py_str, buffer_from_memory
-
-class TreeliteError(Exception):
-  """Error thrown by treelite"""
-  pass
-
-def _log_callback(msg):
-  """Redirect logs from native library into Python console"""
-  print("{0:s}".format(py_str(msg)))
-
-def _get_log_callback_func():
-  """Wrap log_callback() method in ctypes callback type"""
-  #pylint: disable=invalid-name
-  CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
-  return CALLBACK(_log_callback)
+from .compat import DataFrame, buffer_from_memory
+from .common.util import c_str, _get_log_callback_func, TreeliteError
+from .common.compat import py_str, STRING_TYPES
+from .common.libpath import find_lib_path
 
 def _load_lib():
   """Load treelite Library."""
@@ -57,10 +45,6 @@ def _check_call(ret):
   """
   if ret != 0:
     raise TreeliteError(_LIB.TreeliteGetLastError())
-
-def c_str(string):
-  """Convert a Python string to C string"""
-  return ctypes.c_char_p(string.encode('utf-8'))
 
 def c_array(ctype, values):
   """

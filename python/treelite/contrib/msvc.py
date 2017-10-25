@@ -7,9 +7,8 @@ from __future__ import absolute_import as _abs
 import os
 import subprocess
 from multiprocessing import cpu_count
-from ..core import TreeliteError
-from ..compat import _str_decode, _str_encode, PY3
-from .util import lineno, log_info
+from ..common.compat import _str_decode, _str_encode, PY3
+from ..common.util import TreeliteError, lineno, log_info
 
 if PY3:
   import winreg                 # pylint: disable=E0401

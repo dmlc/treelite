@@ -4,10 +4,10 @@ from __future__ import absolute_import as _abs
 import ctypes
 import collections
 import shutil
-from .core import _LIB, c_str, c_array, _check_call, TreeliteError
-from .compat import STRING_TYPES
+from .common.compat import STRING_TYPES
+from .common.util import c_str, TreeliteError, TemporaryDirectory
+from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, _check_ext
-from .contrib.util import TemporaryDirectory
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""

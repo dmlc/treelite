@@ -10,7 +10,7 @@ def process_model(sklearn_model):
     # process_tree() to be defined later
     builder.append( process_tree(sklearn_model.estimators_[i].tree_,
                                  sklearn_model) )
-  
+
   return builder.commit()
 
 def process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model):

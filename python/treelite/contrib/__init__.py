@@ -7,8 +7,7 @@ Contrib API provides ways to interact with third-party libraries and tools.
 import os
 import json
 import time
-from ..core import TreeliteError
-from .util import lineno, log_info
+from ..common.util import TreeliteError, lineno, log_info
 
 def _check_ext(toolchain, dllpath):
   if toolchain == 'msvc':

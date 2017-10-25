@@ -8,9 +8,8 @@ import os
 import subprocess
 from multiprocessing import cpu_count
 from sys import platform as _platform
-from ..core import TreeliteError
-from ..compat import _str_decode, _str_encode
-from .util import lineno, log_info, TemporaryDirectory
+from ..common.compat import _str_decode, _str_encode
+from ..common.util import TreeliteError, lineno, log_info, TemporaryDirectory
 
 if _platform == 'darwin':
   LIBEXT = '.dylib'

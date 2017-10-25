@@ -52,3 +52,6 @@ treelite
 
 # Python wheel binaries
 python/dist/
+
+# symbol directories
+*.dSYM/

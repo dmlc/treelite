@@ -20,7 +20,7 @@ msvc_use_static_runtime()
 # OpenMP check
 if(OPENMP_FOUND)
   message("Got OpenMP")
-  set_source_files_properties(src/c_api/c_api_common.cc PROPERTIES COMPILE_DEFINITIONS OPENMP_SUPPORT)
+  set_source_files_properties(include/treelite/omp.h PROPERTIES COMPILE_DEFINITIONS OPENMP_SUPPORT)
 else()
   message("Don't have OpenMP")
   include(dmlc-core/cmake/Utils.cmake)

@@ -37,7 +37,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
       Defaults to the number of cores in the system.
   verbose : :py:class:`bool <python:bool>`, optional
       whether to produce extra messages
-  options : :py:class:`str <python:str>`, optional
+  options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
+            optional
       Additional options to pass to toolchain
 
   Returns

@@ -11,14 +11,6 @@
 
 using namespace treelite;
 
-int TreeliteOpenMPSupported() {
-#if OPENMP_SUPPORT
-  return 1;
-#else
-  return 0;
-#endif
-}
-
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();

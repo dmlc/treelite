@@ -6,12 +6,11 @@ Tools to interact with clang toolchain
 from __future__ import absolute_import as _abs
 import os
 import subprocess
-import ctypes
 from multiprocessing import cpu_count
 from sys import platform as _platform
-from ..core import _LIB, TreeliteError
+from ..core import TreeliteError
 from ..compat import _str_decode, _str_encode
-from .util import lineno, log_info
+from .util import lineno, log_info, TemporaryDirectory
 
 if _platform == 'darwin':
   LIBEXT = '.dylib'
@@ -19,8 +18,16 @@ else:
   LIBEXT = '.so'
 
 def _openmp_supported():
-  _LIB.TreeliteOpenMPSupported.restype = ctypes.c_int
-  return _LIB.TreeliteOpenMPSupported() == 1
+  # make temporary folder
+  with TemporaryDirectory() as temp_dir:
+    filename = os.path.join(temp_dir, 'test.c')
+    with open(filename, 'w') as f:
+      f.write('int main() { return 0; }\n')
+    retcode = subprocess.call('clang {} -fopenmp'.format(filename), shell=True,
+                              stdin=subprocess.DEVNULL,
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+  return retcode == 0
 
 def _enqueue(args):
   queue = args[0]

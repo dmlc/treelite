@@ -37,12 +37,6 @@
 TREELITE_DLL const char* TreeliteGetLastError();
 
 /*!
- * \brief check whether the package was compiled with OpenMP support
- * \return 1 if supported; 0 if not
- */
-TREELITE_DLL int TreeliteOpenMPSupported();
-
-/*!
  * \brief register callback function for LOG(INFO) messages -- helpful messages
  *        that are not errors.
  * Note: this function can be called by multiple threads. The callback function

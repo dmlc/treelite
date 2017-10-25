@@ -63,7 +63,8 @@ class Model(object):
     nthread : :py:class:`int <python:int>`, optional
         number of threads to use in creating the shared library.
         Defaults to the number of cores in the system.
-    options : :py:class:`str <python:str>`, optional
+    options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
+              optional
         Additional options to pass to toolchain
 
     Example

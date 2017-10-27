@@ -6,6 +6,7 @@
  */
 
 #include <treelite/annotator.h>
+#include <treelite/semantic.h>
 #include <treelite/omp.h>
 #include <cstdint>
 #include <limits>
@@ -34,20 +35,7 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
         const treelite::Operator op = node.comparison_op();
         const treelite::tl_float fvalue
           = static_cast<treelite::tl_float>(data[split_index].fvalue);
-        switch (op) {
-         case treelite::Operator::kEQ:
-          result = (fvalue == threshold); break;
-         case treelite::Operator::kLT:
-          result = (fvalue <  threshold); break;
-         case treelite::Operator::kLE:
-          result = (fvalue <= threshold); break;
-         case treelite::Operator::kGT:
-          result = (fvalue >  threshold); break;
-         case treelite::Operator::kGE:
-          result = (fvalue >= threshold); break;
-         default:
-          LOG(FATAL) << "operator undefined";
-        }
+        result = treelite::semantic::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
         CHECK_LT(fvalue, 64) << "Cannot have more than 64 categories";

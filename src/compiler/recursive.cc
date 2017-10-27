@@ -14,6 +14,7 @@
 #include <queue>
 #include <algorithm>
 #include <iterator>
+#include <cmath>
 #include "param.h"
 #include "pred_transform.h"
 
@@ -336,8 +337,14 @@ class NoQuantize : private MetadataStore {
   NumericSplitCondition::NumericAdapter NumericAdapter() const {
     return [] (Operator op, unsigned split_index, tl_float threshold) {
       std::ostringstream oss;
-      oss << "data[" << split_index << "].fvalue "
-          << semantic::OpName(op) << " " << threshold;
+      if (!std::isfinite(threshold)) {
+        // According to IEEE 754, the result of comparison [lhs] < infinity
+        // must be identical for all finite [lhs]. Same goes for operator >.
+        oss << (semantic::CompareWithOp(0.0, op, threshold) ? "1" : "0");
+      } else {
+        oss << "data[" << split_index << "].fvalue "
+            << semantic::OpName(op) << " " << threshold;
+      }
       return oss.str();
     };
   }
@@ -382,11 +389,17 @@ class Quantize : private MetadataStore {
                        tl_float threshold) {
       std::ostringstream oss;
       const auto& v = cut_pts[split_index];
-      auto loc = common::binary_search(v.begin(), v.end(), threshold);
-      CHECK(loc != v.end());
-      oss << "data[" << split_index << "].qvalue " << semantic::OpName(op)
-          << " " << static_cast<size_t>(loc - v.begin()) * 2;
-      return oss.str();
+      if (!std::isfinite(threshold)) {
+        // According to IEEE 754, the result of comparison [lhs] < infinity
+        // must be identical for all finite [lhs]. Same goes for operator >.
+        oss << (semantic::CompareWithOp(0.0, op, threshold) ? "1" : "0");
+      } else {
+        auto loc = common::binary_search(v.begin(), v.end(), threshold);
+        CHECK(loc != v.end());
+        oss << "data[" << split_index << "].qvalue " << semantic::OpName(op)
+            << " " << static_cast<size_t>(loc - v.begin()) * 2;
+        return oss.str();
+      }
     };
   }
   std::vector<std::string> CommonHeader() const {
@@ -527,7 +540,9 @@ ExtractCutPoints(const Model& model) {
         if (node.split_type() == SplitFeatureType::kNumerical) {
           const tl_float threshold = node.threshold();
           const unsigned split_index = node.split_index();
-          thresh_[split_index].insert(threshold);
+          if (std::isfinite(threshold)) {  // ignore infinity
+            thresh_[split_index].insert(threshold);
+          }
         } else {
           CHECK(node.split_type() == SplitFeatureType::kCategorical);
         }

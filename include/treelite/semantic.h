@@ -36,6 +36,25 @@ inline std::string OpName(Operator op) {
   }
 }
 
+/*!
+ * \brief perform comparison between two float's using a comparsion operator
+ * The comparison will be in the form [lhs] [op] [rhs].
+ * \param lhs float on the left hand side
+ * \param op comparison operator
+ * \param rhs float on the right hand side
+ * \return whether [lhs] [op] [rhs] is true or not
+ */
+inline bool CompareWithOp(tl_float lhs, Operator op, tl_float rhs) {
+  switch(op) {
+    case Operator::kEQ: return lhs == rhs;
+    case Operator::kLT: return lhs <  rhs;
+    case Operator::kLE: return lhs <= rhs;
+    case Operator::kGT: return lhs >  rhs;
+    case Operator::kGE: return lhs >= rhs;
+    default:            LOG(FATAL) << "operator undefined";
+  }
+}
+
 using common::Cloneable;
 using common::DeepCopyUniquePtr;
 

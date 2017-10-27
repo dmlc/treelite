@@ -5,110 +5,28 @@ Tools to interact with gcc toolchain
 
 from __future__ import absolute_import as _abs
 import os
-import subprocess
-from multiprocessing import cpu_count
-from sys import platform as _platform
-from ..common.compat import _str_decode, _str_encode
-from ..common.util import TreeliteError, lineno, log_info
+from .util import _create_shared_base, _libext, _shell
 
-if _platform == 'darwin':
-  LIBEXT = '.dylib'
-else:
-  LIBEXT = '.so'
-
-def _enqueue(args):
-  queue = args[0]
-  tid = args[1]
-  dirpath = args[2]
-  options = args[3]
-  proc = subprocess.Popen(os.environ['SHELL'], shell=True,
-                          stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode(' > retcode_cpu{}.txt\n'.format(tid)))
-  for source in queue:
-    proc.stdin.write(_str_encode('gcc -c -O3 -o {} {} '\
-                                 .format(source + '.o', source + '.c') +\
-                                 '-fPIC -std=c99 -flto -fopenmp {}\n'\
-                                 .format(' '.join(options))))
-    proc.stdin.write(_str_encode('echo $? >> retcode_cpu{}.txt\n'.format(tid)))
-  proc.stdin.flush()
-
-  return proc
-
-def _wait(proc, args):
-  tid = args[1]
-  dirpath = args[2]
-  stdout, _ = proc.communicate()
-  with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(tid)), 'r') as f:
-    retcode = [int(line) for line in f]
-  return {'stdout':_str_decode(stdout), 'retcode':retcode}
-
-def _create_lib(dirpath, target, sources, options):
-  proc = subprocess.Popen(os.environ['SHELL'], shell=True,
-                          stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT)
-  proc.stdin.write(_str_encode('cd {}\n'.format(dirpath)))
-  proc.stdin.write(_str_encode('gcc -shared -O3 -o {} {} '\
-                               .format(
-                                   target + LIBEXT,
-                                   ' '.join([x[0] + '.o' for x in sources]))+\
-                                   '-std=c99 -flto -fopenmp {}\n'\
-                                   .format(' '.join(options))))
-  proc.stdin.write(_str_encode('echo $? > retcode_lib.txt\n'))
-  proc.stdin.flush()
-  stdout, _ = proc.communicate()
-  with open(os.path.join(dirpath, 'retcode_lib.txt'), 'r') as f:
-    retcode = int(f.readline())
-  return {'stdout':_str_decode(stdout), 'retcode':retcode}
+LIBEXT = _libext()
 
 def _create_shared(dirpath, recipe, nthread, options, verbose):
-  # 1. Compile sources in parallel
-  if verbose:
-    log_info(__file__, lineno(),
-             'Compiling sources files in directory {} '.format(dirpath) +\
-             'into object files (*.o)...')
-  ncore = cpu_count()
-  ncpu = min(ncore, nthread) if nthread is not None else ncore
-  workqueues = [([], tid, os.path.abspath(dirpath), options) \
-                for tid in range(ncpu)]
-  for i, source in enumerate(recipe['sources']):
-    workqueues[i % ncpu][0].append(source[0])
-
-  procs = [_enqueue(workqueues[tid]) for tid in range(ncpu)]
-  result = []
-  for tid in range(ncpu):
-    result.append(_wait(procs[tid], workqueues[tid]))
-
-  for tid in range(ncpu):
-    if not all(x == 0 for x in result[tid]['retcode']):
-      with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(tid)), 'w') as f:
-        f.write(result[tid]['stdout'] + '\n')
-      raise TreeliteError('Error occured in worker #{}: '.format(tid) +\
-                          '{}'.format(result[tid]['stdout']))
-
-  # 2. Package objects into a dynamic shared library (.so)
-  if verbose:
-    log_info(__file__, lineno(),
-             'Generating dynamic shared library {}...'\
-                     .format(os.path.join(dirpath, recipe['target'] + LIBEXT)))
-  result = _create_lib(os.path.abspath(dirpath),
-                       recipe['target'], recipe['sources'], options)
-  if result['retcode'] != 0:
-    with open(os.path.join(dirpath, 'log_lib.txt'), 'w') as f:
-      f.write(result['stdout'] + '\n')
-    raise TreeliteError('Error occured while creating dynamic library: ' +\
-                        '{}'.format(result['stdout']))
-
-  # 3. Clean up
-  for tid in range(ncpu):
-    os.remove(os.path.join(dirpath, 'retcode_cpu{}.txt').format(tid))
-  os.remove(os.path.join(dirpath, 'retcode_lib.txt'))
-
-  # Return full path of shared library
-  return os.path.join(os.path.abspath(dirpath), recipe['target'] + LIBEXT)
+  # Specify command to compile an object file
+  recipe['object_ext'] = '.o'
+  recipe['library_ext'] = LIBEXT
+  recipe['shell'] = _shell()
+  # pylint: disable=C0111
+  def obj_cmd(source):
+    return 'gcc -c -O3 -o {} {} -fPIC -std=c99 -flto -fopenmp {}'\
+           .format(source + '.o', source + '.c', ' '.join(options))
+  def lib_cmd(sources, target):
+    return 'gcc -shared -O3 -o {} {} -std=c99 -flto -fopenmp {}'\
+           .format(target + LIBEXT,
+                   ' '.join([x[0] + '.o' for x in sources]),
+                   ' '.join(options))
+  recipe['create_object_cmd'] = obj_cmd
+  recipe['create_library_cmd'] = lib_cmd
+  recipe['initial_cmd'] = ''
+  return _create_shared_base(dirpath, recipe, nthread, verbose)
 
 def _check_ext(dllpath):
   fileext = os.path.splitext(dllpath)[1]

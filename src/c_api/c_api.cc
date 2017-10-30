@@ -379,7 +379,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
         << "\tgcc -shared -O3 -o $@ $? -fPIC -std=c99 -flto"
         << std::endl << std::endl;
     for (size_t i = 0; i < object_list.size(); ++i) {
-      oss << object_list[i] << ": " << source_list[i].first << std::endl
+      oss << object_list[i] << ": " << source_list[i]["name"] << std::endl
           << "\tgcc -c -O3 -o $@ $? -fPIC -std=c99 -flto" << std::endl;
     }
     oss << std::endl

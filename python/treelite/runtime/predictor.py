@@ -7,13 +7,11 @@ import os
 import numpy as np
 from ..common.util import c_str, _get_log_callback_func, TreeliteError, \
                           lineno, log_info
-from ..common.libpath import find_lib_path
+from ..common.libpath import find_lib_path, TreeliteLibraryNotFound
 
 def _load_runtime_lib():
   """Load treelite runtime"""
   lib_path = find_lib_path(runtime=True)
-  if not lib_path:
-    return None
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
   lib.callback = _get_log_callback_func()
@@ -23,10 +21,13 @@ def _load_runtime_lib():
 
 # load the treelite runtime
 # (do not load if called by sphinx)
-if 'sphinx' not in sys.modules:
-  _LIB = _load_runtime_lib()
+if 'sphinx' in sys.modules:
+  try:
+    _LIB = _load_runtime_lib()
+  except TreeliteLibraryNotFound:
+    _LIB = None
 else:
-  _LIB = None
+  _LIB = _load_runtime_lib()
 
 def _check_call(ret):
   """Check the return value of C API call

@@ -398,8 +398,8 @@ class Quantize : private MetadataStore {
         CHECK(loc != v.end());
         oss << "data[" << split_index << "].qvalue " << semantic::OpName(op)
             << " " << static_cast<size_t>(loc - v.begin()) * 2;
-        return oss.str();
       }
+      return oss.str();
     };
   }
   std::vector<std::string> CommonHeader() const {

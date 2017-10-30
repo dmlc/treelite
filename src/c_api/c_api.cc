@@ -319,7 +319,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     common::WriteToFile(header_filename, lines);
   }
   /* write source file(s) */
-  std::vector<std::pair<std::string, size_t>> source_list;
+  std::vector<std::unordered_map<std::string, std::string>> source_list;
   std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
     const std::string filename = basename + ".c";
@@ -329,7 +329,8 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
       LOG(INFO) << "Writing " << filename_full << " ...";
     }
     auto lines = semantic_model.units[0].Compile(header_filename);
-    source_list.emplace_back(filename, lines.size());
+    source_list.push_back({ {"name", basename},
+                            {"length", std::to_string(lines.size())} });
     object_list.push_back(objname);
     common::WriteToFile(filename_full, lines);
   } else {  // multiple files (translation units)
@@ -341,21 +342,14 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
         LOG(INFO) << "Writing " << filename_full << " ...";
       }
       auto lines = semantic_model.units[i].Compile(header_filename);
-      source_list.emplace_back(filename, lines.size());
+      source_list.push_back({ {"name", basename + std::to_string(i)},
+                              {"length", std::to_string(lines.size())} });
       object_list.push_back(objname);
       common::WriteToFile(filename_full, lines);
     }
   }
   /* write build recipe, to be used by Python binding */
   {
-    std::vector<std::pair<std::string, size_t>> sources;
-    std::transform(source_list.begin(), source_list.end(),
-      std::back_inserter(sources),
-      [](const std::pair<std::string, size_t>& x) {
-        return std::make_pair(x.first.substr(0, x.first.length() - 2),
-                              x.second);
-      });
-
     const std::string recipe_name = dirpath_ + "/recipe.json";
     if (verbose > 0) {
       LOG(INFO) << "Writing " << recipe_name << " ...";
@@ -366,7 +360,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     auto writer = common::make_unique<dmlc::JSONWriter>(&os);
     writer->BeginObject();
     writer->WriteObjectKeyValue("target", basename);
-    writer->WriteObjectKeyValue("sources", sources);
+    writer->WriteObjectKeyValue("sources", source_list);
     writer->EndObject();
     // force flush before fo destruct.
     os.set_stream(nullptr);

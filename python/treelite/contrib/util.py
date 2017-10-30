@@ -96,7 +96,7 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
       'save_retcode_cmd': save_retcode_cmd
   } for tid in range(ncpu)]
   for i, source in enumerate(recipe['sources']):
-    workqueue[i % ncpu]['queue'].append(obj_cmd(source[0]))
+    workqueue[i % ncpu]['queue'].append(obj_cmd(source['name']))
   proc = [_enqueue(workqueue[tid]) for tid in range(ncpu)]
   result = []
   for tid in range(ncpu):
@@ -113,8 +113,9 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
   if verbose:
     log_info(__file__, lineno(),
              'Generating dynamic shared library {}...'\
-                     .format(os.path.join(dirpath,
-                             recipe['target'] + recipe['library_ext'])))
+              .format(
+                  os.path.join(dirpath,
+                               recipe['target'] + recipe['library_ext'])))
   workqueue = {
       'tid': 0,
       'queue': [lib_cmd(recipe['sources'], recipe['target'])],

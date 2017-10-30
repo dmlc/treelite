@@ -39,7 +39,7 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   def lib_cmd(sources, target):
     return 'clang -shared -O3 -o {} {} -std=c99 -flto {}'\
            .format(target + LIBEXT,
-                   ' '.join([x[0] + '.o' for x in sources]),
+                   ' '.join([x['name'] + '.o' for x in sources]),
                    ' '.join(options))
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd

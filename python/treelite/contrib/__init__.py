@@ -95,8 +95,9 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
   # write warning for potentially long compile time
   long_time_warning = False
   for source in recipe['sources']:
-    if source[1] > 10000:
+    if int(source['length']) > 10000:
       long_time_warning = True
+      break
   if long_time_warning:
     log_info(__file__, lineno(),
              '\033[1;31mWARNING: some of the source files are long. ' +\

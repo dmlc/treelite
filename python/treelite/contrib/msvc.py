@@ -67,7 +67,7 @@ def _create_shared(dirpath, recipe, nthread, options, verbose):
   def lib_cmd(sources, target):
     return 'cl.exe /LD /Fe{} /openmp {} {}'\
            .format(target,
-                   ' '.join([x[0] + '.obj' for x in sources]),
+                   ' '.join([x['name'] + '.obj' for x in sources]),
                    ' '.join(options))
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd

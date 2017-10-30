@@ -24,23 +24,34 @@ def _openmp_supported():
                               stderr=subprocess.DEVNULL)
   return retcode == 0
 
+def _obj_ext():
+  return '.o'
+
+def _obj_cmd(source, options):
+  obj_ext = _obj_ext()
+  return 'clang -c -O3 -o {} {} -fPIC -std=c99 -flto {}'\
+          .format(source + obj_ext, source + '.c', ' '.join(options))
+
+def _lib_cmd(sources, target, lib_ext, options):
+  obj_ext = _obj_ext()
+  return 'clang -shared -O3 -o {} {} -std=c99 -flto {}'\
+          .format(target + lib_ext,
+                  ' '.join([x['name'] + obj_ext for x in sources]),
+                  ' '.join(options))
+
 def _create_shared(dirpath, recipe, nthread, options, verbose):
   if _openmp_supported():  # clang may not support OpenMP, so make it optional
     options += ['-fopenmp']
 
   # Specify command to compile an object file
-  recipe['object_ext'] = '.o'
+  recipe['object_ext'] = _obj_ext()
   recipe['library_ext'] = LIBEXT
   recipe['shell'] = _shell()
   # pylint: disable=C0111
   def obj_cmd(source):
-    return 'clang -c -O3 -o {} {} -fPIC -std=c99 -flto {}'\
-           .format(source + '.o', source + '.c', ' '.join(options))
+    return _obj_cmd(source, options)
   def lib_cmd(sources, target):
-    return 'clang -shared -O3 -o {} {} -std=c99 -flto {}'\
-           .format(target + LIBEXT,
-                   ' '.join([x['name'] + '.o' for x in sources]),
-                   ' '.join(options))
+    return _lib_cmd(sources, target, LIBEXT, options)
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd
   recipe['initial_cmd'] = ''

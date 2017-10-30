@@ -6,17 +6,18 @@ Tools to interact with Microsoft Visual C++ (MSVC) toolchain
 from __future__ import absolute_import as _abs
 import os
 from ..common.compat import PY3
-from .util import _create_shared_base, _shell
+from .util import _create_shared_base, _libext, _shell
 
-if PY3:
-  import winreg                 # pylint: disable=E0401
-else:
-  import _winreg as winreg      # pylint: disable=E0401
+LIBEXT = _libext()
 
 def _is_64bit_windows():
   return 'PROGRAMFILES(X86)' in os.environ
 
 def _varsall_bat_path():
+  if PY3:
+    import winreg                 # pylint: disable=E0401
+  else:
+    import _winreg as winreg      # pylint: disable=E0401
   if _is_64bit_windows():
     key_name = 'SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7'
   else:
@@ -55,20 +56,31 @@ def _varsall_bat_path():
   raise OSError('vcvarsall.bat not found; please specify its full path in '+\
                 'the environment variable TREELITE_VCVARSALL')
 
+def _obj_ext():
+  return '.obj'
+
+def _obj_cmd(source, options):
+  return 'cl.exe /c /openmp /Ox {} {}'\
+          .format(source + '.c', ' '.join(options))
+
+# pylint: disable=W0613
+def _lib_cmd(sources, target, lib_ext, options):
+  obj_ext = _obj_ext()
+  return 'cl.exe /LD /Fe{} /openmp {} {}'\
+          .format(target,
+                  ' '.join([x['name'] + obj_ext for x in sources]),
+                  ' '.join(options))
+
 def _create_shared(dirpath, recipe, nthread, options, verbose):
   # Specify command to compile an object file
-  recipe['object_ext'] = '.obj'
-  recipe['library_ext'] = '.dll'
+  recipe['object_ext'] = _obj_ext()
+  recipe['library_ext'] = LIBEXT
   recipe['shell'] = _shell()
   # pylint: disable=C0111
   def obj_cmd(source):
-    return 'cl.exe /c /openmp /Ox {} {}\n'\
-           .format(source + '.c', ' '.join(options))
+    return _obj_cmd(source, options)
   def lib_cmd(sources, target):
-    return 'cl.exe /LD /Fe{} /openmp {} {}'\
-           .format(target,
-                   ' '.join([x['name'] + '.obj' for x in sources]),
-                   ' '.join(options))
+    return _lib_cmd(sources, target, LIBEXT, options)
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd
   recipe['initial_cmd'] = '\"{}\" {}\n'\

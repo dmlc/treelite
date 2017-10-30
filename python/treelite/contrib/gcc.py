@@ -9,20 +9,31 @@ from .util import _create_shared_base, _libext, _shell
 
 LIBEXT = _libext()
 
+def _obj_ext():
+  return '.o'
+
+def _obj_cmd(source, options):
+  obj_ext = _obj_ext()
+  return 'gcc -c -O3 -o {} {} -fPIC -std=c99 -flto -fopenmp {}'\
+          .format(source + obj_ext, source + '.c', ' '.join(options))
+
+def _lib_cmd(sources, target, lib_ext, options):
+  obj_ext = _obj_ext()
+  return 'gcc -shared -O3 -o {} {} -std=c99 -flto -fopenmp {}'\
+          .format(target + lib_ext,
+                  ' '.join([x['name'] + obj_ext for x in sources]),
+                  ' '.join(options))
+
 def _create_shared(dirpath, recipe, nthread, options, verbose):
   # Specify command to compile an object file
-  recipe['object_ext'] = '.o'
+  recipe['object_ext'] = _obj_ext()
   recipe['library_ext'] = LIBEXT
   recipe['shell'] = _shell()
   # pylint: disable=C0111
   def obj_cmd(source):
-    return 'gcc -c -O3 -o {} {} -fPIC -std=c99 -flto -fopenmp {}'\
-           .format(source + '.o', source + '.c', ' '.join(options))
+    return _obj_cmd(source, options)
   def lib_cmd(sources, target):
-    return 'gcc -shared -O3 -o {} {} -std=c99 -flto -fopenmp {}'\
-           .format(target + LIBEXT,
-                   ' '.join([x['name'] + '.o' for x in sources]),
-                   ' '.join(options))
+    return _lib_cmd(sources, target, LIBEXT, options)
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd
   recipe['initial_cmd'] = ''

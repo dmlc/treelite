@@ -15,7 +15,7 @@ from .common.libpath import find_lib_path, TreeliteLibraryNotFound
 
 def _load_lib():
   """Load treelite Library."""
-  lib_path = find_lib_path()
+  lib_path = find_lib_path(basename='treelite')
   lib = ctypes.cdll.LoadLibrary(lib_path[0])
   lib.TreeliteGetLastError.restype = ctypes.c_char_p
   lib.callback = _get_log_callback_func()

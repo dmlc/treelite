@@ -45,6 +45,14 @@ include_directories (
     ${PROJECT_SOURCE_DIR}/dmlc-core/include
 )
 
+# Copy files for runtime deployment
+read_filelist(runtime/FILELIST RUNTIME_FILES)
+deploy_file(runtime/CMakeLists.txt ".")
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/runtime/build)
+foreach(f ${RUNTIME_FILES})
+  deploy_file(${f} runtime)
+endforeach()
+
 file(GLOB_RECURSE SOURCES
     src/*.cc
     src/*.h
@@ -53,9 +61,9 @@ file(GLOB_RECURSE SOURCES
 
 # SOURCES: sources included only in the main package
 # RUNTIME_SOURCES: sources included only in the runtime
-# COMMON_SOURCES: sources included both in the main pakcage and in the runtime
-set(COMMON_SOURCES src/logging.cc src/c_api/c_api_common.cc src/c_api/c_api_error.h src/c_api/c_api_error.cc include/treelite/c_api_common.h include/treelite/logging.h)
-set(RUNTIME_SOURCES src/c_api/c_api_runtime.cc src/predictor.cc include/treelite/predictor.h include/treelite/c_api_runtime.h)
+# COMMON_SOURCES: sources included both in the main package and in the runtime
+set(COMMON_SOURCES include/treelite/c_api_common.h include/treelite/logging.h include/treelite/omp.h src/c_api/c_api_common.cc src/c_api/c_api_error.cc src/c_api/c_api_error.h src/common/math.h src/logging.cc)
+set(RUNTIME_SOURCES include/treelite/c_api_runtime.h include/treelite/predictor.h src/c_api/c_api_runtime.cc src/predictor.cc)
 
 # Only add main function for executable target
 # Only add runtime functions for runtime library

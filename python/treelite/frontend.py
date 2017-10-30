@@ -4,10 +4,11 @@ from __future__ import absolute_import as _abs
 import ctypes
 import collections
 import shutil
+import os
 from .common.compat import STRING_TYPES
 from .common.util import c_str, TreeliteError, TemporaryDirectory
 from .core import _LIB, c_array, _check_call
-from .contrib import create_shared, _check_ext
+from .contrib import create_shared, generate_makefile, _check_ext
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""
@@ -51,13 +52,13 @@ class Model(object):
     Parameters
     ----------
     toolchain : :py:class:`str <python:str>`
-        which toolchain to use (e.g. 'msvc', 'clang', 'gcc')
+        which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
     libpath : :py:class:`str <python:str>`
         location to save the generated dynamic shared library
     params : :py:class:`dict <python:dict>`, optional
         parameters to be passed to the compiler
     compiler : :py:class:`str <python:str>`, optional
-        name of compiler to use in code generation
+        name of compiler to use in C code generation
     verbose : :py:class:`bool <python:bool>`, optional
         whether to produce extra messages
     nthread : :py:class:`int <python:int>`, optional
@@ -92,6 +93,79 @@ class Model(object):
       temp_libpath = create_shared(toolchain, temp_dir, nthread,
                                    verbose, options)
       shutil.move(temp_libpath, libpath)
+
+  def export_srcpkg(self, platform, toolchain, pkgpath, libname, params=None,
+                    compiler='recursive', verbose=False, options=None):
+    """
+    Convenience function: Generate prediction code and create a zipped source
+    package for deployment. The resulting zip file will also contain a Makefile.
+
+    Parameters
+    ----------
+    platform : :py:class:`str <python:str>`
+      name of the operating system on which the headers and sources shall be
+      compiled. Must be one of the following: 'windows' (Microsoft Windows),
+      'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
+    toolchain : :py:class:`str <python:str>`
+        which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
+    pkgpath : :py:class:`str <python:str>`
+        location to save the zipped source package
+    libname : :py:class:`str <python:str>`
+        name of model shared library to be built
+    params : :py:class:`dict <python:dict>`, optional
+        parameters to be passed to the compiler
+    compiler : :py:class:`str <python:str>`, optional
+        name of compiler to use in C code generation
+    verbose : :py:class:`bool <python:bool>`, optional
+        whether to produce extra messages
+    nthread : :py:class:`int <python:int>`, optional
+        number of threads to use in creating the shared library.
+        Defaults to the number of cores in the system.
+    options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
+              optional
+        Additional options to pass to toolchain
+
+    Example
+    -------
+    The one-line command
+
+    .. code-block:: python
+
+       model.export_srcpkg(platform='unix', toolchain='gcc',
+                           pkgpath='./mymodel_pkg.zip', libname='mymodel.so',
+                           params={}, verbose=True)
+
+    is equivalent to the following sequence of commands:
+
+    .. code-block:: python
+
+       model.compile(dirpath='/temporary/directory/mymodel',
+                     params={}, verbose=True)
+       generate_makefile(dirpath='/temporary/directory/mymodel',
+                         platform='unix', toolchain='gcc')
+       # zip the directory containing C code and Makefile
+       shutil.make_archive(base_name=pkgpath, format='zip',
+                           root_dir='/temporary/directory',
+                           base_dir='mymodel/')
+    """
+    # check for file extension
+    fileext = os.path.splitext(pkgpath)[1]
+    if fileext != '.zip':
+      raise ValueError('Source package file should have .zip extension')
+    libname = os.path.basename(libname)
+    _check_ext(toolchain, libname)
+
+    with TemporaryDirectory() as temp_dir:
+      target = os.path.splitext(libname)[0]
+      # create a child directory to get desired name for target
+      dirpath = os.path.join(temp_dir, target)
+      os.makedirs(dirpath)
+      self.compile(dirpath, params, compiler, verbose)
+      generate_makefile(dirpath, platform, toolchain, options)
+      shutil.make_archive(base_name=os.path.splitext(pkgpath)[0],
+                          format='zip',
+                          root_dir=temp_dir,
+                          base_dir='{}/'.format(target))
 
   def compile(self, dirpath, params=None, compiler='recursive', verbose=False):
     """

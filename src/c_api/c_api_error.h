@@ -9,7 +9,7 @@
 
 #include <dmlc/base.h>
 #include <dmlc/logging.h>
-#include <treelite/c_api.h>
+#include <treelite/c_api_common.h>
 
 /*! \brief macro to guard beginning and end section of all functions */
 #define API_BEGIN() try {

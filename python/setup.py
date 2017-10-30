@@ -15,13 +15,22 @@ LIBPATH = {'__file__': LIBPATH_PY}
 # pylint: disable=W0122
 exec(compile(open(LIBPATH_PY, "rb").read(), LIBPATH_PY, 'exec'),
      LIBPATH, LIBPATH)
-LIB_PATH = LIBPATH['find_lib_path']()              # main lib path
-RT_PATH = LIBPATH['find_lib_path'](runtime=True)   # runtime lib path
-if (not LIB_PATH) or (not RT_PATH):
+
+# Paths for C/C++ libraries
+LIB_PATH = LIBPATH['find_lib_path'](basename='treelite')
+RT_PATH = LIBPATH['find_lib_path'](basename='treelite_runtime')
+
+if (not LIB_PATH) or (not RT_PATH) or (not os.path.isdir('../build/runtime')):
   raise RuntimeError('Please compile the C++ package first')
 
+# Create a zipped package containing glue code for deployment
+shutil.make_archive(base_name='./treelite/treelite_runtime',
+                    format='zip',
+                    root_dir=os.path.abspath('../build/'),
+                    base_dir='runtime/')
+
+# ignore libraries already in python/treelite; only use ones in ../lib
 if os.path.abspath(os.path.dirname(LIB_PATH[0])) == os.path.abspath('./treelite'):
-  # remove stale copies of library
   del LIB_PATH[0]
   del RT_PATH[0]
 
@@ -30,6 +39,7 @@ LIB_DEST = os.path.join('./treelite', LIB_BASENAME)
 RT_BASENAME = os.path.basename(RT_PATH[0])
 RT_DEST = os.path.join('./treelite', RT_BASENAME)
 
+# remove stale copies of library
 if os.path.exists(LIB_DEST):
   os.remove(LIB_DEST)
 if os.path.exists(RT_DEST):
@@ -50,7 +60,7 @@ setup(
     maintainer_email='chohyu01@cs.washington.edu',
     packages=find_packages(),
     package_data={
-        'treelite': [LIB_BASENAME, RT_BASENAME],
+        'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip'],
     },
     distclass=BinaryDistribution
 )

@@ -7,7 +7,7 @@
 #ifndef TREELITE_OMP_H_
 #define TREELITE_OMP_H_
 
-#ifdef OPENMP_SUPPORT
+#ifdef TREELITE_OPENMP_SUPPORT
 #include <omp.h>
 #else
 inline int omp_get_thread_num() {

@@ -61,6 +61,5 @@ target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES})
 set_output_directory(treelite_runtime ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
-  set_target_properties(treelite PROPERTIES PREFIX "")
   set_target_properties(treelite_runtime PROPERTIES PREFIX "")
 endif()

@@ -13,6 +13,13 @@ if(MSVC)
   endif()
 endif()
 
+if(OPENMP_FOUND)
+  message("Got OpenMP")
+  add_definitions(-DTREELITE_OPENMP_SUPPORT)
+else()
+  message("Don't have OpenMP")
+endif()
+
 set_default_configuration_release()
 msvc_use_static_runtime()
 

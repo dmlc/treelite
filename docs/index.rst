@@ -5,6 +5,15 @@ Treelite : toolbox for decision tree deployment
 **Treelite** is a flexible toolbox for efficient deployment of decision tree
 ensembles.
 
+.. raw:: html
+
+  <a class="github-button" href="https://github.com/dmlc/treelite"
+     data-size="large" data-show-count="true"
+     aria-label="Star dmlc/treelite on GitHub">Star</a>
+  <a class="github-button" href="https://github.com/dmlc/treelite/subscription"
+     data-size="large" data-show-count="true"
+     aria-label="Watch dmlc/treelite on GitHub">Watch</a>
+
 ********
 Features
 ********
@@ -19,8 +28,8 @@ particular, it handles both
 Treelite can read models produced by
 `XGBoost <https://github.com/dmlc/xgboost/>`_,
 `LightGBM <https://github.com/Microsoft/LightGBM>`_, and
-`scikit-learn <https://github.com/scikit-learn/scikit-learn>`_. In cases you
-are using another package to train your model, you may use the
+`scikit-learn <https://github.com/scikit-learn/scikit-learn>`_. In cases where
+you are using another package to train your model, you may use the
 `flexible builder class <tutorials/builder.html>`_.
 
 Deploy only the parts you need

@@ -216,7 +216,9 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
   elif toolchain == 'gcc':
     from .gcc import _create_shared
   elif toolchain == 'clang':
-    from .clang import _create_shared
+    from .clang import _create_shared, _openmp_supported
+    if _openmp_supported():  # clang may not support OpenMP, so make it optional
+      options += ['-fopenmp']
   else:
     raise ValueError('toolchain {} not supported'.format(toolchain))
   libpath = _create_shared(dirpath, recipe, nthread, options, verbose)

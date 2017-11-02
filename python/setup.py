@@ -62,7 +62,7 @@ with open('../VERSION', 'r') as f:
 setup(
     name='treelite',
     version=VERSION,
-    description='treelite: fast tree prediction',
+    description='treelite: toolbox for decision tree deployment',
     url='http://treelite.io',
     author='DMLC',
     maintainer='Hyunsu Cho',

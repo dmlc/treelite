@@ -30,7 +30,7 @@ Treelite can read models produced by
 `LightGBM <https://github.com/Microsoft/LightGBM>`_, and
 `scikit-learn <https://github.com/scikit-learn/scikit-learn>`_. In cases where
 you are using another package to train your model, you may use the
-`flexible builder class <tutorials/builder.html>`_.
+:doc:`flexible builder class <tutorials/builder>`.
 
 Deploy only the parts you need
 ==============================
@@ -68,6 +68,8 @@ Compile and optimize your model for fast prediction
 Given any decision tree ensemble model, treelite will produce
 **executable code** that makes predictions using that model. Treelite is able to
 make compile-time optimizations to make prediction more efficient.
+
+See :doc:`here <benchmark>` for the latest benchmark.
 
 Here are some optimizations in place. Click each link for more information.
 

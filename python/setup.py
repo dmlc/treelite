@@ -68,6 +68,7 @@ setup(
     maintainer='Hyunsu Cho',
     maintainer_email='chohyu01@cs.washington.edu',
     packages=find_packages(),
+    install_requires=['numpy', 'scipy'],
     package_data={
         'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip',
                      'treelite_runtime_with_binary.zip']

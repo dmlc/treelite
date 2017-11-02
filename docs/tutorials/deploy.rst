@@ -39,9 +39,9 @@ This option is available if the target machine satisfies the following
 conditions:
 
 * One of the following C compiler is available: gcc, clang, Microsoft Visual C++.
-* Python is installed, with version 2.7 or >= 3.5.
-* The following Python packages are available: :py:mod:`numpy`, :py:mod:`scipy`,
-  :py:mod:`pip`
+* Python is installed, with version 2.7 or >= 3.4.
+* The following Python packages are available: :py:mod:`numpy`,
+  :py:mod:`scipy.sparse`.
 
 In addition, if you are using operating systems other than Windows, Mac OS X,
 and Linux, you would need to

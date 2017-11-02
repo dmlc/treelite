@@ -206,6 +206,10 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     FunctionBlock query_func("size_t get_num_output_group(void)",
                              PlainBlock(group_policy.GroupQueryFunction()),
                              &semantic_model.function_registry, true);
+    FunctionBlock query_func2("size_t get_num_feature(void)",
+                              PlainBlock(std::string("return ") +
+                                         std::to_string(model.num_feature)+";"),
+                              &semantic_model.function_registry, true);
     FunctionBlock pred_transform_func(PredTransformPrototype(false),
                              PlainBlock(PredTransformFunction(model, false)),
                              &semantic_model.function_registry, true);
@@ -215,8 +219,9 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
     FunctionBlock main_func(group_policy.Prototype(),
       std::move(sequence), &semantic_model.function_registry, true);
     SequenceBlock main_file;
-    main_file.Reserve(4);
+    main_file.Reserve(5);
     main_file.PushBack(std::move(query_func));
+    main_file.PushBack(std::move(query_func2));
     main_file.PushBack(std::move(pred_transform_func));
     main_file.PushBack(std::move(pred_transform_batch_func));
     main_file.PushBack(std::move(main_func));

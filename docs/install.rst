@@ -111,7 +111,8 @@ on the copy that's installed on your system.
 
 .. note:: Visual Studio 2015 or newer is required
 
-  A large part of treelite has been written using the C++ 2011 standard.
+  A large part of treelite has been written using the
+  `C++11 standard <https://en.wikipedia.org/wiki/C%2B%2B11>`_.
   Visual Studio 2015 is the `first version that supports the new standard
   to fullest extent <https://msdn.microsoft.com/en-us/library/hh567368.aspx>`_.
 

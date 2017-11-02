@@ -11,3 +11,4 @@ This page contains tutorials about treelite.
  extern
  builder
  protobuf
+ deploy

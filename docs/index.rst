@@ -51,9 +51,10 @@ three levels of dependencies.
        width="100%">
   </p>
 
-* Option 1: Install treelite on the target machine
-* Option 2: Deploy prediction code with a small runtime (helper code)
-* Option 3: Deploy prediciton code only
+* :ref:`Option 1: Install treelite on the target machine <deploy_option1>`
+* :ref:`Option 2: Deploy prediction code with a small runtime (helper code) \
+  <deploy_option2>`
+* :ref:`Option 3: Deploy prediciton code only <deploy_option3>`
 
 Option 1 is the most convenient option but requires the highest number of
 dependencies. Option 3, on the other hand, is the least convenient and requires

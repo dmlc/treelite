@@ -16,7 +16,7 @@ This is probably the most convenient method. Simply type
 
 .. code-block:: bash
 
-  pip install treelite --user
+  pip3 install treelite --user
 
 to install the treelite package. The command will locate the binary release that
 is compatible with your current platform. Check the installation by running
@@ -79,6 +79,23 @@ libraries.
   make
 
 The compiled libraries will be under the ``lib/`` directory.
+
+.. note:: Compiling treelite with multithreading on Mac OS X
+
+  The default clang installation on Mac OS X does not support
+  `OpenMP <http://www.openmp.org/>`_, the language construct for multithreading.
+  To enable multithreading in treelite, we recommend that you install gcc 7.x
+  using `Homebrew <https://brew.sh/>`_:
+
+  .. code-block:: bash
+
+    brew install gcc@7
+
+  After g++ is installed, run CMake again with gcc as the C++ compiler:
+
+  .. code-block:: bash
+
+    cmake .. -DCMAKE_CXX_COMPILER=g++-7 -DCMAKE_C_COMPILER=gcc-7
 
 1-2. Compiling shared libraries on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

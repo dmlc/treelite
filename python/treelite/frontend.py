@@ -56,7 +56,10 @@ class Model(object):
     libpath : :py:class:`str <python:str>`
         location to save the generated dynamic shared library
     params : :py:class:`dict <python:dict>`, optional
-        parameters to be passed to the compiler
+        parameters to be passed to the compiler. See `this page \
+        <http://treelite.readthedocs.io/en/latest/dev/ \
+         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
+        for the list of compiler parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use in C code generation
     verbose : :py:class:`bool <python:bool>`, optional
@@ -113,7 +116,10 @@ class Model(object):
     libname : :py:class:`str <python:str>`
         name of model shared library to be built
     params : :py:class:`dict <python:dict>`, optional
-        parameters to be passed to the compiler
+        parameters to be passed to the compiler. See `this page \
+        <http://treelite.readthedocs.io/en/latest/dev/ \
+         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
+        for the list of compiler parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use in C code generation
     verbose : :py:class:`bool <python:bool>`, optional
@@ -179,7 +185,10 @@ class Model(object):
     dirpath : :py:class:`str <python:str>`
         directory to store header and source files
     params : :py:class:`dict <python:dict>`, optional
-        parameters for compiler
+        parameters for compiler. See `this page \
+        <http://treelite.readthedocs.io/en/latest/dev/ \
+         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
+        for the list of compiler parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use
     verbose : :py:class:`bool <python:bool>`, optional

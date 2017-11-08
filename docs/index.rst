@@ -17,9 +17,12 @@ ensembles.
 .. raw:: html
 
   <p>
+  <a href="_static/deployment.png">
   <img src="_static/deployment.svg"
        onerror="this.src='_static/deployment.png'; this.onerror=null;"
-       width="100%">
+       width="100%"><br>
+  (Click to enlarge)
+  </a>
   </p>
 
 ********
@@ -57,7 +60,37 @@ Depending on your use cases, simply compiling the prediction subroutine into
 performance noticeably. In addition, treelite supports additional optimizations
 that improves performance while preserving the ensemble model.
 
-**[Insert benchmark here]**
+Benchmark
+^^^^^^^^^
+
+The following figure shows the prediction throughput of treelite and XGBoost,
+measured with various batch sizes.
+
+.. plot:: pyplots/benchmark.py
+  :width: 100%
+
+**System configuration**. One AWS EC2 instance of type c4.8xlarge was used. It
+consists of the following components:
+
+* CPU: 36 virtual cores, 64-bit
+* Memory: 60 GB
+* Storage: Elastic Block Storage (EBS)
+* Operating System: Ubuntu 14.04.5 LTS
+
+**Datasets**. Two datasets were used.
+
+* `Allstate Claim Prediction Challenge \
+  <https://www.kaggle.com/c/ClaimPredictionChallenge>`_
+* `Yahoo! Learning to Rank Challenge \
+  <https://webscope.sandbox.yahoo.com/catalog.php?datatype=c>`_
+
+**Methods**. For both datasets, we trained a 1600-tree ensemble using XGBoost.
+Then we made predictions on batches of various sizes that were sampled randomly
+from the training data. After running predictions using treelite and XGBoost
+(latter with :py:meth:`xgboost.Booster.predict`), we measured throughput as
+the number of lines predicted per second.
+
+`Download the benchmark script <_static/benchmark.py>`_
 
 ********
 Contents

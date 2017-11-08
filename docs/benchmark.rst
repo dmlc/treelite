@@ -1,6 +1,0 @@
-:orphan:
-
-Benchmark
-=========
-
-**[Under construction]**

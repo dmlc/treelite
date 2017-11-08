@@ -14,6 +14,14 @@ ensembles.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
+.. raw:: html
+
+  <p>
+  <img src="_static/deployment.svg"
+       onerror="this.src='_static/deployment.png'; this.onerror=null;"
+       width="100%">
+  </p>
+
 ********
 Features
 ********
@@ -32,54 +40,24 @@ Treelite can read models produced by
 you are using another package to train your model, you may use the
 :doc:`flexible builder class <tutorials/builder>`.
 
-Deploy only the parts you need
-==============================
+Deploy with minimal dependencies
+================================
 It is a great hassle to install machine learning packages (e.g. XGBoost,
 LightGBM, scikit-learn, etc.) on every machine your tree model will run. This is
-the case no longer: treelite will "compile" your model into a small prediction
-library so that **predictions will be made without any machine learning package
-installed.**
-
-Depending on the machine you'd like to deploy your model, you may choose
-three levels of dependencies.
-
-.. raw:: html
-
-  <p>
-  <img src="_static/dependencies.svg"
-       onerror="this.src='_static/dependencies.png'; this.onerror=null;"
-       width="100%">
-  </p>
-
-* :ref:`Option 1: Install treelite on the target machine <deploy_option1>`
-* :ref:`Option 2: Deploy prediction code with a small runtime (helper code) \
-  <deploy_option2>`
-* :ref:`Option 3: Deploy prediciton code only <deploy_option3>`
-
-Option 1 is the most convenient option but requires the highest number of
-dependencies. Option 3, on the other hand, is the least convenient and requires
-the least number of dependencies. In fast, it requires only a working C compiler
-on the target machine. Option 2 is a compromise between the other two options,
-in which only a **small runtime** portion of treelite (consisting of helper
-functions) is deployed to the target machine. Follow the links above for more
-details.
+the case no longer: treelite will export your model as a **stand-alone
+prediction subroutine** so that predictions will be made without any machine
+learning package installed.
 
 Compile and optimize your model for fast prediction
 ===================================================
-Given any decision tree ensemble model, treelite will produce
-**executable code** that makes predictions using that model. Treelite is able to
-make compile-time optimizations to make prediction more efficient.
+Treelite optimizes the prediction subroutine for faster prediction.
 
-See :doc:`here <benchmark>` for the latest benchmark.
+Depending on your use cases, simply compiling the prediction subroutine into
+`machine code <https://en.wikipedia.org/wiki/Machine_code>`_ may boost the
+performance noticeably. In addition, treelite supports additional optimizations
+that improves performance while preserving the ensemble model.
 
-Here are some optimizations in place. Click each link for more information.
-
-* Embed model information into machine instructions, by translating trees into
-  sequences of if-then-else blocks
-* Replace floating-point thresholds with integer indices
-* Use the prediction paths of training data points to annotate branches
-
-We are interested in adding more optimizations in the future.
+**[Insert benchmark here]**
 
 ********
 Contents

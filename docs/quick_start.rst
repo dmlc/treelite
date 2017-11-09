@@ -106,7 +106,28 @@ Now we are ready to generate the library.
 
   -  Windows: ``.dll``
   -  Mac OS X: ``.dylib``
-  -  Linux: ``.so``
+  -  Linux / Other UNIX: ``.so``
+
+.. note:: Want to deploy the model to another machine?
+
+  This tutorial assumes that predictions will be made on the same machine that
+  is running treelite. If you'd like to deploy your model to another machine
+  (that may not have treelite installed), see the page :doc:`tutorials/deploy`.
+
+.. note:: Reducing compilation time for large models
+
+  For large models, :py:meth:`~treelite.Model.export_lib` may take a long time
+  to finish. To reduce compilation time, enable the ``parallel_comp`` option by
+  writing
+
+  .. code-block:: python
+
+    model.export_lib(toolchain=toolchain, libpath='./mymodel.dylib',
+                     params={'parallel_comp': 32}, verbose=True)
+
+  which splits the prediction subroutine into 32 source files that gets compiled
+  in parallel. Adjust this number according to the number of cores on your
+  machine.
 
 Use the shared library to make predictions
 ------------------------------------------

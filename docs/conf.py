@@ -22,7 +22,6 @@ import os
 import sys
 import pip
 sys.path.insert(0, os.path.abspath('../python'))
-pip.main(['install', '--upgrade', 'matplotlib'])
 
 def setup(app):
   """Apply custom stylesheet"""

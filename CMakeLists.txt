@@ -4,6 +4,14 @@ include(cmake/Utils.cmake)
 find_package(OpenMP)
 find_package(Protobuf)
 
+# Use RPATH on Mac OS X as flexible mechanism for locating dependencies
+# See https://blog.kitware.com/upcoming-in-cmake-2-8-12-osx-rpath-support/
+set(CMAKE_MACOSX_RPATH TRUE)
+
+# Set BUILD_SHARED_LIBS as option. By default, build shared libraries;
+# User can set this to OFF to build static libraries instead.
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
 
@@ -87,7 +95,11 @@ if (Protobuf_FOUND OR PROTOBUF_FOUND)
 endif()
 
 # dmlc-core
+set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS
+set(BUILD_SHARED_LIBS OFF)  # dmlc lib must always be static
 add_subdirectory(dmlc-core)
+set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")  # Restore BUILD_SHARED_LIBS
+
 # separate sets of dependencies for main package and runtime
 set(LINK_LIBRARIES dmlc)
 set(RUNTIME_LINK_LIBRARIES "")
@@ -115,8 +127,8 @@ set_output_directory(runtreelite ${PROJECT_SOURCE_DIR})
 target_link_libraries(runtreelite ${LINK_LIBRARIES} ${RUNTIME_LINK_LIBRARIES})
 
 # Shared library
-add_library(treelite SHARED $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_common>)
-add_library(treelite_runtime SHARED $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common>)
+add_library(treelite $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_common>)
+add_library(treelite_runtime $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common>)
 target_link_libraries(treelite ${LINK_LIBRARIES})
 target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES})
 set_output_directory(treelite ${PROJECT_SOURCE_DIR}/lib)

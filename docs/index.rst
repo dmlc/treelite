@@ -67,7 +67,19 @@ The following figure shows the prediction throughput of treelite and XGBoost,
 measured with various batch sizes.
 
 .. plot:: _static/benchmark_plot.py
-  :width: 100%
+  :nofigs:
+
+(`Plot code <_static/benchmark_plot.py>`_,
+`SVG <_static/benchmark_plot.svg>`_, `PNG <_static/benchmark_plot.png>`_,
+`High-resolution PNG <_static/benchmark_plot.hires.png>`_)
+
+.. raw:: html
+
+  <p>
+  <img src="_static/benchmark_plot.svg"
+       onerror="this.src='_static/benchmark_plot.png'; this.onerror=null;"
+       width="100%">
+  </p>
 
 (Get exact measurements using the following links:
 `allstate.csv <_static/allstate.csv>`_
@@ -101,7 +113,19 @@ values, treelite may not produce any performance gain. The `higgs dataset
 <https://archive.ics.uci.edu/ml/datasets/HIGGS>`_ is one such example:
 
 .. plot:: _static/benchmark_plot2.py
-  :width: 50%
+  :nofigs:
+
+(`Plot code <_static/benchmark_plot2.py>`_,
+`SVG <_static/benchmark_plot2.svg>`_, `PNG <_static/benchmark_plot2.png>`_,
+`High-resolution PNG <_static/benchmark_plot2.hires.png>`_)
+
+.. raw:: html
+
+  <p>
+  <img src="_static/benchmark_plot2.svg"
+       onerror="this.src='_static/benchmark_plot2.png'; this.onerror=null;"
+       width="50%">
+  </p>
 
 We are investigating additional optimization strategies to further improve
 performance.

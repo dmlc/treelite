@@ -55,6 +55,9 @@ extensions = [
     'sphinx.ext.imgmath']
 
 graphviz_output_format = 'png'
+plot_formats = [('svg', 300), ('png', 100), ('hires.png', 300)]
+plot_html_show_source_link = False
+plot_html_show_formats = False
 
 # Breathe extension variables
 breathe_projects = {"treelite": "doxyxml/"}

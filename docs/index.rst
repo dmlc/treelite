@@ -66,8 +66,12 @@ Benchmark
 The following figure shows the prediction throughput of treelite and XGBoost,
 measured with various batch sizes.
 
-.. plot:: pyplots/benchmark.py
+.. plot:: _static/benchmark_plot.py
   :width: 100%
+
+(Get exact measurements using the following links:
+`allstate.csv <_static/allstate.csv>`_
+`yahoo.csv <_static/yahoo.csv>`_)
 
 **System configuration**. One AWS EC2 instance of type c4.8xlarge was used. It
 consists of the following components:
@@ -91,6 +95,16 @@ from the training data. After running predictions using treelite and XGBoost
 the number of lines predicted per second.
 
 `Download the benchmark script <_static/benchmark.py>`_
+
+**Caveats**. For datasets with a small number of features (< 30) and few missing
+values, treelite may not produce any performance gain. The `higgs dataset
+<https://archive.ics.uci.edu/ml/datasets/HIGGS>`_ is one such example:
+
+.. plot:: _static/benchmark_plot2.py
+  :width: 50%
+
+We are investigating additional optimization strategies to further improve
+performance.
 
 ********
 Contents

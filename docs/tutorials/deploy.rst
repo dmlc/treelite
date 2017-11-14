@@ -162,7 +162,7 @@ as the Makefile:
     4831623                     5 files
 
 \3. Export the **runtime package** using the method
-`~treelite.save_runtime_package`:
+:py:meth:`~treelite.save_runtime_package`:
 
 .. code-block:: python
 

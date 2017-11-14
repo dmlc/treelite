@@ -50,7 +50,7 @@ install treelite by running pip:
   pip3 install treelite --user
 
 Once treelite is installed, it suffices to follow instructions in
-:doc:`../quick_start`.
+:doc:`first`.
 
 Dependencies and Requirements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -312,7 +312,7 @@ interpreter. Then launch an interactive Python session and import the module
 Prediction instructions
 ^^^^^^^^^^^^^^^^^^^^^^^
 Finally, we are ready to make predictions, per instructions given in
-:doc:`../quick_start`. Don't forget to set ``PYTHONPATH`` before running the
+:doc:`first`. Don't forget to set ``PYTHONPATH`` before running the
 following script:
 
 .. code-block:: python

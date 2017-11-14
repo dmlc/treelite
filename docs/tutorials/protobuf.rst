@@ -5,7 +5,7 @@ other machine learning packages to **train** decision tree ensemble models. In
 this document, we will show how to import an ensemble model that had been
 trained elsewhere.
 
-**Using XGBoost or LightGBM for training?** Read :doc:`this document <extern>`
+**Using XGBoost or LightGBM for training?** Read :doc:`this document <import>`
 instead.
 
 .. contents:: Contents

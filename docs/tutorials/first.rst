@@ -59,7 +59,7 @@ train the model, it takes only one line of code:
 .. note:: Using other packages to train decision trees
 
   With additional work, you can use models trained with other machine learning
-  packages. See :doc:`this page <extern>` for instructions.
+  packages. See :doc:`this page <import>` for instructions.
 
 Generate shared library
 -----------------------

@@ -9,7 +9,7 @@ This page lists tutorials about treelite.
  :caption: Contents:
  
  first
- extern
+ import
  deploy
  builder
  protobuf

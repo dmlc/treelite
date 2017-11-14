@@ -1,10 +1,7 @@
-Quick Start
-===========
+First tutorial
+==============
 
 **Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
-
-This is an introduction tutorial to treelite. Treelite is a framework to
-optimize decision tree ensembles for fast prediction.
 
 In this tutorial, we will demonstrate the basic workflow.
 
@@ -65,7 +62,7 @@ train the model, it takes only one line of code:
 .. note:: Using other packages to train decision trees
 
   With additional work, you can use models trained with other machine learning
-  packages. See :doc:`this page <tutorials/extern>` for instructions.
+  packages. See :doc:`this page <extern>` for instructions.
 
 Generate shared library
 -----------------------
@@ -112,7 +109,7 @@ Now we are ready to generate the library.
 
   This tutorial assumes that predictions will be made on the same machine that
   is running treelite. If you'd like to deploy your model to another machine
-  (that may not have treelite installed), see the page :doc:`tutorials/deploy`.
+  (that may not have treelite installed), see the page :doc:`deploy`.
 
 .. note:: Reducing compilation time for large models
 

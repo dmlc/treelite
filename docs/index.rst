@@ -14,20 +14,9 @@ ensembles.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
-.. raw:: html
-
-  <p>
-  <a href="_static/deployment.png">
-  <img src="_static/deployment.svg"
-       onerror="this.src='_static/deployment.png'; this.onerror=null;"
-       width="100%"><br>
-  (Click to enlarge)
-  </a>
-  </p>
-
-********
-Features
-********
+*************
+Why treelite?
+*************
 
 Use machine learning package of your choice
 ===========================================
@@ -60,18 +49,75 @@ Depending on your use cases, simply compiling the prediction subroutine into
 performance noticeably. In addition, treelite supports additional optimizations
 that improves performance while preserving the ensemble model.
 
+******************
+How treelite works
+******************
+
+.. raw:: html
+
+  <p>
+  <a href="_static/deployment.png">
+  <img src="_static/deployment.svg"
+       onerror="this.src='_static/deployment.png'; this.onerror=null;"
+       width="100%"><br>
+  (Click to enlarge)
+  </a>
+  </p>
+
+The workflow assumes two distinct machines: **the host machine** that generates
+prediction subroutine from a given tree model, and **the target machine** that
+runs the subroutine. The two machines exchange a single C file that contains
+all relevant information about the tree model. Only the host machine needs to
+have treelite installed; the target machine requires only a working C compiler.
+
+***********
+Quick start
+***********
+Install treelite from PyPI:
+
+.. code-block:: console
+
+  pip3 install --user treelite
+
+Import your tree ensemble model into treelite:
+
+.. code-block:: python
+
+  import treelite
+  model = treelite.Model.load('my_model.model', format='xgboost')
+
+Deploy a source archive:
+
+.. code-block:: python
+
+  # Produce a zipped source directory, containing all model information
+  # Run `make` on the target machine
+  model.export_srcpkg(platform='unix', toolchain='gcc',
+                      pkgpath='./mymodel.zip', libname='mymodel.so',
+                      verbose=True)
+
+Deploy a shared library:
+
+.. code-block:: python
+
+  # Like export_srcpkg, but generates a shared library immediately
+  model.export_lib(toolchain='gcc', libpath='./mymodel.so', verbose=True)
+
+Make predictions on the target machine:
+
+.. code-block:: python
+
+  import treelite.runtime
+  predictor = treelite.runtime.Predictor('./mymodel.so', verbose=True)
+  batch = treelite.runtime.Batch.from_npy2d(X)
+  out_pred = predictor.predict(batch, verbose=True)
+
+We recommend that you start with :doc:`tutorials/first`. For more details on
+deployment, see :doc:`tutorials/deploy`.
+
+*********
 Benchmark
-^^^^^^^^^
-
-The following figure shows the prediction throughput of treelite and XGBoost,
-measured with various batch sizes.
-
-.. plot:: _static/benchmark_plot.py
-  :nofigs:
-
-(`Plot code <_static/benchmark_plot.py>`_,
-`SVG <_static/benchmark_plot.svg>`_, `PNG <_static/benchmark_plot.png>`_,
-`High-resolution PNG <_static/benchmark_plot.hires.png>`_)
+*********
 
 .. raw:: html
 
@@ -81,54 +127,7 @@ measured with various batch sizes.
        width="100%">
   </p>
 
-(Get exact measurements using the following links:
-`allstate.csv <_static/allstate.csv>`_
-`yahoo.csv <_static/yahoo.csv>`_)
-
-**System configuration**. One AWS EC2 instance of type c4.8xlarge was used. It
-consists of the following components:
-
-* CPU: 36 virtual cores, 64-bit
-* Memory: 60 GB
-* Storage: Elastic Block Storage (EBS)
-* Operating System: Ubuntu 14.04.5 LTS
-
-**Datasets**. Two datasets were used.
-
-* `Allstate Claim Prediction Challenge \
-  <https://www.kaggle.com/c/ClaimPredictionChallenge>`_
-* `Yahoo! Learning to Rank Challenge \
-  <https://webscope.sandbox.yahoo.com/catalog.php?datatype=c>`_
-
-**Methods**. For both datasets, we trained a 1600-tree ensemble using XGBoost.
-Then we made predictions on batches of various sizes that were sampled randomly
-from the training data. After running predictions using treelite and XGBoost
-(latter with :py:meth:`xgboost.Booster.predict`), we measured throughput as
-the number of lines predicted per second.
-
-`Download the benchmark script <_static/benchmark.py>`_
-
-**Caveats**. For datasets with a small number of features (< 30) and few missing
-values, treelite may not produce any performance gain. The `higgs dataset
-<https://archive.ics.uci.edu/ml/datasets/HIGGS>`_ is one such example:
-
-.. plot:: _static/benchmark_plot2.py
-  :nofigs:
-
-(`Plot code <_static/benchmark_plot2.py>`_,
-`SVG <_static/benchmark_plot2.svg>`_, `PNG <_static/benchmark_plot2.png>`_,
-`High-resolution PNG <_static/benchmark_plot2.hires.png>`_)
-
-.. raw:: html
-
-  <p>
-  <img src="_static/benchmark_plot2.svg"
-       onerror="this.src='_static/benchmark_plot2.png'; this.onerror=null;"
-       width="50%">
-  </p>
-
-We are investigating additional optimization strategies to further improve
-performance.
+See the page :py:doc:`benchmark` for details.
 
 ********
 Contents
@@ -140,7 +139,6 @@ The latest version of treelite is |version|.
   :titlesonly:
 
   install
-  quick_start
   tutorials/index
   treelite-api
   treelite-runtime-api

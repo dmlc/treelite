@@ -14,9 +14,9 @@ Download binary releases from PyPI (Recommended)
 ------------------------------------------------
 This is probably the most convenient method. Simply type
 
-.. code-block:: bash
+.. code-block:: console
 
-  pip3 install treelite --user
+  pip3 install --user treelite
 
 to install the treelite package. The command will locate the binary release that
 is compatible with your current platform. Check the installation by running

@@ -14,6 +14,8 @@ ensembles.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
+The latest version of treelite is |boldversion|.
+
 *************
 Why treelite?
 *************
@@ -117,6 +119,11 @@ Make predictions on the target machine:
 Read :doc:`tutorials/first` for a more detailed example. See
 :doc:`tutorials/deploy` for additional instructions on deployment.
 
+.. note:: A note on API compatibility
+
+  Since treelite is in early development, its API may change substantially
+  in the future.
+
 *********
 Benchmark
 *********
@@ -134,7 +141,6 @@ See the page :py:doc:`benchmark` for details.
 ********
 Contents
 ********
-The latest version of treelite is |version|.
 
 .. toctree::
   :maxdepth: 2

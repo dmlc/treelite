@@ -46,8 +46,9 @@ Treelite optimizes the prediction subroutine for faster prediction.
 
 Depending on your use cases, simply compiling the prediction subroutine into
 `machine code <https://en.wikipedia.org/wiki/Machine_code>`_ may boost the
-performance noticeably. In addition, treelite supports additional optimizations
-that improves performance while preserving the ensemble model.
+performance noticeably. (See the benchmark section below.) In addition, treelite
+supports additional optimizations that improves performance while preserving the
+ensemble model.
 
 ******************
 How treelite works
@@ -64,7 +65,7 @@ How treelite works
   </a>
   </p>
 
-The workflow assumes two distinct machines: **the host machine** that generates
+The workflow involves two distinct machines: **the host machine** that generates
 prediction subroutine from a given tree model, and **the target machine** that
 runs the subroutine. The two machines exchange a single C file that contains
 all relevant information about the tree model. Only the host machine needs to
@@ -101,6 +102,7 @@ Deploy a shared library:
 .. code-block:: python
 
   # Like export_srcpkg, but generates a shared library immediately
+  # Use this only when the host and target machines are compatible
   model.export_lib(toolchain='gcc', libpath='./mymodel.so', verbose=True)
 
 Make predictions on the target machine:
@@ -112,8 +114,8 @@ Make predictions on the target machine:
   batch = treelite.runtime.Batch.from_npy2d(X)
   out_pred = predictor.predict(batch, verbose=True)
 
-We recommend that you start with :doc:`tutorials/first`. For more details on
-deployment, see :doc:`tutorials/deploy`.
+Read :doc:`tutorials/first` for a more detailed example. See
+:doc:`tutorials/deploy` for additional instructions on deployment.
 
 *********
 Benchmark

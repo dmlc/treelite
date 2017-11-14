@@ -495,7 +495,7 @@ is given by the function
   size_t get_num_feature(void);
 
 Let's look at an example. We'd start by initializing the array ``inst``, a dense
-aray to hold feature values of a single data point:
+aray to hold feature values of a single data row:
 
 .. code-block:: c
 
@@ -526,8 +526,16 @@ illustrates the idea:
       Set inst[i].missing = -1, to prepare for next row (rid + 1)
 
 The task is not too difficult as long as the input data is given as a particular
-form of sparse matrix: the `Compressed Sparse Row \
-<http://www.scipy-lectures.org/advanced/scipy_sparse/csr_matrix.html>`_ format:
+form of sparse matrix: the `Compressed Sparse Row\
+<http://www.netlib.org/utk/people/JackDongarra/etemplates/node373.html>`_ format.
+The sparse matrix consists of three arrays:
+
+* ``val`` stores nonzero entries in
+  `row-major order <https://en.wikipedia.org/wiki/Row-_and_column-major_order>`_.
+* ``col_ind`` stores column indices of the entries in ``val``. The expression
+  ``col_ind[i]`` indicates the column index of the ``i`` th entry ``val[i]``.
+* ``row_ptr`` stores the locations in ``val`` that start and end data rows. The
+  ``i`` th data row is given by the array slice ``val[row_ptr[i]:row_ptr[i+1]]``.
 
 .. code-block:: c
 
@@ -537,7 +545,7 @@ form of sparse matrix: the `Compressed Sparse Row \
     iend = row_ptr[rid + 1];
     /* Fill nonzeros */
     for (i = ibegin; i < iend; ++i) {
-      inst[col_ind[i]].fvalue = data[i];
+      inst[col_ind[i]].fvalue = val[i];
     }
     out_pred[rid] = predict_margin(inst);
     /* Drop nonzeros */
@@ -546,9 +554,8 @@ form of sparse matrix: the `Compressed Sparse Row \
     }
   }
 
-It only remains to create three arrays ``data`` (set of non-missing values),
-``col_ind`` (corresponding column indices), and ``row_ptr`` (boundary markers
-between data rows). You may want to use a third-pary library here to read from
+It only remains to create three arrays ``val``, ``col_ind``, and ``row_ptr``.
+You may want to use a third-pary library here to read from
 a SVMLight format. For now, we'll punt the issue of loading the input data
 and write it out as constants in the program:
 
@@ -571,8 +578,8 @@ and write it out as constants in the program:
         [ 0.47,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,
           0.  ,  0.  ,  0.45,  0.  ]]
     */
-    const float data[] = {0.68, 0.99, 0.11, 0.82, 0.99, 0.61, 0.02, 0.36, 0.82,
-                          0.57, 0.75, 0.47, 0.45};
+    const float val[] = {0.68, 0.99, 0.11, 0.82, 0.99, 0.61, 0.02, 0.36, 0.82,
+                         0.57, 0.75, 0.47, 0.45};
     const size_t col_ind[] = {2, 3, 5, 7, 2, 9, 0, 2, 4, 7, 12, 0, 11};
     const size_t row_ptr[] = {0, 4, 6, 7, 11, 13};
     const size_t nrow = 5;
@@ -595,7 +602,7 @@ and write it out as constants in the program:
       iend = row_ptr[rid + 1];
       /* Fill nonzeros */
       for (i = ibegin; i < iend; ++i) {
-        inst[col_ind[i]].fvalue = data[i];
+        inst[col_ind[i]].fvalue = val[i];
       }
       out_pred[rid] = predict_margin(inst);
       /* Drop nonzeros */

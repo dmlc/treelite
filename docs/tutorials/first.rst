@@ -3,14 +3,11 @@ First tutorial
 
 **Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
 
-In this tutorial, we will demonstrate the basic workflow.
+This tutorial will demonstrate the basic workflow.
 
 .. code-block:: python
 
-    from __future__ import absolute_import, print_function
-    
-    from treelite import *
-    import numpy as np
+    import treelite
 
 Regression Example
 ------------------
@@ -57,7 +54,7 @@ train the model, it takes only one line of code:
 
 .. code-block:: python
 
-    model = Model.from_xgboost(bst)
+    model = treelite.Model.from_xgboost(bst)
 
 .. note:: Using other packages to train decision trees
 
@@ -67,8 +64,8 @@ train the model, it takes only one line of code:
 Generate shared library
 -----------------------
 
-Given a tree ensemble model, treelite will produce an **optimized
-prediction subroutine** (internally represented as a C program). To use
+Given a tree ensemble model, treelite will produce a **prediction subroutine**
+(internally represented as a C program). To use
 the subroutine for prediction task, we package it as a `dynamic shared
 library <https://en.wikipedia.org/wiki/Library_(computing)#Shared_libraries>`_,
 which exports the prediction subroutine for other programs to use.
@@ -136,15 +133,15 @@ optimized prediction subroutine is exposed through the
 
 .. code-block:: python
 
-    from treelite.runtime import *     # runtime module
-    predictor = Predictor('./mymodel.dylib', verbose=True)
+    import treelite.runtime     # runtime module
+    predictor = treelite.runtime.Predictor('./mymodel.dylib', verbose=True)
 
 We decide on which of the houses in ``X`` we should make predictions
 for. Say, from 10th house to 20th:
 
 .. code-block:: python
 
-    batch = Batch.from_npy2d(X, rbegin=10, rend=20)
+    batch = treelite.runtime.Batch.from_npy2d(X, rbegin=10, rend=20)
 
 We used the method :py:meth:`~treelite.runtime.Batch.from_npy2d`
 because the matrix ``X`` was a dense NumPy array (:py:class:`numpy.ndarray`).

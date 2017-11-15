@@ -1,1 +1,4 @@
 matplotlib>=2.1
+graphviz
+breathe
+guzzle_sphinx_theme

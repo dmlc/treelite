@@ -20,7 +20,7 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 from subprocess import call
 import os
 import sys
-import pip
+import guzzle_sphinx_theme
 sys.path.insert(0, os.path.abspath('../python'))
 
 def setup(app):
@@ -30,8 +30,6 @@ def setup(app):
 # Run Doxygen first
 call('doxygen; if [ -d tmp/dev ]; then rm -rf tmp; fi; mkdir tmp; mv html tmp/dev',
      shell=True)
-
-pip.main(['install', 'breathe'])
 
 # -- General configuration ------------------------------------------------
 
@@ -123,9 +121,6 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-pip.main(['install', 'guzzle_sphinx_theme'])
-import guzzle_sphinx_theme  # pylint: disable=C0413
 
 html_theme_path = guzzle_sphinx_theme.html_theme_path()
 html_theme = 'guzzle_sphinx_theme'

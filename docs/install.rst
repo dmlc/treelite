@@ -1,8 +1,6 @@
 Installation
 ============
 
-**Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
-
 You may choose one of two methods to install treelite on your system:
 
 * :ref:`install-pip`

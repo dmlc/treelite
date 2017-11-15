@@ -151,6 +151,7 @@ Contents
   treelite-api
   treelite-runtime-api
   treelite-c-api
+  knobs/index
   Internal docs <http://treelite.readthedocs.io/en/latest/dev/>
 
 *******

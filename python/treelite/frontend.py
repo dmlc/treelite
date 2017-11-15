@@ -56,10 +56,9 @@ class Model(object):
     libpath : :py:class:`str <python:str>`
         location to save the generated dynamic shared library
     params : :py:class:`dict <python:dict>`, optional
-        parameters to be passed to the compiler. See `this page \
-        <http://treelite.readthedocs.io/en/latest/dev/ \
-         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
-        for the list of compiler parameters.
+        parameters to be passed to the compiler. See
+        :py:doc:`this page <knobs/compiler_param>` for the list of compiler
+        parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use in C code generation
     verbose : :py:class:`bool <python:bool>`, optional
@@ -116,10 +115,9 @@ class Model(object):
     libname : :py:class:`str <python:str>`
         name of model shared library to be built
     params : :py:class:`dict <python:dict>`, optional
-        parameters to be passed to the compiler. See `this page \
-        <http://treelite.readthedocs.io/en/latest/dev/ \
-         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
-        for the list of compiler parameters.
+        parameters to be passed to the compiler. See
+        :py:doc:`this page <knobs/compiler_param>` for the list of compiler
+        parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use in C code generation
     verbose : :py:class:`bool <python:bool>`, optional
@@ -185,10 +183,9 @@ class Model(object):
     dirpath : :py:class:`str <python:str>`
         directory to store header and source files
     params : :py:class:`dict <python:dict>`, optional
-        parameters for compiler. See `this page \
-        <http://treelite.readthedocs.io/en/latest/dev/ \
-         structtreelite_1_1compiler_1_1_compiler_param.html#pub-attribs>`_
-        for the list of compiler parameters.
+        parameters for compiler. See
+        :py:doc:`this page <knobs/compiler_param>` for the list of compiler
+        parameters.
     compiler : :py:class:`str <python:str>`, optional
         name of compiler to use
     verbose : :py:class:`bool <python:bool>`, optional
@@ -343,15 +340,9 @@ class ModelBuilder(object):
       whether the model is a random forest; ``True`` indicates a random forest
       and ``False`` indicates gradient boosted trees
   **kwargs
-      additional parameters, to be used with the resulting model
-
-  Other Parameters
-  ----------------
-  pred_transform : :py:class:`str <python:str>`
-  sigmoid_alpha : :py:class:`float <python:float>`
-  global_bias : :py:class:`float <python:float>`
-    See `this page <http://treelite.readthedocs.io/en/latest/dev/
-    structtreelite_1_1_model_param.html>`_ for more information
+      model parameters, to be used to specify the resulting model. Refer to
+      :py:doc:`this page <knobs/model_param>` for the full list of model
+      parameters.
   """
   class Node(object):
     """Handle to a node in a tree"""

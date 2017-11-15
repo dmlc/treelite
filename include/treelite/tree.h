@@ -281,12 +281,12 @@ class Tree {
   }
 };
 
-/*!
- * \defgroup model_param
- * Extra parameters for tree ensemble models
- * \{
- */
 struct ModelParam : public dmlc::Parameter<ModelParam> {
+  /*!
+  * \defgroup model_param
+  * Extra parameters for tree ensemble models
+  * \{
+  */
   /*!
    * \brief name of prediction transform function
    *
@@ -319,6 +319,7 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
    * bias. If unspecified, the bias is set to zero.
    */
   float global_bias;
+  /*! \} */
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(ModelParam) {
@@ -331,7 +332,6 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
       .describe("global bias of the model");
   }
 };
-/*! \} */ 
 
 inline void InitParamAndCheck(ModelParam* param,
                   const std::vector<std::pair<std::string, std::string>> cfg) {

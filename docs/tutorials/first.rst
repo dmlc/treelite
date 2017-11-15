@@ -1,8 +1,6 @@
 First tutorial
 ==============
 
-**Author**: `Philip Cho <https://homes.cs.washington.edu/~chohyu01/>`_
-
 This tutorial will demonstrate the basic workflow.
 
 .. code-block:: python

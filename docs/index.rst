@@ -49,8 +49,8 @@ Treelite optimizes the prediction subroutine for faster prediction.
 Depending on your use cases, simply compiling the prediction subroutine into
 `machine code <https://en.wikipedia.org/wiki/Machine_code>`_ may boost the
 performance noticeably. (See the benchmark section below.) In addition, treelite
-supports additional optimizations that improves performance while preserving the
-ensemble model.
+supports :py:doc:`additional optimizations <tutorials/optimize>` that
+improve performance while preserving the ensemble model.
 
 ******************
 How treelite works

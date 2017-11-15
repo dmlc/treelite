@@ -29,35 +29,60 @@ A toy example
 -------------
 Consider the following tree ensemble, consisting of two regression trees:
 
-.. digraph:: toy1
+.. plot::
+  :nofigs:
 
-  graph [fontname = "helvetica"];
-  node [fontname = "helvetica"];
-  edge [fontname = "helvetica"];
-  0 [label="Feature 0 < 5.0 ?", shape=box];
-  1 [label="Feature 2 < -3.0 ?", shape=box];
-  2 [label="+0.6"];
-  3 [label="-0.4"];
-  4 [label="+1.2"];
-  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
-  0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="No"];
-  1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
-  1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+  from graphviz import Source
+  source = r"""
+    digraph toy1 {
+      graph [fontname = "helvetica"];
+      node [fontname = "helvetica"];
+      edge [fontname = "helvetica"];
+      0 [label="Feature 0 < 5.0 ?", shape=box];
+      1 [label="Feature 2 < -3.0 ?", shape=box];
+      2 [label="+0.6"];
+      3 [label="-0.4"];
+      4 [label="+1.2"];
+      0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+      0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+      1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+      1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+    }
+  """
+  Source(source, format='png').render('../_static/builder_toy1', view=False)
+  Source(source, format='svg').render('../_static/builder_toy1', view=False)
 
-.. digraph:: toy2
+.. plot::
+  :nofigs:
 
-  graph [fontname = "helvetica"];
-  node [fontname = "helvetica"];
-  edge [fontname = "helvetica"];
-  0 [label="Feature 1 < 2.5 ?", shape=box];
-  1 [label="+1.6"];
-  2 [label="Feature 2 < -1.2 ?", shape=box];
-  3 [label="+0.1"];
-  4 [label="-0.3"];
-  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
-  0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
-  2 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
-  2 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+  from graphviz import Source
+  source = r"""
+    digraph toy2 {
+      graph [fontname = "helvetica"];
+      node [fontname = "helvetica"];
+      edge [fontname = "helvetica"];
+      0 [label="Feature 1 < 2.5 ?", shape=box];
+      1 [label="+1.6"];
+      2 [label="Feature 2 < -1.2 ?", shape=box];
+      3 [label="+0.1"];
+      4 [label="-0.3"];
+      0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+      0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+      2 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+      2 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+    }
+  """
+  Source(source, format='png').render('../_static/builder_toy2', view=False)
+  Source(source, format='svg').render('../_static/builder_toy2', view=False)
+
+.. raw:: html
+
+  <p>
+  <img src="../_static/builder_toy1.svg"
+       onerror="this.src='../_static/builder_toy1.png'; this.onerror=null;">
+  <img src="../_static/builder_toy2.svg"
+       onerror="this.src='../_static/builder_toy2.png'; this.onerror=null;">
+  </p>
 
 .. note:: Provision for missing data: default directions
 
@@ -66,8 +91,8 @@ Consider the following tree ensemble, consisting of two regression trees:
   **default direction** for every test node. In the diagram above, the
   default direction is indicated by label "Missing." For instance, the root node
   of the first tree shown above will send to the left all data points that lack
-  values for feature 0. 
-  
+  values for feature 0.
+
   For now, let's assume that we've somehow found
   optimal choices of default directions at training time. For detailed
   instructions for actually deciding default directions, see Section 3.4
@@ -76,39 +101,64 @@ Consider the following tree ensemble, consisting of two regression trees:
 .. role:: red
 
 Let us construct this ensemble using the model builder. First step is to
-assign **unique integer key** to each node. In the following diagram, 
-integer keys are indicated in :red:`red`. Note that integer keys need to be 
+assign **unique integer key** to each node. In the following diagram,
+integer keys are indicated in :red:`red`. Note that integer keys need to be
 unique only within the same tree.
 
-.. digraph:: toy1_1
+.. plot::
+  :nofigs:
 
-  graph [fontname = "helvetica"];
-  node [fontname = "helvetica"];
-  edge [fontname = "helvetica"];
-  0 [label=<<FONT COLOR="red">0:</FONT> Feature 0 &lt; 5.0 ?>, shape=box];
-  1 [label=<<FONT COLOR="red">1:</FONT> Feature 2 &lt; -3.0 ?>, shape=box];
-  2 [label=<<FONT COLOR="red">2:</FONT> +0.6>];
-  3 [label=<<FONT COLOR="red">3:</FONT> -0.4>];
-  4 [label=<<FONT COLOR="red">4:</FONT> +1.2>];
-  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
-  0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="No"];
-  1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
-  1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+  from graphviz import Source
+  source = r"""
+    digraph toy1_1 {
+      graph [fontname = "helvetica"];
+      node [fontname = "helvetica"];
+      edge [fontname = "helvetica"];
+      0 [label=<<FONT COLOR="red">0:</FONT> Feature 0 &lt; 5.0 ?>, shape=box];
+      1 [label=<<FONT COLOR="red">1:</FONT> Feature 2 &lt; -3.0 ?>, shape=box];
+      2 [label=<<FONT COLOR="red">2:</FONT> +0.6>];
+      3 [label=<<FONT COLOR="red">3:</FONT> -0.4>];
+      4 [label=<<FONT COLOR="red">4:</FONT> +1.2>];
+      0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+      0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+      1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+      1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+    }
+  """
+  Source(source, format='png').render('../_static/builder_toy1_1', view=False)
+  Source(source, format='svg').render('../_static/builder_toy1_1', view=False)
 
-.. digraph:: toy2_1
+.. plot::
+  :nofigs:
 
-  graph [fontname = "helvetica"];
-  node [fontname = "helvetica"];
-  edge [fontname = "helvetica"];
-  0 [label=<<FONT COLOR="red">0:</FONT> Feature 1 &lt; 2.5 ?>, shape=box];
-  1 [label=<<FONT COLOR="red">1:</FONT> +1.6>];
-  2 [label=<<FONT COLOR="red">2:</FONT> Feature 2 &lt; -1.2 ?>, shape=box];
-  3 [label=<<FONT COLOR="red">3:</FONT> +0.1>];
-  4 [label=<<FONT COLOR="red">4:</FONT> -0.3>];
-  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
-  0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
-  2 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
-  2 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+  from graphviz import Source
+  source = r"""
+    digraph toy2_1 {
+      graph [fontname = "helvetica"];
+      node [fontname = "helvetica"];
+      edge [fontname = "helvetica"];
+      0 [label=<<FONT COLOR="red">0:</FONT> Feature 1 &lt; 2.5 ?>, shape=box];
+      1 [label=<<FONT COLOR="red">1:</FONT> +1.6>];
+      2 [label=<<FONT COLOR="red">2:</FONT> Feature 2 &lt; -1.2 ?>, shape=box];
+      3 [label=<<FONT COLOR="red">3:</FONT> +0.1>];
+      4 [label=<<FONT COLOR="red">4:</FONT> -0.3>];
+      0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+      0 -> 2 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+      2 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+      2 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="No"];
+    }
+  """
+  Source(source, format='png').render('../_static/builder_toy2_1', view=False)
+  Source(source, format='svg').render('../_static/builder_toy2_1', view=False)
+
+.. raw:: html
+
+  <p>
+  <img src="../_static/builder_toy1_1.svg"
+       onerror="this.src='../_static/builder_toy1_1.png'; this.onerror=null;">
+  <img src="../_static/builder_toy2_1.svg"
+       onerror="this.src='../_static/builder_toy2_1.png'; this.onerror=null;">
+  </p>
 
 Next, we create a model builder object by calling the constructor for
 :py:class:`~treelite.ModelBuilder`, with an ``num_feature`` argument indicating
@@ -130,13 +180,13 @@ The first tree has five nodes, each of which is to be inserted into the tree
 one at a time. The syntax for node insertion is as follows:
 
 .. code-block:: python
-  
+
   tree[0]   # insert a new node with key 0
 
 Once a node has been inserted, we can refer to it by writing
 
 .. code-block:: python
-  
+
   tree[0]   # refer to existing node #0
 
 The meaning of the expression ``tree[0]`` thus depends on whether the node #0
@@ -183,8 +233,8 @@ Let's go ahead and specify the other three nodes:
 We must indicate which node is the root:
 
 .. code-block:: python
-  
-  # Set node #0 as root 
+
+  # Set node #0 as root
   tree[0].set_root()
 
 We are now done with the first tree. We insert it with the model builder
@@ -293,7 +343,7 @@ Using the model builder to interface with scikit-learn
 **Scikit-learn** (`scikit-learn/scikit-learn
 <https://github.com/scikit-learn/scikit-learn>`_) is a Python machine learning
 package known for its versatility and ease of use. It supports a wide variety
-of models and algorithms. 
+of models and algorithms.
 
 Treelite will be able to work with any decision tree ensemble models produced
 by scikit-learn. In particular, it will be able to work with
@@ -516,7 +566,7 @@ and 1's as the positive.
   X, y = digits['data'], digits['target']
   # Should print [0 1]
   print(np.unique(y))
-  
+
   # Train a random forest classifier
   clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
   clf.fit(X, y)
@@ -534,32 +584,47 @@ which indicates the following:
 * 300 data points in the training set "belong" to this leaf node, in the sense
   that they all satisfy the precise sequence of conditions leading to that
   particular leaf node. The picture below shows that each leaf node represents
-  a unique sequence of conditions: 
+  a unique sequence of conditions:
 
-.. digraph:: leaf_count_illustration
+.. plot::
+  :nofigs:
 
-  graph [fontname = "helvetica"];
-  node [fontname = "helvetica"];
-  edge [fontname = "helvetica"];
-  0 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
-  1 [label="Feature X < x.x ?", shape=box];
-  2 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
-  3 [label="...", shape=none];
-  4 [label="...", shape=none];
-  5 [label="...", shape=none, fontcolor=red];
-  6 [label="...", shape=none];
-  7 [label="...", shape=none];
-  8 [label="Leaf node", color=red, fontcolor=red, fontname = "helvetica bold"];
-  0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
-  0 -> 2 [labeldistance=2.0, labelangle=-45,
-          headlabel="No", color=red, fontcolor=red];
-  1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
-  1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
-  2 -> 5 [labeldistance=2.0, labelangle=45, headlabel="Yes",
-          color=red, fontcolor=red];
-  2 -> 6 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
-  5 -> 7;
-  5 -> 8 [color=red];
+  from graphviz import Source
+  source = r"""
+    digraph leaf_count_illustration {
+      graph [fontname = "helvetica"];
+      node [fontname = "helvetica"];
+      edge [fontname = "helvetica"];
+      0 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
+      1 [label="Feature X < x.x ?", shape=box];
+      2 [label="Feature X < x.x ?", shape=box, color=red, fontcolor=red];
+      3 [label="...", shape=none];
+      4 [label="...", shape=none];
+      5 [label="...", shape=none, fontcolor=red];
+      6 [label="...", shape=none];
+      7 [label="...", shape=none];
+      8 [label="Leaf node", color=red, fontcolor=red];
+      0 -> 1 [labeldistance=2.0, labelangle=45, headlabel="Yes/Missing           "];
+      0 -> 2 [labeldistance=2.0, labelangle=-45,
+              headlabel="No", color=red, fontcolor=red];
+      1 -> 3 [labeldistance=2.0, labelangle=45, headlabel="Yes"];
+      1 -> 4 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+      2 -> 5 [labeldistance=2.0, labelangle=45, headlabel="Yes",
+              color=red, fontcolor=red];
+      2 -> 6 [labeldistance=2.0, labelangle=-45, headlabel="           No/Missing"];
+      5 -> 7;
+      5 -> 8 [color=red];
+    }
+  """
+  Source(source, format='png').render('../_static/leaf_count_illustration', view=False)
+  Source(source, format='svg').render('../_static/leaf_count_illustration', view=False)
+
+.. raw:: html
+
+  <p>
+  <img src="../_static/leaf_count_illustration.svg"
+       onerror="this.src='../_static/leaf_count_illustration.png'; this.onerror=null;">
+  </p>
 
 * 100 of them are labeled negative; and
 * the remaining 200 are labeled positive.
@@ -569,7 +634,7 @@ be rewritten. Explanation will follow after the code:
 
 .. literalinclude:: ../../python/treelite/gallery/sklearn/rf_classifier.py
 
-As noted earlier, we access the frequency counts at each leaf node, reading the 
+As noted earlier, we access the frequency counts at each leaf node, reading the
 ``value`` attribute of each tree. Then we compute the fraction of positive
 data points with respect to all training data points belonging to the leaf.
 This fraction then becomes the leaf output. This way, leaf nodes now produce
@@ -608,7 +673,7 @@ again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
   X, y = digits['data'], digits['target']
   # Should print [0 1 2 3]
   print(np.unique(y))
-  
+
   # Train a random forest classifier
   clf = sklearn.ensemble.RandomForestClassifier(n_estimators=10)
   clf.fit(X, y)
@@ -643,8 +708,8 @@ multi-class classification: it should store the number of classes (in this
 example, 4). The ``pred_transform`` parameter should be set to
 ``'identity_multiclass'``, to indicate
 that the prediction should be made simply by averaging the probability
-distribution produced by each leaf node. (Leaf outputs are averaged rather 
-than summed because we set ``random_forest=True``.) For instance, if an ensemble 
+distribution produced by each leaf node. (Leaf outputs are averaged rather
+than summed because we set ``random_forest=True``.) For instance, if an ensemble
 consisting of 3 trees produces the following set of outputs
 
 .. code-block:: none
@@ -760,7 +825,7 @@ again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
   X, y = digits['data'], digits['target']
   # Should print [0 1 2 3]
   print(np.unique(y))
-  
+
   # Train a gradient boosting classifier
   # Notice the argument init='zero'
   clf = sklearn.ensemble.GradientBoostingClassifier(n_estimators=10,
@@ -850,7 +915,7 @@ How do we compute probabilities for each of the 4 classes? First, we compute the
     SUBTOTAL          -0.3
 
 The vector ``[-1.8, +1.4, -0.3]`` consisting of the subtotals quantifies the
-relative likelihood of the label classes. Since the second element (1.4) is 
+relative likelihood of the label classes. Since the second element (1.4) is
 the largest, the second class must be the most likely outcome for the particular
 data point. This vector is not yet a probability distribution, since its
 elements do not sum to 1.

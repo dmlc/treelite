@@ -26,7 +26,9 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   int quantize;
   /*! \brief option to enable parallel compilation;
              if set to nonzero, the trees will be evely distributed
-             into ``[parallel_comp]`` files. */
+             into ``[parallel_comp]`` files. Set this option to improve
+             compilation time and reduce memory consumption during
+             compilation. */
   int parallel_comp;
   /*! \brief if >0, produce extra messages */
   int verbose;

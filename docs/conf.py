@@ -28,7 +28,8 @@ def setup(app):
   app.add_stylesheet('custom.css')
 
 # Run Doxygen first
-call('doxygen; mkdir tmp; mv html tmp/dev', shell=True)
+call('doxygen; if [ -d tmp/dev ]; then rm -rf tmp; fi; mkdir tmp; mv html tmp/dev',
+     shell=True)
 
 pip.main(['install', 'breathe'])
 

@@ -2,3 +2,4 @@ matplotlib>=2.1
 graphviz
 breathe
 guzzle_sphinx_theme
+sh>=1.12.14

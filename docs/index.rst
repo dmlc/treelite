@@ -14,7 +14,7 @@ ensembles.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
-The latest version of treelite is |boldversion|.
+|longrelease|
 
 *************
 Why treelite?

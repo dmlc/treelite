@@ -10,6 +10,7 @@ This page lists tutorials about treelite.
  
  first
  import
+ optimize
  deploy
  builder
  protobuf

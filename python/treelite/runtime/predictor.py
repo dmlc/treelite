@@ -246,6 +246,7 @@ class Predictor(object):
                             'the share library must have one of the '+\
                             'following extensions: .so / .dll / .dylib')
     self.handle = ctypes.c_void_p()
+    path = os.path.abspath(path)
     _check_call(_LIB.TreelitePredictorLoad(c_str(path),
                                            ctypes.byref(self.handle)))
     if verbose:

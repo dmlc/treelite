@@ -89,7 +89,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   // declare parameters
   DMLC_DECLARE_PARAMETER(CLIParam) {
     DMLC_DECLARE_FIELD(task).set_default(kCodegen)
-        .add_enum("train", kCodegen)
+        .add_enum("codegen", kCodegen)
         .add_enum("annotate", kAnnotate)
         .add_enum("predict", kPredict)
         .describe("Task to be performed by the CLI program.");

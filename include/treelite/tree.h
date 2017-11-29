@@ -365,7 +365,9 @@ struct Model {
   ModelParam param;
 
   /*! \brief disable copy; use default move */
-  Model() = default;
+  Model() {
+    param.Init(std::vector<std::pair<std::string, std::string>>());
+  }
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&&) = default;

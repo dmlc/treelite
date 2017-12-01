@@ -73,7 +73,7 @@ branch ahead of time. Given a program
 the CPU will pre-fetch the instructions for the function ``foo()`` if the given
 condition is likely to be true. On the other hand, if the condition is likely
 to be false, the CPU will pre-fetch the instructions for the function ``bar()``.
-It suffices to say that correctly prediction conditional branches has
+It suffices to say that correctly predicting conditional branches has
 great impact on performance. Each time the CPU predicts a branch correctly, it
 can keep the instructions it had pre-fetched earlier. Each time the CPU fails to
 predict, it must throw away the pre-fetched instructions and fetch anew another

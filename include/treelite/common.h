@@ -14,6 +14,7 @@
 #include <memory>
 #include <iterator>
 #include <functional>
+#include <iomanip>
 #include <cerrno>
 #include <climits>
 
@@ -161,7 +162,10 @@ Iter binary_search(Iter begin, Iter end, const T& val)
 template <typename T>
 inline std::string ToString(T value) {
   std::ostringstream oss;
-  oss << value;
+  // to restore default precision
+  const std::streamsize ss = std::cout.precision();
+  oss << std::setprecision(std::numeric_limits<T>::digits10 + 2) << value
+      << std::setprecision(ss);
   return oss.str();
 }
 

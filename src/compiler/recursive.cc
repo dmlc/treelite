@@ -14,6 +14,7 @@
 #include <queue>
 #include <algorithm>
 #include <iterator>
+#include <iomanip>
 #include <cmath>
 #include "param.h"
 #include "pred_transform.h"
@@ -347,8 +348,13 @@ class NoQuantize : private MetadataStore {
         // must be identical for all finite [lhs]. Same goes for operator >.
         oss << (semantic::CompareWithOp(0.0, op, threshold) ? "1" : "0");
       } else {
+        // to restore default precision
+        const std::streamsize ss = std::cout.precision();
         oss << "data[" << split_index << "].fvalue "
-            << semantic::OpName(op) << " " << threshold;
+            << semantic::OpName(op) << " "
+            << std::setprecision(std::numeric_limits<tl_float>::digits10 + 2)
+            << threshold
+            << std::setprecision(ss);
       }
       return oss.str();
     };

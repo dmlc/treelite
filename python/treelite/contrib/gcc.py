@@ -14,12 +14,12 @@ def _obj_ext():
 
 def _obj_cmd(source, options):
   obj_ext = _obj_ext()
-  return 'gcc -c -O3 -o {} {} -fPIC -std=c99 -flto -fopenmp {}'\
+  return 'gcc -c -O3 -o {} {} -fPIC -std=c99 -fopenmp {}'\
           .format(source + obj_ext, source + '.c', ' '.join(options))
 
 def _lib_cmd(sources, target, lib_ext, options):
   obj_ext = _obj_ext()
-  return 'gcc -shared -O3 -o {} {} -std=c99 -flto -fopenmp {}'\
+  return 'gcc -shared -O3 -o {} {} -std=c99 -fopenmp {}'\
           .format(target + lib_ext,
                   ' '.join([x['name'] + obj_ext for x in sources]),
                   ' '.join(options))

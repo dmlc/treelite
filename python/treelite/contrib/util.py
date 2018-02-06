@@ -14,8 +14,10 @@ def _is_windows():
 def _shell():
   if _is_windows():
     return 'cmd.exe'
-  else:
+  elif 'SHELL' in os.environ:
     return os.environ['SHELL']
+  else:
+    return '/bin/sh'  # use POSIX-compliant shell if SHELL is not set
 
 def _libext():
   if _platform == 'darwin':

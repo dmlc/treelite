@@ -29,12 +29,12 @@ def _obj_ext():
 
 def _obj_cmd(source, options):
   obj_ext = _obj_ext()
-  return 'clang -c -O3 -o {} {} -fPIC -std=c99 -flto {}'\
+  return 'clang -c -O3 -o {} {} -fPIC -std=c99 {}'\
           .format(source + obj_ext, source + '.c', ' '.join(options))
 
 def _lib_cmd(sources, target, lib_ext, options):
   obj_ext = _obj_ext()
-  return 'clang -shared -O3 -o {} {} -std=c99 -flto {}'\
+  return 'clang -shared -O3 -o {} {} -std=c99 {}'\
           .format(target + lib_ext,
                   ' '.join([x['name'] + obj_ext for x in sources]),
                   ' '.join(options))

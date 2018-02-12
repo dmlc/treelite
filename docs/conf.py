@@ -167,6 +167,11 @@ html_theme_options = {
     "project_nav_name": "Treelite ({})".format(nav_ver)
 }
 
+html_sidebars = {
+  '**': ['logo-text.html', 'globaltoc.html', 'searchbox.html']
+}
+
+
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.

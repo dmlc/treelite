@@ -320,7 +320,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   }
   /* write source file(s) */
   std::vector<std::unordered_map<std::string, std::string>> source_list;
-  std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
     const std::string filename = basename + ".c";
     const std::string filename_full = dirpath_ + "/" + filename;
@@ -331,7 +330,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     auto lines = semantic_model.units[0].Compile(header_filename);
     source_list.push_back({ {"name", basename},
                             {"length", std::to_string(lines.size())} });
-    object_list.push_back(objname);
     common::WriteToFile(filename_full, lines);
   } else {  // multiple files (translation units)
     for (size_t i = 0; i < semantic_model.units.size(); ++i) {
@@ -344,7 +342,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
       auto lines = semantic_model.units[i].Compile(header_filename);
       source_list.push_back({ {"name", basename + std::to_string(i)},
                               {"length", std::to_string(lines.size())} });
-      object_list.push_back(objname);
       common::WriteToFile(filename_full, lines);
     }
   }
@@ -365,36 +362,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     // force flush before fo destruct.
     os.set_stream(nullptr);
   }
-  /* write Makefile if on Linux */
-#ifdef __linux__
-  {
-    std::string library_name = basename + ".so";
-    std::ostringstream oss;
-    oss << "all: " << library_name << std::endl << std::endl
-        << library_name << ": ";
-    for (const auto& e : object_list) {
-      oss << e << " ";
-    }
-    oss << std::endl
-        << "\tgcc -shared -O3 -o $@ $? -fPIC -std=c99 -flto"
-        << std::endl << std::endl;
-    for (size_t i = 0; i < object_list.size(); ++i) {
-      oss << object_list[i] << ": "
-          << source_list[i]["name"] << ".c" << std::endl
-          << "\tgcc -c -O3 -o $@ $? -fPIC -std=c99 -flto" << std::endl;
-    }
-    oss << std::endl
-        << "clean:" << std::endl
-        << "\trm -fv " << library_name << " ";
-    for (const auto& e : object_list) {
-      oss << e << " ";
-    }
-    common::WriteToFile(dirpath_ + "/Makefile", {oss.str()});
-    if (verbose > 0) {
-      LOG(INFO) << "Writing " << dirpath_ + "/Makefile ...";
-    }
-  }
-#endif
   API_END();
 }
 

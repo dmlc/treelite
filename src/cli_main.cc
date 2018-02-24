@@ -192,14 +192,10 @@ void CLICodegen(const CLIParam& param) {
     common::WriteToFile(header_filename, lines);
   }
   /* write source file(s) */
-  std::vector<std::string> source_list;
-  std::vector<std::string> object_list;
   if (semantic_model.units.size() == 1) {   // single file (translation unit)
     const std::string filename = basename + ".c";
     const std::string filename_full = param.name_codegen_dir + "/" + filename;
     const std::string objname = basename + ".o";
-    source_list.push_back(filename);
-    object_list.push_back(objname);
     auto lines = semantic_model.units[0].Compile(header_filename);
     common::WriteToFile(filename_full, lines);
   } else {  // multiple files (translation units)
@@ -207,39 +203,10 @@ void CLICodegen(const CLIParam& param) {
       const std::string filename = basename + std::to_string(i) + ".c";
       const std::string filename_full = param.name_codegen_dir + "/" + filename;
       const std::string objname = basename + std::to_string(i) + ".o";
-      source_list.push_back(filename);
-      object_list.push_back(objname);
       auto lines = semantic_model.units[i].Compile(header_filename);
       common::WriteToFile(filename_full, lines);
     }
   }
-  /* write Makefile */
-#ifdef __linux__
-  {
-    const std::string library_name = basename + ".so";
-    std::ostringstream oss;
-    oss << "all: " << library_name << std::endl << std::endl
-        << library_name << ": ";
-    for (const auto& e : object_list) {
-      oss << e << " ";
-    }
-    oss << std::endl
-        << "\tgcc -shared -O3 -o $@ $? -fPIC -std=c99 -flto -fopenmp"
-        << std::endl << std::endl;
-    for (size_t i = 0; i < object_list.size(); ++i) {
-      oss << object_list[i] << ": " << source_list[i] << std::endl
-          << "\tgcc -c -O3 -o $@ $? -fPIC -std=c99 -flto -fopenmp" << std::endl;
-    }
-    oss << std::endl
-        << "clean:" << std::endl
-        << "\trm -fv " << library_name << " ";
-    for (const auto& e : object_list) {
-      oss << e << " ";
-    }
-    common::WriteToFile(param.name_codegen_dir + "/Makefile",
-                        {oss.str()});
-  }
-#endif
 }
 
 void CLIAnnotate(const CLIParam& param) {

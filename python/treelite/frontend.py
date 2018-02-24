@@ -8,7 +8,8 @@ import os
 from .common.compat import STRING_TYPES
 from .common.util import c_str, TreeliteError, TemporaryDirectory
 from .core import _LIB, c_array, _check_call
-from .contrib import create_shared, generate_makefile, _check_ext
+from .contrib import create_shared, generate_makefile, _check_ext, \
+                     _toolchain_exist_check
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""
@@ -52,7 +53,8 @@ class Model(object):
     Parameters
     ----------
     toolchain : :py:class:`str <python:str>`
-        which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
+      which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+      You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
     libpath : :py:class:`str <python:str>`
         location to save the generated dynamic shared library
     params : :py:class:`dict <python:dict>`, optional
@@ -90,6 +92,7 @@ class Model(object):
        shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
     """
     _check_ext(toolchain, libpath)  # check for file extension
+    _toolchain_exist_check(toolchain)
     with TemporaryDirectory() as temp_dir:
       self.compile(temp_dir, params, compiler, verbose)
       temp_libpath = create_shared(toolchain, temp_dir, nthread,
@@ -109,7 +112,8 @@ class Model(object):
       compiled. Must be one of the following: 'windows' (Microsoft Windows),
       'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
     toolchain : :py:class:`str <python:str>`
-        which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
+      which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+      You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
     pkgpath : :py:class:`str <python:str>`
         location to save the zipped source package
     libname : :py:class:`str <python:str>`
@@ -158,6 +162,7 @@ class Model(object):
       raise ValueError('Source package file should have .zip extension')
     libname = os.path.basename(libname)
     _check_ext(toolchain, libname)
+    _toolchain_exist_check(toolchain)
 
     with TemporaryDirectory() as temp_dir:
       target = os.path.splitext(libname)[0]

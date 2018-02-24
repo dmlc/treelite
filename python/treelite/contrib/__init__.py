@@ -10,17 +10,13 @@ import time
 import shutil
 from ..common.util import TreeliteError, lineno, log_info
 from ..common.libpath import find_lib_path
-from .util import _libext
+from .util import _libext, _toolchain_exist_check
 
 def _check_ext(toolchain, dllpath):
   if toolchain == 'msvc':
     from .msvc import _check_ext
-  elif toolchain == 'gcc':
-    from .gcc import _check_ext
-  elif toolchain == 'clang':
-    from .clang import _check_ext
   else:
-    raise ValueError('toolchain {} not supported'.format(toolchain))
+    from .gcc import _check_ext
   _check_ext(dllpath)
 
 def generate_makefile(dirpath, platform, toolchain, options=None):
@@ -40,7 +36,8 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
       compiled. Must be one of the following: 'windows' (Microsoft Windows),
       'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
   toolchain : :py:class:`str <python:str>`
-      which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
+      which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+      You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
   options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
             optional
       Additional options to pass to toolchain
@@ -73,17 +70,17 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
     lib_ext = '.so'
   else:
     raise ValueError('Unknown platform: must be one of {windows, osx, unix}')
+  
+  _toolchain_exist_check(toolchain)
   if toolchain == 'msvc':
     if platform != 'windows':
       raise ValueError('Visual C++ is compatible only with Windows; ' + \
                        'set platform=\'windows\'')
     from .msvc import _obj_ext, _obj_cmd, _lib_cmd
-  elif toolchain == 'gcc':
-    from .gcc import _obj_ext, _obj_cmd, _lib_cmd
-  elif toolchain == 'clang':
-    from .clang import _obj_ext, _obj_cmd, _lib_cmd
   else:
-    raise ValueError('toolchain {} not supported'.format(toolchain))
+    from .gcc import _obj_ext, _obj_cmd, _lib_cmd, _openmp_supported
+    if _openmp_supported(toolchain):
+      options += ['-fopenmp']
   obj_ext = _obj_ext()
 
   with open(os.path.join(dirpath, 'Makefile'), 'w') as f:
@@ -93,11 +90,14 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
     f.write('\t{}\n'.format(_lib_cmd(sources=recipe['sources'],
                                      target=recipe['target'],
                                      lib_ext=lib_ext,
+                                     toolchain=toolchain,
                                      options=options)))
     for source in recipe['sources']:
       f.write('{}: {}\n'.format(source['name'] + obj_ext,
                                 source['name'] + '.c'))
-      f.write('\t{}\n'.format(_obj_cmd(source['name'], options)))
+      f.write('\t{}\n'.format(_obj_cmd(source=source['name'],
+                                       toolchain=toolchain,
+                                       options=options)))
 
 def save_runtime_package(destdir, include_binary=False):
   """
@@ -131,7 +131,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
   Parameters
   ----------
   toolchain : :py:class:`str <python:str>`
-      which toolchain to use. Must be one of 'msvc', 'clang', 'gcc'.
+      which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+      You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
   dirpath : :py:class:`str <python:str>`
       directory containing the header and source files previously generated
       by :py:meth:`Model.compile`. The directory must contain recipe.json
@@ -209,19 +210,15 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
              'Expect long compilation time.\u001B[0m '+\
              'You may want to adjust the parameter ' +\
              '\x1B[33mparallel_comp\u001B[0m.\n')
-
+  
   tstart = time.time()
+  _toolchain_exist_check(toolchain)
   if toolchain == 'msvc':
     from .msvc import _create_shared
-  elif toolchain == 'gcc':
-    from .gcc import _create_shared
-  elif toolchain == 'clang':
-    from .clang import _create_shared, _openmp_supported
-    if _openmp_supported():  # clang may not support OpenMP, so make it optional
-      options += ['-fopenmp']
   else:
-    raise ValueError('toolchain {} not supported'.format(toolchain))
-  libpath = _create_shared(dirpath, recipe, nthread, options, verbose)
+    from .gcc import _create_shared, _openmp_supported
+  libpath = \
+    _create_shared(dirpath, toolchain, recipe, nthread, options, verbose)
   if verbose:
     log_info(__file__, lineno(),
              'Generated shared library in '+\

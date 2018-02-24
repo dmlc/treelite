@@ -168,7 +168,7 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
       annotate = true;
       if (param.verbose > 0) {
         LOG(INFO) << "Using branch annotation file `"
-                  << param.annotate_in << "\"";
+                  << param.annotate_in << "'";
       }
     }
 

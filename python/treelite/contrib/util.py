@@ -11,6 +11,18 @@ from ..common.util import TreeliteError, lineno, log_info
 def _is_windows():
   return _platform == 'win32'
 
+def _toolchain_exist_check(toolchain):
+  if toolchain != 'msvc':
+    retcode = subprocess.call('{} --version'.format(toolchain),
+                              shell=True,
+                              stdin=subprocess.DEVNULL,
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    if retcode != 0:
+      raise ValueError('Toolchain {} not found. '.format(toolchain) +
+                      'Ensure that it is installed and that it is a variant ' +
+                      'of GCC or Clang.')
+
 def _shell():
   if _is_windows():
     return 'cmd.exe'

@@ -238,7 +238,9 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
         const size_t tree_end = std::min((unit_id + 1) * unit_size,
                                          model.trees.size());
         SequenceBlock unit_seq;
-        unit_seq.Reserve(tree_end - tree_begin + 2);
+        if (tree_begin < tree_end) {
+          unit_seq.Reserve(tree_end - tree_begin + 2);
+        }
         unit_seq.PushBack(PlainBlock(group_policy.Accumulator()));
         for (size_t tree_id = tree_begin; tree_id < tree_end; ++tree_id) {
           const Tree& tree = model.trees[tree_id];
@@ -257,7 +259,12 @@ class RecursiveCompiler : public Compiler, private QuantizePolicy {
         semantic_model.units.emplace_back(PlainBlock(), std::move(unit_func));
       }
     }
-    auto header = QuantizePolicy::CommonHeader();
+    std::vector<std::string> header{"#include <stdlib.h>",
+                                    "#include <string.h>",
+                                    "#include <math.h>",
+                                    "#include <stdint.h>"};
+    common::TransformPushBack(&header, QuantizePolicy::CommonHeader(),
+                              [] (std::string line) { return line; });
     if (annotate) {
       header.emplace_back();
 #if defined(__clang__) || defined(__GNUC__)
@@ -360,11 +367,7 @@ class NoQuantize : private MetadataStore {
     };
   }
   std::vector<std::string> CommonHeader() const {
-    return {"#include <stdlib.h>",
-            "#include <string.h>",
-            "#include <math.h>",
-            "#include <stdint.h>",
-            "",
+    return {"",
             "union Entry {",
             "  int missing;",
             "  float fvalue;",
@@ -414,11 +417,7 @@ class Quantize : private MetadataStore {
     };
   }
   std::vector<std::string> CommonHeader() const {
-    return {"#include <stdlib.h>",
-            "#include <string.h>",
-            "#include <math.h>",
-            "#include <stdint.h>",
-            "",
+    return {"",
             "union Entry {",
             "  int missing;",
             "  float fvalue;",

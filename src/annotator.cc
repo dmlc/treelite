@@ -38,8 +38,7 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
         result = treelite::semantic::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
-        CHECK_LT(fvalue, 64) << "Cannot have more than 64 categories";
-        const uint8_t fvalue2 = static_cast<uint8_t>(fvalue);
+        const uint32_t fvalue2 = static_cast<uint32_t>(fvalue);
         const auto left_categories = node.left_categories();
         result = (std::binary_search(left_categories.begin(),
                                      left_categories.end(), fvalue));

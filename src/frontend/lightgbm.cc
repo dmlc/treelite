@@ -54,14 +54,13 @@ inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
   return (decision_type & mask) > 0;
 }
 
-inline std::vector<uint8_t> BitsetToList(const uint32_t* bits,
-                                         uint8_t nslots) {
-  std::vector<uint8_t> result;
-  CHECK(nslots == 1 || nslots == 2);
-  const uint8_t nbits = nslots * 32;
-  for (uint8_t i = 0; i < nbits; ++i) {
-    const uint8_t i1 = i / 32;
-    const uint8_t i2 = i % 32;
+inline std::vector<uint32_t> BitsetToList(const uint32_t* bits,
+                                          uint8_t nslots) {
+  std::vector<uint32_t> result;
+  const uint32_t nbits = static_cast<uint32_t>(nslots) * 32;
+  for (uint32_t i = 0; i < nbits; ++i) {
+    const uint32_t i1 = i / 32;
+    const uint32_t i2 = i % 32;
     if ((bits[i1] >> i2) & 1) {
       result.push_back(i);
     }
@@ -339,10 +338,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
           // categorical
           const int cat_idx = static_cast<int>(lgb_tree.threshold[old_id]);
-          CHECK_LE(lgb_tree.cat_boundaries[cat_idx + 1]
-                   - lgb_tree.cat_boundaries[cat_idx], 2)
-            << "Categorical features must have 64 categories or fewer.";
-          const std::vector<uint8_t> left_categories
+          const std::vector<uint32_t> left_categories
             = BitsetToList(lgb_tree.cat_threshold.data()
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]

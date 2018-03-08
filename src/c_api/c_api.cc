@@ -465,17 +465,17 @@ int TreeliteTreeBuilderSetNumericalTestNode(TreeBuilderHandle handle,
 int TreeliteTreeBuilderSetCategoricalTestNode(
                                           TreeBuilderHandle handle,
                                           int node_key, unsigned feature_id,
-                                          const unsigned char* left_categories,
+                                          const unsigned int* left_categories,
                                           size_t left_categories_len,
                                           int default_left,
                                           int left_child_key,
                                           int right_child_key) {
   API_BEGIN();
   auto builder = static_cast<frontend::TreeBuilder*>(handle);
-  std::vector<uint8_t> vec(left_categories_len);
+  std::vector<uint32_t> vec(left_categories_len);
   for (size_t i = 0; i < left_categories_len; ++i) {
-    CHECK(left_categories[i] <= std::numeric_limits<uint8_t>::max());
-    vec[i] = static_cast<uint8_t>(left_categories[i]);
+    CHECK(left_categories[i] <= std::numeric_limits<uint32_t>::max());
+    vec[i] = static_cast<uint32_t>(left_categories[i]);
   }
   return (builder->SetCategoricalTestNode(node_key, feature_id, vec,
                                           (default_left != 0),

@@ -119,7 +119,7 @@ class TreeBuilder {
    */
   bool SetCategoricalTestNode(int node_key,
                               unsigned feature_id,
-                              const std::vector<uint8_t>& left_categories,
+                              const std::vector<uint32_t>& left_categories,
                               bool default_left, int left_child_key,
                               int right_child_key);
   /*!

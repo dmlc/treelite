@@ -160,11 +160,11 @@ Model LoadProtobufModel(const char* filename) {
           << "split_index must be between 0 and [num_feature] - 1.";
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         const int left_categories_size = node.left_categories_size();
-        std::vector<uint8_t> left_categories;
+        std::vector<uint32_t> left_categories;
         for (int i = 0; i < left_categories_size; ++i) {
           const auto cat = node.left_categories(i);
-          CHECK(cat <= std::numeric_limits<uint8_t>::max());
-          left_categories.push_back(static_cast<uint8_t>(cat));
+          CHECK(cat <= std::numeric_limits<uint32_t>::max());
+          left_categories.push_back(static_cast<uint32_t>(cat));
         }
         tree.AddChilds(id);
         tree[id].set_categorical_split(static_cast<unsigned>(split_index),

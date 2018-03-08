@@ -62,27 +62,42 @@ class CategoricalSplitCondition : public treelite::semantic::Condition {
   inline std::string Compile() const override {
     const std::string bitmap
       = std::string("data[") + std::to_string(split_index) + "].missing != -1";
-    const std::string comp
-      = std::string("((") + std::to_string(categorical_bitmap)
-          + "U >> (unsigned int)(data[" + std::to_string(split_index)
-          + "].fvalue)) & 1)";
-    return ((default_left) ?  (std::string("!(") + bitmap + ") || ")
-                            : (std::string(" (") + bitmap + ") && "))
-            + ((categorical_bitmap == 0) ? std::string("0") : comp);
+    CHECK_GE(categorical_bitmap.size(), 1);
+    std::ostringstream comp;
+    comp << "(tmp = (unsigned int)(data[" << split_index << "].fvalue) ), "
+         << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
+         << categorical_bitmap[0] << "U >> tmp) & 1) )";
+    for (size_t i = 1; i < categorical_bitmap.size(); ++i) {
+      comp << " || (tmp >= " << (i * 64)
+           << " && tmp < " << ((i + 1) * 64)
+           << " && (( (uint64_t)" << categorical_bitmap[i]
+           << "U >> (tmp - " << (i * 64) << ") ) & 1) )";
+    }
+    bool all_zeros = true;
+    for (uint64_t e : categorical_bitmap) {
+      all_zeros &= (e == 0);
+    }
+    return ((default_left) ?  (std::string("!(") + bitmap + ") || (")
+                            : (std::string(" (") + bitmap + ") && ("))
+            + (all_zeros ? std::string("0") : comp.str()) + ")";
   }
 
  private:
   unsigned split_index;
   bool default_left;
-  uint64_t categorical_bitmap;
+  std::vector<uint64_t> categorical_bitmap;
 
-  inline uint64_t to_bitmap(const std::vector<uint8_t>& left_categories) const {
-    uint64_t result = 0;
-    for (uint8_t e : left_categories) {
-      CHECK_LT(e, 64) << "Cannot have more than 64 categories in a feature";
-      result |= (static_cast<uint64_t>(1) << e);
+  inline std::vector<uint64_t> to_bitmap(const std::vector<uint32_t>& left_categories) const {
+    const size_t num_left_categories = left_categories.size();
+    const uint32_t max_left_category = left_categories[num_left_categories - 1];
+    std::vector<uint64_t> bitmap((max_left_category + 1 + 63) / 64, 0);
+    for (size_t i = 0; i < left_categories.size(); ++i) {
+      const uint32_t cat = left_categories[i];
+      const size_t idx = cat / 64;
+      const uint32_t offset = cat % 64;
+      bitmap[idx] |= (static_cast<uint64_t>(1) << offset);
     }
-    return result;
+    return bitmap;
   }
 };
 
@@ -598,9 +613,9 @@ inline std::string
 GroupPolicy::Accumulator() const {
   if (num_output_group > 1) {
     return std::string("float sum[") + std::to_string(num_output_group)
-           + "] = {0.0f};";
+           + "] = {0.0f};\n  unsigned int tmp;";
   } else {
-    return "float sum = 0.0f;";
+    return "float sum = 0.0f;\n  unsigned int tmp;";
   }
 }
 

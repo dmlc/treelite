@@ -84,7 +84,7 @@ class Tree {
       return cmp_;
     }
     /*! \brief get categories for left child node */
-    inline const std::vector<uint8_t>& left_categories() const {
+    inline const std::vector<uint32_t>& left_categories() const {
       return left_categories_;
     }
     /*! \brief get feature split type */
@@ -117,7 +117,7 @@ class Tree {
      *            threshold
      */
     inline void set_categorical_split(unsigned split_index, bool default_left,
-                                 const std::vector<uint8_t>& left_categories) {
+                                 const std::vector<uint32_t>& left_categories) {
       CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
       this->sindex_ = split_index;
@@ -194,9 +194,10 @@ class Tree {
      * \brief list of all categories belonging to the left node.
      * Categories not in this list will belong to the right node.
      * Categories are integers ranging from 0 to (n-1), where n is the number of
-     * categories in that particular feature. Let's assume n <= 64.
+     * categories in that particular feature.
+     * This list is assumed to be in ascending order.
      */
-    std::vector<uint8_t> left_categories_;
+    std::vector<uint32_t> left_categories_;
   };
 
  private:

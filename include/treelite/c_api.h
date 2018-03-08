@@ -358,7 +358,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetNumericalTestNode(
 TREELITE_DLL int TreeliteTreeBuilderSetCategoricalTestNode(
                                           TreeBuilderHandle handle,
                                           int node_key, unsigned feature_id,
-                                          const unsigned char* left_categories,
+                                          const unsigned int* left_categories,
                                           size_t left_categories_len,
                                           int default_left,
                                           int left_child_key,

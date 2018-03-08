@@ -56,7 +56,7 @@ struct _Node {
   // All others not in the list belong to the right child node.
   // Categories are integers ranging from 0 to (n-1), where n is the number of
   // categories in that particular feature. Let's assume n <= 64.
-  std::vector<uint8_t> left_categories;
+  std::vector<uint32_t> left_categories;
 
   inline _Node()
     : status(_Status::kEmpty),
@@ -188,7 +188,7 @@ TreeBuilder::SetNumericalTestNode(int node_key,
 bool
 TreeBuilder::SetCategoricalTestNode(int node_key,
                                     unsigned feature_id,
-                                    const std::vector<uint8_t>& left_categories,
+                                    const std::vector<uint32_t>& left_categories,
                                     bool default_left, int left_child_key,
                                     int right_child_key) {
   auto& tree = pimpl->tree;

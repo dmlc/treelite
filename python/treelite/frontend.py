@@ -465,15 +465,14 @@ class ModelBuilder(object):
       Set the node as a test node with categorical split. A list defines all
       categories that would be classified as the left side. Categories are
       integers ranging from ``0`` to ``n-1``, where ``n`` is the number of
-      categories in that particular feature. Let's assume ``n <= 64``.
+      categories in that particular feature.
 
       Parameters
       ----------
       feature_id : :py:class:`int <python:int>`
           feature index
       left_categories : :py:class:`list <python:list>` of \
-                        :py:class:`int <python:int>`, with every element \
-                        not exceeding 63
+                        :py:class:`int <python:int>`
           list of categories belonging to the left child.
       default_left : :py:class:`bool <python:bool>`
           default direction for missing values
@@ -493,7 +492,7 @@ class ModelBuilder(object):
             self.tree.handle,
             ctypes.c_int(self.node_key),
             ctypes.c_uint(feature_id),
-            c_array(ctypes.c_ubyte, left_categories),
+            c_array(ctypes.c_uint, left_categories),
             ctypes.c_size_t(len(left_categories)),
             ctypes.c_int(1 if default_left else 0),
             ctypes.c_int(left_child_key),

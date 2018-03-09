@@ -87,7 +87,7 @@ Import your tree ensemble model into treelite:
 .. code-block:: python
 
   import treelite
-  model = treelite.Model.load('my_model.model', format='xgboost')
+  model = treelite.Model.load('my_model.model', model_format='xgboost')
 
 Deploy a source archive:
 

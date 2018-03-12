@@ -297,7 +297,7 @@ class Model(object):
     filename : :py:class:`str <python:str>`
         path to model file
     model_format : :py:class:`str <python:str>`
-        model file format. Must be one or 'xgboost', 'lightgbm', 'protobuf'
+        model file format. Must be one or 'xgboost', 'lightgbm'
 
     Returns
     -------
@@ -321,12 +321,9 @@ class Model(object):
     elif model_format == 'xgboost':
       _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
                                                 ctypes.byref(handle)))
-    elif model_format == 'protobuf':
-      _check_call(_LIB.TreeliteLoadProtobufModel(c_str(filename),
-                                                 ctypes.byref(handle)))
     else:
       raise ValueError('Unknown model_format: must be one of ' \
-                        + '{lightgbm, xgboost, protobuf}')
+                        + '{lightgbm, xgboost}')
     return Model(handle)
 
 class ModelBuilder(object):

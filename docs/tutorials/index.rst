@@ -13,4 +13,3 @@ This page lists tutorials about treelite.
  optimize
  deploy
  builder
- protobuf

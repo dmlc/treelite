@@ -75,8 +75,7 @@ To import scikit-learn models, use
 How about other packages?
 -------------------------
 If you used other packages to train your ensemble model, you'd need to specify
-the model programmatically. There are two ways to do this:
+the model programmatically.
 
 * :doc:`builder`
-* :doc:`protobuf`
 

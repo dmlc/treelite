@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.1)
 project(treelite)
 include(cmake/Utils.cmake)
 find_package(OpenMP)
-find_package(Protobuf)
 
 # Use RPATH on Mac OS X as flexible mechanism for locating dependencies
 # See https://blog.kitware.com/upcoming-in-cmake-2-8-12-osx-rpath-support/
@@ -85,15 +84,6 @@ foreach(g ${RUNTIME_SOURCES})
 endforeach(g)
 list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
-# Protobuf library
-if (Protobuf_FOUND OR PROTOBUF_FOUND)
-  set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
-  include_directories(${PROTOBUF_INCLUDE_DIRS})
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
-  protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS src/tree.proto)
-  list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
-endif()
-
 # dmlc-core
 set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS
 set(BUILD_SHARED_LIBS OFF)  # dmlc lib must always be static
@@ -108,11 +98,6 @@ set(RUNTIME_LINK_LIBRARIES "")
 if (UNIX)
   list(APPEND RUNTIME_LINK_LIBRARIES dl)
 endif (UNIX)
-
-# Protobuf library
-if (Protobuf_FOUND OR PROTOBUF_FOUND)
-  list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
-endif()
 
 add_library(objtreelite OBJECT ${SOURCES})
 add_library(objtreelite_runtime OBJECT ${RUNTIME_SOURCES})

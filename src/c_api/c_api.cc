@@ -10,7 +10,6 @@
 #include <treelite/compiler.h>
 #include <treelite/data.h>
 #include <treelite/frontend.h>
-#include <treelite/semantic.h>
 #include <dmlc/json.h>
 #include <dmlc/thread_local.h>
 #include <memory>
@@ -286,82 +285,23 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   // create directory named dirpath
   const std::string& dirpath_(dirpath);
   common::filesystem::CreateDirectoryIfNotExist(dirpath);
-  const std::string basename = common::filesystem::GetBasename(dirpath);
 
   compiler::CompilerParam cparam;
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
 
-  /* generate semantic model */
+  /* compile model */
+  // TODO: produce recipe.json
   impl->compiler.reset(Compiler::Create(impl->name, cparam));
-  auto semantic_model = impl->compiler->Compile(*model_);
+  auto compiled_model = impl->compiler->Compile(*model_);
   if (verbose > 0) {
     LOG(INFO) << "Code generation finished. Writing code to files...";
   }
 
-  /* write header */
-  const std::string header_filename = dirpath_ + "/" + basename + ".h";
-  if (verbose > 0) {
-    LOG(INFO) << "Writing " << header_filename << " ...";
+  for (const auto& it : compiled_model.files) {
+    const std::string filename_full = dirpath_ + "/" + it.first;
+    common::WriteToFile(filename_full, it.second);
   }
-  {
-    std::vector<std::string> lines;
-    common::TransformPushBack(&lines, semantic_model.common_header->Compile(),
-      [] (std::string line) {
-        return line;
-      });
-    lines.emplace_back();
-    std::ostringstream oss;
-    using FunctionEntry = semantic::SemanticModel::FunctionEntry;
-    std::copy(semantic_model.function_registry.begin(),
-              semantic_model.function_registry.end(),
-              std::ostream_iterator<FunctionEntry>(oss));
-    lines.push_back(oss.str());
-    common::WriteToFile(header_filename, lines);
-  }
-  /* write source file(s) */
-  std::vector<std::unordered_map<std::string, std::string>> source_list;
-  if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = basename + ".c";
-    const std::string filename_full = dirpath_ + "/" + filename;
-    const std::string objname = basename + ".o";
-    if (verbose > 0) {
-      LOG(INFO) << "Writing " << filename_full << " ...";
-    }
-    auto lines = semantic_model.units[0].Compile(header_filename);
-    source_list.push_back({ {"name", basename},
-                            {"length", std::to_string(lines.size())} });
-    common::WriteToFile(filename_full, lines);
-  } else {  // multiple files (translation units)
-    for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename = basename + std::to_string(i) + ".c";
-      const std::string filename_full = dirpath_ + "/" + filename;
-      const std::string objname = basename + std::to_string(i) + ".o";
-      if (verbose > 0) {
-        LOG(INFO) << "Writing " << filename_full << " ...";
-      }
-      auto lines = semantic_model.units[i].Compile(header_filename);
-      source_list.push_back({ {"name", basename + std::to_string(i)},
-                              {"length", std::to_string(lines.size())} });
-      common::WriteToFile(filename_full, lines);
-    }
-  }
-  /* write build recipe, to be used by Python binding */
-  {
-    const std::string recipe_name = dirpath_ + "/recipe.json";
-    if (verbose > 0) {
-      LOG(INFO) << "Writing " << recipe_name << " ...";
-    }
-    std::unique_ptr<dmlc::Stream> fo(
-                               dmlc::Stream::Create(recipe_name.c_str(), "w"));
-    dmlc::ostream os(fo.get());
-    auto writer = common::make_unique<dmlc::JSONWriter>(&os);
-    writer->BeginObject();
-    writer->WriteObjectKeyValue("target", basename);
-    writer->WriteObjectKeyValue("sources", source_list);
-    writer->EndObject();
-    // force flush before fo destruct.
-    os.set_stream(nullptr);
-  }
+
   API_END();
 }
 

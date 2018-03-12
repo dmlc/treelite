@@ -5,7 +5,6 @@
 * \author Philip Cho
 */
 
-#include <treelite/semantic.h>
 #include <treelite/tree.h>
 #include <string>
 #include <unordered_map>
@@ -15,7 +14,6 @@
 
 namespace {
 
-using PlainBlock = treelite::semantic::PlainBlock;
 using Model = treelite::Model;
 using PredTransformFuncGenerator
   = std::vector<std::string> (*)(const Model&, bool);

@@ -88,8 +88,7 @@ class DeepCopyUniquePtr {
  * \tparam Args variadic template for forwarded arguments
  */
 template<typename T, typename ...Args>
-std::unique_ptr<T> make_unique(Args&& ...args)
-{
+std::unique_ptr<T> make_unique(Args&& ...args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
@@ -118,19 +117,21 @@ inline T&& MoveUniquePtr(const std::unique_ptr<T>& ptr) {
  * \param p_stm pointer to string stream
  * \param p_length used to keep track of the lenght of current line. It will
  *                 always be the case that [length] <= [textwidth]
+ * \param indent indent level inside array
  * \param str string to be inserted
  * \param textwidth maximum width of each line
  */
 inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
-                     const std::string& str, size_t textwidth) {
+                     const std::string& str, size_t indent,
+                     size_t textwidth) {
   std::ostringstream& stm = *p_stm;
   size_t& length = *p_length;
-  if (length + str.length() + 2 <= textwidth) {
-    stm << str << ", ";
-    length += str.length() + 2;
+  if (length + str.length() <= textwidth) {
+    stm << str;
+    length += str.length();
   } else {
-    stm << "\n  " << str << ", ";
-    length = str.length() + 4;
+    stm << "\n" << std::string(indent, ' ') << str;
+    length = str.length() + indent;
   }
 }
 
@@ -177,11 +178,10 @@ inline std::string ToString(T value) {
  * \param lines a sequence of strings to be written.
  */
 inline void WriteToFile(const std::string& filename,
-                        const std::vector<std::string>& lines) {
+                        const std::string& content) {
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename.c_str(), "w"));
   dmlc::ostream os(fo.get());
-  std::copy(lines.begin(), lines.end(),
-            std::ostream_iterator<std::string>(os, "\n"));
+  os << content;
   // force flush before fo destruct.
   os.set_stream(nullptr);
 }

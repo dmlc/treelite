@@ -1,8 +1,7 @@
 /*!
  * Copyright 2017 by Contributors
  * \file compiler.h
- * \brief Interface of compiler that translates a tree ensemble model into
- *        a semantic model
+ * \brief Interface of compiler that compiles a tree ensemble model
  * \author Philip Cho
  */
 #ifndef TREELITE_COMPILER_H_
@@ -21,13 +20,12 @@ namespace compiler {
 
 struct CompilerParam;  // forward declaration
 
+struct CompiledModel {
+  std::string backend;
+  std::unordered_map<std::string, std::string> files;
+};
+
 }  // namespace compiler
-
-namespace semantic {
-
-struct SemanticModel;  // forward declaration
-
-}  // namespace semantic
 
 /*! \brief interface of compiler */
 class Compiler {
@@ -35,10 +33,10 @@ class Compiler {
   /*! \brief virtual destructor */
   virtual ~Compiler() = default;
   /*!
-   * \brief convert tree ensemble model into semantic model
-   * \return semantic model
+   * \brief convert tree ensemble model
+   * \return compiled model
    */
-  virtual semantic::SemanticModel Compile(const Model& model) = 0;
+  virtual compiler::CompiledModel Compile(const Model& model) = 0;
   /*!
    * \brief create a compiler from given name
    * \param name name of compiler

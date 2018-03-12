@@ -16,6 +16,8 @@ class ASTBuilder {
   void Build(const Model& model);
   void Split(int parallel_comp);
   void QuantizeThresholds();
+  void CountDescendant();
+  void BreakUpLargeUnits(int num_descendant_limit);
   void Dump();
 
   inline const ASTNode* GetRootNode() {
@@ -23,6 +25,8 @@ class ASTBuilder {
   }
 
  private:
+  friend bool treelite::compiler::breakup(ASTNode*, int, int*, ASTBuilder*);
+
   template <typename NodeType, typename ...Args>
   NodeType* AddNode(ASTNode* parent, Args&& ...args) {
     std::unique_ptr<NodeType> node

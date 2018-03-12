@@ -31,6 +31,8 @@ class ASTJavaCompiler : public Compiler {
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
+    builder.CountDescendant();
+    builder.BreakUpLargeUnits(param.max_unit_size);
     #include "java/entry_type.h"
     #include "java/pom_xml.h"
     files_[file_prefix_ + "Entry.java"] = entry_type;

@@ -33,6 +33,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   /*! \brief if >0, produce extra messages */
   int verbose;
   /*! \} */
+  int max_unit_size;
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
@@ -46,6 +47,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
                 "into [parallel_comp] files.");
     DMLC_DECLARE_FIELD(verbose).set_default(0)
       .describe("if >0, produce extra messages");
+    DMLC_DECLARE_FIELD(max_unit_size).set_default(1000).set_lower_bound(100);
   }
 };
 

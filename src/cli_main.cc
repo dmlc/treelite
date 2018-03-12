@@ -258,6 +258,8 @@ void CLIDumpAST(const CLIParam& param) {
   if (cparam.quantize > 0) {
     builder.QuantizeThresholds();
   }
+  builder.CountDescendant();
+  builder.BreakUpLargeUnits(2500);
   builder.Dump();
 }
 

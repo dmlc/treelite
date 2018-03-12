@@ -32,6 +32,7 @@ class ASTNode {
   ASTNode* parent;
   std::vector<ASTNode*> children;
   int tree_id;
+  int num_descendant;
   virtual void Dump(int indent) = 0;
 };
 
@@ -45,7 +46,8 @@ class MainNode : public ASTNode {
               << "MainNode {"
               << "global_bias: " << this->global_bias << ", "
               << "average_result: " << this->average_result << ", "
-              << "num_tree: " << this->num_tree << "}"
+              << "num_tree: " << this->num_tree << ", "
+              << "num_descendant: " << this->num_descendant << "}"
               << std::endl;
   }
   tl_float global_bias;
@@ -59,7 +61,8 @@ class TranslationUnitNode : public ASTNode {
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
               << "TranslationUnitNode = {"
-              << "unit_id: " << unit_id << "}"
+              << "unit_id: " << unit_id << ", "
+              << "num_descendant: " << this->num_descendant << "}"
               << std::endl;
   }
   int unit_id;
@@ -77,7 +80,9 @@ class QuantizerNode : public ASTNode {
   std::vector<bool> is_categorical;
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
-              << "QuantizerNode" << std::endl;
+              << "QuantizerNode = {"
+              << "num_descendant: " << this->num_descendant
+              << "}" << std::endl;
   }
 };
 
@@ -86,7 +91,9 @@ class AccumulatorContextNode : public ASTNode {
   AccumulatorContextNode() {}
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
-              << "AccumulatorContextNode" << std::endl;
+              << "AccumulatorContextNode = {"
+              << "num_descendant: " << this->num_descendant
+              << "}" << std::endl;
   }
 };
 
@@ -123,7 +130,8 @@ class NumericalConditionNode : public ConditionNode {
               << "quantized: " << this->quantized << ", "
               << "op: " << OpName(this->op) << ", "
               << "threshold: " << (quantized ? this->threshold.int_val
-                                             : this->threshold.float_val)
+                                             : this->threshold.float_val) << ", "
+              << "num_descendant: " << this->num_descendant
               << "}" << std::endl;
   }
   bool quantized;
@@ -147,7 +155,9 @@ class CategoricalConditionNode : public ConditionNode {
               << "CategoricalConditionNode {"
               << "split_index: " << this->split_index << ", "
               << "default_left: " << this->default_left << ", "
-              << "left_categories: [" << oss.str() << "] }" << std::endl;
+              << "left_categories: [" << oss.str() << "], "
+              << "num_descendant: " << this->num_descendant
+              << "}" << std::endl;
   }
   std::vector<uint32_t> left_categories;
 };
@@ -165,11 +175,13 @@ class OutputNode : public ASTNode {
         oss << e << ", ";
       }
       std::cerr << std::string(indent, ' ')
-                << "OutputNode {vector: [" << oss.str() << "] }"
+                << "OutputNode {vector: [" << oss.str() << "], "
+                << "num_descendant: " << this->num_descendant << "}"
                 << std::endl;
     } else {
       std::cerr << std::string(indent, ' ') 
-                << "OutputNode {scalar: " << this->scalar << "}"
+                << "OutputNode {scalar: " << this->scalar << ", "
+                << "num_descendant: " << this->num_descendant << "}"
                 << std::endl;
     }
   }

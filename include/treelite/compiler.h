@@ -23,6 +23,7 @@ struct CompilerParam;  // forward declaration
 struct CompiledModel {
   std::string backend;
   std::unordered_map<std::string, std::string> files;
+  std::string file_prefix;
 };
 
 }  // namespace compiler

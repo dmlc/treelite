@@ -170,14 +170,27 @@ void CLICodegen(const CLIParam& param) {
 
   // create directory named name_codegen_dir
   common::filesystem::CreateDirectoryIfNotExist(param.name_codegen_dir.c_str());
-
   std::unique_ptr<Compiler> compiler(Compiler::Create(param.compiler, cparam));
   auto compiled_model = compiler->Compile(model);
-  /* write header */
   if (param.verbose > 0) {
     LOG(INFO) << "Code generation finished. Writing code to files...";
   }
+
+  if (!compiled_model.file_prefix.empty()) {
+    const std::vector<std::string> tokens
+      = common::Split(compiled_model.file_prefix, '/');
+    std::string accum = param.name_codegen_dir + "/" + tokens[0];
+    for (size_t i = 0; i < tokens.size(); ++i) {
+      common::filesystem::CreateDirectoryIfNotExist(accum.c_str());
+      if (i < tokens.size() - 1) {
+        accum += "/";
+        accum += tokens[i + 1];
+      }
+    }
+  }
+
   for (const auto& it : compiled_model.files) {
+    LOG(INFO) << "Writing file " << it.first << "...";
     const std::string filename_full = param.name_codegen_dir + "/" + it.first;
     common::WriteToFile(filename_full, it.second);
   }

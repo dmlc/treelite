@@ -86,7 +86,7 @@ class ASTJavaCompiler : public Compiler {
                       int indent) {
     const std::string prototype
       = (num_output_group_ > 1) ?
-          "public static float[] predict_margin_multiclass(Entry[] data)"
+          "public static void predict_margin_multiclass(Entry[] data, float[] result)"
         : "public static float predict_margin(Entry[] data)";
     CommitToFile(dest,
                  "package treelite.predictor;\n\n"

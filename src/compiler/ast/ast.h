@@ -38,21 +38,24 @@ class ASTNode {
 
 class MainNode : public ASTNode {
  public:
-  MainNode(tl_float global_bias, bool average_result, int num_tree)
+  MainNode(tl_float global_bias, bool average_result, int num_tree,
+           int num_feature)
     : global_bias(global_bias), average_result(average_result),
-      num_tree(num_tree) {}
+      num_tree(num_tree), num_feature(num_feature) {}
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ') << std::boolalpha
               << "MainNode {"
               << "global_bias: " << this->global_bias << ", "
               << "average_result: " << this->average_result << ", "
               << "num_tree: " << this->num_tree << ", "
+              << "num_feature: " << this->num_feature << ", "
               << "num_descendant: " << this->num_descendant << "}"
               << std::endl;
   }
   tl_float global_bias;
   bool average_result;
   int num_tree;
+  int num_feature;
 };
 
 class TranslationUnitNode : public ASTNode {

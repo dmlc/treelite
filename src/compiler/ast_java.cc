@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include "./param.h"
 #include "./ast/builder.h"
+#include "./java/get_num_feature.h"
 
 namespace treelite {
 namespace compiler {
@@ -96,6 +97,8 @@ class ASTJavaCompiler : public Compiler {
     CommitToFile(dest,
                  "  static {\n    LogContext ctx = LogContext.enter();\n"
                  "    ctx.setLevel(Level.INFO);\n  }\n");
+    CommitToFile(dest,
+                 get_num_feature_func(node->num_feature));
     CommitToFile(dest,
                  std::string(indent + 2, ' ') + prototype + " {\n");
     CHECK_EQ(node->children.size(), 1);

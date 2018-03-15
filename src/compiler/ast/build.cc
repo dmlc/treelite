@@ -12,7 +12,8 @@ void ASTBuilder::Build(const Model& model) {
 
   this->main_node = AddNode<MainNode>(nullptr, model.param.global_bias,
                                                model.random_forest_flag,
-                                               model.trees.size());
+                                               model.trees.size(),
+                                               model.num_feature);
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);
   for (int tree_id = 0; tree_id < model.trees.size(); ++tree_id) {

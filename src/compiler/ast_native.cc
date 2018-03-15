@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include "./param.h"
 #include "./ast/builder.h"
+#include "./native/get_num_feature.h"
 
 namespace treelite {
 namespace compiler {
@@ -76,9 +77,11 @@ class ASTNativeCompiler : public Compiler {
       = (num_output_group_ > 1) ?
           "void predict_margin_multiclass(union Entry* data, float* result)"
         : "float predict_margin(union Entry* data)";
-    files_[dest] += std::string(indent, ' ') + "#include \"header.h\"\n"
+    files_[dest] += std::string(indent, ' ') + "#include \"header.h\"\n";
+    files_[dest] += get_num_feature_func(node->num_feature)
                     + std::string(indent, ' ') + prototype + " {\n";
     files_["header.h"] += prototype + ";\n";
+    files_["header.h"] += get_num_feature_func_prototype();
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent + 2);
     std::ostringstream oss;

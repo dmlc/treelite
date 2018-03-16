@@ -13,6 +13,4 @@ Contributors
 **Treelite** is a flexible toolbox for efficient deployment of decision tree
 ensembles.
 
-**The release candidate version (0.1rc1) is now available.**
-
-* [To-do list](https://github.com/dmlc/treelite/issues/1)
+**The version 0.21 is now available.**

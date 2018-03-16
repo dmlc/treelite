@@ -8,6 +8,11 @@
 namespace treelite {
 namespace compiler {
 
+// forward declaration
+class ASTBuilder;
+bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
+             ASTBuilder* builder);
+
 class ASTBuilder {
  public:
   ASTBuilder() : output_vector_flag(false), main_node(nullptr),

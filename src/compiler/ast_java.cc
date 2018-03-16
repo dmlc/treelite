@@ -106,7 +106,7 @@ class ASTJavaCompiler : public Compiler {
     std::ostringstream oss;
     if (num_output_group_ > 1) {
       oss << std::string(indent + 4, ' ')
-          << "for (int i = 0; i < " << num_output_group_ + "; ++i) {\n"
+          << "for (int i = 0; i < " << num_output_group_ << "; ++i) {\n"
           << std::string(indent + 6, ' ') << "result[i] = sum[i]";
       if (node->average_result) {
         oss << " / " << node->num_tree;

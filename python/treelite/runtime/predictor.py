@@ -254,18 +254,15 @@ class Predictor(object):
                'Dynamic shared library {} has been '.format(path)+\
                'successfully loaded into memory')
 
-  def predict(self, batch, nthread=None, verbose=False, pred_margin=False):
+  def predict(self, batch, pred_margin=False):
     """
-    Make prediction using a batch of data rows
+    Make prediction using a batch of data rows (synchronously). This will
+    internally split workload among worker threads.
 
     Parameters
     ----------
     batch: object of type :py:class:`Batch`
         batch of rows for which predictions will be made
-    nthread : :py:class:`int <python:int>`, optional
-        Number of threads (default to number of cores)
-    verbose : :py:class:`bool <python:bool>`, optional
-        Whether to print extra messages during prediction
     pred_margin: :py:class:`bool <python:bool>`, optional
         whether to produce raw margins rather than transformed probabilities
     """
@@ -273,7 +270,6 @@ class Predictor(object):
       raise TreeliteError('batch must be of type Batch')
     if batch.handle is None or batch.kind is None:
       raise TreeliteError('batch cannot be empty')
-    nthread = nthread if nthread is not None else 0
     result_size = ctypes.c_size_t()
     _check_call(_LIB.TreelitePredictorQueryResultSize(
         self.handle,
@@ -286,7 +282,6 @@ class Predictor(object):
         self.handle,
         batch.handle,
         ctypes.c_int(1 if batch.kind == 'sparse' else 0),
-        ctypes.c_int(nthread), ctypes.c_int(1 if verbose else 0),
         ctypes.c_int(1 if pred_margin else 0),
         out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
         ctypes.byref(out_result_size)))

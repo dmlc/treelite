@@ -97,12 +97,11 @@ TREELITE_DLL int TreeliteBatchGetDimension(void* handle,
 TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
                                        PredictorHandle* out);
 /*!
- * \brief make predictions on a batch of data rows
+ * \brief Make predictions on a batch of data rows (synchronously). This
+ *        function internally divides the workload among all worker threads.
  * \param handle predictor
  * \param batch a batch of rows (must be of type SparseBatch or DenseBatch)
  * \param batch_sparse whether batch is sparse (1) or dense (0)
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
  * \param pred_margin whether to produce raw margin scores instead of
  *                    transformed probabilities
  * \param out_result resulting output vector; use
@@ -116,8 +115,6 @@ TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
 TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
                                                void* batch,
                                                int batch_sparse,
-                                               int nthread,
-                                               int verbose,
                                                int pred_margin,
                                                float* out_result,
                                                size_t* out_result_size);

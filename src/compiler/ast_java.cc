@@ -1,8 +1,10 @@
 #include <treelite/compiler.h>
 #include <unordered_map>
 #include "./param.h"
+#include "./pred_transform.h"
 #include "./ast/builder.h"
 #include "./java/get_num_feature.h"
+#include "./java/get_num_output_group.h"
 
 namespace treelite {
 namespace compiler {
@@ -24,6 +26,7 @@ class ASTJavaCompiler : public Compiler {
     cm.files["Main.java"] = "";
 
     num_output_group_ = model.num_output_group;
+    pred_tranform_func_ = PredTransformFunction("java", model);
     files_.clear();
 
     ASTBuilder builder;
@@ -47,6 +50,7 @@ class ASTJavaCompiler : public Compiler {
  private:
   CompilerParam param;
   int num_output_group_;
+  std::string pred_tranform_func_;
   std::unordered_map<std::string, std::string> files_;
   std::string main_tail_;
   const std::string file_prefix_ = "src/main/java/treelite/predictor/";
@@ -87,10 +91,13 @@ class ASTJavaCompiler : public Compiler {
                       int indent) {
     const std::string prototype
       = (num_output_group_ > 1) ?
-          "public static void predict_margin_multiclass(Entry[] data, float[] result)"
-        : "public static float predict_margin(Entry[] data)";
+          "public static long predict_multiclass(Entry[] data, "
+                                                "boolean pred_margin, "
+                                                "float[] result)"
+        : "public static float predict(Entry[] data, boolean pred_margin)";
     CommitToFile(dest,
                  "package treelite.predictor;\n\n"
+                 "import java.lang.Math;\n"
                  "import javolution.context.LogContext;\n"
                  "import javolution.context.LogContext.Level;\n\n"
                  "public class Main {\n");
@@ -98,9 +105,10 @@ class ASTJavaCompiler : public Compiler {
                  "  static {\n    LogContext ctx = LogContext.enter();\n"
                  "    ctx.setLevel(Level.INFO);\n  }\n");
     CommitToFile(dest,
-                 get_num_feature_func(node->num_feature));
-    CommitToFile(dest,
-                 std::string(indent + 2, ' ') + prototype + " {\n");
+                 get_num_output_group_func(num_output_group_) + "\n"
+                 + get_num_feature_func(node->num_feature) + "\n"
+                 + pred_tranform_func_ + "\n"
+                 + std::string(indent + 2, ' ') + prototype + " {\n");
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent + 4);
     std::ostringstream oss;
@@ -111,14 +119,26 @@ class ASTJavaCompiler : public Compiler {
       if (node->average_result) {
         oss << " / " << node->num_tree;
       }
-      oss << " + (" + common::ToString(node->global_bias) + ");\n"
-          << std::string(indent + 4, ' ') + "}\n";
+      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
+          << std::string(indent + 4, ' ') << "}\n"
+          << std::string(indent + 4, ' ') << "if (!pred_margin) {\n"
+          << std::string(indent + 4, ' ')
+          << "  return pred_transform(result);\n"
+          << std::string(indent + 4, ' ') << "} else {\n"
+          << std::string(indent + 4, ' ')
+          << "  return " << num_output_group_ << ";\n"
+          << std::string(indent + 4, ' ') << "}\n";
     } else {
-      oss << std::string(indent + 4, ' ') + "return sum";
+      oss << std::string(indent + 4, ' ') << "sum = sum";
       if (node->average_result) {
         oss << " / " << node->num_tree;
       }
-      oss << " + (" + common::ToString(node->global_bias) + ");\n";
+      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
+          << std::string(indent + 4, ' ') << "if (!pred_margin) {\n"
+          << std::string(indent + 4, ' ') << "  return pred_transform(sum);\n"
+          << std::string(indent + 4, ' ') << "} else {\n"
+          << std::string(indent + 4, ' ') << "  return sum;\n"
+          << std::string(indent + 4, ' ') << "}\n";
     }
     oss << std::string(indent + 2, ' ') << "}\n"
         << main_tail_
@@ -132,7 +152,7 @@ class ASTJavaCompiler : public Compiler {
     std::ostringstream oss;
     if (num_output_group_ > 1) {
       oss << std::string(indent, ' ')
-          << "float sum[" << num_output_group_ << "] = {0.0f};\n";
+          << "float[] sum = new float[" << num_output_group_ << "];\n";
     } else {
       oss << std::string(indent, ' ') << "float sum = 0.0f;\n";
     }

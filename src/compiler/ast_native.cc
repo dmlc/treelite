@@ -1,8 +1,10 @@
 #include <treelite/compiler.h>
 #include <unordered_map>
 #include "./param.h"
+#include "./pred_transform.h"
 #include "./ast/builder.h"
 #include "./native/get_num_feature.h"
+#include "./native/get_num_output_group.h"
 
 namespace treelite {
 namespace compiler {
@@ -24,6 +26,7 @@ class ASTNativeCompiler : public Compiler {
     cm.files["main.c"] = "";
 
     num_output_group_ = model.num_output_group;
+    pred_tranform_func_ = PredTransformFunction("native", model);
     files_.clear();
 
     ASTBuilder builder;
@@ -33,7 +36,9 @@ class ASTNativeCompiler : public Compiler {
       builder.QuantizeThresholds();
     }
     files_["header.h"] = 
-         "union Entry {\n  int missing;\n  float fvalue;\n  int qvalue;\n};\n";
+         "#include <stdlib.h>\n#include <string.h>\n"
+         "#include <math.h>\n#include <stdint.h>\n\n"
+         "union Entry {\n  int missing;\n  float fvalue;\n  int qvalue;\n};\n\n";
     WalkAST(builder.GetRootNode(), "main.c", 0);
 
     cm.files = std::move(files_);
@@ -42,6 +47,7 @@ class ASTNativeCompiler : public Compiler {
  private:
   CompilerParam param;
   int num_output_group_;
+  std::string pred_tranform_func_;
   std::unordered_map<std::string, std::string> files_;
 
   void WalkAST(const ASTNode* node,
@@ -75,13 +81,17 @@ class ASTNativeCompiler : public Compiler {
                       int indent) {
     const std::string prototype
       = (num_output_group_ > 1) ?
-          "void predict_margin_multiclass(union Entry* data, float* result)"
-        : "float predict_margin(union Entry* data)";
-    files_[dest] += std::string(indent, ' ') + "#include \"header.h\"\n";
-    files_[dest] += get_num_feature_func(node->num_feature)
+          "size_t predict_multiclass(union Entry* data, int pred_margin, "
+                                    "float* result)"
+        : "float predict(union Entry* data, int pred_margin)";
+    files_[dest] += std::string(indent, ' ') + "#include \"header.h\"\n\n";
+    files_[dest] += get_num_output_group_func(num_output_group_) + "\n"
+                    + get_num_feature_func(node->num_feature) + "\n"
+                    + pred_tranform_func_ + "\n"
                     + std::string(indent, ' ') + prototype + " {\n";
-    files_["header.h"] += prototype + ";\n";
+    files_["header.h"] += get_num_output_group_func_prototype();
     files_["header.h"] += get_num_feature_func_prototype();
+    files_["header.h"] += prototype + ";\n";
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent + 2);
     std::ostringstream oss;
@@ -92,16 +102,28 @@ class ASTNativeCompiler : public Compiler {
       if (node->average_result) {
         oss << " / " << node->num_tree;
       }
-      oss << " + (" + common::ToString(node->global_bias) + ");\n"
-          << std::string(indent + 2, ' ') + "}\n";
+      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
+          << std::string(indent + 2, ' ') << "}\n"
+          << std::string(indent + 2, ' ') << "if (!pred_margin) {\n"
+          << std::string(indent + 2, ' ')
+          << "  return pred_transform(result);\n"
+          << std::string(indent + 2, ' ') << "} else {\n"
+          << std::string(indent + 2, ' ')
+          << "  return " << num_output_group_ << ";\n"
+          << std::string(indent + 2, ' ') << "}\n";
     } else {
-      oss << std::string(indent + 2, ' ') + "return sum";
+      oss << std::string(indent + 2, ' ') << "sum = sum";
       if (node->average_result) {
         oss << " / " << node->num_tree;
       }
-      oss << " + (" + common::ToString(node->global_bias) + ");\n";
+      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
+          << std::string(indent + 2, ' ') << "if (!pred_margin) {\n"
+          << std::string(indent + 2, ' ') << "  return pred_transform(sum);\n"
+          << std::string(indent + 2, ' ') << "} else {\n"
+          << std::string(indent + 2, ' ') << "  return sum;\n"
+          << std::string(indent + 2, ' ') << "}\n";
     }
-    oss << std::string(indent, ' ') + "}\n";
+    oss << std::string(indent, ' ') << "}\n";
     files_[dest] += oss.str();
   }
 

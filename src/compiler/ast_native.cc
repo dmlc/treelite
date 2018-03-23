@@ -41,6 +41,26 @@ class ASTNativeCompiler : public Compiler {
          "union Entry {\n  int missing;\n  float fvalue;\n  int qvalue;\n};\n\n";
     WalkAST(builder.GetRootNode(), "main.c", 0);
 
+    {
+      /* write recipe.json */
+      std::vector<std::unordered_map<std::string, std::string>> source_list;
+      for (auto kv : files_) {
+        if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
+          const size_t line_count
+            = std::count(kv.second.begin(), kv.second.end(), '\n');
+          source_list.push_back({ {"name",
+                                   kv.first.substr(0, kv.first.length() - 2)},
+                                  {"length", std::to_string(line_count)} });
+        }
+      }
+      std::ostringstream oss;
+      auto writer = common::make_unique<dmlc::JSONWriter>(&oss);
+      writer->BeginObject();
+      writer->WriteObjectKeyValue("target", std::string("predictor"));
+      writer->WriteObjectKeyValue("sources", source_list);
+      writer->EndObject();
+      files_["recipe.json"] = oss.str();
+    }
     cm.files = std::move(files_);
     return cm;
   }

@@ -258,12 +258,20 @@ void CLIDumpAST(const CLIParam& param) {
   LOG(INFO) << "model size = " << model.trees.size();
   compiler::ASTBuilder builder;
   builder.Build(model);
+  if (cparam.annotate_in != "NULL") {
+    BranchAnnotator annotator;
+    std::unique_ptr<dmlc::Stream> fi(
+      dmlc::Stream::Create(cparam.annotate_in.c_str(), "r"));
+    annotator.Load(fi.get());
+    const auto annotation = annotator.Get();
+    builder.AnnotateBranches(annotation);
+    LOG(INFO) << "Using branch annotation file `"
+              << cparam.annotate_in << "'";
+  }
   builder.Split(cparam.parallel_comp);
   if (cparam.quantize > 0) {
     builder.QuantizeThresholds();
   }
-  builder.CountDescendant();
-  builder.BreakUpLargeUnits(2500);
   builder.Dump();
 }
 

@@ -25,6 +25,11 @@ class ASTJavaCompiler : public Compiler {
     cm.backend = "java";
     cm.files["Main.java"] = "";
 
+    if (param.annotate_in != "NULL") {
+      LOG(WARNING) << "\033[1;31mWARNING: Java backend does not support "
+                   << "branch annotation.\u001B[0m The parameter "
+                   << "\x1B[33mannotate_in\u001B[0m will be ignored.";
+    }
     num_output_group_ = model.num_output_group;
     pred_tranform_func_ = PredTransformFunction("java", model);
     files_.clear();

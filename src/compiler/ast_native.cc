@@ -1,4 +1,5 @@
 #include <treelite/compiler.h>
+#include <treelite/annotator.h>
 #include <unordered_map>
 #include "./param.h"
 #include "./pred_transform.h"
@@ -31,14 +32,22 @@ class ASTNativeCompiler : public Compiler {
 
     ASTBuilder builder;
     builder.Build(model);
+    if (param.annotate_in != "NULL") {
+      BranchAnnotator annotator;
+      std::unique_ptr<dmlc::Stream> fi(
+        dmlc::Stream::Create(param.annotate_in.c_str(), "r"));
+      annotator.Load(fi.get());
+      const auto annotation = annotator.Get();
+      builder.AnnotateBranches(annotation);
+      LOG(INFO) << "Using branch annotation file `"
+                << param.annotate_in << "'";
+    }
     builder.Split(param.parallel_comp);
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
-    files_["header.h"] = 
-         "#include <stdlib.h>\n#include <string.h>\n"
-         "#include <math.h>\n#include <stdint.h>\n\n"
-         "union Entry {\n  int missing;\n  float fvalue;\n  int qvalue;\n};\n\n";
+    #include "./native/header.h"
+    files_["header.h"] = header;
     WalkAST(builder.GetRootNode(), "main.c", 0);
 
     {
@@ -209,11 +218,19 @@ class ASTNativeCompiler : public Compiler {
         }
       }
     }
-    files_[dest]
-      += std::string(indent, ' ') + "if ("
-         + ((node->default_left) ? (std::string("!(") + na_check + ") || (")
-                                 : (std::string(" (") + na_check + ") && ("))
-         + oss.str() + ") ) {\n";
+    std::string cond
+      = ((node->default_left) ? (std::string("!(") + na_check + ") || (")
+                              : (std::string(" (") + na_check + ") && ("))
+         + oss.str() + ")";
+    switch (node->branch_hint) {
+     case BranchHint::kLikely:
+      cond = std::string(" LIKELY( ") + cond + " ) ";
+      break;
+     case BranchHint::kUnlikely:
+      cond = std::string(" UNLIKELY( ") + cond + " ) ";
+      break;
+    }
+    files_[dest] += std::string(indent, ' ') + "if (" + cond + ") {\n";
     CHECK_EQ(node->children.size(), 2);
     WalkAST(node->children[0], dest, indent + 2);
     files_[dest] += std::string(indent, ' ') + "} else {\n";

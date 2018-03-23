@@ -27,10 +27,23 @@ enum class BranchHint : uint8_t {
   kUnlikely = 2  /*!< condition <50% likely */
 };
 
+inline std::string BranchHintName(BranchHint hint) {
+  switch (hint) {
+   case BranchHint::kNone:
+    return "kNone";
+   case BranchHint::kLikely:
+    return "kLikely";
+   case BranchHint::kUnlikely:
+    return "kUnlikely";
+  }
+  LOG(FATAL) << "Unrecognized BranchHint value";
+}
+
 class ASTNode {
  public:
   ASTNode* parent;
   std::vector<ASTNode*> children;
+  int node_id;
   int tree_id;
   int num_descendant;
   virtual void Dump(int indent) = 0;
@@ -48,8 +61,7 @@ class MainNode : public ASTNode {
               << "global_bias: " << this->global_bias << ", "
               << "average_result: " << this->average_result << ", "
               << "num_tree: " << this->num_tree << ", "
-              << "num_feature: " << this->num_feature << ", "
-              << "num_descendant: " << this->num_descendant << "}"
+              << "num_feature: " << this->num_feature << "}"
               << std::endl;
   }
   tl_float global_bias;
@@ -63,9 +75,8 @@ class TranslationUnitNode : public ASTNode {
   TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
-              << "TranslationUnitNode = {"
-              << "unit_id: " << unit_id << ", "
-              << "num_descendant: " << this->num_descendant << "}"
+              << "TranslationUnitNode {"
+              << "unit_id: " << unit_id << "}"
               << std::endl;
   }
   int unit_id;
@@ -83,9 +94,7 @@ class QuantizerNode : public ASTNode {
   std::vector<bool> is_categorical;
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
-              << "QuantizerNode = {"
-              << "num_descendant: " << this->num_descendant
-              << "}" << std::endl;
+              << "QuantizerNode = {}" << std::endl;
   }
 };
 
@@ -94,9 +103,7 @@ class AccumulatorContextNode : public ASTNode {
   AccumulatorContextNode() {}
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
-              << "AccumulatorContextNode = {"
-              << "num_descendant: " << this->num_descendant
-              << "}" << std::endl;
+              << "AccumulatorContextNode = {}" << std::endl;
   }
 };
 
@@ -134,7 +141,7 @@ class NumericalConditionNode : public ConditionNode {
               << "op: " << OpName(this->op) << ", "
               << "threshold: " << (quantized ? this->threshold.int_val
                                              : this->threshold.float_val) << ", "
-              << "num_descendant: " << this->num_descendant
+              << "branch_hint: " << BranchHintName(this->branch_hint)
               << "}" << std::endl;
   }
   bool quantized;
@@ -159,7 +166,7 @@ class CategoricalConditionNode : public ConditionNode {
               << "split_index: " << this->split_index << ", "
               << "default_left: " << this->default_left << ", "
               << "left_categories: [" << oss.str() << "], "
-              << "num_descendant: " << this->num_descendant
+              << "branch_hint: " << BranchHintName(this->branch_hint)
               << "}" << std::endl;
   }
   std::vector<uint32_t> left_categories;
@@ -178,13 +185,11 @@ class OutputNode : public ASTNode {
         oss << e << ", ";
       }
       std::cerr << std::string(indent, ' ')
-                << "OutputNode {vector: [" << oss.str() << "], "
-                << "num_descendant: " << this->num_descendant << "}"
+                << "OutputNode {vector: [" << oss.str() << "]}"
                 << std::endl;
     } else {
       std::cerr << std::string(indent, ' ') 
-                << "OutputNode {scalar: " << this->scalar << ", "
-                << "num_descendant: " << this->num_descendant << "}"
+                << "OutputNode {scalar: " << this->scalar << "}"
                 << std::endl;
     }
   }

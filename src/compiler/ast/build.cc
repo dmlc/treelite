@@ -61,6 +61,7 @@ ASTNode* ASTBuilder::WalkTree(const Tree& tree, int nid, ASTNode* parent) {
     ast_node->children.push_back(WalkTree(tree, node.cleft(), ast_node));
     ast_node->children.push_back(WalkTree(tree, node.cright(), ast_node));
   }
+  ast_node->node_id = nid;
 
   return ast_node;
 }

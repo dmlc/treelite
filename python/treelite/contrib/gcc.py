@@ -15,10 +15,12 @@ LIBEXT = _libext()
 def _openmp_supported(toolchain):
   # make temporary folder
   with TemporaryDirectory() as temp_dir:
-    filename = os.path.join(temp_dir, 'test.c')
-    with open(filename, 'w') as f:
+    sfile = os.path.join(temp_dir, 'test.c')
+    output = os.path.join(temp_dir, 'test')
+    with open(sfile, 'w') as f:
       f.write('int main() { return 0; }\n')
-    retcode = subprocess.call('{} {} -fopenmp'.format(toolchain, filename),
+    retcode = subprocess.call('{} -o {} {} -fopenmp'\
+                              .format(toolchain, output, sfile),
                               shell=True,
                               stdin=subprocess.DEVNULL,
                               stdout=subprocess.DEVNULL,

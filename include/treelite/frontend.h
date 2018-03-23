@@ -42,6 +42,14 @@ Model LoadXGBoostModel(const char* filename);
  * \return loaded model
  */
 Model LoadXGBoostModel(const void* buf, size_t len);
+/*!
+ * \brief load a model in Protocol Buffers format. Protocol Buffers
+ *        (google/protobuf) is a language- and platform-neutral mechanism for
+ *        serializing structured data. See tree.proto for format spec.
+ * \param filename name of model file
+ * \return loaded model
+ */
+Model LoadProtobufModel(const char* filename);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

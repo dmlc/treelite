@@ -40,7 +40,8 @@ enum InputFormat {
 
 enum ModelFormat {
   kXGBModel = 0,
-  kLGBModel = 1
+  kLGBModel = 1,
+  kProtobuf = 2
 };
 
 inline const char* FileFormatString(int format) {
@@ -103,6 +104,7 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
     DMLC_DECLARE_FIELD(format)
         .add_enum("xgboost", kXGBModel)
         .add_enum("lightgbm", kLGBModel)
+        .add_enum("protobuf", kProtobuf)
         .describe("Model format");
     DMLC_DECLARE_FIELD(model_in).set_default("NULL")
         .describe("Input model path");
@@ -155,6 +157,8 @@ Model ParseModel(const CLIParam& param) {
     return frontend::LoadXGBoostModel(param.model_in.c_str());
    case kLGBModel:
     return frontend::LoadLightGBMModel(param.model_in.c_str());
+   case kProtobuf:
+    return frontend::LoadProtobufModel(param.model_in.c_str());
    default:
     LOG(FATAL) << "Unknown model format";
     return {};  // avoid compiler warning

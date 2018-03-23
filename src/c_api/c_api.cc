@@ -349,6 +349,14 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len,
   API_END();
 }
 
+int TreeliteLoadProtobufModel(const char* filename,
+                              ModelHandle* out) {
+  API_BEGIN();
+  Model* model = new Model(std::move(frontend::LoadProtobufModel(filename)));
+  *out = static_cast<ModelHandle>(model);
+  API_END();
+}
+
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);

@@ -202,10 +202,10 @@ TREELITE_DLL int TreeliteCompilerSetParam(CompilerHandle handle,
  * Usage example:
  * \code
  *   TreeliteCompilerGenerateCode(compiler, model, 1, "./my/model");
- *   // files to generate: ./my/model/model.h, ./my/model/model.c
+ *   // files to generate: ./my/model/header.h, ./my/model/main.c
  *   // if parallel compilation is enabled:
- *   // ./my/model/model.h, ./my/model/model0.c, ./my/model/model1.c,
- *   // ./my/model/model2.c, and so forth
+ *   // ./my/model/header.h, ./my/model/main.c, ./my/model/tu0.c,
+ *   // ./my/model/tu1.c, and so forth
  * \endcode
  * \param compiler handle for compiler
  * \param model handle for tree ensemble model

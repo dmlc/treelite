@@ -54,7 +54,6 @@ class Predictor {
   /*! \brief opaque handle types */
   typedef void* QueryFuncHandle;
   typedef void* PredFuncHandle;
-  typedef void* PredTransformFuncHandle;
   typedef void* LibraryHandle;
 
   Predictor();
@@ -116,7 +115,6 @@ class Predictor {
   LibraryHandle lib_handle_;
   QueryFuncHandle query_func_handle_;
   PredFuncHandle pred_func_handle_;
-  PredTransformFuncHandle pred_transform_func_handle_;
   size_t num_output_group_;
 };
 

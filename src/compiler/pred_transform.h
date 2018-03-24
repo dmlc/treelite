@@ -13,15 +13,8 @@
 namespace treelite {
 namespace compiler {
 
-inline std::string PredTransformPrototype(bool batch) {
-  if (batch) {
-    return "size_t pred_transform_batch(float* pred, int64_t ndata, int nthread)";
-  } else {
-    return "size_t pred_transform(float* pred)";
-  }
-}
-
-std::vector<std::string> PredTransformFunction(const Model& model, bool batch);
+std::string PredTransformFunction(const std::string& backend,
+                                  const Model& model);
 
 }  // namespace compiler
 }  // namespace treelite

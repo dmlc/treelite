@@ -28,6 +28,7 @@ namespace compiler {
 DMLC_REGISTER_PARAMETER(CompilerParam);
 
 // List of files that will be force linked in static links.
-DMLC_REGISTRY_LINK_TAG(recursive);
+DMLC_REGISTRY_LINK_TAG(ast_native);
+DMLC_REGISTRY_LINK_TAG(ast_java);
 }  // namespace compiler
 }  // namespace treelite

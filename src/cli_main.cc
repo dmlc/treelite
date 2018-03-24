@@ -8,7 +8,6 @@
 #include <treelite/frontend.h>
 #include <treelite/annotator.h>
 #include <treelite/compiler.h>
-#include <treelite/semantic.h>
 #include <treelite/predictor.h>
 #include <treelite/logging.h>
 #include <treelite/omp.h>
@@ -22,13 +21,15 @@
 #include <string>
 #include "./compiler/param.h"
 #include "./common/filesystem.h"
+#include "./compiler/ast/builder.h"
 
 namespace treelite {
 
 enum CLITask {
   kCodegen = 0,
   kAnnotate = 1,
-  kPredict = 2
+  kPredict = 2,
+  kDumpAST = 3
 };
 
 enum InputFormat {
@@ -57,6 +58,8 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
   int task;
   /*! \brief whether verbose */
   int verbose;
+  /*! \brief which compiler to use */
+  std::string compiler;
   /*! \brief model format */
   int format;
   /*! \brief model file */
@@ -92,9 +95,12 @@ struct CLIParam : public dmlc::Parameter<CLIParam> {
         .add_enum("codegen", kCodegen)
         .add_enum("annotate", kAnnotate)
         .add_enum("predict", kPredict)
+        .add_enum("dump_ast", kDumpAST)
         .describe("Task to be performed by the CLI program.");
     DMLC_DECLARE_FIELD(verbose).set_default(0)
         .describe("Produce extra messages if >0");
+    DMLC_DECLARE_FIELD(compiler).set_default("ast_native")
+        .describe("kind of compiler to use");
     DMLC_DECLARE_FIELD(format)
         .add_enum("xgboost", kXGBModel)
         .add_enum("lightgbm", kLGBModel)
@@ -168,44 +174,29 @@ void CLICodegen(const CLIParam& param) {
 
   // create directory named name_codegen_dir
   common::filesystem::CreateDirectoryIfNotExist(param.name_codegen_dir.c_str());
-  const std::string basename
-    = common::filesystem::GetBasename(param.name_codegen_dir);
-
-  std::unique_ptr<Compiler> compiler(Compiler::Create("recursive", cparam));
-  auto semantic_model = compiler->Compile(model);
-  /* write header */
-  const std::string header_filename
-    = param.name_codegen_dir + "/" + basename + ".h";
-  {
-    std::vector<std::string> lines;
-    common::TransformPushBack(&lines, semantic_model.common_header->Compile(),
-      [] (std::string line) {
-        return line;
-      });
-    lines.emplace_back();
-    std::ostringstream oss;
-    using FunctionEntry = semantic::SemanticModel::FunctionEntry;
-    std::copy(semantic_model.function_registry.begin(),
-              semantic_model.function_registry.end(),
-              std::ostream_iterator<FunctionEntry>(oss));
-    lines.push_back(oss.str());
-    common::WriteToFile(header_filename, lines);
+  std::unique_ptr<Compiler> compiler(Compiler::Create(param.compiler, cparam));
+  auto compiled_model = compiler->Compile(model);
+  if (param.verbose > 0) {
+    LOG(INFO) << "Code generation finished. Writing code to files...";
   }
-  /* write source file(s) */
-  if (semantic_model.units.size() == 1) {   // single file (translation unit)
-    const std::string filename = basename + ".c";
-    const std::string filename_full = param.name_codegen_dir + "/" + filename;
-    const std::string objname = basename + ".o";
-    auto lines = semantic_model.units[0].Compile(header_filename);
-    common::WriteToFile(filename_full, lines);
-  } else {  // multiple files (translation units)
-    for (size_t i = 0; i < semantic_model.units.size(); ++i) {
-      const std::string filename = basename + std::to_string(i) + ".c";
-      const std::string filename_full = param.name_codegen_dir + "/" + filename;
-      const std::string objname = basename + std::to_string(i) + ".o";
-      auto lines = semantic_model.units[i].Compile(header_filename);
-      common::WriteToFile(filename_full, lines);
+
+  if (!compiled_model.file_prefix.empty()) {
+    const std::vector<std::string> tokens
+      = common::Split(compiled_model.file_prefix, '/');
+    std::string accum = param.name_codegen_dir + "/" + tokens[0];
+    for (size_t i = 0; i < tokens.size(); ++i) {
+      common::filesystem::CreateDirectoryIfNotExist(accum.c_str());
+      if (i < tokens.size() - 1) {
+        accum += "/";
+        accum += tokens[i + 1];
+      }
     }
+  }
+
+  for (const auto& it : compiled_model.files) {
+    LOG(INFO) << "Writing file " << it.first << "...";
+    const std::string filename_full = param.name_codegen_dir + "/" + it.first;
+    common::WriteToFile(filename_full, it.second);
   }
 }
 
@@ -259,6 +250,31 @@ void CLIPredict(const CLIParam& param) {
   os.set_stream(nullptr);
 }
 
+void CLIDumpAST(const CLIParam& param) {
+  compiler::CompilerParam cparam;
+  cparam.InitAllowUnknown(param.cfg);
+
+  Model model = ParseModel(param);
+  LOG(INFO) << "model size = " << model.trees.size();
+  compiler::ASTBuilder builder;
+  builder.Build(model);
+  if (cparam.annotate_in != "NULL") {
+    BranchAnnotator annotator;
+    std::unique_ptr<dmlc::Stream> fi(
+      dmlc::Stream::Create(cparam.annotate_in.c_str(), "r"));
+    annotator.Load(fi.get());
+    const auto annotation = annotator.Get();
+    builder.AnnotateBranches(annotation);
+    LOG(INFO) << "Using branch annotation file `"
+              << cparam.annotate_in << "'";
+  }
+  builder.Split(cparam.parallel_comp);
+  if (cparam.quantize > 0) {
+    builder.QuantizeThresholds();
+  }
+  builder.Dump();
+}
+
 int CLIRunTask(int argc, char* argv[]) {
   if (argc < 2) {
     printf("Usage: <config>\n");
@@ -290,6 +306,7 @@ int CLIRunTask(int argc, char* argv[]) {
     case kCodegen: CLICodegen(param); break;
     case kAnnotate: CLIAnnotate(param); break;
     case kPredict: CLIPredict(param); break;
+    case kDumpAST: CLIDumpAST(param); break;
   }
 
   return 0;

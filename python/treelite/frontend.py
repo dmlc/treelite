@@ -43,7 +43,7 @@ class Model(object):
       self.handle = None
 
   # pylint: disable=R0913
-  def export_lib(self, toolchain, libpath, params=None, compiler='recursive',
+  def export_lib(self, toolchain, libpath, params=None, compiler='ast_native',
                  verbose=False, nthread=None, options=None):
     """
     Convenience function: Generate prediction code and immediately turn it
@@ -100,7 +100,7 @@ class Model(object):
       shutil.move(temp_libpath, libpath)
 
   def export_srcpkg(self, platform, toolchain, pkgpath, libname, params=None,
-                    compiler='recursive', verbose=False, options=None):
+                    compiler='ast_native', verbose=False, options=None):
     """
     Convenience function: Generate prediction code and create a zipped source
     package for deployment. The resulting zip file will also contain a Makefile.
@@ -176,7 +176,7 @@ class Model(object):
                           root_dir=temp_dir,
                           base_dir='{}/'.format(target))
 
-  def compile(self, dirpath, params=None, compiler='recursive', verbose=False):
+  def compile(self, dirpath, params=None, compiler='ast_native', verbose=False):
     """
     Generate prediction code from a tree ensemble model. The code will be C99
     compliant. One header file (.h) will be generated, along with one or more
@@ -206,10 +206,10 @@ class Model(object):
        model.compile(dirpath='./my/model', params={}, verbose=True)
 
     If parallel compilation is enabled (parameter ``parallel_comp``), the files
-    are in the form of ``./my/model/model.h``, ``./my/model/model0.c``,
-    ``./my/model/model1.c``, ``./my/model/model2.c`` and so forth, depending on
+    are in the form of ``./my/model/header.h``, ``./my/model/main.c``,
+    ``./my/model/tu0.c``, ``./my/model/tu1.c`` and so forth, depending on
     the value of ``parallel_comp``. Otherwise, there will be exactly two files:
-    ``./model/model.h``, ``./my/model/model.c``
+    ``./model/header.h``, ``./my/model/main.c``
     """
     compiler_handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteCompilerCreate(c_str(compiler),

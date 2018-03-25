@@ -15,6 +15,8 @@
 namespace {
 
 treelite::Model ParseStream(dmlc::Stream* fi);
+void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
+                       const char* name_obj);
 
 }  // namespace anonymous
 
@@ -26,6 +28,12 @@ DMLC_REGISTRY_FILE_TAG(xgboost);
 Model LoadXGBoostModel(const char* filename) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
   return ParseStream(fi.get());
+}
+
+void ExportXGBoostModel(const char* filename, const Model& model,
+                        const char* name_obj) {
+  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename, "w"));
+  SaveModelToStream(fo.get(), model, name_obj);
 }
 
 Model LoadXGBoostModel(const void* buf, size_t len) {
@@ -138,27 +146,39 @@ inline void CONSUME_BYTES(const T& fi, size_t size) {
 
 struct LearnerModelParam {
   bst_float base_score;  // global bias
-  unsigned pad1;
-  int pad2[32];
+  unsigned num_feature;
+  int num_class;
+  int contain_extra_attrs;
+  int contain_eval_metrics;
+  int pad2[29];
 };
 
 struct GBTreeModelParam {
   int num_trees;
-  int pad0;
+  int num_roots;
   int num_feature;
   int pad1;
   int64_t pad2;
   int num_output_group;
-  int pad3[33];
+  int size_leaf_vector;
+  int pad3[32];
 };
 
 struct TreeParam {
   int num_roots;
   int num_nodes;
   int num_deleted;
-  int pad0[2];
+  int max_depth;
+  int num_feature;
   int size_leaf_vector;
   int reserved[31];
+};
+
+struct NodeStat {
+  bst_float loss_chg;
+  bst_float sum_hess;
+  bst_float base_weight;
+  int leaf_child_cnt;
 };
 
 class XGBTree {
@@ -200,6 +220,18 @@ class XGBTree {
     inline bool is_root() const {
       return parent_ == -1;
     }
+    inline void set_leaf(bst_float value) {
+      (this->info_).leaf_value = value;
+      this->cleft_ = -1;
+      this->cright_ = -1;
+    }
+    inline void set_split(unsigned split_index,
+                          bst_float split_cond,
+                          bool default_left = false) {
+      if (default_left) split_index |= (1U << 31);
+      this->sindex_ = split_index;
+      (this->info_).split_cond = split_cond;
+    }
 
    private:
     friend class XGBTree;
@@ -215,11 +247,23 @@ class XGBTree {
     inline bool is_deleted() const {
       return sindex_ == std::numeric_limits<unsigned>::max();
     }
+    inline void set_parent(int pidx, bool is_left_child = true) {
+      if (is_left_child) pidx |= (1U << 31);
+      this->parent_ = pidx;
+    }
   };
 
  private:
   TreeParam param;
   std::vector<Node> nodes;
+
+  inline int AllocNode() {
+    int nd = param.num_nodes++;
+    CHECK_LT(param.num_nodes, std::numeric_limits<int>::max())
+        << "number of nodes in the tree exceed 2^31";
+    nodes.resize(param.num_nodes);
+    return nd;
+  }
 
  public:
   inline Node& operator[](int nid) {
@@ -227,6 +271,20 @@ class XGBTree {
   }
   inline const Node& operator[](int nid) const {
     return nodes[nid];
+  }
+  inline void Init() {
+    param.num_nodes = 1;
+    nodes.resize(1);
+    nodes[0].set_leaf(0.0f);
+    nodes[0].set_parent(-1);
+  }
+  inline void AddChilds(int nid) {
+    int pleft  = this->AllocNode();
+    int pright = this->AllocNode();
+    nodes[nid].cleft_  = pleft;
+    nodes[nid].cright_ = pright;
+    nodes[nodes[nid].cleft() ].set_parent(nid, true);
+    nodes[nodes[nid].cright()].set_parent(nid, false);
   }
   inline void Load(PeekableInputStream* fi) {
     CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
@@ -249,6 +307,30 @@ class XGBTree {
     CHECK_EQ(param.num_roots, 1)
       << "Invalid XGBoost model file: treelite does not support trees "
       << "with multiple roots";
+  }
+  inline void Save(dmlc::Stream* fo, int num_feature) const {
+    TreeParam param_;
+    const bst_float nan = std::numeric_limits<bst_float>::quiet_NaN();
+    std::vector<NodeStat> stats_(nodes.size(), NodeStat{nan, nan, nan, -1});
+    param_.num_roots = 1;
+    param_.num_nodes = static_cast<int>(nodes.size());
+    param_.num_deleted = 0;
+    std::function<int(int)> max_depth_func;
+    max_depth_func = [&max_depth_func, this](int nid) -> int {
+      if (nodes[nid].is_leaf()) {
+        return 0;
+      } else {
+        return 1 + std::max(max_depth_func(nodes[nid].cleft()),
+                            max_depth_func(nodes[nid].cright()));
+      }
+    };
+    param_.max_depth = max_depth_func(0);
+    param_.num_feature = num_feature;
+    param_.size_leaf_vector = 0;
+    fo->Write(&param_, sizeof(TreeParam));
+    fo->Write(dmlc::BeginPtr(nodes), sizeof(Node) * nodes.size());
+    // write dummy stats
+    fo->Write(dmlc::BeginPtr(stats_), sizeof(NodeStat) * nodes.size());
   }
 };
 
@@ -318,6 +400,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
   }
+  CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
 
   /* 2. Export model */
   treelite::Model model;
@@ -374,6 +457,60 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
   }
   return model;
+}
+
+inline void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
+                              const char* name_obj) {
+  LearnerModelParam mparam_;
+  GBTreeModelParam gbm_param_;
+  /* Learner parameters */
+  mparam_.base_score = model.param.global_bias;
+  mparam_.num_feature = model.num_feature;
+  mparam_.num_class = model.num_output_group;
+  mparam_.contain_extra_attrs = 0;
+  mparam_.contain_eval_metrics = 0;
+  fo->Write(&mparam_, sizeof(LearnerModelParam));
+  /* name of objective and gbm class */
+  const std::string name_gbm_ = "gbtree";
+  fo->Write(std::string(name_obj));
+  fo->Write(name_gbm_);
+  /* GBTree parameters */
+  gbm_param_.num_trees = model.trees.size();
+  gbm_param_.num_roots = 1;
+  gbm_param_.num_feature = model.num_feature;
+  gbm_param_.num_output_group = model.num_output_group;
+  gbm_param_.size_leaf_vector = 0;
+  fo->Write(&gbm_param_, sizeof(gbm_param_));
+  /* Individual decision trees */
+  for (const treelite::Tree& tree : model.trees) {
+    XGBTree xgb_tree_;
+    xgb_tree_.Init();
+    std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
+    Q.push({0, 0});
+    while (!Q.empty()) {
+      int old_id, new_id;
+      std::tie(old_id, new_id) = Q.front(); Q.pop();
+      const treelite::Tree::Node& node = tree[old_id];
+      if (node.is_leaf()) {
+        const treelite::tl_float leaf_value = node.leaf_value();
+        xgb_tree_[new_id].set_leaf(static_cast<bst_float>(leaf_value));
+      } else {
+        const treelite::tl_float split_cond = node.threshold();
+        xgb_tree_.AddChilds(new_id);
+        CHECK(node.comparison_op() == treelite::Operator::kLT)
+          << "Comparison operator must be `<`";
+        xgb_tree_[new_id].set_split(node.split_index(),
+                                    static_cast<bst_float>(split_cond),
+                                    node.default_left());
+        Q.push({node.cleft(), xgb_tree_[new_id].cleft()});
+        Q.push({node.cright(), xgb_tree_[new_id].cright()});
+      }
+    }
+    xgb_tree_.Save(fo, model.num_feature);
+  }
+  // write dummy tree_info
+  std::vector<int> tree_info_(model.trees.size(), -1);
+  fo->Write(dmlc::BeginPtr(tree_info_), sizeof(int) * tree_info_.size());
 }
 
 }  // namespace anonymous

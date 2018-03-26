@@ -6,6 +6,7 @@
  */
 
 #include <treelite/annotator.h>
+#include <treelite/common.h>
 #include <treelite/omp.h>
 #include <cstdint>
 #include <limits>
@@ -16,26 +17,6 @@ union Entry {
   int missing;
   float fvalue;
 };
-
-/*!
- * \brief perform comparison between two float's using a comparsion operator
- * The comparison will be in the form [lhs] [op] [rhs].
- * \param lhs float on the left hand side
- * \param op comparison operator
- * \param rhs float on the right hand side
- * \return whether [lhs] [op] [rhs] is true or not
- */
-inline bool CompareWithOp(treelite::tl_float lhs, treelite::Operator op,
-                          treelite::tl_float rhs) {
-  switch(op) {
-    case treelite::Operator::kEQ: return lhs == rhs;
-    case treelite::Operator::kLT: return lhs <  rhs;
-    case treelite::Operator::kLE: return lhs <= rhs;
-    case treelite::Operator::kGT: return lhs >  rhs;
-    case treelite::Operator::kGE: return lhs >= rhs;
-    default:            LOG(FATAL) << "operator undefined";
-  }
-}
 
 void Traverse_(const treelite::Tree& tree, const Entry* data,
                int nid, size_t* out_counts) {
@@ -54,7 +35,7 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
         const treelite::Operator op = node.comparison_op();
         const treelite::tl_float fvalue
           = static_cast<treelite::tl_float>(data[split_index].fvalue);
-        result = CompareWithOp(fvalue, op, threshold);
+        result = treelite::common::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
         const uint32_t fvalue2 = static_cast<uint32_t>(fvalue);

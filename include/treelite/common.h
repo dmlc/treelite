@@ -338,6 +338,26 @@ inline std::vector<std::string> Split(const std::string& text, char delim) {
   return array;
 }
 
+/*!
+ * \brief perform comparison between two float's using a comparsion operator
+ * The comparison will be in the form [lhs] [op] [rhs].
+ * \param lhs float on the left hand side
+ * \param op comparison operator
+ * \param rhs float on the right hand side
+ * \return whether [lhs] [op] [rhs] is true or not
+ */
+inline bool CompareWithOp(treelite::tl_float lhs, treelite::Operator op,
+                          treelite::tl_float rhs) {
+  switch(op) {
+    case treelite::Operator::kEQ: return lhs == rhs;
+    case treelite::Operator::kLT: return lhs <  rhs;
+    case treelite::Operator::kLE: return lhs <= rhs;
+    case treelite::Operator::kGT: return lhs >  rhs;
+    case treelite::Operator::kGE: return lhs >= rhs;
+    default:            LOG(FATAL) << "operator undefined";
+  }
+}
+
 }  // namespace common
 }  // namespace treelite
 #endif  // TREELITE_COMMON_H_

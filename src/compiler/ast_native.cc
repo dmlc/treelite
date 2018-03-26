@@ -1,6 +1,8 @@
 #include <treelite/compiler.h>
+#include <treelite/common.h>
 #include <treelite/annotator.h>
 #include <unordered_map>
+#include <cmath>
 #include "./param.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
@@ -100,7 +102,7 @@ class ASTNativeCompiler : public Compiler {
       HandleTUNode(t5, dest, indent);
     } else if ( (t6 = dynamic_cast<const QuantizerNode*>(node)) ) {
       HandleQNode(t6, dest, indent);
-    } else { 
+    } else {
       LOG(FATAL) << "oops";
     }
   }
@@ -179,14 +181,19 @@ class ASTNativeCompiler : public Compiler {
     const unsigned split_index = node->split_index;
     const std::string na_check
       = std::string("data[") + std::to_string(split_index) + "].missing != -1";
-    
+
     const NumericalConditionNode* t;
     std::ostringstream oss;  // prepare logical statement for evaluating split
     if ( (t = dynamic_cast<const NumericalConditionNode*>(node)) ) {
-      if (t->quantized) {
+      if (t->quantized) {  // quantized threshold
         oss << "data[" << split_index << "].qvalue "
             << OpName(t->op) << " " << t->threshold.int_val;
-      } else {
+      } else if (std::isinf(t->threshold.float_val)) {  // infinite threshold
+        // According to IEEE 754, the result of comparison [lhs] < infinity
+        // must be identical for all finite [lhs]. Same goes for operator >.
+        oss << (common::CompareWithOp(0.0, t->op, t->threshold.float_val)
+                ? "1" : "0");
+      } else {  // finite threshold
         // to restore default precision
         const std::streamsize ss = std::cout.precision();
         oss << "data[" << split_index << "].fvalue "

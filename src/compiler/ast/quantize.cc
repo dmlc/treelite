@@ -68,7 +68,7 @@ void ASTBuilder::QuantizeThresholds() {
   CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
   /* dynamic_cast<> is used here to check node types. This is to ensure
      that we don't accidentally call QuantizeThresholds() twice. */
-  
+
   ASTNode* quantizer_node = AddNode<QuantizerNode>(this->main_node,
                                                    std::move(cut_pts_vec),
                                                    std::move(is_categorical));

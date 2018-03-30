@@ -5,7 +5,7 @@ import os
 import subprocess
 from sys import platform as _platform
 from multiprocessing import cpu_count
-from ..common.compat import _str_decode, _str_encode
+from ..common.compat import _str_decode, _str_encode, DEVNULL
 from ..common.util import TreeliteError, lineno, log_info
 
 def _is_windows():
@@ -15,9 +15,7 @@ def _toolchain_exist_check(toolchain):
   if toolchain != 'msvc':
     retcode = subprocess.call('{} --version'.format(toolchain),
                               shell=True,
-                              stdin=subprocess.DEVNULL,
-                              stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL)
+                              stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
     if retcode != 0:
       raise ValueError('Toolchain {} not found. '.format(toolchain) +
                       'Ensure that it is installed and that it is a variant ' +

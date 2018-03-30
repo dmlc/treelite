@@ -43,4 +43,11 @@ else:
   def _str_encode(string):
     return string
 
+# define DEVNULL
+if PY3:
+  from subprocess import DEVNULL
+else:
+  import os
+  DEVNULL = open(os.devnull, 'r+b')
+
 __all__ = []

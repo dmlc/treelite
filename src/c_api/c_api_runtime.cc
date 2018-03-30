@@ -84,6 +84,7 @@ int TreelitePredictorLoad(const char* library_path,
 int TreelitePredictorPredictBatch(PredictorHandle handle,
                                   void* batch,
                                   int batch_sparse,
+                                  int verbose,
                                   int pred_margin,
                                   float* out_result,
                                   size_t* out_result_size) {
@@ -91,11 +92,11 @@ int TreelitePredictorPredictBatch(PredictorHandle handle,
   Predictor* predictor_ = static_cast<Predictor*>(handle);
   if (batch_sparse) {
     const CSRBatch* batch_ = static_cast<CSRBatch*>(batch);
-    *out_result_size = predictor_->PredictBatch(batch_,
+    *out_result_size = predictor_->PredictBatch(batch_, verbose,
                                                (pred_margin != 0), out_result);
   } else {
     const DenseBatch* batch_ = static_cast<DenseBatch*>(batch);
-    *out_result_size = predictor_->PredictBatch(batch_,
+    *out_result_size = predictor_->PredictBatch(batch_, verbose,
                                                (pred_margin != 0), out_result);
   }
   API_END();

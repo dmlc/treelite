@@ -304,7 +304,7 @@ std::vector<size_t> SplitBatch(const BatchType* batch, size_t nthread) {
 
 template <typename BatchType>
 inline size_t
-Predictor::PredictBatchBase_(const BatchType* batch,
+Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
                              bool pred_margin, float* out_result) {
   static_assert(   std::is_same<BatchType, DenseBatch>::value
                 || std::is_same<BatchType, CSRBatch>::value,
@@ -341,21 +341,23 @@ Predictor::PredictBatchBase_(const BatchType* batch,
     }
   }
   const double tend = dmlc::GetTime();
-  LOG(INFO) << "Treelite: Finished prediction in "
-            << tend - tstart << " sec";
+  if (verbose > 0) {
+    LOG(INFO) << "Treelite: Finished prediction in "
+              << tend - tstart << " sec";
+  }
   return total_size;
 }
 
 size_t
-Predictor::PredictBatch(const CSRBatch* batch,
+Predictor::PredictBatch(const CSRBatch* batch, int verbose,
                         bool pred_margin, float* out_result) {
-  return PredictBatchBase_(batch, pred_margin, out_result);
+  return PredictBatchBase_(batch, verbose, pred_margin, out_result);
 }
 
 size_t
-Predictor::PredictBatch(const DenseBatch* batch,
+Predictor::PredictBatch(const DenseBatch* batch, int verbose,
                         bool pred_margin, float* out_result) {
-  return PredictBatchBase_(batch, pred_margin, out_result);
+  return PredictBatchBase_(batch, verbose, pred_margin, out_result);
 }
 
 }  // namespace treelite

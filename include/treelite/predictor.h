@@ -74,6 +74,7 @@ class Predictor {
    * \brief Make predictions on a batch of data rows (synchronously). This
    *        function internally divides the workload among all worker threads.
    * \param batch a batch of rows
+   * \param verbose whether to produce extra messages
    * \param pred_margin whether to produce raw margin scores instead of
    *                    transformed probabilities
    * \param out_result resulting output vector; use
@@ -81,9 +82,9 @@ class Predictor {
    * \return length of the output vector, which is guaranteed to be less than
    *         or equal to QueryResultSize()
    */
-  size_t PredictBatch(const CSRBatch* batch,
+  size_t PredictBatch(const CSRBatch* batch, int verbose,
                       bool pred_margin, float* out_result);
-  size_t PredictBatch(const DenseBatch* batch,
+  size_t PredictBatch(const DenseBatch* batch, int verbose,
                       bool pred_margin, float* out_result);
 
   /*!
@@ -136,7 +137,7 @@ class Predictor {
   bool include_master_thread_;  // run task on master thread?
 
   template <typename BatchType>
-  size_t PredictBatchBase_(const BatchType* batch,
+  size_t PredictBatchBase_(const BatchType* batch, int verbose,
                            bool pred_margin, float* out_result);
 };
 

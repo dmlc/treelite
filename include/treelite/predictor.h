@@ -58,7 +58,8 @@ class Predictor {
   typedef void* LibraryHandle;
   typedef void* ThreadPoolHandle;
 
-  Predictor();
+  Predictor(int num_worker_thread = -1,
+            bool include_master_thread = false);
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.
@@ -133,6 +134,12 @@ class Predictor {
   PredTransformFuncHandle pred_transform_func_handle_;
   ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
+  int num_worker_thread_;
+  bool include_master_thread_;  // run task on master thread?
+
+  template <typename BatchType>
+  size_t PredictBatchBase_(const BatchType* batch,
+                           bool pred_margin, float* out_result);
 };
 
 }  // namespace treelite

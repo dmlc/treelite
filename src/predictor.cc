@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <limits>
 #include <functional>
+#include <type_traits>
 #include "common/math.h"
 #include "thread_pool/thread_pool.h"
 
@@ -40,7 +41,8 @@ struct OutputToken {
   size_t query_result_size;
 };
 
-using PredThreadPool = treelite::ThreadPool<InputToken, OutputToken>;
+using PredThreadPool
+  = treelite::ThreadPool<InputToken, OutputToken, treelite::Predictor>;
 
 inline treelite::Predictor::LibraryHandle OpenLibrary(const char* name) {
 #ifdef _WIN32
@@ -173,11 +175,15 @@ inline size_t PredictBatch_(const BatchType* batch,
 
 namespace treelite {
 
-Predictor::Predictor() : lib_handle_(nullptr),
+Predictor::Predictor(int num_worker_thread,
+                     bool include_master_thread)
+                       : lib_handle_(nullptr),
                          query_func_handle_(nullptr),
                          pred_func_handle_(nullptr),
                          pred_transform_func_handle_(nullptr),
-                         thread_pool_handle_(nullptr) {}
+                         thread_pool_handle_(nullptr),
+                         include_master_thread_(include_master_thread),
+                         num_worker_thread_(num_worker_thread) {}
 Predictor::~Predictor() {
   Free();
 }
@@ -218,11 +224,14 @@ Predictor::Load(const char* name) {
       << "' does not contain valid predict_margin() function";
   }
 
+  if (num_worker_thread_ == -1) {
+    num_worker_thread_ = std::thread::hardware_concurrency() - 1;
+  }
   thread_pool_handle_ = static_cast<ThreadPoolHandle>(
-      new PredThreadPool(std::thread::hardware_concurrency() - 1, this,
+      new PredThreadPool(num_worker_thread_, this,
                          [](SpscQueue<InputToken>* incoming_queue,
                             SpscQueue<OutputToken>* outgoing_queue,
-                            treelite::Predictor* predictor_obj) {
+                            const treelite::Predictor* predictor) {
       InputToken input;
       while (incoming_queue->Pop(&input)) {
         size_t query_result_size;
@@ -235,7 +244,7 @@ Predictor::Load(const char* name) {
                             input.pred_func_handle,
                             input.pred_transform_func_handle,
                             rbegin, rend,
-                            predictor_obj->QueryResultSize(batch, rbegin, rend),
+                            predictor->QueryResultSize(batch, rbegin, rend),
                             input.out_pred);
         } else {
           const DenseBatch* batch = static_cast<const DenseBatch*>(input.batch);
@@ -244,7 +253,7 @@ Predictor::Load(const char* name) {
                             input.pred_func_handle,
                             input.pred_transform_func_handle,
                             rbegin, rend,
-                            predictor_obj->QueryResultSize(batch, rbegin, rend),
+                            predictor->QueryResultSize(batch, rbegin, rend),
                             input.out_pred);
         }
         outgoing_queue->Push(OutputToken{query_result_size});
@@ -289,24 +298,40 @@ std::vector<size_t> SplitBatch(const BatchType* batch, size_t nthread) {
   return row_ptr;
 }
 
-size_t
-Predictor::PredictBatch(const CSRBatch* batch,
-                        bool pred_margin, float* out_result) {
+template <typename BatchType>
+inline size_t
+Predictor::PredictBatchBase_(const BatchType* batch,
+                             bool pred_margin, float* out_result) {
+  static_assert(   std::is_same<BatchType, DenseBatch>::value
+                || std::is_same<BatchType, CSRBatch>::value,
+                "PredictBatchBase_: unrecognized batch type");
   const double tstart = dmlc::GetTime();
   PredThreadPool* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
-  InputToken request{true, static_cast<const void*>(batch), pred_margin,
+  InputToken request{std::is_same<BatchType, CSRBatch>::value,
+                     static_cast<const void*>(batch), pred_margin,
                      num_output_group_, pred_func_handle_,
                      pred_transform_func_handle_, 0, batch->num_row,
                      out_result};
   OutputToken response;
-  const int nthread = std::thread::hardware_concurrency() - 1;
-  const std::vector<size_t> row_ptr = SplitBatch(batch, nthread);
+  const int nthread = num_worker_thread_;
+  const std::vector<size_t> row_ptr
+    = SplitBatch(batch, nthread + (int)(include_master_thread_));
   for (int tid = 0; tid < nthread; ++tid) {
     request.rbegin = row_ptr[tid];
     request.rend = row_ptr[tid + 1];
     pool->SubmitTask(tid, request);
   }
   size_t total_size = 0;
+  if (include_master_thread_) {
+    const size_t rbegin = row_ptr[nthread];
+    const size_t rend = row_ptr[nthread + 1];
+    const size_t query_result_size
+      = PredictBatch_(batch, pred_margin, num_output_group_,
+                      pred_func_handle_, pred_transform_func_handle_,
+                      rbegin, rend, QueryResultSize(batch, rbegin, rend),
+                      out_result);
+    total_size += query_result_size;
+  }
   for (int tid = 0; tid < nthread; ++tid) {
     if (pool->WaitForTask(tid, &response)) {
       total_size += response.query_result_size;
@@ -314,37 +339,20 @@ Predictor::PredictBatch(const CSRBatch* batch,
   }
   const double tend = dmlc::GetTime();
   LOG(INFO) << "Treelite: Finished prediction in "
-            << dmlc::GetTime() - tstart << " sec";
+            << tend - tstart << " sec";
   return total_size;
+}
+
+size_t
+Predictor::PredictBatch(const CSRBatch* batch,
+                        bool pred_margin, float* out_result) {
+  return PredictBatchBase_(batch, pred_margin, out_result);
 }
 
 size_t
 Predictor::PredictBatch(const DenseBatch* batch,
                         bool pred_margin, float* out_result) {
-  const double tstart = dmlc::GetTime();
-  PredThreadPool* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
-  InputToken request{false, static_cast<const void*>(batch), pred_margin,
-                     num_output_group_, pred_func_handle_,
-                     pred_transform_func_handle_, 0, batch->num_row,
-                     out_result};
-  OutputToken response;
-  const int nthread = std::thread::hardware_concurrency() - 1;
-  const std::vector<size_t> row_ptr = SplitBatch(batch, nthread);
-  for (int tid = 0; tid < nthread; ++tid) {
-    request.rbegin = row_ptr[tid];
-    request.rend = row_ptr[tid + 1];
-    pool->SubmitTask(tid, request);
-  }
-  size_t total_size = 0;
-  for (int tid = 0; tid < nthread; ++tid) {
-    if (pool->WaitForTask(tid, &response)) {
-      total_size += response.query_result_size;
-    }
-  }
-  const double tend = dmlc::GetTime();
-  LOG(INFO) << "Treelite: Finished prediction in "
-            << dmlc::GetTime() - tstart << " sec";
-  return total_size;
+  return PredictBatchBase_(batch, pred_margin, out_result);
 }
 
 }  // namespace treelite

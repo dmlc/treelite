@@ -70,9 +70,12 @@ int TreeliteBatchGetDimension(void* handle,
 }
 
 int TreelitePredictorLoad(const char* library_path,
+                          int num_worker_thread,
+                          int include_master_thread,
                           PredictorHandle* out) {
   API_BEGIN();
-  Predictor* predictor = new Predictor();
+  Predictor* predictor = new Predictor(num_worker_thread,
+                                       (bool)include_master_thread);
   predictor->Load(library_path);
   *out = static_cast<PredictorHandle>(predictor);
   API_END();

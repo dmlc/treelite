@@ -13,14 +13,18 @@
 
 namespace treelite {
 
-template <typename InputToken, typename OutputToken>
+template <typename InputToken, typename OutputToken, typename TaskContext>
 class ThreadPool {
  public:
   using TaskFunc = void(*)(SpscQueue<InputToken>*, SpscQueue<OutputToken>*,
-                           Predictor*);
+                           const TaskContext*);
 
-  ThreadPool(int num_worker, Predictor* predictor, TaskFunc task)
-    : num_worker_(num_worker), predictor_(predictor), task_(task) {
+  ThreadPool(int num_worker, const TaskContext* context, TaskFunc task)
+    : num_worker_(num_worker), context_(context), task_(task) {
+    CHECK(num_worker_ > 0
+          && num_worker_ + 1 <= std::thread::hardware_concurrency())
+    << "Number of worker threads must be between 1 and "
+    << std::thread::hardware_concurrency() - 1;
     LOG(INFO) << "new thread pool with " << num_worker_ << " worker threads";
     for (int i = 0; i < num_worker_; ++i) {
       incoming_queue_.emplace_back(common::make_unique<SpscQueue<InputToken>>());
@@ -30,20 +34,10 @@ class ThreadPool {
     for (int i = 0; i < num_worker_; ++i) {
       thread_[i] = std::thread(task_, incoming_queue_[i].get(),
                                       outgoing_queue_[i].get(),
-                                      predictor_);
+                                      context_);
     }
-    // bind threads to cores
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(0, &cpuset);
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-    for (int i = 0; i < num_worker_; ++i) {
-      const int core_id = i + 1;
-      CPU_ZERO(&cpuset);
-      CPU_SET(core_id, &cpuset);
-      pthread_setaffinity_np(thread_[i].native_handle(),
-                             sizeof(cpu_set_t), &cpuset);
-    }
+    /* bind threads to cores */
+    SetAffinity();
   }
   ~ThreadPool() {
     LOG(INFO) << "delete thread pool";
@@ -68,7 +62,21 @@ class ThreadPool {
   std::vector<std::unique_ptr<SpscQueue<InputToken>>> incoming_queue_;
   std::vector<std::unique_ptr<SpscQueue<OutputToken>>> outgoing_queue_;
   TaskFunc task_;
-  Predictor* predictor_;
+  const TaskContext* context_;
+
+  inline void SetAffinity() {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(0, &cpuset);
+    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    for (int i = 0; i < num_worker_; ++i) {
+      const int core_id = i + 1;
+      CPU_ZERO(&cpuset);
+      CPU_SET(core_id, &cpuset);
+      pthread_setaffinity_np(thread_[i].native_handle(),
+                             sizeof(cpu_set_t), &cpuset);
+    }
+  }
 };
 
 }  // namespace treelite

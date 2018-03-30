@@ -217,12 +217,18 @@ class Predictor(object):
   ----------
   libpath: :py:class:`str <python:str>`
       location of dynamic shared library (.dll/.so/.dylib)
+  nthread: :py:class:`int <python:int>`, optional
+      number of worker threads to use; if unspecified, use maximum number of
+      hardware threads
   verbose : :py:class:`bool <python:bool>`, optional
       Whether to print extra messages during construction
+  include_master_thread : :py:class:`bool <python:bool>`, optional
+      Whether to assign work to the master thread
   """
   # pylint: disable=R0903
 
-  def __init__(self, libpath, verbose=False):
+  def __init__(self, libpath, nthread=None, verbose=False,
+               include_master_thread=True):
     if os.path.isdir(libpath):  # libpath is a diectory
       # directory is given; locate shared library inside it
       basename = os.path.basename(libpath.rstrip('/\\'))
@@ -247,8 +253,11 @@ class Predictor(object):
                             'following extensions: .so / .dll / .dylib')
     self.handle = ctypes.c_void_p()
     path = os.path.abspath(path)
-    _check_call(_LIB.TreelitePredictorLoad(c_str(path),
-                                           ctypes.byref(self.handle)))
+    _check_call(_LIB.TreelitePredictorLoad(
+        c_str(path),
+        ctypes.c_int(nthread if nthread is not None else -1),
+        ctypes.c_int(1 if include_master_thread else 0),
+        ctypes.byref(self.handle)))
     if verbose:
       log_info(__file__, lineno(),
                'Dynamic shared library {} has been '.format(path)+\

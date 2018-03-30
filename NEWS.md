@@ -1,6 +1,12 @@
 Treelite Release Notes 
 ======================
 
+## 0.31 (03/30/2018)
+* Implement a custom thread pool to improve prediction performance
+  - Amortize thread launch cost
+  - Pin down threads to physical cores and prevent migration
+* Accommodate infinite thresholds in LightGBM models
+
 ## 0.30 (03/23/2018)
 **Major re-factoring of the backend code**
 * New code generator, based on Abstract Syntax Trees (AST)

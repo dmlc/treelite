@@ -509,7 +509,12 @@ inline void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
     xgb_tree_.Save(fo, model.num_feature);
   }
   // write dummy tree_info
-  std::vector<int> tree_info_(model.trees.size(), -1);
+  std::vector<int> tree_info_(model.trees.size(), 0);
+  if (model.num_output_group > 1) {
+    for (size_t i = 0; i < model.trees.size(); ++i) {
+      tree_info_[i] = i % model.num_output_group;
+    }
+  }
   fo->Write(dmlc::BeginPtr(tree_info_), sizeof(int) * tree_info_.size());
 }
 

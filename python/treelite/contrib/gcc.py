@@ -7,6 +7,7 @@ from __future__ import absolute_import as _abs
 import os
 import subprocess
 
+from ..common.compat import DEVNULL
 from ..common.util import TemporaryDirectory
 from .util import _create_shared_base, _libext, _shell
 
@@ -22,9 +23,7 @@ def _openmp_supported(toolchain):
     retcode = subprocess.call('{} -o {} {} -fopenmp'\
                               .format(toolchain, output, sfile),
                               shell=True,
-                              stdin=subprocess.DEVNULL,
-                              stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL)
+                              stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
   return retcode == 0
 
 def _obj_ext():

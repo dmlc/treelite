@@ -20,6 +20,20 @@ ensembles.
 Why treelite?
 *************
 
+Compile and optimize your model for fast prediction
+===================================================
+**Treelite compiles your tree model into optimized shared library.**
+A :py:doc:`benchmark` demonstrates 2-6x improvement in prediction throughput,
+due to more efficient use of compute resources.
+
+.. raw:: html
+
+  <p>
+  <img src="_static/benchmark_plot.svg"
+       onerror="this.src='_static/benchmark_plot.png'; this.onerror=null;"
+       width="100%">
+  </p>
+
 Use machine learning package of your choice
 ===========================================
 Treelite accommodates a wide range of decision tree ensemble models. In
@@ -38,40 +52,9 @@ Deploy with minimal dependencies
 ================================
 It is a great hassle to install machine learning packages (e.g. XGBoost,
 LightGBM, scikit-learn, etc.) on every machine your tree model will run. This is
-the case no longer: treelite will export your model as a **stand-alone
-prediction subroutine** so that predictions will be made without any machine
+the case no longer: treelite will export your model as a stand-alone
+prediction library so that predictions will be made without any machine
 learning package installed.
-
-Compile and optimize your model for fast prediction
-===================================================
-Treelite optimizes the prediction subroutine for faster prediction.
-
-Depending on your use cases, simply compiling the prediction subroutine into
-`machine code <https://en.wikipedia.org/wiki/Machine_code>`_ may boost the
-performance noticeably. (See the benchmark section below.) In addition, treelite
-supports :py:doc:`additional optimizations <tutorials/optimize>` that
-improve performance while preserving the ensemble model.
-
-******************
-How treelite works
-******************
-
-.. raw:: html
-
-  <p>
-  <a href="_static/deployment.png">
-  <img src="_static/deployment.svg"
-       onerror="this.src='_static/deployment.png'; this.onerror=null;"
-       width="100%"><br>
-  (Click to enlarge)
-  </a>
-  </p>
-
-The workflow involves two distinct machines: **the host machine** that generates
-prediction subroutine from a given tree model, and **the target machine** that
-runs the subroutine. The two machines exchange a single C file that contains
-all relevant information about the tree model. Only the host machine needs to
-have treelite installed; the target machine requires only a working C compiler.
 
 ***********
 Quick start
@@ -114,7 +97,7 @@ Make predictions on the target machine:
   import treelite.runtime
   predictor = treelite.runtime.Predictor('./mymodel.so', verbose=True)
   batch = treelite.runtime.Batch.from_npy2d(X)
-  out_pred = predictor.predict(batch, verbose=True)
+  out_pred = predictor.predict(batch)
 
 Read :doc:`tutorials/first` for a more detailed example. See
 :doc:`tutorials/deploy` for additional instructions on deployment.
@@ -137,6 +120,27 @@ Benchmark
   </p>
 
 See the page :py:doc:`benchmark` for details.
+
+******************
+How treelite works
+******************
+
+.. raw:: html
+
+  <p>
+  <a href="_static/deployment.png">
+  <img src="_static/deployment.svg"
+       onerror="this.src='_static/deployment.png'; this.onerror=null;"
+       width="100%"><br>
+  (Click to enlarge)
+  </a>
+  </p>
+
+The workflow involves two distinct machines: **the host machine** that generates
+prediction subroutine from a given tree model, and **the target machine** that
+runs the subroutine. The two machines exchange a single C file that contains
+all relevant information about the tree model. Only the host machine needs to
+have treelite installed; the target machine requires only a working C compiler.
 
 ********
 Contents

@@ -148,5 +148,5 @@ have used the method :py:meth:`~treelite.runtime.Batch.from_csr` instead.
 
 .. code-block:: python
 
-    out_pred = predictor.predict(batch, verbose=True)
+    out_pred = predictor.predict(batch)
     print(out_pred)

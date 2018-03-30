@@ -1,6 +1,4 @@
-import treelite
-import treelite.runtime
-from fast_svmlight_loader import load_svmlight
+import xgboost
 import sys
 import os
 import numpy as np
@@ -12,16 +10,16 @@ modfile = sys.argv[3]
 
 print('Loading data file {}'.format(datafile))
 start = time.time()
-dmat = load_svmlight(filename=datafile, verbose=False)
+dtrain = xgboost.DMatrix(datafile)
 end = time.time()
 print('Done loading data file {} in {} sec'.format(datafile, end-start))
-X = dmat['data']
-predictor = treelite.runtime.Predictor(libfile, verbose=True, include_master_thread=True)
-nrow = X.shape[0]
+bst = xgboost.Booster()
+bst.load_model(modfile)
+nrow = dtrain.num_row()
 for batchsize in np.logspace(np.log10(100), 5, 10).astype(np.int):
   print('*** batchsize = {}'.format(batchsize))
-  for i in range(300):
+  for i in range(100):
     rbegin = np.random.randint(0, nrow - batchsize + 1)
     rend = rbegin + batchsize
-    batch = treelite.runtime.Batch.from_csr(X, rbegin, rend)
-    predictor.predict(batch, pred_margin=True)
+    dtrain_slice = dtrain.slice(np.arange(rbegin, rend).tolist())
+    bst.predict(dtrain_slice, output_margin=True)

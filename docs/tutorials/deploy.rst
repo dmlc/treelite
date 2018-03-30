@@ -324,7 +324,7 @@ following script:
   batch = Batch.from_npy2d(X)
   # Load predictor
   predictor = treelite.runtime.Predictor('./mymodel/mymodel.so', verbose=True)
-  out_pred = predictor.predict(batch, verbose=True)
+  out_pred = predictor.predict(batch)
 
 .. _deploy_option3:
 
@@ -467,12 +467,12 @@ the archive ``mymodel.zip``:
 
 Prediction instructions
 ^^^^^^^^^^^^^^^^^^^^^^^
-The prediction library provides the function ``predict_margin`` with the
+The prediction library provides the function ``predict`` with the
 following signature:
 
 .. code-block:: c
 
-  float predict_margin(union Entry* data);
+  float predict(union Entry* data, int pred_margin);
 
 Here, the argument ``data`` must be an array of length ``M``, where ``M`` is
 the number of features used in the tree ensemble. The ``data`` array stores
@@ -508,7 +508,7 @@ aray to hold feature values of a single data row:
     inst[i].missing = -1;
   }
 
-Before calling the function ``predict_margin``, the array ``inst`` needs to be
+Before calling the function ``predict``, the array ``inst`` needs to be
 initialized with missing and present feature values. The following peudocode
 illustrates the idea:
 
@@ -520,7 +520,7 @@ illustrates the idea:
     For each feature i for which the data row in fact has a feature value:
       Set inst[i].fvalue = [feature value], to indicate presence
 
-    Call predict_margin(inst) and get margin prediction for the data row rid
+    Call predict(inst, 0) and get prediction for the data row rid
 
     For each feature i for which the row has a feature value:
       Set inst[i].missing = -1, to prepare for next row (rid + 1)
@@ -547,7 +547,7 @@ The sparse matrix consists of three arrays:
     for (i = ibegin; i < iend; ++i) {
       inst[col_ind[i]].fvalue = val[i];
     }
-    out_pred[rid] = predict_margin(inst);
+    out_pred[rid] = predict(inst, 0);
     /* Drop nonzeros */
     for (i = ibegin; i < iend; ++i) {
       inst[col_ind[i]].missing = -1;
@@ -604,7 +604,7 @@ and write it out as constants in the program:
       for (i = ibegin; i < iend; ++i) {
         inst[col_ind[i]].fvalue = val[i];
       }
-      out_pred[rid] = predict_margin(inst);
+      out_pred[rid] = predict(inst, 0);
       /* Drop nonzeros */
       for (i = ibegin; i < iend; ++i) {
         inst[col_ind[i]].missing = -1;

@@ -55,8 +55,10 @@ class Predictor {
   typedef void* QueryFuncHandle;
   typedef void* PredFuncHandle;
   typedef void* LibraryHandle;
+  typedef void* ThreadPoolHandle;
 
-  Predictor();
+  Predictor(int num_worker_thread = -1,
+            bool include_master_thread = false);
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.
@@ -69,10 +71,9 @@ class Predictor {
   void Free();
 
   /*!
-   * \brief make predictions on a batch of data rows
+   * \brief Make predictions on a batch of data rows (synchronously). This
+   *        function internally divides the workload among all worker threads.
    * \param batch a batch of rows
-   * \param nthread number of threads to use for predicting
-   * \param verbose whether to produce extra messages
    * \param pred_margin whether to produce raw margin scores instead of
    *                    transformed probabilities
    * \param out_result resulting output vector; use
@@ -80,10 +81,10 @@ class Predictor {
    * \return length of the output vector, which is guaranteed to be less than
    *         or equal to QueryResultSize()
    */
-  size_t PredictBatch(const CSRBatch* batch, int nthread, int verbose,
-                      bool pred_margin, float* out_result) const;
-  size_t PredictBatch(const DenseBatch* batch, int nthread, int verbose,
-                      bool pred_margin, float* out_result) const;
+  size_t PredictBatch(const CSRBatch* batch,
+                      bool pred_margin, float* out_result);
+  size_t PredictBatch(const DenseBatch* batch,
+                      bool pred_margin, float* out_result);
 
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
@@ -101,6 +102,20 @@ class Predictor {
       << "A shared library needs to be loaded first using Load()";
     return batch->num_row * num_output_group_;
   }
+  inline size_t QueryResultSize(const CSRBatch* batch,
+                                size_t rbegin, size_t rend) const {
+    CHECK(pred_func_handle_ != nullptr)
+      << "A shared library needs to be loaded first using Load()";
+    CHECK(rbegin < rend && rend <= batch->num_row);
+    return (rend - rbegin) * num_output_group_;
+  }
+  inline size_t QueryResultSize(const DenseBatch* batch,
+                                size_t rbegin, size_t rend) const {
+    CHECK(pred_func_handle_ != nullptr)
+      << "A shared library needs to be loaded first using Load()";
+    CHECK(rbegin < rend && rend <= batch->num_row);
+    return (rend - rbegin) * num_output_group_;
+  }
   /*!
    * \brief Get the number of output groups in the loaded model
    * The number is 1 for most tasks;
@@ -115,7 +130,14 @@ class Predictor {
   LibraryHandle lib_handle_;
   QueryFuncHandle query_func_handle_;
   PredFuncHandle pred_func_handle_;
+  ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
+  int num_worker_thread_;
+  bool include_master_thread_;  // run task on master thread?
+
+  template <typename BatchType>
+  size_t PredictBatchBase_(const BatchType* batch,
+                           bool pred_margin, float* out_result);
 };
 
 }  // namespace treelite

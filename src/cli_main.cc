@@ -236,8 +236,7 @@ void CLIPredict(const CLIParam& param) {
   predictor.Load(param.codelib_path.c_str());
   size_t result_size = predictor.QueryResultSize(batch.get());
   std::vector<float> result(result_size);
-  result_size = predictor.PredictBatch(batch.get(), param.nthread,
-                                       param.verbose, param.pred_margin,
+  result_size = predictor.PredictBatch(batch.get(), param.pred_margin,
                                        &result[0]);
   // write to text file
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(

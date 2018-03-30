@@ -91,18 +91,23 @@ TREELITE_DLL int TreeliteBatchGetDimension(void* handle,
  * This function assumes that the prediction code has been already compiled into
  * a dynamic shared library object (.so/.dll/.dylib).
  * \param library_path path to library object file containing prediction code
+ * \param num_worker_thread number of worker threads (-1 to use max number)
+ * \param include_master_thread whether to assign workload to the master
+ *                              thread. If not, only workers threads will be
+ *                              assigned work.
  * \param out handle to predictor
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
+                                       int num_worker_thread,
+                                       int include_master_thread,
                                        PredictorHandle* out);
 /*!
- * \brief make predictions on a batch of data rows
+ * \brief Make predictions on a batch of data rows (synchronously). This
+ *        function internally divides the workload among all worker threads.
  * \param handle predictor
  * \param batch a batch of rows (must be of type SparseBatch or DenseBatch)
  * \param batch_sparse whether batch is sparse (1) or dense (0)
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
  * \param pred_margin whether to produce raw margin scores instead of
  *                    transformed probabilities
  * \param out_result resulting output vector; use
@@ -116,8 +121,6 @@ TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
 TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
                                                void* batch,
                                                int batch_sparse,
-                                               int nthread,
-                                               int verbose,
                                                int pred_margin,
                                                float* out_result,
                                                size_t* out_result_size);

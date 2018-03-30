@@ -70,9 +70,12 @@ int TreeliteBatchGetDimension(void* handle,
 }
 
 int TreelitePredictorLoad(const char* library_path,
+                          int num_worker_thread,
+                          int include_master_thread,
                           PredictorHandle* out) {
   API_BEGIN();
-  Predictor* predictor = new Predictor();
+  Predictor* predictor = new Predictor(num_worker_thread,
+                                       (bool)include_master_thread);
   predictor->Load(library_path);
   *out = static_cast<PredictorHandle>(predictor);
   API_END();
@@ -81,20 +84,18 @@ int TreelitePredictorLoad(const char* library_path,
 int TreelitePredictorPredictBatch(PredictorHandle handle,
                                   void* batch,
                                   int batch_sparse,
-                                  int nthread,
-                                  int verbose,
                                   int pred_margin,
                                   float* out_result,
                                   size_t* out_result_size) {
   API_BEGIN();
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  Predictor* predictor_ = static_cast<Predictor*>(handle);
   if (batch_sparse) {
     const CSRBatch* batch_ = static_cast<CSRBatch*>(batch);
-    *out_result_size = predictor_->PredictBatch(batch_, nthread, verbose,
+    *out_result_size = predictor_->PredictBatch(batch_,
                                                (pred_margin != 0), out_result);
   } else {
     const DenseBatch* batch_ = static_cast<DenseBatch*>(batch);
-    *out_result_size = predictor_->PredictBatch(batch_, nthread, verbose,
+    *out_result_size = predictor_->PredictBatch(batch_,
                                                (pred_margin != 0), out_result);
   }
   API_END();

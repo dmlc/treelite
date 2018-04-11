@@ -11,6 +11,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 # Set BUILD_SHARED_LIBS as option. By default, build shared libraries;
 # User can set this to OFF to build static libraries instead.
 option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(DISABLE_PROTOBUF "Disable Protobuf" OFF)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -90,12 +91,14 @@ endforeach(g)
 list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
-if (Protobuf_FOUND OR PROTOBUF_FOUND)
-  set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
-  include_directories(${PROTOBUF_INCLUDE_DIRS})
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
-  protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS src/tree.proto)
-  list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
+if (NOT DISABLE_PROTOBUF)
+  if (Protobuf_FOUND OR PROTOBUF_FOUND)
+    set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
+    include_directories(${PROTOBUF_INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
+    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS src/tree.proto)
+    list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
+  endif()
 endif()
 
 # dmlc-core
@@ -114,8 +117,10 @@ if (UNIX)
 endif (UNIX)
 
 # Protobuf library
-if (Protobuf_FOUND OR PROTOBUF_FOUND)
-  list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
+if (NOT DISABLE_PROTOBUF)
+  if (Protobuf_FOUND OR PROTOBUF_FOUND)
+    list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
+  endif()
 endif()
 
 add_library(objtreelite OBJECT ${SOURCES})

@@ -260,6 +260,13 @@ class Predictor(object):
         ctypes.c_int(nthread if nthread is not None else -1),
         ctypes.c_int(1 if include_master_thread else 0),
         ctypes.byref(self.handle)))
+    # save # of output groups
+    num_output_group = ctypes.c_size_t()
+    _check_call(_LIB.TreelitePredictorQueryNumOutputGroup(
+        self.handle,
+        ctypes.byref(num_output_group)))
+    self.num_output_group = num_output_group.value
+
     if verbose:
       log_info(__file__, lineno(),
                'Dynamic shared library {} has been '.format(path)+\
@@ -299,14 +306,10 @@ class Predictor(object):
         ctypes.c_int(1 if pred_margin else 0),
         out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
         ctypes.byref(out_result_size)))
-    num_output_group = ctypes.c_size_t()
-    _check_call(_LIB.TreelitePredictorQueryNumOutputGroup(
-        self.handle,
-        ctypes.byref(num_output_group)))
     idx = out_result_size.value
     res = out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
-    if num_output_group.value > 1:
-      res = res.reshape((-1, num_output_group.value))
+    if self.num_output_group > 1:
+      res = res.reshape((-1, self.num_output_group))
     return res
 
   def __del__(self):

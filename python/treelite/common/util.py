@@ -7,6 +7,8 @@ import ctypes
 import inspect
 import time
 import shutil
+import os
+import sys
 from .compat import py_str, PY3
 
 def c_str(string):
@@ -22,6 +24,23 @@ def _get_log_callback_func():
   #pylint: disable=invalid-name
   CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
   return CALLBACK(_log_callback)
+
+def _load_ver():
+  curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
+  # go one level up, as this script is in common/ directory
+  curr_path = os.path.abspath(os.path.join(curr_path, os.pardir))
+  # List possible locations for VERSION
+  ver_path = [curr_path, os.path.join(curr_path, '../../'),
+              os.path.join(sys.prefix, 'treelite')]
+  ver_path = [os.path.join(p, 'VERSION') for p in ver_path]
+  ver_path = [p for p in ver_path if os.path.exists(p) and os.path.isfile(p)]
+  if not ver_path:
+    raise TreeliteLibraryNotFound(
+        'Cannot find version information in the candidate path: ' +
+        'List of candidates:\n' + ('\n'.join(ver_path)))
+  with open(ver_path[0], 'r') as f:
+    VERSION = f.readlines()[0].rstrip('\n')
+  return VERSION
 
 class TreeliteError(Exception):
   """Error thrown by treelite"""

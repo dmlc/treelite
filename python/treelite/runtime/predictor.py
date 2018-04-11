@@ -6,8 +6,10 @@ import sys
 import os
 import numpy as np
 from ..common.util import c_str, _get_log_callback_func, TreeliteError, \
-                          lineno, log_info
+                          lineno, log_info, _load_ver
 from ..common.libpath import find_lib_path, TreeliteLibraryNotFound
+
+__version__ = _load_ver()
 
 def _load_runtime_lib():
   """Load treelite runtime"""
@@ -305,4 +307,4 @@ class Predictor(object):
       _check_call(_LIB.TreelitePredictorFree(self.handle))
       self.handle = None
 
-__all__ = ['Predictor', 'Batch']
+__all__ = ['Predictor', 'Batch', '__version__']

@@ -9,9 +9,11 @@ import numpy as np
 import scipy.sparse
 
 from .compat import DataFrame, buffer_from_memory
-from .common.util import c_str, _get_log_callback_func, TreeliteError
+from .common.util import c_str, _get_log_callback_func, TreeliteError, _load_ver
 from .common.compat import py_str, STRING_TYPES
 from .common.libpath import find_lib_path, TreeliteLibraryNotFound
+
+__version__ = _load_ver()
 
 def _load_lib():
   """Load treelite Library."""
@@ -252,4 +254,4 @@ class DMatrix(object):
                                                ctypes.byref(preview)))
     return py_str(preview.value)
 
-__all__ = ['DMatrix']
+__all__ = ['DMatrix', '__version__']

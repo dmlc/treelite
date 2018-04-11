@@ -58,6 +58,8 @@ shutil.make_archive(base_name='./treelite/treelite_runtime_with_binary',
 
 with open('../VERSION', 'r') as f:
   VERSION = f.readlines()[0].rstrip('\n')
+  with open('./treelite/VERSION', 'w') as f2:
+    print('{}'.format(VERSION), file=f2)
 
 setup(
     name='treelite',
@@ -71,7 +73,7 @@ setup(
     install_requires=['numpy', 'scipy'],
     package_data={
         'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip',
-                     'treelite_runtime_with_binary.zip']
+                     'treelite_runtime_with_binary.zip', 'VERSION']
     },
     distclass=BinaryDistribution
 )

@@ -8,12 +8,15 @@
 #define TREELITE_LOGGING_H_
 
 #include <dmlc/thread_local.h>
+#include <iostream>
 
 namespace treelite {
 
 class LogCallbackRegistry {
  public:
   using Callback = void (*)(const char*);
+  LogCallbackRegistry()
+    : log_callback_([] (const char* msg) { std::cerr << msg << std::endl; }) {}
   inline void Register(Callback log_callback) {
     this->log_callback_ = log_callback;
   }

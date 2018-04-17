@@ -316,7 +316,10 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
                      num_output_group_, pred_func_handle_,
                      0, batch->num_row, out_result};
   OutputToken response;
-  const int nthread = num_worker_thread_;
+  CHECK_GT(batch->num_row, 0);
+  const int nthread = std::min(num_worker_thread_,
+                               static_cast<int>(batch->num_row)
+                                 - (int)(include_master_thread_));
   const std::vector<size_t> row_ptr
     = SplitBatch(batch, nthread + (int)(include_master_thread_));
   for (int tid = 0; tid < nthread; ++tid) {

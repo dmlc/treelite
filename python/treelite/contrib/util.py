@@ -38,10 +38,13 @@ def _libext():
     return '.so'
 
 def _create_log_cmd_unix(logfile):
-  return ': > {}'.format(logfile)
+  return 'true > {}'.format(logfile)
 
 def _save_retcode_cmd_unix(logfile):
-  return 'echo $? >> {}'.format(logfile)
+  if _shell().endswith('fish'):  # special handling for fish shell
+    return 'echo $status >> {}'.format(logfile)
+  else:
+    return 'echo $? >> {}'.format(logfile)
 
 def _create_log_cmd_windows(logfile):
   return 'type NUL > {}'.format(logfile)
@@ -53,12 +56,11 @@ def _enqueue(args):
   tid = args['tid']
   queue = args['queue']
   dirpath = args['dirpath']
-  shell = args['shell']
   init_cmd = args['init_cmd']
   create_log_cmd = args['create_log_cmd']
   save_retcode_cmd = args['save_retcode_cmd']
 
-  proc = subprocess.Popen(shell, shell=True,
+  proc = subprocess.Popen(_shell(), shell=True,
                           stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
@@ -102,7 +104,6 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
       'tid': tid,
       'queue': [],
       'dirpath': os.path.abspath(dirpath),
-      'shell': recipe['shell'],
       'init_cmd': recipe['initial_cmd'],
       'create_log_cmd': create_log_cmd,
       'save_retcode_cmd': save_retcode_cmd
@@ -132,7 +133,6 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
       'tid': 0,
       'queue': [lib_cmd(recipe['sources'], recipe['target'])],
       'dirpath': os.path.abspath(dirpath),
-      'shell': recipe['shell'],
       'init_cmd': recipe['initial_cmd'],
       'create_log_cmd': create_log_cmd,
       'save_retcode_cmd': save_retcode_cmd

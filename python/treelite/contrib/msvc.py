@@ -6,7 +6,7 @@ Tools to interact with Microsoft Visual C++ (MSVC) toolchain
 from __future__ import absolute_import as _abs
 import os
 from ..common.compat import PY3
-from .util import _create_shared_base, _libext, _shell
+from .util import _create_shared_base, _libext
 
 LIBEXT = _libext()
 
@@ -75,7 +75,6 @@ def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   # Specify command to compile an object file
   recipe['object_ext'] = _obj_ext()
   recipe['library_ext'] = LIBEXT
-  recipe['shell'] = _shell()
   # pylint: disable=C0111
   def obj_cmd(source):
     return _obj_cmd(source, toolchain, options)

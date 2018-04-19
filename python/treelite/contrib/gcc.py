@@ -9,7 +9,7 @@ import subprocess
 
 from ..common.compat import DEVNULL
 from ..common.util import TemporaryDirectory
-from .util import _create_shared_base, _libext, _shell
+from .util import _create_shared_base, _libext
 
 LIBEXT = _libext()
 
@@ -49,7 +49,6 @@ def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   # Specify command to compile an object file
   recipe['object_ext'] = _obj_ext()
   recipe['library_ext'] = LIBEXT
-  recipe['shell'] = _shell()
   # pylint: disable=C0111
   def obj_cmd(source):
     return _obj_cmd(source, toolchain, options)

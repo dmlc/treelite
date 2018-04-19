@@ -38,7 +38,7 @@ def _libext():
     return '.so'
 
 def _create_log_cmd_unix(logfile):
-  return ' > {}'.format(logfile)
+  return ': > {}'.format(logfile)
 
 def _save_retcode_cmd_unix(logfile):
   return 'echo $? >> {}'.format(logfile)

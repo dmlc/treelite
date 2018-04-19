@@ -225,7 +225,7 @@ class Model(object):
 
   def export_as_xgboost(self, filename, name_obj):
     """
-    Export a tree ensemble model as a XGBoost model file
+    (EXPERIMENTAL FEATURE) Export a tree ensemble model as a XGBoost model file
 
     Parameters
     ----------

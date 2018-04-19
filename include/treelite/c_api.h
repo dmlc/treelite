@@ -269,8 +269,8 @@ TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
 TREELITE_DLL int TreeliteLoadProtobufModel(const char* filename,
                                            ModelHandle* out);
 /*!
- * \brief export a model in XGBoost format. The exported model can be read by
- *        XGBoost (dmlc/xgboost).
+ * \brief (EXPERIMENTAL FEATURE) export a model in XGBoost format. The exported
+ *        model can be read by XGBoost (dmlc/xgboost).
  * \param filename name of model file
  * \param model model to export
  * \param name_obj name of objective function

@@ -223,6 +223,30 @@ class Model(object):
         c_str(dirpath)))
     _check_call(_LIB.TreeliteCompilerFree(compiler_handle))
 
+  def export_as_xgboost(self, filename, name_obj):
+    """
+    Export a tree ensemble model as a XGBoost model file
+
+    Parameters
+    ----------
+    filename : :py:class:`str <python:str>`
+        path to model file
+    name_obj : :py:class:`str <python:str>`
+        name of objective function; see ``objective`` parameter in the page
+        http://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
+
+    Example
+    -------
+
+    .. code-block:: python
+
+       model.export_as_xgboost('xgboost_model.model')
+    """
+    _check_call(_LIB.TreeliteExportXGBoostModel(
+        c_str(filename),
+        self.handle,
+        c_str(name_obj)))
+
   @staticmethod
   def _set_compiler_param(compiler_handle, params, value=None):
     """

@@ -50,6 +50,15 @@ Model LoadXGBoostModel(const void* buf, size_t len);
  * \return loaded model
  */
 Model LoadProtobufModel(const char* filename);
+/*!
+ * \brief export a model in XGBoost format. The exported model can be read by
+ *        XGBoost (dmlc/xgboost).
+ * \param filename name of model file
+ * \param model model to export
+ * \param name_obj name of objective function
+ */
+void ExportXGBoostModel(const char* filename, const Model& model,
+                        const char* name_obj);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

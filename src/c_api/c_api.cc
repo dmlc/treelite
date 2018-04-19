@@ -357,6 +357,15 @@ int TreeliteLoadProtobufModel(const char* filename,
   API_END();
 }
 
+int TreeliteExportXGBoostModel(const char* filename,
+                               ModelHandle model,
+                               const char* name_obj) {
+  API_BEGIN();
+  Model* model_ = static_cast<Model*>(model);
+  frontend::ExportXGBoostModel(filename, *model_, name_obj);
+  API_END();
+}
+
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);

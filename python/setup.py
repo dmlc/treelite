@@ -1,4 +1,5 @@
 """Setup script"""
+from __future__ import print_function
 import os
 import shutil
 from setuptools import setup, Distribution, find_packages

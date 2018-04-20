@@ -106,6 +106,9 @@ set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS
 set(BUILD_SHARED_LIBS OFF)  # dmlc lib must always be static
 add_subdirectory(dmlc-core)
 set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")  # Restore BUILD_SHARED_LIBS
+if (TARGET dmlc_unit_tests)
+  set_target_properties(dmlc_unit_tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
+endif()
 
 # separate sets of dependencies for main package and runtime
 set(LINK_LIBRARIES dmlc)

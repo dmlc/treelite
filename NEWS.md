@@ -1,6 +1,21 @@
 Treelite Release Notes 
 ======================
 
+## 0.32 (04/20/2018)
+Usability improvements
+* Add `__version__` attribute (#17)
+* Shape results appropriately for multiclass classification (#16)
+* Add default LOG handler, to make C API easier to use (#19)
+* Allow batches smaller than `nthread`
+
+Bug fixes
+* Python 2.7 compatibility fix (#14)
+* handle categorical splits with empty `left_categories`
+* Fix `create_shared()` to be compatible with shells `zsh` and `fish` (#18)
+
+New feature
+* (Experimental) Export model as XGBoost model file, as per request in #14.
+
 ## 0.31 (03/30/2018)
 * Implement a custom thread pool to improve prediction performance
   - Amortize thread launch cost

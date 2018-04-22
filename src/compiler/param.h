@@ -34,6 +34,10 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   int verbose;
   /*! \} */
   int max_unit_size;
+  /*! \brief java package name */
+  std::string java_package;
+  /*! \brief java file path prefix */
+  std::string java_file_prefix;
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
@@ -48,6 +52,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(verbose).set_default(0)
       .describe("if >0, produce extra messages");
     DMLC_DECLARE_FIELD(max_unit_size).set_default(100).set_lower_bound(5);
+    DMLC_DECLARE_FIELD(java_package).set_default("treelite.predictor");
+    DMLC_DECLARE_FIELD(java_file_prefix).set_default("src/main/java/treelite/predictor/");
   }
 };
 

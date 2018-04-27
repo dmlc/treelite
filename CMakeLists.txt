@@ -56,7 +56,12 @@ endif()
 include_directories (
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/dmlc-core/include
+    ${PROJECT_SOURCE_DIR}/3rdparty/fmt   # fmtlib
 )
+
+# use fmtlib as header-only
+add_definitions(-DFMT_HEADER_ONLY)
+add_subdirectory(3rdparty/fmt EXCLUDE_FROM_ALL)
 
 # Copy files for runtime deployment
 read_filelist(runtime/FILELIST RUNTIME_FILES)

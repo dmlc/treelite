@@ -56,3 +56,7 @@ python/dist/
 
 # symbol directories
 *.dSYM/
+
+# 3rd party libraries
+3rdparty/inja.hpp
+3rdparty/json.hpp

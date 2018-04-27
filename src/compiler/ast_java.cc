@@ -60,7 +60,7 @@ class ASTJavaCompiler : public Compiler {
   std::string pred_tranform_func_;
   std::unordered_map<std::string, std::string> files_;
   std::string main_tail_;
-  const std::string file_prefix_ = "src/main/java/treelite/predictor/";
+  const std::string file_prefix_ = param.java_file_prefix;
 
   void WalkAST(const ASTNode* node,
                const std::string& dest,
@@ -103,7 +103,7 @@ class ASTJavaCompiler : public Compiler {
                                                 "float[] result)"
         : "public static float predict(Entry[] data, boolean pred_margin)";
     CommitToFile(dest,
-                 "package treelite.predictor;\n\n"
+                 "package " + param.java_package + ";\n\n"
                  "import java.lang.Math;\n"
                  "import javolution.context.LogContext;\n"
                  "import javolution.context.LogContext.Level;\n\n"
@@ -285,7 +285,7 @@ class ASTJavaCompiler : public Compiler {
       prototype << "public static float " << func_name.str()
                 << "(Entry[] data)";
     }
-    callee_buf << "package treelite.predictor;\n\n"
+    callee_buf << "package " << param.java_package << ";\n\n"
                << "public class " << class_name.str() << " {\n"
                << "  " << prototype.str() << " {\n";
     CommitToFile(dest, caller_buf.str());

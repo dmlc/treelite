@@ -46,6 +46,7 @@ treelite
 # Project files
 *.pyproj
 .vscode/
+.idea/
 
 # Mac system file
 .DS_Store

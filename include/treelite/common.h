@@ -16,8 +16,11 @@
 #include <limits>
 #include <string>
 #include <memory>
+#include <string>
+#include <sstream>
 #include <iterator>
 #include <functional>
+#include <limits>
 #include <iomanip>
 #include <cerrno>
 #include <climits>
@@ -114,29 +117,97 @@ inline T&& MoveUniquePtr(const std::unique_ptr<T>& ptr) {
   return std::move(*ptr.get());
 }
 
-/*!
- * \brief insert a string into a string stream, adding a newline character
- *        (\n) so that the string stream has no line longer than the given
- *        width.
- * \param p_stm pointer to string stream
- * \param p_length used to keep track of the lenght of current line. It will
- *                 always be the case that [length] <= [textwidth]
- * \param indent indent level inside array
- * \param str string to be inserted
- * \param textwidth maximum width of each line
- */
-inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
-                     const std::string& str, size_t indent,
-                     size_t textwidth) {
-  std::ostringstream& stm = *p_stm;
-  size_t& length = *p_length;
-  if (length + str.length() <= textwidth) {
-    stm << str;
-    length += str.length();
-  } else {
-    stm << "\n" << std::string(indent, ' ') << str;
-    length = str.length() + indent;
+/*! \brief format array as text, wrapped to a given maximum text width. Uses
+ *         high precision to render floating-point values. */
+class ArrayFormatter {
+ public:
+  /*!
+   * \brief constructor
+   * \param text_width maximum text width
+   * \param indent indentation level
+   * \param delimiter delimiter between elements
+   */
+  ArrayFormatter(size_t text_width, size_t indent, char delimiter = ',')
+    : oss_(), text_width_(text_width), indent_(indent), delimiter_(delimiter),
+      default_precision_(oss_.precision()), line_length_(indent) {
+    oss_ << std::string(indent, ' ');
   }
+
+  /*!
+   * \brief add an entry (will use high precision for floating-point values)
+   * \param e entry to be added
+   */
+  template <typename T>
+  inline ArrayFormatter& operator<<(const T& e) {
+    std::ostringstream tmp;
+    tmp << std::setprecision(GetPrecision<T>()) << e << delimiter_ << " ";
+    const std::string token = tmp.str();  // token to be added to wrapped text
+    if (line_length_ + token.length() <= text_width_) {
+      oss_ << token;
+      line_length_ += token.length();
+    } else {
+      oss_ << "\n" << std::string(indent_, ' ') << token;
+      line_length_ = token.length() + indent_;
+    }
+    return *this;
+  }
+
+  /*!
+   * \brief obtain formatted text containing the rendered array
+   * \return string representing the rendered array
+   */
+  inline std::string str() {
+    return oss_.str();
+  }
+
+ private:
+  std::ostringstream oss_;  // string stream to store wrapped text
+  const size_t indent_;  // indent level, to indent each line
+  const size_t text_width_;  // maximum length of each line
+  const char delimiter_;  // delimiter (defaults to comma)
+  const int default_precision_;  // default precision used by string stream
+  size_t line_length_;  // width of current line
+
+  template <typename T>
+  inline int GetPrecision() {
+    return default_precision_;
+  }
+};
+
+template <>
+inline int ArrayFormatter::GetPrecision<float>() {
+  return std::numeric_limits<float>::digits10 + 2;
+}
+template <>
+inline int ArrayFormatter::GetPrecision<double>() {
+  return std::numeric_limits<double>::digits10 + 2;
+}
+
+/*!
+ * \brief apply indentation to a multi-line string by inserting spaces at
+ *        the beginning of each line
+ * \param str multi-line string
+ * \param indent indent level to be applied (in number of spaces)
+ * \return indented string
+ */
+inline std::string IndentMultiLineString(const std::string& str,
+                                         size_t indent = 2) {
+  std::ostringstream oss;
+  if (str[0] != '\n') {
+    oss << std::string(indent, ' ');
+  }
+  bool need_indent = false;
+    // one or more newlines will cause empty spaces to be inserted as indent
+  for (char c : str) {  // assume UNIX-style line ending
+    if (c == '\n') {
+      need_indent = true;
+    } else if (need_indent) {
+      oss << std::string(indent, ' ');
+      need_indent = false;
+    }
+    oss << c;
+  }
+  return oss.str();
 }
 
 /*!
@@ -159,17 +230,15 @@ Iter binary_search(Iter begin, Iter end, const T& val) {
 }
 
 /*!
- * \brief obtain a string representation of primitive type using ostringstream
+ * \brief obtain a string representation of floating-point value, expressed
+ * in high precision
  * \param value a value of primitive type
  * \return string representation
  */
 template <typename T>
-inline std::string ToString(T value) {
+inline std::string ToStringHighPrecision(T value) {
   std::ostringstream oss;
-  // to restore default precision
-  const std::streamsize ss = std::cout.precision();
-  oss << std::setprecision(std::numeric_limits<T>::digits10 + 2) << value
-      << std::setprecision(ss);
+  oss << std::setprecision(std::numeric_limits<T>::digits10 + 2) << value;
   return oss.str();
 }
 

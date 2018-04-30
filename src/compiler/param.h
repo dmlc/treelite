@@ -39,6 +39,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   std::string native_lib_name;
   /*! \brief java package name */
   std::string java_package;
+  /*! \brief java package version */
+  std::string java_package_version;
   /*! \brief java file path prefix */
   std::string java_file_prefix;
 
@@ -57,6 +59,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(max_unit_size).set_default(100).set_lower_bound(5);
     DMLC_DECLARE_FIELD(native_lib_name).set_default("predictor");
     DMLC_DECLARE_FIELD(java_package).set_default("treelite.predictor");
+    DMLC_DECLARE_FIELD(java_package_version).set_default("1.0-SNAPSHOT");
     DMLC_DECLARE_FIELD(java_file_prefix).set_default("src/main/java/treelite/predictor/");
   }
 };

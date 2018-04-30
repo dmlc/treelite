@@ -290,7 +290,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
 
   /* compile model */
-  // TODO: produce recipe.json
   impl->compiler.reset(Compiler::Create(impl->name, cparam));
   auto compiled_model = impl->compiler->Compile(*model_);
   if (verbose > 0) {

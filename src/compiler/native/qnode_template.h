@@ -34,13 +34,17 @@ static const int th_len[] = {{
  * \return bin index corresponding to given feature value
  */
 static inline int quantize(float val, unsigned fid) {{
-  const float* array = &threshold[th_begin[fid]];
+  const size_t offset = th_begin[fid];
+  const float* array = &threshold[offset];
   int len = th_len[fid];
   int low = 0;
   int high = len;
   int mid;
   float mval;
-  if (val < array[0]) {{
+  // It is possible th_begin[i] == [total_num_threshold]. This means that
+  // all features i, (i+1), ... are not used for any of the splits in the model.
+  // So in this case, just return something
+  if (offset == {total_num_threshold} || val < array[0]) {{
     return -10;
   }}
   while (low + 1 < high) {{

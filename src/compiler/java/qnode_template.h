@@ -40,7 +40,10 @@ private static int quantize(float val, int fid) {{
   int high = len;
   int mid;
   float mval;
-  if (val < threshold[offset + 0]) {{
+  // It is possible th_begin[i] == [total_num_threshold]. This means that
+  // all features i, (i+1), ... are not used for any of the splits in the model.
+  // So in this case, just return something
+  if (offset == {total_num_threshold} || val < threshold[offset]) {{
     return -10;
   }}
   while (low + 1 < high) {{

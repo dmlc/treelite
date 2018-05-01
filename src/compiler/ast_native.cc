@@ -342,6 +342,8 @@ class ASTNativeCompiler : public Compiler {
     //   ensemble model. For each feature, an ascending list of unique
     //   thresholds is generated. The range th_begin[i]:(th_begin[i]+th_len[i])
     //   of the threshold[] array stores the threshold list for feature i.
+    size_t total_num_threshold;
+      // to hold total number of (distinct) thresholds
     {
       common::ArrayFormatter formatter(80, 2);
       for (const auto& e : node->cut_pts) {
@@ -360,6 +362,7 @@ class ASTNativeCompiler : public Compiler {
         formatter << accum;
         accum += e.size();  // e.size() = number of thresholds for each feature
       }
+      total_num_threshold = accum;
       array_th_begin = formatter.str();
     }
     {
@@ -374,7 +377,8 @@ class ASTNativeCompiler : public Compiler {
         "array_is_categorical"_a = array_is_categorical,
         "array_threshold"_a = array_threshold,
         "array_th_begin"_a = array_th_begin,
-        "array_th_len"_a = array_th_len), 0);
+        "array_th_len"_a = array_th_len,
+        "total_num_threshold"_a = total_num_threshold), 0);
     AppendToBuffer(dest,
       fmt::format(native::quantize_loop_template,
         "num_feature"_a = num_feature), indent);

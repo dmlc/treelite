@@ -24,7 +24,7 @@ class ASTBuilder {
   ASTBuilder() : output_vector_flag(false), main_node(nullptr),
                  quantize_threshold_flag(false) {}
 
-  void Build(const Model& model);
+  void BuildAST(const Model& model);
   void Split(int parallel_comp);
   void QuantizeThresholds();
   void CountDescendant();
@@ -48,8 +48,8 @@ class ASTBuilder {
     nodes.push_back(std::move(node));
     return ref;
   }
-  ASTNode* WalkTree(const Tree& tree, ASTNode* parent);
-  ASTNode* WalkTree(const Tree& tree, int nid, ASTNode* parent);
+  ASTNode* BuildASTFromTree(const Tree& tree, ASTNode* parent);
+  ASTNode* BuildASTFromTree(const Tree& tree, int nid, ASTNode* parent);
 
   // keep tract of all nodes built so far, to prevent memory leak
   std::vector<std::unique_ptr<ASTNode>> nodes;

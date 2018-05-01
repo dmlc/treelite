@@ -52,7 +52,7 @@ class ASTJavaCompiler : public Compiler {
     files_.clear();
 
     ASTBuilder builder;
-    builder.Build(model);
+    builder.BuildAST(model);
     builder.Split(param.parallel_comp);
     if (param.quantize > 0) {
       builder.QuantizeThresholds();

@@ -10,7 +10,7 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(build);
 
-void ASTBuilder::Build(const Model& model) {
+void ASTBuilder::BuildAST(const Model& model) {
   this->output_vector_flag
     = (model.num_output_group > 1 && model.random_forest_flag);
   this->num_feature = model.num_feature;
@@ -22,7 +22,7 @@ void ASTBuilder::Build(const Model& model) {
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);
   for (int tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
-    ASTNode* tree_head = WalkTree(model.trees[tree_id], ac);
+    ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], ac);
     /* store tree ID in descendant nodes */
     std::function<void(ASTNode*)> func;
     func = [tree_id, &func](ASTNode* node) -> void {
@@ -36,11 +36,11 @@ void ASTBuilder::Build(const Model& model) {
   }
 }
 
-ASTNode* ASTBuilder::WalkTree(const Tree& tree, ASTNode* parent) {
-  return WalkTree(tree, 0, parent);
+ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, ASTNode* parent) {
+  return BuildASTFromTree(tree, 0, parent);
 }
 
-ASTNode* ASTBuilder::WalkTree(const Tree& tree, int nid, ASTNode* parent) {
+ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int nid, ASTNode* parent) {
   const Tree::Node& node = tree[nid];
   ASTNode* ast_node = nullptr;
   if (node.is_leaf()) {
@@ -63,8 +63,8 @@ ASTNode* ASTBuilder::WalkTree(const Tree& tree, int nid, ASTNode* parent) {
                                                    node.default_left(),
                                                    node.left_categories());
     }
-    ast_node->children.push_back(WalkTree(tree, node.cleft(), ast_node));
-    ast_node->children.push_back(WalkTree(tree, node.cright(), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, node.cleft(), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, node.cright(), ast_node));
   }
   ast_node->node_id = nid;
 

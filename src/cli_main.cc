@@ -256,7 +256,7 @@ void CLIDumpAST(const CLIParam& param) {
   Model model = ParseModel(param);
   LOG(INFO) << "model size = " << model.trees.size();
   compiler::ASTBuilder builder;
-  builder.Build(model);
+  builder.BuildAST(model);
   if (cparam.annotate_in != "NULL") {
     BranchAnnotator annotator;
     std::unique_ptr<dmlc::Stream> fi(

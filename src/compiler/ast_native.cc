@@ -34,7 +34,7 @@ class ASTNativeCompiler : public Compiler {
     files_.clear();
 
     ASTBuilder builder;
-    builder.Build(model);
+    builder.BuildAST(model);
     if (param.annotate_in != "NULL") {
       BranchAnnotator annotator;
       std::unique_ptr<dmlc::Stream> fi(

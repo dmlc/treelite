@@ -164,28 +164,3 @@ to C++ code will be immediately visible to Python side without re-running
   export PYTHONPATH=path/to/treelite/python
   python          # enter interactive session
 
-.. note:: Compiling with Protocol Buffers support
-
-  If your system has Protocol Buffers
-  (`google/protobuf <https://github.com/google/protobuf>`_) library installed,
-  treelite will be compiled with Protocol Buffers support. That is, you will
-  able to read tree ensemble models that had been serialized using Protocol
-  Buffers. Protocol Buffers support is strictly optional; treelite can be
-  compiled without it. Should you decide to use Protocol Buffers, you should
-  specify your ensemble model according to the specification `src/tree.proto
-  <https://github.com/dmlc/treelite/blob/master/src/tree.proto>`_.
-
-  **Binary releases hosted on PyPI have been compiled with Protocol Buffers support.**
-
-  **On Windows,** you should specify the root directory containing Protobuf
-  compilers and libraries by setting the environment variable
-  ``CMAKE_PREFIX_PATH`` as follows:
-
-  .. code-block:: dosbatch
-
-    mkdir build
-    cd build
-
-    :: Specify location of protobuf (Protocol Buffers)
-    set CMAKE_PREFIX_PATH=C:\path\to\protobuf
-    cmake .. -G"Visual Studio 15 2017 Win64"

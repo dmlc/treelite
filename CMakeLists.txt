@@ -2,7 +2,6 @@ cmake_minimum_required (VERSION 3.1)
 project(treelite)
 include(cmake/Utils.cmake)
 find_package(OpenMP)
-find_package(Protobuf)
 
 # Use RPATH on Mac OS X as flexible mechanism for locating dependencies
 # See https://blog.kitware.com/upcoming-in-cmake-2-8-12-osx-rpath-support/
@@ -11,10 +10,17 @@ set(CMAKE_MACOSX_RPATH TRUE)
 # Set BUILD_SHARED_LIBS as option. By default, build shared libraries;
 # User can set this to OFF to build static libraries instead.
 option(BUILD_SHARED_LIBS "Build shared library" ON)
-option(DISABLE_PROTOBUF "Disable Protobuf" OFF)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
+
+# Protobuf
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
+set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
+add_subdirectory(3rdparty/protobuf/cmake)
+set(PROTOBUF_PROTOC_EXECUTABLE protoc)
+set(PROTOBUF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/3rdparty/protobuf/src")
+set(PROTOBUF_LIBRARIES libprotobuf)
 
 # check MSVC version
 if(MSVC)
@@ -28,10 +34,8 @@ msvc_use_static_runtime()
 
 # OpenMP check
 if(OPENMP_FOUND)
-  message("Got OpenMP")
   add_definitions(-DTREELITE_OPENMP_SUPPORT)
 else(OPENMP_FOUND)
-  message("Don't have OpenMP")
   include(dmlc-core/cmake/Utils.cmake)
   dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)
 endif(OPENMP_FOUND)
@@ -96,15 +100,11 @@ endforeach(g)
 list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
-if (NOT DISABLE_PROTOBUF)
-  if (Protobuf_FOUND OR PROTOBUF_FOUND)
-    set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
-    include_directories(${PROTOBUF_INCLUDE_DIRS})
-    include_directories(${CMAKE_CURRENT_BINARY_DIR})
-    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS src/tree.proto)
-    list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
-  endif()
-endif()
+set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
+include_directories(${PROTOBUF_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src/tree.proto)
+list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
 
 # dmlc-core
 set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS
@@ -125,11 +125,7 @@ if (UNIX)
 endif (UNIX)
 
 # Protobuf library
-if (NOT DISABLE_PROTOBUF)
-  if (Protobuf_FOUND OR PROTOBUF_FOUND)
-    list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
-  endif()
-endif()
+list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
 
 add_library(objtreelite OBJECT ${SOURCES})
 add_library(objtreelite_runtime OBJECT ${RUNTIME_SOURCES})

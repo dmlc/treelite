@@ -104,6 +104,7 @@ set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITI
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src/tree.proto)
+PROTOBUF_GENERATE_JAVA(tree_proto_java src/tree.proto)
 list(INSERT SOURCES 0 ${PROTO_SRCS} ${PROTO_HDRS})
 
 # dmlc-core

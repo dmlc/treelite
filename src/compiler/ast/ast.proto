@@ -2,6 +2,9 @@ syntax = "proto2";
 
 package treelite_ast_protobuf;
 
+option java_package = "ml.dmlc";
+option java_outer_classname = "TreeliteAST";
+
 message ASTTree {
   optional ASTNode head = 1;
   optional int32 num_feature = 2;

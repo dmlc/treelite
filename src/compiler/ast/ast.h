@@ -1,6 +1,9 @@
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
 
+#include <treelite/base.h>
+#include <dmlc/optional.h>
+
 namespace treelite {
 namespace compiler {
 
@@ -20,11 +23,14 @@ inline std::string OpName(Operator op) {
   }
 }
 
-/*! \brief enum class to store branch annotation */
-enum class BranchHint : uint8_t {
-  kNone = 0,     /*!< no hint */
-  kLikely = 1,   /*!< condition >50% likely */
-  kUnlikely = 2  /*!< condition <50% likely */
+/*! \brief structure to store branch frequency information */
+struct BranchHint {
+  /*!\brief Number of training examples whose paths cross the left child node */
+  size_t left_freq;
+  /*! \brief number of training examples whose paths cross the right child node */
+  size_t right_freq;
+  BranchHint(size_t left_freq, size_t right_freq)
+    : left_freq(left_freq), right_freq(right_freq) {}
 };
 
 class ASTNode {
@@ -75,12 +81,13 @@ class AccumulatorContextNode : public ASTNode {
 
 class ConditionNode : public ASTNode {
  public:
-  ConditionNode(unsigned split_index, bool default_left, BranchHint branch_hint)
+  ConditionNode(unsigned split_index, bool default_left,
+                dmlc::optional<BranchHint> branch_hint)
     : split_index(split_index), default_left(default_left),
       branch_hint(branch_hint) {}
   unsigned split_index;
   bool default_left;
-  BranchHint branch_hint;
+  dmlc::optional<BranchHint> branch_hint;
 };
 
 union ThresholdVariant {
@@ -95,7 +102,8 @@ class NumericalConditionNode : public ConditionNode {
   NumericalConditionNode(unsigned split_index, bool default_left,
                          bool quantized, Operator op,
                          ThresholdVariant threshold,
-                         BranchHint branch_hint = BranchHint::kNone)
+                         dmlc::optional<BranchHint> branch_hint
+                           = dmlc::optional<BranchHint>())
     : ConditionNode(split_index, default_left, branch_hint),
       quantized(quantized), op(op), threshold(threshold) {}
   bool quantized;
@@ -107,7 +115,8 @@ class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
                            const std::vector<uint32_t>& left_categories,
-                           BranchHint branch_hint = BranchHint::kNone)
+                           dmlc::optional<BranchHint> branch_hint
+                           = dmlc::optional<BranchHint>())
     : ConditionNode(split_index, default_left, branch_hint),
       left_categories(left_categories) {}
   std::vector<uint32_t> left_categories;

@@ -30,7 +30,6 @@ class ASTBuilder {
   void CountDescendant();
   void BreakUpLargeUnits(int num_descendant_limit);
   void AnnotateBranches(const std::vector<std::vector<size_t>>& counts);
-  void Dump();
 
   inline const ASTNode* GetRootNode() {
     return main_node;

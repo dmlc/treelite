@@ -20,10 +20,9 @@ static void annotate(ASTNode* node,
     CHECK_EQ(children.size(), 2);
     CHECK_EQ(tree_id, children[0]->tree_id);
     CHECK_EQ(tree_id, children[1]->tree_id);
-    const size_t left_count = counts[tree_id][children[0]->node_id];
-    const size_t right_count = counts[tree_id][children[1]->node_id];
-    cond_node->branch_hint = (left_count > right_count) ? BranchHint::kLikely
-                                                        : BranchHint::kUnlikely;
+    const size_t left_freq = counts[tree_id][children[0]->node_id];
+    const size_t right_freq = counts[tree_id][children[1]->node_id];
+    cond_node->branch_hint = BranchHint(left_freq, right_freq);
   }
 
   for (ASTNode* child : node->children) {

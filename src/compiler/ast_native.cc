@@ -226,18 +226,13 @@ class ASTNativeCompiler : public Compiler {
       = fmt::format(condition_with_na_check_template,
           "split_index"_a = node->split_index,
           "condition"_a = condition);
-    switch (node->branch_hint) {
-     case BranchHint::kLikely:
+    if (node->branch_hint) {
+      const BranchHint hint = node->branch_hint.value();
       condition_with_na_check
-        = fmt::format(" LIKELY( {} ) ", condition_with_na_check);
-      break;
-     case BranchHint::kUnlikely:
-      condition_with_na_check
-        = fmt::format(" UNLIKELY( {} ) ", condition_with_na_check);
-      break;
-     case BranchHint::kNone:
-     default:
-      break;
+        = fmt::format(" {keyword}( {condition} ) ",
+            "keyword"_a = ((hint.left_freq > hint.right_freq)
+                           ? "LIKELY" : "UNLIKELY"),
+            "condition"_a = condition_with_na_check);
     }
     AppendToBuffer(dest,
       fmt::format("if ({}) {{\n", condition_with_na_check), indent);

@@ -39,7 +39,7 @@ message Node {
                                      // missing if leaf or categorical split
    optional float threshold = 7;     // Decision threshold
                                      // missing if leaf or categorical split
-   repeated int32 left_categories = 8;
+   repeated uint32 left_categories = 8;
                                      // List of all categories belonging to
                                      // the left child. All other categories
                                      // will belong to the right child.

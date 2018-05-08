@@ -25,7 +25,7 @@ inline std::string OpName(Operator op) {
 
 /*! \brief structure to store branch frequency information */
 struct BranchHint {
-  /*!\brief Number of training examples whose paths cross the left child node */
+  /*! \brief number of training examples whose paths cross the left child node */
   size_t left_freq;
   /*! \brief number of training examples whose paths cross the right child node */
   size_t right_freq;

@@ -7,9 +7,8 @@
 
 #include <treelite/tree.h>
 #include <queue>
-
-#ifdef PROTOBUF_SUPPORT
 #include "tree.pb.h"
+
 namespace {
 
 enum class NodeType : int8_t {
@@ -199,20 +198,3 @@ Model LoadProtobufModel(const char* filename) {
 
 }  // namespace frontend
 }  // namespace treelite
-
-#else
-
-namespace treelite {
-namespace frontend {
-
-DMLC_REGISTRY_FILE_TAG(protobuf);
-
-Model LoadProtobufModel(const char* filename) {
-  LOG(FATAL) << "Protobuf library not linked";
-  return Model();
-}
-
-}  // namespace frontend
-}  // napespace treelite
-
-#endif  // PROTOBUF_SUPPORT

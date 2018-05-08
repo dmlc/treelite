@@ -36,16 +36,14 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
 endif()
 
-include_directories (
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/dmlc-core/include
-)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+copy_files(FILELIST RUNTIME_FILES)
 
 file(GLOB_RECURSE SOURCES
     src/*.cc
     src/*.h
     include/*.h
-    dmlc-core/include/*.h
 )
 
 # -ldl for UNIX-like systems

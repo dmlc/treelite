@@ -9,7 +9,6 @@ import json
 import time
 import shutil
 from ..common.util import TreeliteError, lineno, log_info
-from ..common.libpath import find_lib_path
 from .util import _libext, _toolchain_exist_check
 
 def _check_ext(toolchain, dllpath):
@@ -98,32 +97,6 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
       f.write('\t{}\n'.format(_obj_cmd(source=source['name'],
                                        toolchain=toolchain,
                                        options=options)))
-
-def save_runtime_package(destdir, include_binary=False):
-  """
-  Save a copy of the (zipped) runtime package, containing all glue code
-  necessary to deploy compiled models into the wild
-
-  Parameters
-  ----------
-  destdir : :py:class:`str <python:str>`
-      directory to save the zipped package
-  include_binary : boolean, optional (defaults to False)
-      whether to include the compiled binary (.dll/.so/.dylib) in the package.
-      If this option is enabled, you won't have to run the CMake script on
-      **the target machine** (the machine to run the deployed model).
-      **Warning**: To enable this option, **the host machine** (one running
-      treelite) must use the same platform (OS + CPU) as **the target machine.**
-      This is to ensure binary compatibility. If the host and target machines
-      differ in platform, they cannot share the compiled binary.
-  """
-  if include_binary:
-    pkg_path = find_lib_path(basename='treelite_runtime_with_binary.zip',
-                             libformat=False)
-  else:
-    pkg_path = find_lib_path(basename='treelite_runtime.zip',
-                             libformat=False)
-  shutil.copy(pkg_path[0], os.path.join(destdir, 'treelite_runtime.zip'))
 
 def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
   """Create shared library.

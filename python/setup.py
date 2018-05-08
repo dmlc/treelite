@@ -42,21 +42,6 @@ if os.path.exists(RT_DEST):
 shutil.copy(LIB_PATH[0], LIB_DEST)
 shutil.copy(RT_PATH[0], RT_DEST)
 
-# Create a zipped package containing glue code for deployment
-RT_PKG_LIB = '../build/runtime/lib/'
-if os.path.lexists(RT_PKG_LIB):
-  shutil.rmtree(RT_PKG_LIB)
-shutil.make_archive(base_name='./treelite/treelite_runtime',
-                    format='zip',
-                    root_dir=os.path.abspath('../build/'),
-                    base_dir='runtime/')
-os.mkdir(RT_PKG_LIB)
-shutil.copy(RT_PATH[0], RT_PKG_LIB)
-shutil.make_archive(base_name='./treelite/treelite_runtime_with_binary',
-                    format='zip',
-                    root_dir=os.path.abspath('../build/'),
-                    base_dir='runtime/')
-
 with open('../VERSION', 'r') as f:
   VERSION = f.readlines()[0].rstrip('\n')
   with open('./treelite/VERSION', 'w') as f2:
@@ -73,8 +58,7 @@ setup(
     packages=find_packages(),
     install_requires=['numpy', 'scipy'],
     package_data={
-        'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip',
-                     'treelite_runtime_with_binary.zip', 'VERSION']
+        'treelite': [LIB_BASENAME, RT_BASENAME, 'VERSION']
     },
     distclass=BinaryDistribution
 )

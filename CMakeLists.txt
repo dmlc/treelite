@@ -60,6 +60,7 @@ endif()
 include_directories (
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/dmlc-core/include
+    ${PROJECT_SOURCE_DIR}/runtime/native/include
     ${PROJECT_SOURCE_DIR}/3rdparty/fmt   # fmtlib
 )
 
@@ -67,37 +68,11 @@ include_directories (
 add_definitions(-DFMT_HEADER_ONLY)
 add_subdirectory(3rdparty/fmt EXCLUDE_FROM_ALL)
 
-# Copy files for runtime deployment
-read_filelist(runtime/FILELIST RUNTIME_FILES)
-deploy_file(runtime/CMakeLists.txt ".")
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/runtime/build)
-foreach(f ${RUNTIME_FILES})
-  deploy_file(${f} runtime)
-endforeach()
-
 file(GLOB_RECURSE SOURCES
     src/*.cc
     src/*.h
     include/*.h
 )
-
-# SOURCES: sources included only in the main package
-# RUNTIME_SOURCES: sources included only in the runtime
-# COMMON_SOURCES: sources included both in the main package and in the runtime
-set(COMMON_SOURCES include/treelite/c_api_common.h include/treelite/logging.h include/treelite/omp.h src/c_api/c_api_common.cc src/c_api/c_api_error.cc src/c_api/c_api_error.h src/common/math.h src/logging.cc)
-set(RUNTIME_SOURCES include/treelite/c_api_runtime.h include/treelite/predictor.h src/c_api/c_api_runtime.cc src/predictor.cc)
-
-# Only add main function for executable target
-# Only add runtime functions for runtime library
-set(COMMON_SOURCES_WITH_PREFIX "")
-set(RUNTIME_SOURCES_WITH_PREFIX "")
-foreach(f ${COMMON_SOURCES})
-  list(APPEND COMMON_SOURCES_WITH_PREFIX ${PROJECT_SOURCE_DIR}/${f})
-endforeach(f)
-foreach(g ${RUNTIME_SOURCES})
-  list(APPEND RUNTIME_SOURCES_WITH_PREFIX ${PROJECT_SOURCE_DIR}/${g})
-endforeach(g)
-list(REMOVE_ITEM SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${COMMON_SOURCES_WITH_PREFIX} ${RUNTIME_SOURCES_WITH_PREFIX})
 
 # Protobuf library
 set_source_files_properties(src/frontend/protobuf.cc PROPERTIES COMPILE_DEFINITIONS PROTOBUF_SUPPORT)
@@ -116,47 +91,24 @@ if (TARGET dmlc_unit_tests)
   set_target_properties(dmlc_unit_tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
 endif()
 
-# separate sets of dependencies for main package and runtime
 set(LINK_LIBRARIES dmlc)
-set(RUNTIME_LINK_LIBRARIES "")
-
-# -ldl for UNIX-like systems
-if (UNIX)
-  list(APPEND RUNTIME_LINK_LIBRARIES dl)
-endif (UNIX)
 
 # Protobuf library
 list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
 
 add_library(objtreelite OBJECT ${SOURCES})
-add_library(objtreelite_runtime OBJECT ${RUNTIME_SOURCES})
-add_library(objtreelite_common OBJECT ${COMMON_SOURCES})
 
-# Executable
-add_executable(runtreelite $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common> src/cli_main.cc)
-set_target_properties(runtreelite PROPERTIES
-  OUTPUT_NAME treelite
-)
-set_output_directory(runtreelite ${PROJECT_SOURCE_DIR})
-target_link_libraries(runtreelite ${LINK_LIBRARIES} ${RUNTIME_LINK_LIBRARIES})
+# Native runtime
+add_subdirectory(runtime/native)
 
 # Shared library
-add_library(treelite $<TARGET_OBJECTS:objtreelite> $<TARGET_OBJECTS:objtreelite_common>)
-add_library(treelite_runtime $<TARGET_OBJECTS:objtreelite_runtime> $<TARGET_OBJECTS:objtreelite_common>)
+add_library(treelite $<TARGET_OBJECTS:objtreelite>)
 target_link_libraries(treelite ${LINK_LIBRARIES})
-target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES})
 set_output_directory(treelite ${PROJECT_SOURCE_DIR}/lib)
-set_output_directory(treelite_runtime ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite PROPERTIES PREFIX "")
-  set_target_properties(treelite_runtime PROPERTIES PREFIX "")
 endif()
-
-# Ensure these two targets do not build simultaneously, as they produce outputs with conflicting names
-add_dependencies(treelite runtreelite)
 
 # Group sources
 auto_source_group("${SOURCES}")
-auto_source_group("${RUNTIME_SOURCES}")
-auto_source_group("${COMMON_SOURCES}")

@@ -9,7 +9,7 @@ modules in the wild.
 from __future__ import absolute_import as _abs
 import sys
 from importlib import import_module
-from ..common.compat import assert_python_min_ver
+from .common.compat import assert_python_min_ver
 assert_python_min_ver('2.7', '3.1', 'importlib')
 
 # package will re-export public members of the following scripts/subpackages:

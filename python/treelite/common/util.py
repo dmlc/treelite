@@ -12,6 +12,10 @@ import sys
 from .libpath import TreeliteLibraryNotFound
 from .compat import py_str, PY3
 
+class TreeliteVersionNotFound(Exception):
+  """Error thrown by when version file is not found"""
+  pass
+
 def c_str(string):
   """Convert a Python string to C string"""
   return ctypes.c_char_p(string.encode('utf-8'))
@@ -34,12 +38,12 @@ def _load_ver():
   ver_path = [curr_path, os.path.join(curr_path, '../../'),
               os.path.join(sys.prefix, 'treelite')]
   ver_path = [os.path.join(p, 'VERSION') for p in ver_path]
-  ver_path = [p for p in ver_path if os.path.exists(p) and os.path.isfile(p)]
-  if not ver_path:
-    raise TreeliteLibraryNotFound(
+  ver_path_found = [p for p in ver_path if os.path.exists(p) and os.path.isfile(p)]
+  if not ver_path_found:
+    raise TreeliteVersionNotFound(
         'Cannot find version information in the candidate path: ' +
         'List of candidates:\n' + ('\n'.join(ver_path)))
-  with open(ver_path[0], 'r') as f:
+  with open(ver_path_found[0], 'r') as f:
     VERSION = f.readlines()[0].rstrip('\n')
   return VERSION
 

@@ -1,28 +1,3 @@
-function(read_filelist FILENAME RESULT_NAME)
-  file(READ ${FILENAME} CONTENTS)
-  # Convert file contents into a CMake list (where each element in the list
-  # is one line of the file)
-  string(REGEX REPLACE ";" "\\\\;" CONTENTS "${CONTENTS}")
-  string(REGEX REPLACE "\n" ";" CONTENTS "${CONTENTS}")
-  # Ignore all lines starting with # (comments)
-  set(RESULT "")
-  foreach(f ${CONTENTS})
-    if(NOT "${f}" MATCHES "^#.*")
-      list(APPEND RESULT "${f}")
-    endif()
-  endforeach()
-  set(${RESULT_NAME} ${RESULT} PARENT_SCOPE)
-endfunction(read_filelist)
-
-# Deploy a file from the source directory into a subdirectory of the build
-# directory. Relative paths for FILENAME are evaluated with respect to the
-# current source directory, and relative paths for DESTDIR are evaluated with
-# respect to the current build directory.
-function(deploy_file FILENAME DESTDIR)
-  get_filename_component(FILEDIR "${FILENAME}" DIRECTORY)
-  file(COPY "${FILENAME}" DESTINATION "${DESTDIR}/${FILEDIR}")
-endfunction(deploy_file)
-
 # Automatically set source group based on folder
 function(auto_source_group SOURCES)
 

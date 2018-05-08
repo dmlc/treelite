@@ -5,9 +5,9 @@ import ctypes
 import sys
 import os
 import numpy as np
-from ..common.util import c_str, _get_log_callback_func, TreeliteError, \
+from .common.util import c_str, _get_log_callback_func, TreeliteError, \
                           lineno, log_info, _load_ver
-from ..common.libpath import find_lib_path, TreeliteLibraryNotFound
+from .libpath import TreeliteLibraryNotFound, find_lib_path
 
 __version__ = _load_ver()
 

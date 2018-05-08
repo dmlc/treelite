@@ -27,18 +27,6 @@ enum class BranchHint : uint8_t {
   kUnlikely = 2  /*!< condition <50% likely */
 };
 
-inline std::string BranchHintName(BranchHint hint) {
-  switch (hint) {
-   case BranchHint::kNone:
-    return "kNone";
-   case BranchHint::kLikely:
-    return "kLikely";
-   case BranchHint::kUnlikely:
-    return "kUnlikely";
-  }
-  LOG(FATAL) << "Unrecognized BranchHint value";
-}
-
 class ASTNode {
  public:
   ASTNode* parent;
@@ -46,8 +34,9 @@ class ASTNode {
   int node_id;
   int tree_id;
   int num_descendant;
-  virtual void Dump(int indent) = 0;
+  virtual ~ASTNode() = 0;  // force ASTNode to be abstract class
 };
+inline ASTNode::~ASTNode() {}
 
 class MainNode : public ASTNode {
  public:
@@ -55,15 +44,6 @@ class MainNode : public ASTNode {
            int num_feature)
     : global_bias(global_bias), average_result(average_result),
       num_tree(num_tree), num_feature(num_feature) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "MainNode {"
-              << "global_bias: " << this->global_bias << ", "
-              << "average_result: " << this->average_result << ", "
-              << "num_tree: " << this->num_tree << ", "
-              << "num_feature: " << this->num_feature << "}"
-              << std::endl;
-  }
   tl_float global_bias;
   bool average_result;
   int num_tree;
@@ -73,12 +53,6 @@ class MainNode : public ASTNode {
 class TranslationUnitNode : public ASTNode {
  public:
   TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "TranslationUnitNode {"
-              << "unit_id: " << unit_id << "}"
-              << std::endl;
-  }
   int unit_id;
 };
 
@@ -92,19 +66,11 @@ class QuantizerNode : public ASTNode {
     : cut_pts(std::move(cut_pts)), is_categorical(std::move(is_categorical)) {}
   std::vector<std::vector<tl_float>> cut_pts;
   std::vector<bool> is_categorical;
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "QuantizerNode = {}" << std::endl;
-  }
 };
 
 class AccumulatorContextNode : public ASTNode {
  public:
   AccumulatorContextNode() {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "AccumulatorContextNode = {}" << std::endl;
-  }
 };
 
 class ConditionNode : public ASTNode {
@@ -132,18 +98,6 @@ class NumericalConditionNode : public ConditionNode {
                          BranchHint branch_hint = BranchHint::kNone)
     : ConditionNode(split_index, default_left, branch_hint),
       quantized(quantized), op(op), threshold(threshold) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "NumericalConditionNode {"
-              << "split_index: " << this->split_index << ", "
-              << "default_left: " << this->default_left << ", "
-              << "quantized: " << this->quantized << ", "
-              << "op: " << OpName(this->op) << ", "
-              << "threshold: " << (quantized ? this->threshold.int_val
-                                             : this->threshold.float_val) << ", "
-              << "branch_hint: " << BranchHintName(this->branch_hint)
-              << "}" << std::endl;
-  }
   bool quantized;
   Operator op;
   ThresholdVariant threshold;
@@ -156,19 +110,6 @@ class CategoricalConditionNode : public ConditionNode {
                            BranchHint branch_hint = BranchHint::kNone)
     : ConditionNode(split_index, default_left, branch_hint),
       left_categories(left_categories) {}
-  void Dump(int indent) override {
-    std::ostringstream oss;
-    for (uint32_t e : this->left_categories) {
-      oss << e << ", ";
-    }
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "CategoricalConditionNode {"
-              << "split_index: " << this->split_index << ", "
-              << "default_left: " << this->default_left << ", "
-              << "left_categories: [" << oss.str() << "], "
-              << "branch_hint: " << BranchHintName(this->branch_hint)
-              << "}" << std::endl;
-  }
   std::vector<uint32_t> left_categories;
 };
 
@@ -178,22 +119,6 @@ class OutputNode : public ASTNode {
     : is_vector(false), scalar(scalar) {}
   OutputNode(const std::vector<tl_float>& vector)
     : is_vector(true), vector(vector) {}
-  void Dump(int indent) override {
-    if (this->is_vector) {
-      std::ostringstream oss;
-      for (tl_float e : this->vector) {
-        oss << e << ", ";
-      }
-      std::cerr << std::string(indent, ' ')
-                << "OutputNode {vector: [" << oss.str() << "]}"
-                << std::endl;
-    } else {
-      std::cerr << std::string(indent, ' ') 
-                << "OutputNode {scalar: " << this->scalar << "}"
-                << std::endl;
-    }
-  }
-
   bool is_vector;
   tl_float scalar;
   std::vector<tl_float> vector;

@@ -318,7 +318,7 @@ class ASTNativeCompiler : public Compiler {
                     "}}\n",
           "num_output_group"_a = num_output_group_), 0);
     } else {
-      AppendToBuffer(new_file, "  return sum;\n}}\n", 0);
+      AppendToBuffer(new_file, "  return sum;\n}\n", 0);
     }
     AppendToBuffer("header.h", fmt::format("{};\n", unit_function_signature), 0);
   }

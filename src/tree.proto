@@ -2,6 +2,9 @@ syntax = "proto2";
 
 package treelite_protobuf;
 
+option java_package = "ml.dmlc";
+option java_outer_classname = "TreeliteModel";
+
 message Model {
   repeated Tree trees = 1;
   optional int32 num_feature = 2;
@@ -39,7 +42,7 @@ message Node {
                                      // missing if leaf or categorical split
    optional float threshold = 7;     // Decision threshold
                                      // missing if leaf or categorical split
-   repeated int32 left_categories = 8;
+   repeated uint32 left_categories = 8;
                                      // List of all categories belonging to
                                      // the left child. All other categories
                                      // will belong to the right child.

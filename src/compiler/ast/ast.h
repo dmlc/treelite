@@ -11,7 +11,11 @@
 #include <vector>
 #include <treelite/base.h>
 #include <dmlc/optional.h>
-#include "ast.pb.h"
+
+// forward declaration
+namespace treelite_ast_protobuf {
+class ASTNode;
+}  // namespace treelite_ast_protobuf
 
 namespace treelite {
 namespace compiler {

@@ -59,6 +59,9 @@ class ASTJavaCompiler : public Compiler {
     }
     builder.CountDescendant();
     builder.BreakUpLargeUnits(param.max_unit_size);
+    if (param.ast_dump_path != "NULL") {
+      builder.Serialize(param.ast_dump_path);
+    }
     files_[file_prefix_ + "Entry.java"]
       = fmt::format(java::entry_type_template,
           "java_package"_a = param.java_package);

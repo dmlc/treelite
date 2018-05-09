@@ -58,6 +58,9 @@ class ASTNativeCompiler : public Compiler {
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
+    if (param.ast_dump_path != "NULL") {
+      builder.Serialize(param.ast_dump_path);
+    }
     WalkAST(builder.GetRootNode(), "main.c", 0);
 
     {

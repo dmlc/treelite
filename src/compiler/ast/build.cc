@@ -14,6 +14,8 @@ void ASTBuilder::BuildAST(const Model& model) {
   this->output_vector_flag
     = (model.num_output_group > 1 && model.random_forest_flag);
   this->num_feature = model.num_feature;
+  this->num_output_group = model.num_output_group;
+  this->random_forest_flag = model.random_forest_flag;
 
   this->main_node = AddNode<MainNode>(nullptr, model.param.global_bias,
                                                model.random_forest_flag,
@@ -34,6 +36,7 @@ void ASTBuilder::BuildAST(const Model& model) {
     func(tree_head);
     ac->children.push_back(tree_head);
   }
+  this->model_param = model.param.__DICT__();
 }
 
 ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, ASTNode* parent) {

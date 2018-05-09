@@ -3,6 +3,7 @@
 
 #include <treelite/common.h>
 #include <treelite/tree.h>
+#include <ostream>
 #include "./ast.h"
 
 namespace treelite {
@@ -24,6 +25,8 @@ class ASTBuilder {
   void CountDescendant();
   void BreakUpLargeUnits(int num_descendant_limit);
   void AnnotateBranches(const std::vector<std::vector<size_t>>& counts);
+  void Serialize(std::ostream* output);
+  void Serialize(const std::string& filename);
 
   inline const ASTNode* GetRootNode() {
     return main_node;
@@ -49,7 +52,10 @@ class ASTBuilder {
   bool output_vector_flag;
   bool quantize_threshold_flag;
   int num_feature;
+  int num_output_group;
+  bool random_forest_flag;
   ASTNode* main_node;
+  std::map<std::string, std::string> model_param;
 };
 
 }  // namespace compiler

@@ -49,6 +49,9 @@ class ASTJavaCompiler : public Compiler {
     }
     builder.CountDescendant();
     builder.BreakUpLargeUnits(param.max_unit_size);
+    if (param.ast_dump_path != "NULL") {
+      builder.Serialize(param.ast_dump_path);
+    }
     #include "java/entry_type.h"
     #include "java/pom_xml.h"
     files_[file_prefix_ + "Entry.java"]

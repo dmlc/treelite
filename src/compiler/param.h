@@ -32,7 +32,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   int parallel_comp;
   /*! \brief if >0, produce extra messages */
   int verbose;
-  /*! \} */
+  /*! \brief parameter to conform to Java's 64K bytecode limit.
+             Not applicable to native target */
   int max_unit_size;
   /*! \brief java package name */
   std::string java_package;
@@ -40,6 +41,9 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   std::string java_package_version;
   /*! \brief java file path prefix */
   std::string java_file_prefix;
+  /*! \brief path to save a dump of AST. If NULL, don't generate dump */
+  std::string ast_dump_path;
+  /*! \} */
 
   // declare parameters
   DMLC_DECLARE_PARAMETER(CompilerParam) {
@@ -56,7 +60,11 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(max_unit_size).set_default(100).set_lower_bound(5);
     DMLC_DECLARE_FIELD(java_package).set_default("treelite.predictor");
     DMLC_DECLARE_FIELD(java_package_version).set_default("1.0-SNAPSHOT");
-    DMLC_DECLARE_FIELD(java_file_prefix).set_default("src/main/java/treelite/predictor/");
+    DMLC_DECLARE_FIELD(java_file_prefix)
+       .set_default("src/main/java/treelite/predictor/");
+    DMLC_DECLARE_FIELD(ast_dump_path)
+       .set_default("NULL")
+       .describe("Path to save a dump of AST");
   }
 };
 

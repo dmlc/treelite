@@ -15,7 +15,7 @@ static int count(ASTNode* node) {
   for (ASTNode* child : node->children) {
     accum += count(child) + 1;
   }
-  node->num_descendant = accum;
+  node->num_descendant_ast_node = accum;
   return accum;
 }
 

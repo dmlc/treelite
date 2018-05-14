@@ -229,12 +229,12 @@ class ASTNativeCompiler : public Compiler {
       = fmt::format(condition_with_na_check_template,
           "split_index"_a = node->split_index,
           "condition"_a = condition);
-    if (node->branch_hint) {
-      const BranchHint hint = node->branch_hint.value();
+    if (node->children[0]->data_count && node->children[1]->data_count) {
+      const int left_freq = node->children[0]->data_count.value();
+      const int right_freq = node->children[1]->data_count.value();
       condition_with_na_check
         = fmt::format(" {keyword}( {condition} ) ",
-            "keyword"_a = ((hint.left_freq > hint.right_freq)
-                           ? "LIKELY" : "UNLIKELY"),
+            "keyword"_a = ((left_freq > right_freq) ? "LIKELY" : "UNLIKELY"),
             "condition"_a = condition_with_na_check);
     }
     AppendToBuffer(dest,

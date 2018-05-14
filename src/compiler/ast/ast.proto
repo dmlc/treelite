@@ -19,13 +19,16 @@ message ASTNode {
   repeated ASTNode children = 1;
   optional int32 node_id = 2;
   optional int32 tree_id = 3;
+  optional uint64 data_count = 4;
+  optional double sum_hess = 5;
   oneof subclasses {
-    MainNode main_variant = 4;
-    TranslationUnitNode translation_unit_variant = 5;
-    QuantizerNode quantizer_variant = 6;
-    AccumulatorContextNode accumulator_context_variant = 7;
-    ConditionNode condition_variant = 8;
-    OutputNode output_variant = 9;
+    MainNode main_variant = 16;
+    TranslationUnitNode translation_unit_variant = 17;
+    QuantizerNode quantizer_variant = 18;
+    AccumulatorContextNode accumulator_context_variant = 19;
+    ConditionNode condition_variant = 20;
+    OutputNode output_variant = 21;
+    CodeFolderNode code_folder_variant = 22;
   }
 }
 
@@ -50,16 +53,15 @@ message QuantizerNode {
 
 message AccumulatorContextNode {}
 
+message CodeFolderNode {}
+
 message ConditionNode {
   optional uint32 split_index = 1;
   optional bool default_left = 2;
-  // Numbers of training examples whose paths cross the left and right
-  // child nodes, respectively. May not be available.
-  optional uint64 left_freq = 3;
-  optional uint64 right_freq = 4;
+  optional double gain = 3;
   oneof subclasses {
-    NumericalConditionNode numerical_variant = 5;
-    CategoricalConditionNode categorical_variant = 6;
+    NumericalConditionNode numerical_variant = 16;
+    CategoricalConditionNode categorical_variant = 17;
   }
 }
 
@@ -68,8 +70,8 @@ message NumericalConditionNode {
   optional string op = 2;  // Operation used for comparison (e.g. "<")
   /* split threshold may be a float or int, depending on field [quantized] */
   oneof threshold_variant {
-    float float_threshold = 3;
-    int32 int_threshold = 4;
+    float float_threshold = 16;
+    int32 int_threshold = 17;
   }
 }
 

@@ -11,8 +11,7 @@ namespace compiler {
 
 // forward declaration
 class ASTBuilder;
-bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
-             ASTBuilder* builder);
+bool breakup(ASTNode*, int, int*, ASTBuilder*);
 
 class ASTBuilder {
  public:
@@ -44,8 +43,9 @@ class ASTBuilder {
     nodes.push_back(std::move(node));
     return ref;
   }
-  ASTNode* BuildASTFromTree(const Tree& tree, ASTNode* parent);
-  ASTNode* BuildASTFromTree(const Tree& tree, int nid, ASTNode* parent);
+  ASTNode* BuildASTFromTree(const Tree& tree, int tree_id, ASTNode* parent);
+  ASTNode* BuildASTFromTree(const Tree& tree, int tree_id, int nid,
+                            ASTNode* parent);
 
   // keep tract of all nodes built so far, to prevent memory leak
   std::vector<std::unique_ptr<ASTNode>> nodes;

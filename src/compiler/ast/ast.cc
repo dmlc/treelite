@@ -50,19 +50,16 @@ void AccumulatorContextNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   out->mutable_accumulator_context_variant();
 }
 
+void CodeFolderNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+  ASTNode::Serialize(out);
+  out->mutable_code_folder_variant();
+}
+
 void ConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   ASTNode::Serialize(out);
   treelite_ast_protobuf::ConditionNode* e = out->mutable_condition_variant();
   e->set_split_index(split_index);
   e->set_default_left(default_left);
-  if (branch_hint) {
-    const BranchHint hint = branch_hint.value();
-    e->set_left_freq(hint.left_freq);
-    e->set_right_freq(hint.right_freq);
-  } else {
-    e->clear_left_freq();
-    e->clear_right_freq();
-  }
 }
 
 void NumericalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {

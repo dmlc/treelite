@@ -28,23 +28,15 @@ inline std::string OpName(Operator op) {
   }
 }
 
-/*! \brief structure to store branch frequency information */
-struct BranchHint {
-  /*! \brief number of training examples whose paths cross the left child node */
-  size_t left_freq;
-  /*! \brief number of training examples whose paths cross the right child node */
-  size_t right_freq;
-  BranchHint(size_t left_freq, size_t right_freq)
-    : left_freq(left_freq), right_freq(right_freq) {}
-};
-
 class ASTNode {
  public:
   ASTNode* parent;
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  int num_descendant;
+  dmlc::optional<int> num_descendant_ast_node;
+  dmlc::optional<size_t> data_count;
+  dmlc::optional<double> sum_hess;
   virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
  protected:
   ASTNode() : parent(nullptr), node_id(-1), tree_id(-1) {}
@@ -89,15 +81,19 @@ class AccumulatorContextNode : public ASTNode {
   void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
+class CodeFolderNode : public ASTNode {
+ public:
+  CodeFolderNode() {}
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
+};
+
 class ConditionNode : public ASTNode {
  public:
-  ConditionNode(unsigned split_index, bool default_left,
-                dmlc::optional<BranchHint> branch_hint)
-    : split_index(split_index), default_left(default_left),
-      branch_hint(branch_hint) {}
+  ConditionNode(unsigned split_index, bool default_left)
+    : split_index(split_index), default_left(default_left) {}
   unsigned split_index;
   bool default_left;
-  dmlc::optional<BranchHint> branch_hint;
+  dmlc::optional<double> gain;
   virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
 };
 
@@ -112,10 +108,8 @@ class NumericalConditionNode : public ConditionNode {
  public:
   NumericalConditionNode(unsigned split_index, bool default_left,
                          bool quantized, Operator op,
-                         ThresholdVariant threshold,
-                         dmlc::optional<BranchHint> branch_hint
-                           = dmlc::optional<BranchHint>())
-    : ConditionNode(split_index, default_left, branch_hint),
+                         ThresholdVariant threshold)
+    : ConditionNode(split_index, default_left),
       quantized(quantized), op(op), threshold(threshold) {}
   bool quantized;
   Operator op;
@@ -126,10 +120,8 @@ class NumericalConditionNode : public ConditionNode {
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           const std::vector<uint32_t>& left_categories,
-                           dmlc::optional<BranchHint> branch_hint
-                           = dmlc::optional<BranchHint>())
-    : ConditionNode(split_index, default_left, branch_hint),
+                           const std::vector<uint32_t>& left_categories)
+    : ConditionNode(split_index, default_left),
       left_categories(left_categories) {}
   std::vector<uint32_t> left_categories;
   void Serialize(treelite_ast_protobuf::ASTNode* out) override;

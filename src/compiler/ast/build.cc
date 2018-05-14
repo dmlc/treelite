@@ -24,26 +24,19 @@ void ASTBuilder::BuildAST(const Model& model) {
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);
   for (int tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
-    ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], ac);
-    /* store tree ID in descendant nodes */
-    std::function<void(ASTNode*)> func;
-    func = [tree_id, &func](ASTNode* node) -> void {
-      node->tree_id = tree_id;
-      for (ASTNode* child : node->children) {
-        func(child);
-      }
-    };
-    func(tree_head);
+    ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], tree_id, ac);
     ac->children.push_back(tree_head);
   }
   this->model_param = model.param.__DICT__();
 }
 
-ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, ASTNode* parent) {
-  return BuildASTFromTree(tree, 0, parent);
+ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id,
+                                      ASTNode* parent) {
+  return BuildASTFromTree(tree, tree_id, 0, parent);
 }
 
-ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int nid, ASTNode* parent) {
+ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
+                                      ASTNode* parent) {
   const Tree::Node& node = tree[nid];
   ASTNode* ast_node = nullptr;
   if (node.is_leaf()) {
@@ -66,10 +59,13 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int nid, ASTNode* parent
                                                    node.default_left(),
                                                    node.left_categories());
     }
-    ast_node->children.push_back(BuildASTFromTree(tree, node.cleft(), ast_node));
-    ast_node->children.push_back(BuildASTFromTree(tree, node.cright(), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
+                                                  node.cleft(), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
+                                                  node.cright(), ast_node));
   }
   ast_node->node_id = nid;
+  ast_node->tree_id = tree_id;
 
   return ast_node;
 }

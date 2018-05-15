@@ -50,8 +50,8 @@ class ASTNativeCompiler : public Compiler {
         dmlc::Stream::Create(param.annotate_in.c_str(), "r"));
       annotator.Load(fi.get());
       const auto annotation = annotator.Get();
-      builder.AnnotateBranches(annotation);
-      LOG(INFO) << "Using branch annotation file `"
+      builder.LoadDataCounts(annotation);
+      LOG(INFO) << "Loading node frequencies from `"
                 << param.annotate_in << "'";
     }
     builder.Split(param.parallel_comp);

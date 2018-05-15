@@ -58,7 +58,7 @@ class ASTJavaCompiler : public Compiler {
       builder.QuantizeThresholds();
     }
     builder.CountDescendant();
-    builder.BreakUpLargeUnits(param.max_unit_size);
+    builder.BreakUpLargeTranslationUnits(param.max_unit_size);
     if (param.ast_dump_path != "NULL") {
       builder.Serialize(param.ast_dump_path);
     }

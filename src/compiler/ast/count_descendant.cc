@@ -11,6 +11,10 @@ namespace compiler {
 DMLC_REGISTRY_FILE_TAG(count_descendant);
 
 static int count(ASTNode* node) {
+  if (dynamic_cast<CodeFolderNode*>(node)) {
+    return 0;  // descendants of CodeFolderNode are exempt from
+               // ASTBuilder::BreakUpLargeTranslationUnits
+  }
   int accum = 0;
   for (ASTNode* child : node->children) {
     accum += count(child) + 1;

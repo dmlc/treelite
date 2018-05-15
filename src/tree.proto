@@ -51,4 +51,15 @@ message Node {
                                      // also missing if leaf_vector field exists
    repeated float leaf_vector = 10;  // Usually missing; only used for random
                                      // forests with multi-class classification
+   optional uint64 data_count = 11;  // number of data points whose traversal
+                                     // paths include this node. May be
+                                     // ommitted if unavailable
+   optional double sum_hess = 12;    // sum of hessian values for all data
+                                     // points whose traversal paths include
+                                     // this node. This value is generally
+                                     // correlated positively with the data
+                                     // count. May be omitted if unavailable
+   optional double gain = 13;        // change in loss that is attributed to
+                                     // particular split; may be omitted if
+                                     // unavailable
 }

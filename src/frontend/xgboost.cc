@@ -256,6 +256,7 @@ class XGBTree {
  private:
   TreeParam param;
   std::vector<Node> nodes;
+  std::vector<NodeStat> stats;
 
   inline int AllocNode() {
     int nd = param.num_nodes++;
@@ -266,11 +267,21 @@ class XGBTree {
   }
 
  public:
+  /*! \brief get node given nid */
   inline Node& operator[](int nid) {
     return nodes[nid];
   }
+  /*! \brief get node given nid */
   inline const Node& operator[](int nid) const {
     return nodes[nid];
+  }
+  /*! \brief get node statistics given nid */
+  inline NodeStat& Stat(int nid) {
+    return stats[nid];
+  }
+  /*! \brief get node statistics given nid */
+  inline const NodeStat& Stat(int nid) const {
+    return stats[nid];
   }
   inline void Init() {
     param.num_nodes = 1;
@@ -290,12 +301,15 @@ class XGBTree {
     CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
      << "Ill-formed XGBoost model file: can't read TreeParam";
     nodes.resize(param.num_nodes);
+    stats.resize(param.num_nodes);
     CHECK_NE(param.num_nodes, 0)
      << "Ill-formed XGBoost model file: a tree can't be empty";
     CHECK_EQ(fi->Read(dmlc::BeginPtr(nodes), sizeof(Node) * nodes.size()),
              sizeof(Node) * nodes.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
-    CONSUME_BYTES(fi, (3 * sizeof(bst_float) + sizeof(int)) * param.num_nodes);
+    CHECK_EQ(fi->Read(dmlc::BeginPtr(stats), sizeof(NodeStat) * stats.size()),
+             sizeof(NodeStat) * stats.size())
+     << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     if (param.size_leaf_vector != 0) {
       uint64_t len;
       CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
@@ -441,6 +455,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       int old_id, new_id;
       std::tie(old_id, new_id) = Q.front(); Q.pop();
       const XGBTree::Node& node = xgb_tree[old_id];
+      const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
         const bst_float leaf_value = node.leaf_value();
         tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
@@ -451,9 +466,11 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
                                    static_cast<treelite::tl_float>(split_cond),
                                    node.default_left(),
                                    treelite::Operator::kLT);
+        tree[new_id].set_gain(stat.loss_chg);
         Q.push({node.cleft(), tree[new_id].cleft()});
         Q.push({node.cright(), tree[new_id].cright()});
       }
+      tree[new_id].set_sum_hess(stat.sum_hess);
     }
   }
   return model;

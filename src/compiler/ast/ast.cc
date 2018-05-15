@@ -7,6 +7,12 @@ namespace compiler {
 void ASTNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   out->set_node_id(node_id);
   out->set_tree_id(tree_id);
+  if (data_count) {
+    out->set_data_count(data_count.value());
+  }
+  if (sum_hess) {
+    out->set_sum_hess(sum_hess.value());
+  }
   for (ASTNode* child : children) {
     treelite_ast_protobuf::ASTNode* node = out->add_children();
     child->Serialize(node);
@@ -60,6 +66,9 @@ void ConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   treelite_ast_protobuf::ConditionNode* e = out->mutable_condition_variant();
   e->set_split_index(split_index);
   e->set_default_left(default_left);
+  if (gain) {
+    e->set_gain(gain.value());
+  }
 }
 
 void NumericalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {

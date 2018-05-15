@@ -94,6 +94,30 @@ class Tree {
     inline SplitFeatureType split_type() const {
       return split_type_;
     }
+    /*! \brief test whether this node has data count */
+    inline bool has_data_count() const {
+      return data_count_.has_value();
+    }
+    /*! \brief get data count */
+    inline size_t data_count() const {
+      return data_count_.value();
+    }
+    /*! \brief test whether this node has hessian sum */
+    inline bool has_sum_hess() const {
+      return sum_hess_.has_value();
+    }
+    /*! \brief get hessian sum */
+    inline double sum_hess() const {
+      return sum_hess_.value();
+    }
+    /*! \brief test whether this node has gain value */
+    inline bool has_gain() const {
+      return gain_.has_value();
+    }
+    /*! \brief get gain value */
+    inline double gain() const {
+      return gain_.value();
+    }
     /*!
      * \brief create a numerical split
      * \param split_index feature index to split
@@ -150,6 +174,27 @@ class Tree {
       this->split_type_ = SplitFeatureType::kNone;
     }
     /*!
+     * \brief set the hessian sum of the node
+     * \param sum_hess hessian sum
+     */
+    inline void set_sum_hess(double sum_hess) {
+      this->sum_hess_ = sum_hess;
+    }
+    /*!
+     * \brief set the data count of the node
+     * \param data_count data count
+     */
+    inline void set_data_count(size_t data_count) {
+      this->data_count_ = data_count;
+    }
+    /*!
+     * \brief set the gain value of the node
+     * \param gain gain value
+     */
+    inline void set_gain(double gain) {
+      this->gain_ = gain;
+    }
+    /*!
      * \brief set parent of the node
      * \param pidx node id of the parent
      * \param is_left_child whether the node is left child or not
@@ -201,6 +246,22 @@ class Tree {
      * This list is assumed to be in ascending order.
      */
     std::vector<uint32_t> left_categories_;
+    /*!
+     * \brief number of data points whose traversal paths include this node.
+     *        LightGBM models natively store this statistics.
+     */
+    dmlc::optional<size_t> data_count_;
+    /*!
+     * \brief sum of hessian values for all data points whose traversal paths
+     *        include this node. This value is generally correlated positively
+     *        with the data count. XGBoost models natively store this
+     *        statistics.
+     */
+    dmlc::optional<double> sum_hess_;
+    /*!
+     * \brief change in loss that is attributed to a particular split
+     */
+    dmlc::optional<double> gain_;
   };
 
  private:

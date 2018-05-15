@@ -48,6 +48,9 @@ struct LGBTree {
   std::vector<double> threshold;
   std::vector<int> left_child;
   std::vector<int> right_child;
+  std::vector<float> split_gain;
+  std::vector<int> internal_count;
+  std::vector<int> leaf_count;
 };
 
 inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
@@ -219,6 +222,30 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     tree.threshold
       = treelite::common::TextToArray<double>(it->second, tree.num_leaves - 1);
 
+    it = dict.find("split_gain");
+    if (it != dict.end()) {
+      tree.split_gain
+        = treelite::common::TextToArray<float>(it->second, tree.num_leaves - 1);
+    } else {
+      tree.split_gain.resize(tree.num_leaves - 1);
+    }
+
+    it = dict.find("internal_count");
+    if (it != dict.end()) {
+      tree.internal_count
+        = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
+    } else {
+      tree.internal_count.resize(tree.num_leaves - 1);
+    }
+
+    it = dict.find("leaf_count");
+    if (it != dict.end()) {
+      tree.leaf_count
+        = treelite::common::TextToArray<int>(it->second, tree.num_leaves);
+    } else {
+      tree.leaf_count.resize(tree.num_leaves);
+    }
+
     it = dict.find("left_child");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need left_child";
@@ -328,8 +355,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       std::tie(old_id, new_id) = Q.front(); Q.pop();
       if (old_id < 0) {  // leaf
         const double leaf_value = lgb_tree.leaf_value[~old_id];
+        const int data_count = lgb_tree.leaf_count[~old_id];
         tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+        CHECK_GE(data_count, 0);
+        tree[new_id].set_data_count(static_cast<size_t>(data_count));
       } else {  // non-leaf
+        const int data_count = lgb_tree.internal_count[old_id];
         const unsigned split_index =
           static_cast<unsigned>(lgb_tree.split_feature[old_id]);
         const bool default_left
@@ -353,6 +384,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
           tree[new_id].set_numerical_split(split_index, threshold,
                                            default_left, cmp_op);
         }
+        CHECK_GE(data_count, 0);
+        tree[new_id].set_data_count(static_cast<size_t>(data_count));
+        tree[new_id].set_gain(static_cast<double>(lgb_tree.split_gain[old_id]));
         Q.push({lgb_tree.left_child[old_id], tree[new_id].cleft()});
         Q.push({lgb_tree.right_child[old_id], tree[new_id].cright()});
       }

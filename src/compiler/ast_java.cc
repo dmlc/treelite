@@ -37,12 +37,14 @@ class ASTJavaCompiler : public Compiler {
                    << "branch annotation.\u001B[0m The parameter "
                    << "\x1B[33mannotate_in\u001B[0m will be ignored.";
     }
+    num_feature_ = model.num_feature;
     num_output_group_ = model.num_output_group;
     pred_tranform_func_ = PredTransformFunction("java", model);
     files_.clear();
 
     ASTBuilder builder;
     builder.BuildAST(model);
+    is_categorical_ = builder.GenerateIsCategoricalArray();
     builder.FoldCode(param.code_folding_data_count_req,
                      param.code_folding_sum_hess_req);
     builder.Split(param.parallel_comp);
@@ -71,7 +73,9 @@ class ASTJavaCompiler : public Compiler {
   }
  private:
   CompilerParam param;
+  int num_feature_;
   int num_output_group_;
+  std::vector<bool> is_categorical_;
   std::string pred_tranform_func_;
   std::unordered_map<std::string, std::string> files_;
   std::string main_tail_;
@@ -291,15 +295,14 @@ class ASTJavaCompiler : public Compiler {
   void HandleQNode(const QuantizerNode* node,
                    const std::string& dest,
                    size_t indent) {
-    const int num_feature = node->is_categorical.size();
     /* render arrays needed to convert feature values into bin indices */
     std::string array_is_categorical, array_threshold,
                 array_th_begin, array_th_len;
     // is_categorical[i] : is i-th feature categorical?
     {
       common::ArrayFormatter formatter(78, 2);
-      for (int fid = 0; fid < num_feature; ++fid) {
-        formatter << (node->is_categorical[fid] ? "true" : "false");
+      for (int fid = 0; fid < num_feature_; ++fid) {
+        formatter << (is_categorical_[fid] ? "true" : "false");
       }
       array_is_categorical = formatter.str();
     }
@@ -349,7 +352,7 @@ class ASTJavaCompiler : public Compiler {
              "total_num_threshold"_a = total_num_threshold), 2);
     AppendToBuffer(dest,
       fmt::format(quantize_loop_template,
-        "num_feature"_a = num_feature), indent);
+        "num_feature"_a = num_feature_), indent);
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent);
   }

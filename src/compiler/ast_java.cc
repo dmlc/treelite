@@ -52,7 +52,7 @@ class ASTJavaCompiler : public Compiler {
     builder.CountDescendant();
     builder.BreakUpLargeTranslationUnits(param.max_unit_size);
     if (param.ast_dump_path != "NULL") {
-      builder.Serialize(param.ast_dump_path);
+      builder.Serialize(param.ast_dump_path, param.ast_dump_binary > 0);
     }
     #include "java/entry_type.h"
     #include "java/pom_xml.h"

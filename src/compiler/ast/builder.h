@@ -56,9 +56,9 @@ class ASTBuilder {
   /* \brief call this function before BreakUpLargeTranslationUnits() */
   void LoadDataCounts(const std::vector<std::vector<size_t>>& counts);
   /* \brief serialize to output stream. This function uses Protobuf. */
-  void Serialize(std::ostream* output);
+  void Serialize(std::ostream* output, bool binary = true);
   /* \brief serialize to a file. This function uses Protobuf. */
-  void Serialize(const std::string& filename);
+  void Serialize(const std::string& filename, bool binary = true);
 
   inline const ASTNode* GetRootNode() {
     return main_node;

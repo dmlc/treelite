@@ -56,6 +56,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   double code_folding_sum_hess_req;
   /*! \brief path to save a dump of AST. If NULL, don't generate dump */
   std::string ast_dump_path;
+  /*! \brief whether AST dump should be binary (>0) or human-readable text (<=0) */
+  int ast_dump_binary;
   /*! \} */
 
   // declare parameters
@@ -85,6 +87,8 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(ast_dump_path)
        .set_default("NULL")
        .describe("Path to save a dump of AST");
+    DMLC_DECLARE_FIELD(ast_dump_binary)
+       .set_default(1);
   }
 };
 

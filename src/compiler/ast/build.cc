@@ -54,6 +54,9 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
                                                    node.default_left(),
                                                    node.left_categories());
     }
+    if (node.has_gain()) {
+      dynamic_cast<ConditionNode*>(ast_node)->gain = node.gain();
+    }
     ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
                                                   node.cleft(), ast_node));
     ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
@@ -61,6 +64,12 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
   }
   ast_node->node_id = nid;
   ast_node->tree_id = tree_id;
+  if (node.has_data_count()) {
+    ast_node->data_count = node.data_count();
+  }
+  if (node.has_sum_hess()) {
+    ast_node->sum_hess = node.sum_hess();
+  }
 
   return ast_node;
 }

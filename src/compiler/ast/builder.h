@@ -18,13 +18,40 @@ class ASTBuilder {
   ASTBuilder() : output_vector_flag(false), main_node(nullptr),
                  quantize_threshold_flag(false) {}
 
+  /* \brief initially build AST from model */
   void BuildAST(const Model& model);
+  /*
+   * \brief fold rarely visited subtrees into tight loops (don't produce
+   *        if/else blocks). Rarity of each node is determined by its
+   *        data count and/or hessian sum: any node is "rare" if its data count
+   *        or hessian sum is lower than the proscribed threshold.
+   * \param data_count all nodes whose data counts are lower than this number
+   *                   will be folded into tight loop
+   * \param sum_hess all nodes whose hessian sums are lower than this number
+   *                 will be folded into tight loop
+   */
+  void FoldCode(size_t data_count, double sum_hess);
+  /*
+   * \brief split prediction function into multiple translation units
+   * \param parallel_comp number of translation units
+   */
   void Split(int parallel_comp);
+  /* \brief replace split thresholds with integers */
   void QuantizeThresholds();
+  /* \brief call this function before BreakUpLargeTranslationUnits() */
   void CountDescendant();
-  void BreakUpLargeUnits(int num_descendant_limit);
-  void AnnotateBranches(const std::vector<std::vector<size_t>>& counts);
+  /*
+   * \brief break up large translation units, to keep 64K bytecode size limit
+   *        in Java
+   * \param num_descendant_limit max number of AST nodes that are allowed to
+   *                             be in each translation unit
+   */
+  void BreakUpLargeTranslationUnits(int num_descendant_limit);
+  /* \brief call this function before BreakUpLargeTranslationUnits() */
+  void LoadDataCounts(const std::vector<std::vector<size_t>>& counts);
+  /* \brief serialize to output stream. This function uses Protobuf. */
   void Serialize(std::ostream* output);
+  /* \brief serialize to a file. This function uses Protobuf. */
   void Serialize(const std::string& filename);
 
   inline const ASTNode* GetRootNode() {

@@ -69,7 +69,7 @@ bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
   return flag;
 }
 
-void ASTBuilder::BreakUpLargeUnits(int num_descendant_limit) {
+void ASTBuilder::BreakUpLargeTranslationUnits(int num_descendant_limit) {
   CHECK_GT(num_descendant_limit, 0);
   int num_tu = count_tu(this->main_node);
   while (breakup(this->main_node, num_descendant_limit, &num_tu, this)) {}

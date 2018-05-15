@@ -44,6 +44,8 @@ class ASTNativeCompiler : public Compiler {
 
     ASTBuilder builder;
     builder.BuildAST(model);
+    builder.FoldCode(param.code_folding_data_count_req,
+                     param.code_folding_sum_hess_req);
     if (param.annotate_in != "NULL") {
       BranchAnnotator annotator;
       std::unique_ptr<dmlc::Stream> fi(

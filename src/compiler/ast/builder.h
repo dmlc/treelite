@@ -17,6 +17,8 @@ namespace compiler {
 
 // forward declaration
 class ASTBuilder;
+struct CodeFoldingContext;
+void fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
 bool breakup(ASTNode*, int, int*, ASTBuilder*);
 
 class ASTBuilder {
@@ -31,12 +33,16 @@ class ASTBuilder {
    *        if/else blocks). Rarity of each node is determined by its
    *        data count and/or hessian sum: any node is "rare" if its data count
    *        or hessian sum is lower than the proscribed threshold.
-   * \param data_count all nodes whose data counts are lower than this number
-   *                   will be folded into tight loop
-   * \param sum_hess all nodes whose hessian sums are lower than this number
-   *                 will be folded into tight loop
+   * \param data_count_magnitude_req all nodes whose data counts are lower
+   *                                 than that of the root node of the decision
+   *                                 tree by [data_count_magnitude_req] will be
+   *                                 folded. To diable folding, set to +inf.
+   * \param sum_hess_magnitude_req all nodes whose hessian sums are lower than
+   *                               that of the root node of the decision tree
+   *                               by [sum_hess_magnitude_req] will be folded.
+   *                               To diable folding, set to +inf.
    */
-  void FoldCode(size_t data_count, double sum_hess);
+  void FoldCode(double data_count_magnitude_req, double sum_hess_magnitude_req);
   /*
    * \brief split prediction function into multiple translation units
    * \param parallel_comp number of translation units
@@ -66,6 +72,8 @@ class ASTBuilder {
 
  private:
   friend bool treelite::compiler::breakup(ASTNode*, int, int*, ASTBuilder*);
+  friend void treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*,
+                                            ASTBuilder*);
 
   template <typename NodeType, typename ...Args>
   NodeType* AddNode(ASTNode* parent, Args&& ...args) {

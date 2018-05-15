@@ -43,6 +43,8 @@ class ASTJavaCompiler : public Compiler {
 
     ASTBuilder builder;
     builder.BuildAST(model);
+    builder.FoldCode(param.code_folding_data_count_req,
+                     param.code_folding_sum_hess_req);
     builder.Split(param.parallel_comp);
     if (param.quantize > 0) {
       builder.QuantizeThresholds();

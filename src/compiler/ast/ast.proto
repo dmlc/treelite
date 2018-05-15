@@ -12,7 +12,10 @@ message ASTTree {
   optional bool random_forest_flag = 4;
   optional bool output_vector_flag = 5;
   optional bool quantize_threshold_flag = 6;
-  map<string, string> model_param = 7;  // extra parameters
+  repeated bool is_categorical = 7;
+      // is_categorical[i] tells us whether feature i is categorical or not.
+      // If feature i is categorical, cut_pts[i] must be an empty list
+  map<string, string> model_param = 16;  // extra parameters
 }
 
 message ASTNode {
@@ -46,9 +49,6 @@ message TranslationUnitNode {
 message QuantizerNode {
   repeated FeatureThresholdList cut_pts = 1;
       // cut_pts[i][k] represents the k-th threshold used for feature i
-  repeated bool is_categorical = 2;
-      // is_categorical[i] tells us whether feature i is categorical or not.
-      // If feature i is categorical, cut_pts[i] must be an empty list
 }
 
 message AccumulatorContextNode {}

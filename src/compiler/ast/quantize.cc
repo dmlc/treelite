@@ -13,8 +13,7 @@ DMLC_REGISTRY_FILE_TAG(quantize);
 
 static void
 scan_thresholds(ASTNode* node,
-                std::vector<std::set<tl_float>>* cut_pts,
-                std::vector<bool>* is_categorical) {
+                std::vector<std::set<tl_float>>* cut_pts) {
   NumericalConditionNode* num_cond;
   CategoricalConditionNode* cat_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode*>(node)) ) {
@@ -23,11 +22,9 @@ scan_thresholds(ASTNode* node,
     if (std::isfinite(threshold)) {
       (*cut_pts)[num_cond->split_index].insert(threshold);
     }
-  } else if ( (cat_cond = dynamic_cast<CategoricalConditionNode*>(node)) ) {
-    (*is_categorical)[cat_cond->split_index] = true;
   }
   for (ASTNode* child : node->children) {
-    scan_thresholds(child, cut_pts, is_categorical);
+    scan_thresholds(child, cut_pts);
   }
 }
 
@@ -55,10 +52,9 @@ void ASTBuilder::QuantizeThresholds() {
   this->quantize_threshold_flag = true;
   std::vector<std::set<tl_float>> cut_pts;
   std::vector<std::vector<tl_float>> cut_pts_vec;
-  std::vector<bool> is_categorical(this->num_feature, false);
   cut_pts.resize(this->num_feature);
   cut_pts_vec.resize(this->num_feature);
-  scan_thresholds(this->main_node, &cut_pts, &is_categorical);
+  scan_thresholds(this->main_node, &cut_pts);
   // convert cut_pts into std::vector
   for (int i = 0; i < this->num_feature; ++i) {
     std::copy(cut_pts[i].begin(), cut_pts[i].end(),
@@ -75,8 +71,7 @@ void ASTBuilder::QuantizeThresholds() {
      that we don't accidentally call QuantizeThresholds() twice. */
 
   ASTNode* quantizer_node = AddNode<QuantizerNode>(this->main_node,
-                                                   std::move(cut_pts_vec),
-                                                   std::move(is_categorical));
+                                                   std::move(cut_pts_vec));
   quantizer_node->children.push_back(top_ac_node);
   top_ac_node->parent = quantizer_node;
   this->main_node->children[0] = quantizer_node;

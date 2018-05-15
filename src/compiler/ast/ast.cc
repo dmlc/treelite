@@ -46,9 +46,6 @@ void QuantizerNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
                             cut_pts_per_feature.end());
     f->mutable_cut_pts()->Swap(&feature_threshod_list);
   }
-  google::protobuf::RepeatedField<bool>
-    is_categorical_pf(is_categorical.begin(), is_categorical.end());
-  e->mutable_is_categorical()->Swap(&is_categorical_pf);
 }
 
 void AccumulatorContextNode::Serialize(treelite_ast_protobuf::ASTNode* out) {

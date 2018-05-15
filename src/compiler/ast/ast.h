@@ -72,14 +72,11 @@ class TranslationUnitNode : public ASTNode {
 
 class QuantizerNode : public ASTNode {
  public:
-  QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts,
-                const std::vector<bool>& is_categorical)
-    : cut_pts(cut_pts), is_categorical(is_categorical) {}
-  QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts,
-                std::vector<bool>&& is_categorical)
-    : cut_pts(std::move(cut_pts)), is_categorical(std::move(is_categorical)) {}
+  QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
+    : cut_pts(cut_pts) {}
+  QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
+    : cut_pts(std::move(cut_pts)) {}
   std::vector<std::vector<tl_float>> cut_pts;
-  std::vector<bool> is_categorical;
   void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 

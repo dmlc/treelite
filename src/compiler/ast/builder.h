@@ -28,6 +28,9 @@ class ASTBuilder {
 
   /* \brief initially build AST from model */
   void BuildAST(const Model& model);
+  /* \brief generate is_categorical[] array, which tells whether each feature
+            is categorical or numerical */
+  std::vector<bool> GenerateIsCategoricalArray();
   /*
    * \brief fold rarely visited subtrees into tight loops (don't produce
    *        if/else blocks). Rarity of each node is determined by its
@@ -96,6 +99,7 @@ class ASTBuilder {
   int num_output_group;
   bool random_forest_flag;
   ASTNode* main_node;
+  std::vector<bool> is_categorical;
   std::map<std::string, std::string> model_param;
 };
 

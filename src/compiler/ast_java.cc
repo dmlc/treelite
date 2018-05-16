@@ -23,7 +23,7 @@
 
 using namespace fmt::literals;
 
-static const int MAX_CONSTANTS_PER_TABLE = 250;
+static const int MAX_CONSTANTS_PER_TABLE = 10;
 
 namespace treelite {
 namespace compiler {

@@ -10,6 +10,8 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(split);
 
+int count_tu_nodes(ASTNode* node);
+
 void ASTBuilder::Split(int parallel_comp) {
   if (parallel_comp <= 0) {
     LOG(INFO) << "Parallel compilation disabled; all member trees will be "
@@ -37,12 +39,13 @@ void ASTBuilder::Split(int parallel_comp) {
   const int nunit = parallel_comp;
   const int unit_size = (ntree + nunit - 1) / nunit;
   std::vector<ASTNode*> tu_list;  // list of translation units
+  const int current_num_tu = count_tu_nodes(this->main_node);
   for (int unit_id = 0; unit_id < nunit; ++unit_id) {
     const int tree_begin = unit_id * unit_size;
     const int tree_end = std::min((unit_id + 1) * unit_size, ntree);
     if (tree_begin < tree_end) {
-      TranslationUnitNode* tu = AddNode<TranslationUnitNode>(top_ac_node,
-                                                             unit_id);
+      TranslationUnitNode* tu
+        = AddNode<TranslationUnitNode>(top_ac_node, current_num_tu + unit_id);
       tu_list.push_back(tu);
       AccumulatorContextNode* ac = AddNode<AccumulatorContextNode>(tu);
       tu->children.push_back(ac);

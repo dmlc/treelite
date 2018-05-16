@@ -10,10 +10,10 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(breakup);
 
-static int count_tu(ASTNode* node) {
+int count_tu_nodes(ASTNode* node) {
   int accum = (dynamic_cast<TranslationUnitNode*>(node)) ? 1 : 0;
   for (ASTNode* child : node->children) {
-    accum += count_tu(child);
+    accum += count_tu_nodes(child);
   }
   return accum;
 }
@@ -76,7 +76,7 @@ bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
 
 void ASTBuilder::BreakUpLargeTranslationUnits(int num_descendant_limit) {
   CHECK_GT(num_descendant_limit, 0);
-  int num_tu = count_tu(this->main_node);
+  int num_tu = count_tu_nodes(this->main_node);
   while (breakup(this->main_node, num_descendant_limit, &num_tu, this)) {}
 }
 

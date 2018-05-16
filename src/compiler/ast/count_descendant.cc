@@ -12,6 +12,7 @@ DMLC_REGISTRY_FILE_TAG(count_descendant);
 
 static int count(ASTNode* node) {
   if (dynamic_cast<CodeFolderNode*>(node)) {
+    node->num_descendant_ast_node = 0;
     return 0;  // descendants of CodeFolderNode are exempt from
                // ASTBuilder::BreakUpLargeTranslationUnits
   }

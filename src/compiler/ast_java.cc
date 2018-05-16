@@ -13,11 +13,17 @@
 #include "./pred_transform.h"
 #include "./ast/builder.h"
 #include "./java/entry_type.h"
+#include "./java/node_type.h"
 #include "./java/pom_xml.h"
 #include "./java/main_template.h"
 #include "./java/qnode_template.h"
+#include "./java/code_folder_template.h"
+#include "./common/code_folding_util.h"
+#include "./common/categorical_bitmap.h"
 
 using namespace fmt::literals;
+
+static const int MAX_CONSTANTS_PER_TABLE = 250;
 
 namespace treelite {
 namespace compiler {
@@ -27,7 +33,7 @@ DMLC_REGISTRY_FILE_TAG(ast_java);
 class ASTJavaCompiler : public Compiler {
  public:
   explicit ASTJavaCompiler(const CompilerParam& param)
-    : param(param), file_prefix_(param.java_file_prefix) {
+    : param(param), file_prefix_(param.java_file_prefix), num_constants_(0) {
     if (param.verbose > 0) {
       LOG(INFO) << "Using ASTJavaCompiler";
     }
@@ -54,9 +60,21 @@ class ASTJavaCompiler : public Compiler {
 
     ASTBuilder builder;
     builder.BuildAST(model);
-    is_categorical_ = builder.GenerateIsCategoricalArray();
-    builder.FoldCode(param.code_folding_data_count_req,
-                     param.code_folding_sum_hess_req);
+    if (builder.FoldCode(param.code_folding_data_count_req,
+                         param.code_folding_sum_hess_req, true)
+        || param.quantize > 0) {
+      // is_categorical[i] : is i-th feature categorical?
+      array_is_categorical_
+        = RenderIsCategoricalArray(builder.GenerateIsCategoricalArray());
+      main_tail_
+        += fmt::format("public static final boolean[] is_categorical = {{\n"
+                       "{array_is_categorical}\n"
+                       "}};\n",
+             "array_is_categorical"_a = array_is_categorical_);
+    }
+    if (param.parallel_comp == 0) {
+      param.parallel_comp = model.trees.size();
+    }
     builder.Split(param.parallel_comp);
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
@@ -69,11 +87,16 @@ class ASTJavaCompiler : public Compiler {
     files_[file_prefix_ + "Entry.java"]
       = fmt::format(java::entry_type_template,
           "java_package"_a = param.java_package);
+    files_[file_prefix_ + "Node.java"]
+      = fmt::format(java::node_type_template,
+          "java_package"_a = param.java_package,
+          "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
     files_["pom.xml"]
       = fmt::format(java::pom_xml_template,
           "java_package"_a = param.java_package,
           "java_package_version"_a = param.java_package_version);
     WalkAST(builder.GetRootNode(), "Main.java", 0);
+    CloseConstantTable();
 
     cm.files = std::move(files_);
     cm.file_prefix = file_prefix_;
@@ -84,11 +107,12 @@ class ASTJavaCompiler : public Compiler {
   CompilerParam param;
   int num_feature_;
   int num_output_group_;
-  std::vector<bool> is_categorical_;
   std::string pred_tranform_func_;
+  std::string array_is_categorical_;
   std::unordered_map<std::string, std::string> files_;
   std::string main_tail_;
   std::string file_prefix_;
+  int num_constants_;
 
   void WalkAST(const ASTNode* node,
                const std::string& dest,
@@ -99,6 +123,7 @@ class ASTJavaCompiler : public Compiler {
     const OutputNode* t4;
     const TranslationUnitNode* t5;
     const QuantizerNode* t6;
+    const CodeFolderNode* t7;
     if ( (t1 = dynamic_cast<const MainNode*>(node)) ) {
       HandleMainNode(t1, dest, indent);
     } else if ( (t2 = dynamic_cast<const AccumulatorContextNode*>(node)) ) {
@@ -111,6 +136,8 @@ class ASTJavaCompiler : public Compiler {
       HandleTUNode(t5, dest, indent);
     } else if ( (t6 = dynamic_cast<const QuantizerNode*>(node)) ) {
       HandleQNode(t6, dest, indent);
+    } else if ( (t7 = dynamic_cast<const CodeFolderNode*>(node)) ) {
+      HandleCodeFolderNode(t7, dest, indent);
     } else {
       LOG(FATAL) << "Unrecognized AST node type";
     }
@@ -122,6 +149,38 @@ class ASTJavaCompiler : public Compiler {
                              size_t indent) {
     files_[file_prefix_ + dest]
       += common::IndentMultiLineString(content, indent);
+  }
+
+  inline bool DoesBufferExist(const std::string& dest) {
+    return files_.count(file_prefix_ + dest) > 0;
+  }
+
+  // add a constant to constant table
+  // \return name of constant table that holds the constant
+  inline std::string AddToConstantTable(const std::string& content) {
+    const int constant_table_idx = num_constants_ / MAX_CONSTANTS_PER_TABLE;
+    const std::string constant_table_class_name
+      = fmt::format("ConstantStore{}", constant_table_idx);
+    const std::string dest = fmt::format("{}.java", constant_table_class_name);
+    if (!DoesBufferExist(dest)) {
+      AppendToBuffer(dest,
+        fmt::format("package {java_package};\n"
+                    "public class {constant_table_class_name} {{\n",
+          "java_package"_a = param.java_package,
+          "constant_table_class_name"_a = constant_table_class_name), 0);
+    }
+    AppendToBuffer(dest, content, 2);
+    ++num_constants_;
+    return constant_table_class_name;
+  }
+
+  inline void CloseConstantTable() {
+    const int num_constant_table
+      = (num_constants_ + MAX_CONSTANTS_PER_TABLE - 1) / MAX_CONSTANTS_PER_TABLE;
+    for (int i = 0; i < num_constant_table; ++i) {
+      const std::string dest = fmt::format("ConstantStore{}.java", i);
+      AppendToBuffer(dest, "}\n", 0);
+    }
   }
 
   void HandleMainNode(const MainNode* node,
@@ -170,13 +229,14 @@ class ASTJavaCompiler : public Compiler {
     if (num_output_group_ > 1) {
       AppendToBuffer(dest,
         fmt::format("float[] sum = new float[{num_output_group}];\n"
-                    "int tmp;\n",
+                    "int tmp;\n"
+                    "int nid, fid; boolean cond;  /* used for folded subtrees */\n",
           "num_output_group"_a = num_output_group_), indent);
     } else {
       AppendToBuffer(dest,
-        fmt::format("float sum = 0.0f;\n"
-                    "int tmp;\n",
-          "num_output_group"_a = num_output_group_), indent);
+        "float sum = 0.0f;\n"
+        "int tmp;\n"
+        "int nid, fid; boolean cond;  /* used for folded subtrees */\n", indent);
     }
     for (ASTNode* child : node->children) {
       WalkAST(child, dest, indent);
@@ -218,32 +278,7 @@ class ASTJavaCompiler : public Compiler {
   void HandleOutputNode(const OutputNode* node,
                         const std::string& dest,
                         size_t indent) {
-    std::string output_statement;
-    if (num_output_group_ > 1) {
-      if (node->is_vector) {
-        // multi-class classification with random forest
-        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_output_group_))
-          << "Ill-formed model: leaf vector must be of length [num_output_group]";
-        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
-          output_statement
-            += fmt::format("sum[{group_id}] += {output}f;\n",
-                 "group_id"_a = group_id,
-                 "output"_a
-                   = common::ToStringHighPrecision(node->vector[group_id]));
-        }
-      } else {
-        // multi-class classification with gradient boosted trees
-        output_statement
-          = fmt::format("sum[{group_id}] += {output}f;\n",
-              "group_id"_a = node->tree_id % num_output_group_,
-              "output"_a = common::ToStringHighPrecision(node->scalar));
-      }
-    } else {
-      output_statement
-        = fmt::format("sum += {output}f;\n",
-            "output"_a = common::ToStringHighPrecision(node->scalar));
-    }
-    AppendToBuffer(dest, output_statement, indent);
+    AppendToBuffer(dest, RenderOutputStatement(node), indent);
     CHECK_EQ(node->children.size(), 0);
   }
 
@@ -304,16 +339,7 @@ class ASTJavaCompiler : public Compiler {
                    const std::string& dest,
                    size_t indent) {
     /* render arrays needed to convert feature values into bin indices */
-    std::string array_is_categorical, array_threshold,
-                array_th_begin, array_th_len;
-    // is_categorical[i] : is i-th feature categorical?
-    {
-      common::ArrayFormatter formatter(78, 2);
-      for (int fid = 0; fid < num_feature_; ++fid) {
-        formatter << (is_categorical_[fid] ? "true" : "false");
-      }
-      array_is_categorical = formatter.str();
-    }
+    std::string array_threshold, array_th_begin, array_th_len;
     // threshold[] : list of all thresholds that occur at least once in the
     //   ensemble model. For each feature, an ascending list of unique
     //   thresholds is generated. The range th_begin[i]:(th_begin[i]+th_len[i])
@@ -352,7 +378,6 @@ class ASTJavaCompiler : public Compiler {
     main_tail_
       += common::IndentMultiLineString(
            fmt::format(java::qnode_template,
-             "array_is_categorical"_a = array_is_categorical,
              "array_threshold"_a = array_threshold,
              "array_th_begin"_a = array_th_begin,
              "array_th_len"_a = array_th_len,
@@ -364,18 +389,55 @@ class ASTJavaCompiler : public Compiler {
     WalkAST(node->children[0], dest, indent);
   }
 
-  inline std::vector<uint64_t>
-  to_bitmap(const std::vector<uint32_t>& left_categories) const {
-    const size_t num_left_categories = left_categories.size();
-    const uint32_t max_left_category = left_categories[num_left_categories - 1];
-    std::vector<uint64_t> bitmap((max_left_category + 1 + 63) / 64, 0);
-    for (size_t i = 0; i < left_categories.size(); ++i) {
-      const uint32_t cat = left_categories[i];
-      const size_t idx = cat / 64;
-      const uint32_t offset = cat % 64;
-      bitmap[idx] |= (static_cast<uint64_t>(1) << offset);
-    }
-    return bitmap;
+  void HandleCodeFolderNode(const CodeFolderNode* node,
+                            const std::string& dest,
+                            size_t indent) {
+    CHECK_EQ(node->children.size(), 1);
+    const int node_id = node->children[0]->node_id;
+    const int tree_id = node->children[0]->tree_id;
+
+    /* render arrays needed for folding subtrees */
+    std::string array_nodes, array_cat_bitmap, array_cat_begin;
+    // node_treeXX_nodeXX[] : information of nodes for a particular subtree
+    const std::string node_array_name
+      = fmt::format("node_tree{}_node{}", tree_id, node_id);
+    // cat_bitmap_treeXX_nodeXX[] : list of all 64-bit integer bitmaps, used to
+    //                              make all categorical splits in a particular
+    //                              subtree
+    const std::string cat_bitmap_name
+      = fmt::format("cat_bitmap_tree{}_node{}", tree_id, node_id);
+    // cat_begin_treeXX_nodeXX[] : shows which bitmaps belong to each split.
+    //                             cat_bitmap[ cat_begin[i]:cat_begin[i+1] ]
+    //                             belongs to the i-th (categorical) split
+    const std::string cat_begin_name
+      = fmt::format("cat_begin_tree{}_node{}", tree_id, node_id);
+
+    std::string output_switch_statement;
+    Operator common_comp_op;
+    common_util::RenderCodeFolderArrays(node, param.quantize, true,
+      "new Node({default_left}, {split_index}, {threshold}, {left_child}, {right_child})",
+      [this](const OutputNode* node) { return RenderOutputStatement(node); },
+      &array_nodes, &array_cat_bitmap, &array_cat_begin,
+      &output_switch_statement, &common_comp_op);
+
+    const std::string constant_table
+      = AddToConstantTable(fmt::format(java::code_folder_arrays_template,
+                             "node_array_name"_a = node_array_name,
+                             "array_nodes"_a = array_nodes,
+                             "cat_bitmap_name"_a = cat_bitmap_name,
+                             "array_cat_bitmap"_a = array_cat_bitmap,
+                             "cat_begin_name"_a = cat_begin_name,
+                             "array_cat_begin"_a = array_cat_begin));
+    AppendToBuffer(dest,
+                   fmt::format(java::eval_loop_template,
+                     "constant_table"_a = constant_table,
+                     "node_array_name"_a = node_array_name,
+                     "cat_bitmap_name"_a = cat_bitmap_name,
+                     "cat_begin_name"_a = cat_begin_name,
+                     "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                     "comp_op"_a = OpName(common_comp_op),
+                     "output_switch_statement"_a
+                       = output_switch_statement), indent);
   }
 
   inline std::string
@@ -406,7 +468,8 @@ class ASTJavaCompiler : public Compiler {
   inline std::string
   ExtractCategoricalCondition(const CategoricalConditionNode* node) {
     std::string result;
-    std::vector<uint64_t> bitmap = to_bitmap(node->left_categories);
+    std::vector<uint64_t> bitmap
+      = common_util::GetCategoricalBitmap(node->left_categories);
     CHECK_GE(bitmap.size(), 1);
     bool all_zeros = true;
     for (uint64_t e : bitmap) {
@@ -416,9 +479,9 @@ class ASTJavaCompiler : public Compiler {
       result = "0";
     } else {
       std::ostringstream oss;
-      oss << "(tmp = (int)(data[" << node->split_index << "].fvalue) ), "
+      oss << "(tmp = (int)(data[" << node->split_index << "].fvalue.get()) ), "
           << "(tmp >= 0 && tmp < 64 && (( (long)"
-          << bitmap[0] << "L >> tmp) & 1) )";
+          << bitmap[0] << "L >>> tmp) & 1) )";
       for (size_t i = 1; i < bitmap.size(); ++i) {
         oss << " || (tmp >= " << (i * 64)
             << " && tmp < " << ((i + 1) * 64)
@@ -428,6 +491,44 @@ class ASTJavaCompiler : public Compiler {
       result = oss.str();
       return result;
     }
+  }
+
+  inline std::string
+  RenderIsCategoricalArray(const std::vector<bool>& is_categorical) {
+    common::ArrayFormatter formatter(80, 2);
+    for (int fid = 0; fid < num_feature_; ++fid) {
+      formatter << (is_categorical[fid] ? "true" : "false");
+    }
+    return formatter.str();
+  }
+
+  inline std::string RenderOutputStatement(const OutputNode* node) {
+    std::string output_statement;
+    if (num_output_group_ > 1) {
+      if (node->is_vector) {
+        // multi-class classification with random forest
+        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_output_group_))
+          << "Ill-formed model: leaf vector must be of length [num_output_group]";
+        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
+          output_statement
+            += fmt::format("sum[{group_id}] += {output}f;\n",
+                 "group_id"_a = group_id,
+                 "output"_a
+                   = common::ToStringHighPrecision(node->vector[group_id]));
+        }
+      } else {
+        // multi-class classification with gradient boosted trees
+        output_statement
+          = fmt::format("sum[{group_id}] += {output}f;\n",
+              "group_id"_a = node->tree_id % num_output_group_,
+              "output"_a = common::ToStringHighPrecision(node->scalar));
+      }
+    } else {
+      output_statement
+        = fmt::format("sum += {output}f;\n",
+            "output"_a = common::ToStringHighPrecision(node->scalar));
+    }
+    return output_statement;
   }
 };
 

@@ -14,9 +14,6 @@ namespace native {
 
 const char* qnode_template =
 R"TREELITETEMPLATE(
-static const unsigned char is_categorical[] = {{
-{array_is_categorical}
-}};
 static const float threshold[] = {{
 {array_threshold}
 }};
@@ -26,6 +23,8 @@ static const int th_begin[] = {{
 static const int th_len[] = {{
 {array_th_len}
 }};
+
+#include <stdlib.h>
 
 /*
  * \brief function to convert a feature value into bin index.

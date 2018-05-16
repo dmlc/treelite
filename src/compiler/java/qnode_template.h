@@ -14,9 +14,6 @@ namespace java {
 
 const char* qnode_template =
 R"TREELITETEMPLATE(
-private static final boolean[] is_categorical = {{
-{array_is_categorical}
-}};
 private static final float[] threshold = {{
 {array_threshold}
 }};

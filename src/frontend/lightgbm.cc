@@ -392,6 +392,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       }
     }
   }
+  LOG(INFO) << "model.num_tree = " << model.trees.size();
   return model;
 }
 

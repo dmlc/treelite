@@ -12,7 +12,7 @@ namespace compiler {
 // forward declaration
 class ASTBuilder;
 struct CodeFoldingContext;
-void fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
+bool fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
 bool breakup(ASTNode*, int, int*, ASTBuilder*);
 
 class ASTBuilder {
@@ -38,8 +38,12 @@ class ASTBuilder {
    *                               that of the root node of the decision tree
    *                               by [sum_hess_magnitude_req] will be folded.
    *                               To diable folding, set to +inf.
+   * \param create_new_translation_unit if true, place folded loops in
+   *                                    separate translation units
+   * \param whether at least one subtree was folded
    */
-  void FoldCode(double data_count_magnitude_req, double sum_hess_magnitude_req);
+  bool FoldCode(double data_count_magnitude_req, double sum_hess_magnitude_req,
+                bool create_new_translation_unit = false);
   /*
    * \brief split prediction function into multiple translation units
    * \param parallel_comp number of translation units
@@ -69,7 +73,7 @@ class ASTBuilder {
 
  private:
   friend bool treelite::compiler::breakup(ASTNode*, int, int*, ASTBuilder*);
-  friend void treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*,
+  friend bool treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*,
                                             ASTBuilder*);
 
   template <typename NodeType, typename ...Args>

@@ -19,6 +19,16 @@ union Entry {{
   int qvalue;
 }};
 
+struct Node {{
+  uint8_t default_left;
+  unsigned int split_index;
+  {threshold_type} threshold;
+  int left_child;
+  int right_child;
+}};
+
+extern const unsigned char is_categorical[];
+
 {get_num_output_group_function_signature};
 {get_num_feature_function_signature};
 {predict_function_signature};

@@ -46,14 +46,10 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   std::string java_file_prefix;
   /*! \brief parameter for folding rarely visited subtrees (no if/else blocks);
              all nodes whose data counts are lower than that of the root node
-             of the decision tree by [code_folding_data_count_req] will be
-             folded. To diable folding, set to +inf. */
-  double code_folding_data_count_req;
-  /*! \brief parameter for folding rarely visited subtrees (no if/else blocks);
-             all nodes whose hessian sums are lower than that of the root node
-             of the decision tree by [code_folding_sum_hess_req] will be
-             folded. To disable folding, set to +inf. */
-  double code_folding_sum_hess_req;
+             of the decision tree by [code_folding_req] will be
+             folded. To diable folding, set to +inf. If hessian sums are
+             available, they will be used as proxies of data counts. */
+  double code_folding_req;
   /*! \brief path to save a dump of AST. If NULL, don't generate dump */
   std::string ast_dump_path;
   /*! \brief whether AST dump should be binary (>0) or human-readable text (<=0) */
@@ -78,10 +74,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(java_package_version).set_default("1.0-SNAPSHOT");
     DMLC_DECLARE_FIELD(java_file_prefix)
        .set_default("src/main/java/treelite/predictor/");
-    DMLC_DECLARE_FIELD(code_folding_data_count_req)
-       .set_default(std::numeric_limits<double>::infinity())
-       .set_lower_bound(0);
-    DMLC_DECLARE_FIELD(code_folding_sum_hess_req)
+    DMLC_DECLARE_FIELD(code_folding_req)
        .set_default(std::numeric_limits<double>::infinity())
        .set_lower_bound(0);
     DMLC_DECLARE_FIELD(ast_dump_path)

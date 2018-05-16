@@ -8,8 +8,7 @@ namespace compiler {
 DMLC_REGISTRY_FILE_TAG(fold_code);
 
 struct CodeFoldingContext {
-  double data_count_magnitude_req;
-  double sum_hess_magnitude_req;
+  double magnitude_req;
   double log_root_data_count;
   double log_root_sum_hess;
   bool create_new_translation_unit;
@@ -33,10 +32,10 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
 
   if (   (node->data_count && !std::isnan(context->log_root_data_count)
           && context->log_root_data_count - std::log(node->data_count.value())
-             >= context->data_count_magnitude_req)
+             >= context->magnitude_req)
       || (node->sum_hess && !std::isnan(context->log_root_sum_hess)
           && context->log_root_sum_hess - std::log(node->sum_hess.value())
-             >= context->sum_hess_magnitude_req) ) {
+             >= context->magnitude_req) ) {
     // fold the subtree whose root is [node]
     ASTNode* parent_node = node->parent;
     ASTNode* folder_node = nullptr;
@@ -75,10 +74,9 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
 
 int count_tu_nodes(ASTNode* node);
 
-bool ASTBuilder::FoldCode(double data_count_magnitude_req,
-                          double sum_hess_magnitude_req,
+bool ASTBuilder::FoldCode(double magnitude_req,
                           bool create_new_translation_unit) {
-  CodeFoldingContext context{data_count_magnitude_req, sum_hess_magnitude_req,
+  CodeFoldingContext context{magnitude_req,
                              std::numeric_limits<double>::quiet_NaN(),
                              std::numeric_limits<double>::quiet_NaN(),
                              create_new_translation_unit,

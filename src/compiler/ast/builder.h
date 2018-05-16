@@ -30,20 +30,16 @@ class ASTBuilder {
    *        if/else blocks). Rarity of each node is determined by its
    *        data count and/or hessian sum: any node is "rare" if its data count
    *        or hessian sum is lower than the proscribed threshold.
-   * \param data_count_magnitude_req all nodes whose data counts are lower
-   *                                 than that of the root node of the decision
-   *                                 tree by [data_count_magnitude_req] will be
-   *                                 folded. To diable folding, set to +inf.
-   * \param sum_hess_magnitude_req all nodes whose hessian sums are lower than
-   *                               that of the root node of the decision tree
-   *                               by [sum_hess_magnitude_req] will be folded.
-   *                               To diable folding, set to +inf.
+   * \param magnitude_req all nodes whose data counts are lower than that of
+   *                      the root node of the decision tree by [magnitude_req]
+   *                      will be folded. To diable folding, set to +inf. If
+   *                      hessian sums are available instead of data counts,
+   *                      hessian sums will be used as a proxy of data counts
    * \param create_new_translation_unit if true, place folded loops in
    *                                    separate translation units
    * \param whether at least one subtree was folded
    */
-  bool FoldCode(double data_count_magnitude_req, double sum_hess_magnitude_req,
-                bool create_new_translation_unit = false);
+  bool FoldCode(double magnitude_req, bool create_new_translation_unit = false);
   /*
    * \brief split prediction function into multiple translation units
    * \param parallel_comp number of translation units

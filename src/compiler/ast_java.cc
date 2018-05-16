@@ -48,8 +48,7 @@ class ASTJavaCompiler : public Compiler {
 
     ASTBuilder builder;
     builder.BuildAST(model);
-    if (builder.FoldCode(param.code_folding_data_count_req,
-                         param.code_folding_sum_hess_req, true)
+    if (builder.FoldCode(param.code_folding_req, true)
         || param.quantize > 0) {
       // is_categorical[i] : is i-th feature categorical?
       array_is_categorical_

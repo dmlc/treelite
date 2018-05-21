@@ -4,7 +4,7 @@
 #include <dmlc/logging.h>
 #include <treelite/common.h>
 #include <queue>
-#include <unordered_set>
+#include <set>
 #include <string>
 #include <fmt/format.h>
 #include "../ast/ast.h"
@@ -42,7 +42,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   // subtree breadth-first
   {
     std::queue<ASTNode*> Q;
-    std::unordered_set<Operator> ops;
+    std::set<treelite::Operator> ops;
     int new_node_id = 0;
     Q.push(node->children[0]);
     while (!Q.empty()) {

@@ -120,6 +120,18 @@ inline void CreateDirectoryIfNotExist(const char* dirpath) {
 #endif
 }
 
+inline void CreateDirectoryIfNotExistRecursive(const std::string& dirpath) {
+  const std::vector<std::string> tokens = common::Split(dirpath, '/');
+  std::string accum = tokens[0];
+  for (size_t i = 0; i < tokens.size(); ++i) {
+    common::filesystem::CreateDirectoryIfNotExist(accum.c_str());
+    if (i < tokens.size() - 1 && !tokens[i + 1].empty()) {
+      accum += "/";
+      accum += tokens[i + 1];
+    }
+  }
+}
+
 }  // namespace filesystem
 }  // namespace common
 }  // namespace treelite

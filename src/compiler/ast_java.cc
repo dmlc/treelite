@@ -72,6 +72,7 @@ class ASTJavaCompiler : public Compiler {
       builder.Serialize(param.ast_dump_path, param.ast_dump_binary > 0);
     }
     #include "./java/entry_type.h"
+    #include "./java/data_interface.h"
     #include "./java/node_type.h"
     #include "./java/pom_xml.h"
     files_[file_prefix_ + "Entry.java"]
@@ -81,6 +82,7 @@ class ASTJavaCompiler : public Compiler {
       = fmt::format(node_type_template,
           "java_package"_a = param.java_package,
           "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
+    files_["src/main/java/ml/dmlc/treelite/Data.java"] = data_interface;
     files_["pom.xml"]
       = fmt::format(pom_xml_template,
           "java_package"_a = param.java_package,
@@ -481,8 +483,8 @@ class ASTJavaCompiler : public Compiler {
             << "L >>> (tmp - " << (i * 64) << ") ) & 1) )";
       }
       result = oss.str();
-      return result;
     }
+    return result;
   }
 
   inline std::string

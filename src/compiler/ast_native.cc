@@ -468,8 +468,8 @@ class ASTNativeCompiler : public Compiler {
             << "U >> (tmp - " << (i * 64) << ") ) & 1) )";
       }
       result = oss.str();
-      return result;
     }
+    return result;
   }
 
   inline std::string

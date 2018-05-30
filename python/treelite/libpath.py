@@ -41,8 +41,6 @@ def find_lib_path(basename, libformat=True):
     lib_name = basename
 
   curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
-  # go one level up, as this script is in common/ directory
-  curr_path = os.path.abspath(os.path.join(curr_path, os.pardir))
   # List possible locations for the library file
   dll_path = [curr_path, os.path.join(curr_path, '../../lib/'),
               os.path.join(curr_path, './lib/'),

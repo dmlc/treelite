@@ -5,10 +5,10 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(breakup);
 
-static int count_tu(ASTNode* node) {
+int count_tu_nodes(ASTNode* node) {
   int accum = (dynamic_cast<TranslationUnitNode*>(node)) ? 1 : 0;
   for (ASTNode* child : node->children) {
-    accum += count_tu(child);
+    accum += count_tu_nodes(child);
   }
   return accum;
 }
@@ -16,11 +16,13 @@ static int count_tu(ASTNode* node) {
 bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
              ASTBuilder* builder) {
   bool flag = false;
+  CHECK(node->num_descendant_ast_node.has_value());
   if (dynamic_cast<ConditionNode*>(node)
-      && node->num_descendant > num_descendant_limit) {
+      && node->num_descendant_ast_node.value() > num_descendant_limit) {
     bool break_here = true;
     for (ASTNode* child : node->children) {
-      if (child->num_descendant > num_descendant_limit) {
+      CHECK(child->num_descendant_ast_node.has_value());
+      if (child->num_descendant_ast_node.value() > num_descendant_limit) {
         break_here = false;  // don't break this node; break the child instead
       }
     }
@@ -45,27 +47,31 @@ bool breakup(ASTNode* node, int num_descendant_limit, int* num_tu,
       tu->children.push_back(ac);
       ac->children.push_back(node);
       node->parent = ac;
-      tu->num_descendant = 0;
+      tu->num_descendant_ast_node = 0;
       ASTNode* n = tu->parent;
       while (n) {
-        n->num_descendant -= node->num_descendant;
-        CHECK_GE(n->num_descendant, 0);
+        CHECK(n->num_descendant_ast_node.has_value());
+        n->num_descendant_ast_node
+          = n->num_descendant_ast_node.value()
+            - node->num_descendant_ast_node.value();
+        CHECK_GE(n->num_descendant_ast_node.value(), 0);
         n = n->parent;
       }
       flag = true;
     }
   }
   for (ASTNode* child : node->children) {
-    if (child->num_descendant > 0) {
+    CHECK(child->num_descendant_ast_node.has_value());
+    if (child->num_descendant_ast_node.value() > 0) {
       flag |= breakup(child, num_descendant_limit, num_tu, builder);
     }
   }
   return flag;
 }
 
-void ASTBuilder::BreakUpLargeUnits(int num_descendant_limit) {
+void ASTBuilder::BreakUpLargeTranslationUnits(int num_descendant_limit) {
   CHECK_GT(num_descendant_limit, 0);
-  int num_tu = count_tu(this->main_node);
+  int num_tu = count_tu_nodes(this->main_node);
   while (breakup(this->main_node, num_descendant_limit, &num_tu, this)) {}
 }
 

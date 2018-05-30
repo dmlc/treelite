@@ -1,12 +1,17 @@
 #include <treelite/compiler.h>
 #include <treelite/common.h>
+#include <fmt/format.h>
 #include <unordered_map>
 #include <cmath>
 #include "./param.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
-#include "./java/get_num_feature.h"
-#include "./java/get_num_output_group.h"
+#include "./common/code_folding_util.h"
+#include "./common/categorical_bitmap.h"
+
+using namespace fmt::literals;
+
+static const int MAX_CONSTANTS_PER_TABLE = 10;
 
 namespace treelite {
 namespace compiler {
@@ -16,9 +21,13 @@ DMLC_REGISTRY_FILE_TAG(ast_java);
 class ASTJavaCompiler : public Compiler {
  public:
   explicit ASTJavaCompiler(const CompilerParam& param)
-    : param(param) {
+    : param(param), file_prefix_(param.java_file_prefix), num_constants_(0) {
     if (param.verbose > 0) {
       LOG(INFO) << "Using ASTJavaCompiler";
+    }
+    if (file_prefix_[file_prefix_.length() - 1] != '/') {
+      // Add missing last forward slash
+      file_prefix_ += "/";
     }
   }
 
@@ -32,23 +41,54 @@ class ASTJavaCompiler : public Compiler {
                    << "branch annotation.\u001B[0m The parameter "
                    << "\x1B[33mannotate_in\u001B[0m will be ignored.";
     }
+    num_feature_ = model.num_feature;
     num_output_group_ = model.num_output_group;
     pred_tranform_func_ = PredTransformFunction("java", model);
     files_.clear();
 
     ASTBuilder builder;
-    builder.Build(model);
+    builder.BuildAST(model);
+    if (builder.FoldCode(param.code_folding_req, true)
+        || param.quantize > 0) {
+      // is_categorical[i] : is i-th feature categorical?
+      array_is_categorical_
+        = RenderIsCategoricalArray(builder.GenerateIsCategoricalArray());
+      main_tail_
+        += fmt::format("public static final boolean[] is_categorical = {{\n"
+                       "{array_is_categorical}\n"
+                       "}};\n",
+             "array_is_categorical"_a = array_is_categorical_);
+    }
+    if (param.parallel_comp == 0) {
+      param.parallel_comp = model.trees.size();
+    }
     builder.Split(param.parallel_comp);
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
     builder.CountDescendant();
-    builder.BreakUpLargeUnits(param.max_unit_size);
-    #include "java/entry_type.h"
-    #include "java/pom_xml.h"
-    files_[file_prefix_ + "Entry.java"] = entry_type;
-    files_["pom.xml"] = pom_xml;
+    builder.BreakUpLargeTranslationUnits(param.max_unit_size);
+    if (param.ast_dump_path != "NULL") {
+      builder.Serialize(param.ast_dump_path, param.ast_dump_binary > 0);
+    }
+    #include "./java/entry_type.h"
+    #include "./java/data_interface.h"
+    #include "./java/node_type.h"
+    #include "./java/pom_xml.h"
+    files_[file_prefix_ + "Entry.java"]
+      = fmt::format(entry_type_template,
+          "java_package"_a = param.java_package);
+    files_[file_prefix_ + "Node.java"]
+      = fmt::format(node_type_template,
+          "java_package"_a = param.java_package,
+          "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
+    files_["src/main/java/ml/dmlc/treelite/Data.java"] = data_interface;
+    files_["pom.xml"]
+      = fmt::format(pom_xml_template,
+          "java_package"_a = param.java_package,
+          "java_package_version"_a = param.java_package_version);
     WalkAST(builder.GetRootNode(), "Main.java", 0);
+    CloseConstantTable();
 
     cm.files = std::move(files_);
     cm.file_prefix = file_prefix_;
@@ -56,21 +96,25 @@ class ASTJavaCompiler : public Compiler {
   }
  private:
   CompilerParam param;
+  int num_feature_;
   int num_output_group_;
   std::string pred_tranform_func_;
+  std::string array_is_categorical_;
   std::unordered_map<std::string, std::string> files_;
   std::string main_tail_;
-  const std::string file_prefix_ = param.java_file_prefix;
+  std::string file_prefix_;
+  int num_constants_;
 
   void WalkAST(const ASTNode* node,
                const std::string& dest,
-               int indent) {
+               size_t indent) {
     const MainNode* t1;
     const AccumulatorContextNode* t2;
     const ConditionNode* t3;
     const OutputNode* t4;
     const TranslationUnitNode* t5;
     const QuantizerNode* t6;
+    const CodeFolderNode* t7;
     if ( (t1 = dynamic_cast<const MainNode*>(node)) ) {
       HandleMainNode(t1, dest, indent);
     } else if ( (t2 = dynamic_cast<const AccumulatorContextNode*>(node)) ) {
@@ -83,89 +127,109 @@ class ASTJavaCompiler : public Compiler {
       HandleTUNode(t5, dest, indent);
     } else if ( (t6 = dynamic_cast<const QuantizerNode*>(node)) ) {
       HandleQNode(t6, dest, indent);
+    } else if ( (t7 = dynamic_cast<const CodeFolderNode*>(node)) ) {
+      HandleCodeFolderNode(t7, dest, indent);
     } else {
-      LOG(FATAL) << "oops";
+      LOG(FATAL) << "Unrecognized AST node type";
     }
   }
 
-  void CommitToFile(const std::string& dest,
-                    const std::string& content) {
-    files_[file_prefix_ + dest] += content;
+  // append content to a given buffer, with given level of indentation
+  inline void AppendToBuffer(const std::string& dest,
+                             const std::string& content,
+                             size_t indent) {
+    files_[file_prefix_ + dest]
+      += common::IndentMultiLineString(content, indent);
+  }
+
+  inline bool DoesBufferExist(const std::string& dest) {
+    return files_.count(file_prefix_ + dest) > 0;
+  }
+
+  // add a constant to constant table
+  // \return name of constant table that holds the constant
+  inline std::string AddToConstantTable(const std::string& content) {
+    const int constant_table_idx = num_constants_ / MAX_CONSTANTS_PER_TABLE;
+    const std::string constant_table_class_name
+      = fmt::format("ConstantStore{}", constant_table_idx);
+    const std::string dest = fmt::format("{}.java", constant_table_class_name);
+    if (!DoesBufferExist(dest)) {
+      AppendToBuffer(dest,
+        fmt::format("package {java_package};\n"
+                    "public class {constant_table_class_name} {{\n",
+          "java_package"_a = param.java_package,
+          "constant_table_class_name"_a = constant_table_class_name), 0);
+    }
+    AppendToBuffer(dest, content, 2);
+    ++num_constants_;
+    return constant_table_class_name;
+  }
+
+  inline void CloseConstantTable() {
+    const int num_constant_table
+      = (num_constants_ + MAX_CONSTANTS_PER_TABLE - 1) / MAX_CONSTANTS_PER_TABLE;
+    for (int i = 0; i < num_constant_table; ++i) {
+      const std::string dest = fmt::format("ConstantStore{}.java", i);
+      AppendToBuffer(dest, "}\n", 0);
+    }
   }
 
   void HandleMainNode(const MainNode* node,
                       const std::string& dest,
-                      int indent) {
-    const std::string prototype
+                      size_t indent) {
+    const char* predict_function_signature
       = (num_output_group_ > 1) ?
           "public static long predict_multiclass(Entry[] data, "
                                                 "boolean pred_margin, "
                                                 "float[] result)"
         : "public static float predict(Entry[] data, boolean pred_margin)";
-    CommitToFile(dest,
-                 "package " + param.java_package + ";\n\n"
-                 "import java.lang.Math;\n"
-                 "import javolution.context.LogContext;\n"
-                 "import javolution.context.LogContext.Level;\n\n"
-                 "public class Main {\n");
-    CommitToFile(dest,
-                 "  static {\n    LogContext ctx = LogContext.enter();\n"
-                 "    ctx.setLevel(Level.INFO);\n  }\n");
-    CommitToFile(dest,
-                 get_num_output_group_func(num_output_group_) + "\n"
-                 + get_num_feature_func(node->num_feature) + "\n"
-                 + pred_tranform_func_ + "\n"
-                 + std::string(indent + 2, ' ') + prototype + " {\n");
+    #include "./java/main_template.h"
+    AppendToBuffer(dest,
+      fmt::format(main_start_template,
+        "java_package"_a = param.java_package,
+        "num_output_group"_a = num_output_group_,
+        "num_feature"_a = node->num_feature,
+        "pred_transform_function"_a = pred_tranform_func_,
+        "predict_function_signature"_a = predict_function_signature), indent);
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent + 4);
-    std::ostringstream oss;
+
+    const std::string optional_average_field
+      = (node->average_result) ? fmt::format(" / {}", node->num_tree)
+                               : std::string("");
     if (num_output_group_ > 1) {
-      oss << std::string(indent + 4, ' ')
-          << "for (int i = 0; i < " << num_output_group_ << "; ++i) {\n"
-          << std::string(indent + 6, ' ') << "result[i] = sum[i]";
-      if (node->average_result) {
-        oss << " / " << node->num_tree;
-      }
-      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
-          << std::string(indent + 4, ' ') << "}\n"
-          << std::string(indent + 4, ' ') << "if (!pred_margin) {\n"
-          << std::string(indent + 4, ' ')
-          << "  return pred_transform(result);\n"
-          << std::string(indent + 4, ' ') << "} else {\n"
-          << std::string(indent + 4, ' ')
-          << "  return " << num_output_group_ << ";\n"
-          << std::string(indent + 4, ' ') << "}\n";
+      AppendToBuffer(dest,
+        fmt::format(main_end_multiclass_template,
+          "num_output_group"_a = num_output_group_,
+          "optional_average_field"_a = optional_average_field,
+          "global_bias"_a = common::ToStringHighPrecision(node->global_bias),
+          "main_footer"_a = main_tail_),
+        indent);
     } else {
-      oss << std::string(indent + 4, ' ') << "sum = sum";
-      if (node->average_result) {
-        oss << " / " << node->num_tree;
-      }
-      oss << " + (float)(" << common::ToString(node->global_bias) << ");\n"
-          << std::string(indent + 4, ' ') << "if (!pred_margin) {\n"
-          << std::string(indent + 4, ' ') << "  return pred_transform(sum);\n"
-          << std::string(indent + 4, ' ') << "} else {\n"
-          << std::string(indent + 4, ' ') << "  return sum;\n"
-          << std::string(indent + 4, ' ') << "}\n";
+      AppendToBuffer(dest,
+        fmt::format(main_end_template,
+          "optional_average_field"_a = optional_average_field,
+          "global_bias"_a = common::ToStringHighPrecision(node->global_bias),
+          "main_footer"_a = main_tail_),
+        indent);
     }
-    oss << std::string(indent + 2, ' ') << "}\n"
-        << main_tail_
-        << std::string(indent, ' ') << "}\n";
-    CommitToFile(dest, oss.str());
   }
 
   void HandleACNode(const AccumulatorContextNode* node,
                     const std::string& dest,
-                    int indent) {
-    std::ostringstream oss;
+                    size_t indent) {
     if (num_output_group_ > 1) {
-      oss << std::string(indent, ' ')
-          << "float[] sum = new float[" << num_output_group_ << "];\n";
+      AppendToBuffer(dest,
+        fmt::format("float[] sum = new float[{num_output_group}];\n"
+                    "int tmp;\n"
+                    "int nid, fid; boolean cond;  /* used for folded subtrees */\n",
+          "num_output_group"_a = num_output_group_), indent);
     } else {
-      oss << std::string(indent, ' ') << "float sum = 0.0f;\n";
+      AppendToBuffer(dest,
+        "float sum = 0.0f;\n"
+        "int tmp;\n"
+        "int nid, fid; boolean cond;  /* used for folded subtrees */\n", indent);
     }
-    oss << std::string(indent, ' ') << "int tmp;\n";
-    CommitToFile(dest, oss.str());
-
     for (ASTNode* child : node->children) {
       WalkAST(child, dest, indent);
     }
@@ -173,204 +237,292 @@ class ASTJavaCompiler : public Compiler {
 
   void HandleCondNode(const ConditionNode* node,
                       const std::string& dest,
-                      int indent) {
-    const unsigned split_index = node->split_index;
-    const std::string na_check
-      = std::string("data[") + std::to_string(split_index)
-        + "].missing.get() != -1";
-
+                      size_t indent) {
     const NumericalConditionNode* t;
-    std::ostringstream oss;  // prepare logical statement for evaluating split
+    std::string condition;
     if ( (t = dynamic_cast<const NumericalConditionNode*>(node)) ) {
-      if (t->quantized) {  // quantized threshold
-        oss << "data[" << split_index << "].qvalue.get() "
-            << OpName(t->op) << " " << t->threshold.int_val;
-      } else if (std::isinf(t->threshold.float_val)) {  // infinite threshold
-        // According to IEEE 754, the result of comparison [lhs] < infinity
-        // must be identical for all finite [lhs]. Same goes for operator >.
-        oss << (common::CompareWithOp(0.0, t->op, t->threshold.float_val)
-                ? "true" : "false");
-      } else {  // finite threshold
-        // to restore default precision
-        const std::streamsize ss = std::cout.precision();
-        oss << "data[" << split_index << "].fvalue.get() "
-            << OpName(t->op) << " "
-            << std::setprecision(std::numeric_limits<tl_float>::digits10 + 2)
-            << t->threshold.float_val << "f" << std::setprecision(ss);
-      }
-    } else {  // categorical split
+      /* numerical split */
+      condition = ExtractNumericalCondition(t);
+    } else {   /* categorical split */
       const CategoricalConditionNode* t2
         = dynamic_cast<const CategoricalConditionNode*>(node);
       CHECK(t2);
-      std::vector<uint64_t> bitmap = to_bitmap(t2->left_categories);
-      CHECK_GE(bitmap.size(), 1);
-      bool all_zeros = true;
-      for (uint64_t e : bitmap) {
-        all_zeros &= (e == 0);
-      }
-      if (all_zeros) {
-        oss << "0";
-      } else {
-        oss << "(tmp = (int)(data[" << split_index << "].fvalue.get()) ), "
-            << "(tmp >= 0 && tmp < 64 && (( (long)"
-            << bitmap[0] << "L >>> tmp) & 1) )";
-        for (size_t i = 1; i < bitmap.size(); ++i) {
-          oss << " || (tmp >= " << (i * 64)
-              << " && tmp < " << ((i + 1) * 64)
-              << " && (( (long)" << bitmap[i]
-              << "L >>> (tmp - " << (i * 64) << ") ) & 1) )";
-        }
-      }
+      condition = ExtractCategoricalCondition(t2);
     }
-    CommitToFile(dest,
-         std::string(indent, ' ') + "if ("
-         + ((node->default_left) ? (std::string("!(") + na_check + ") || (")
-                                 : (std::string(" (") + na_check + ") && ("))
-         + oss.str() + ") ) {\n");
+
+    const char* condition_with_na_check_template
+      = (node->default_left) ?
+          "!(data[{split_index}].missing.get() != -1) || ({condition})"
+        : " (data[{split_index}].missing.get() != -1) && ({condition})";
+    const std::string condition_with_na_check
+      = fmt::format(condition_with_na_check_template,
+          "split_index"_a = node->split_index,
+          "condition"_a = condition);
+    AppendToBuffer(dest,
+      fmt::format("if ({} ) {{\n", condition_with_na_check), indent);
     CHECK_EQ(node->children.size(), 2);
     WalkAST(node->children[0], dest, indent + 2);
-    CommitToFile(dest, std::string(indent, ' ') + "} else {\n");
+    AppendToBuffer(dest, "} else {\n", indent);
     WalkAST(node->children[1], dest, indent + 2);
-    CommitToFile(dest, std::string(indent, ' ') + "}\n");
+    AppendToBuffer(dest, "}\n", indent);
   }
 
   void HandleOutputNode(const OutputNode* node,
                         const std::string& dest,
-                        int indent) {
-    std::ostringstream oss;
-    if (num_output_group_ > 1) {
-      if (node->is_vector) {
-        // multi-class classification with random forest
-        const std::vector<tl_float>& leaf_vector = node->vector;
-        CHECK_EQ(leaf_vector.size(), static_cast<size_t>(num_output_group_))
-          << "Ill-formed model: leaf vector must be of length [num_output_group]";
-        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
-          oss << std::string(indent, ' ')
-              << "sum[" << group_id << "] += "
-              << common::ToString(leaf_vector[group_id]) << "f;\n";
-        }
-      } else {
-        // multi-class classification with gradient boosted trees
-        oss << std::string(indent, ' ') << "sum["
-            << (node->tree_id % num_output_group_) << "] += "
-            << common::ToString(node->scalar) << "f;\n";
-      }
-    } else {
-      oss << std::string(indent, ' ') << "sum += "
-          << common::ToString(node->scalar) << "f;\n";
-    }
-    CommitToFile(dest, oss.str());
+                        size_t indent) {
+    AppendToBuffer(dest, RenderOutputStatement(node), indent);
     CHECK_EQ(node->children.size(), 0);
   }
 
   void HandleTUNode(const TranslationUnitNode* node,
                     const std::string& dest,
-                    int indent) {
-    const std::string new_file
-      = std::string("TU") + std::to_string(node->unit_id) + ".java";
-    std::ostringstream caller_buf, callee_buf, func_name, class_name, prototype;
-    class_name << "TU" << node->unit_id;
+                    size_t indent) {
+    const int unit_id = node->unit_id;
+    const std::string class_name = fmt::format("TU{}", unit_id);
+    const std::string new_file = fmt::format("{}.java", class_name);
+    std::string unit_function_name, unit_function_signature,
+                unit_function_call_signature;
+
     if (num_output_group_ > 1) {
-      func_name << "predict_margin_multiclass_unit" << node->unit_id;
-      caller_buf << std::string(indent, ' ')
-                 << class_name.str() << "."
-                 << func_name.str() << "(data, sum);\n";
-      prototype << "public static void " << func_name.str()
-                << "(Entry[] data, float[] result)";
+      unit_function_name
+        = fmt::format("predict_margin_multiclass_unit{}", unit_id);
+      unit_function_signature
+        = fmt::format("public static void {}(Entry[] data, float[] result)",
+            unit_function_name);
+      unit_function_call_signature
+        = fmt::format("{class_name}.{unit_function_name}(data, sum);\n",
+            "class_name"_a = class_name,
+            "unit_function_name"_a = unit_function_name);
     } else {
-      func_name << "predict_margin_unit" << node->unit_id;
-      caller_buf << std::string(indent, ' ')
-                 << "sum += " << class_name.str() << "." << func_name.str()
-                 << "(data);\n";
-      prototype << "public static float " << func_name.str()
-                << "(Entry[] data)";
+      unit_function_name
+        = fmt::format("predict_margin_unit{}", unit_id);
+      unit_function_signature
+        = fmt::format("public static float {}(Entry[] data)",
+            unit_function_name);
+      unit_function_call_signature
+        = fmt::format("sum += {class_name}.{unit_function_name}(data);\n",
+            "class_name"_a = class_name,
+            "unit_function_name"_a = unit_function_name);
     }
-    callee_buf << "package " << param.java_package << ";\n\n"
-               << "public class " << class_name.str() << " {\n"
-               << "  " << prototype.str() << " {\n";
-    CommitToFile(dest, caller_buf.str());
-    CommitToFile(new_file, callee_buf.str());
+    AppendToBuffer(dest, unit_function_call_signature, indent);
+    AppendToBuffer(new_file,
+                   fmt::format("package {java_package};\n\n"
+                               "public class {class_name} {{\n"
+                               "  {unit_function_signature} {{\n",
+                     "java_package"_a = param.java_package,
+                     "class_name"_a = class_name,
+                     "unit_function_signature"_a = unit_function_signature), 0);
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], new_file, 4);
-    callee_buf.str(""); callee_buf.clear();
     if (num_output_group_ > 1) {
-      callee_buf
-        << "    for (int i = 0; i < " << num_output_group_ << "; ++i) {\n"
-        << "      result[i] = sum[i];\n"
-        << "    }\n";
+      AppendToBuffer(new_file,
+        fmt::format("    for (int i = 0; i < {num_output_group}; ++i) {{\n"
+                    "      result[i] = sum[i];\n"
+                    "    }}\n"
+                    "  }}\n"
+                    "}}\n",
+          "num_output_group"_a = num_output_group_), 0);
     } else {
-      callee_buf << "    return sum;\n";
+      AppendToBuffer(new_file, "    return sum;\n  }\n}\n", 0);
     }
-    callee_buf << "  }\n" << "}\n";
-    CommitToFile(new_file, callee_buf.str());
   }
 
   void HandleQNode(const QuantizerNode* node,
                    const std::string& dest,
-                   int indent) {
-    std::ostringstream oss;  // prepare a preamble
-    const int num_feature = node->is_categorical.size();
-    size_t length = 4;
-    oss << "  private static final boolean[] is_categorical = {\n    ";
-    for (int fid = 0; fid < num_feature; ++fid) {
-      if (node->is_categorical[fid]) {
-        common::WrapText(&oss, &length, "true, ", 4, 80);
-      } else {
-        common::WrapText(&oss, &length, "false, ", 4, 80);
+                   size_t indent) {
+    /* render arrays needed to convert feature values into bin indices */
+    std::string array_threshold, array_th_begin, array_th_len;
+    // threshold[] : list of all thresholds that occur at least once in the
+    //   ensemble model. For each feature, an ascending list of unique
+    //   thresholds is generated. The range th_begin[i]:(th_begin[i]+th_len[i])
+    //   of the threshold[] array stores the threshold list for feature i.
+    size_t total_num_threshold;
+      // to hold total number of (distinct) thresholds
+    {
+      common::ArrayFormatter formatter(78, 2);
+      for (const auto& e : node->cut_pts) {
+        // cut_pts had been generated in ASTBuilder::QuantizeThresholds
+        // cut_pts[i][k] stores the k-th threshold of feature i.
+        for (tl_float v : e) {
+          formatter << (common::ToStringHighPrecision(v) + "f");
+        }
       }
+      array_threshold = formatter.str();
     }
-    oss << "\n  };\n";
-    length = 4;
-    oss << "  private static final float[] threshold = {\n    ";
-    for (const auto& e : node->cut_pts) {
-      for (tl_float v : e) {
-        common::WrapText(&oss, &length, common::ToString(v) + "f, ", 4, 80);
+    {
+      common::ArrayFormatter formatter(78, 2);
+      size_t accum = 0;  // used to compute cumulative sum over threshold counts
+      for (const auto& e : node->cut_pts) {
+        formatter << accum;
+        accum += e.size();  // e.size() = number of thresholds for each feature
       }
+      total_num_threshold = accum;
+      array_th_begin = formatter.str();
     }
-    oss << "\n  };\n";
-    length = 4;
-    size_t accum = 0;
-    oss << "  private static final int[] th_begin = {\n    ";
-    for (const auto& e : node->cut_pts) {
-      common::WrapText(&oss, &length, std::to_string(accum) + ", ", 4, 80);
-      accum += e.size();
+    {
+      common::ArrayFormatter formatter(78, 2);
+      for (const auto& e : node->cut_pts) {
+        formatter << e.size();
+      }
+      array_th_len = formatter.str();
     }
-    oss << "\n  };\n";
-    length = 4;
-    oss << "  private static final int[] th_len = {\n    ";
-    for (const auto& e : node->cut_pts) {
-      common::WrapText(&oss, &length, std::to_string(e.size()) + ", ", 4, 80);
-    }
-    oss << "\n  };\n";
-    #include "./java/quantize_func.h"
-    oss << quantize_func;
-    main_tail_ += oss.str();
-    oss.str(""); oss.clear();
-    oss << std::string(indent, ' ')
-        << "for (int i = 0; i < " << num_feature << "; ++i) {\n"
-        << std::string(indent + 2, ' ')
-        << "if (data[i].missing.get() != -1 && !is_categorical[i]) {\n"
-        << std::string(indent + 4, ' ')
-        << "data[i].qvalue.set(quantize(data[i].fvalue.get(), i));\n"
-        << std::string(indent + 2, ' ') + "}\n"
-        << std::string(indent, ' ') + "}\n";
-    CommitToFile(dest, oss.str());
+
+    #include "./java/qnode_template.h"
+    main_tail_
+      += common::IndentMultiLineString(
+           fmt::format(qnode_template,
+             "array_threshold"_a = array_threshold,
+             "array_th_begin"_a = array_th_begin,
+             "array_th_len"_a = array_th_len,
+             "total_num_threshold"_a = total_num_threshold), 2);
+    AppendToBuffer(dest,
+      fmt::format(quantize_loop_template,
+        "num_feature"_a = num_feature_), indent);
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent);
   }
 
-  inline std::vector<uint64_t>
-  to_bitmap(const std::vector<uint32_t>& left_categories) const {
-    const size_t num_left_categories = left_categories.size();
-    const uint32_t max_left_category = left_categories[num_left_categories - 1];
-    std::vector<uint64_t> bitmap((max_left_category + 1 + 63) / 64, 0);
-    for (size_t i = 0; i < left_categories.size(); ++i) {
-      const uint32_t cat = left_categories[i];
-      const size_t idx = cat / 64;
-      const uint32_t offset = cat % 64;
-      bitmap[idx] |= (static_cast<uint64_t>(1) << offset);
+  void HandleCodeFolderNode(const CodeFolderNode* node,
+                            const std::string& dest,
+                            size_t indent) {
+    CHECK_EQ(node->children.size(), 1);
+    const int node_id = node->children[0]->node_id;
+    const int tree_id = node->children[0]->tree_id;
+
+    /* render arrays needed for folding subtrees */
+    std::string array_nodes, array_cat_bitmap, array_cat_begin;
+    // node_treeXX_nodeXX[] : information of nodes for a particular subtree
+    const std::string node_array_name
+      = fmt::format("node_tree{}_node{}", tree_id, node_id);
+    // cat_bitmap_treeXX_nodeXX[] : list of all 64-bit integer bitmaps, used to
+    //                              make all categorical splits in a particular
+    //                              subtree
+    const std::string cat_bitmap_name
+      = fmt::format("cat_bitmap_tree{}_node{}", tree_id, node_id);
+    // cat_begin_treeXX_nodeXX[] : shows which bitmaps belong to each split.
+    //                             cat_bitmap[ cat_begin[i]:cat_begin[i+1] ]
+    //                             belongs to the i-th (categorical) split
+    const std::string cat_begin_name
+      = fmt::format("cat_begin_tree{}_node{}", tree_id, node_id);
+
+    std::string output_switch_statement;
+    Operator common_comp_op;
+    common_util::RenderCodeFolderArrays(node, param.quantize, true,
+      "new Node({default_left}, {split_index}, {threshold}, {left_child}, {right_child})",
+      [this](const OutputNode* node) { return RenderOutputStatement(node); },
+      &array_nodes, &array_cat_bitmap, &array_cat_begin,
+      &output_switch_statement, &common_comp_op);
+
+    #include "./java/code_folder_template.h"
+    const std::string constant_table
+      = AddToConstantTable(fmt::format(code_folder_arrays_template,
+                             "node_array_name"_a = node_array_name,
+                             "array_nodes"_a = array_nodes,
+                             "cat_bitmap_name"_a = cat_bitmap_name,
+                             "array_cat_bitmap"_a = array_cat_bitmap,
+                             "cat_begin_name"_a = cat_begin_name,
+                             "array_cat_begin"_a = array_cat_begin));
+    AppendToBuffer(dest,
+                   fmt::format(eval_loop_template,
+                     "constant_table"_a = constant_table,
+                     "node_array_name"_a = node_array_name,
+                     "cat_bitmap_name"_a = cat_bitmap_name,
+                     "cat_begin_name"_a = cat_begin_name,
+                     "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                     "comp_op"_a = OpName(common_comp_op),
+                     "output_switch_statement"_a
+                       = output_switch_statement), indent);
+  }
+
+  inline std::string
+  ExtractNumericalCondition(const NumericalConditionNode* node) {
+    std::string result;
+    if (node->quantized) {  // quantized threshold
+      result = fmt::format(
+                   "data[{split_index}].qvalue.get() {opname} {threshold}",
+                 "split_index"_a = node->split_index,
+                 "opname"_a = OpName(node->op),
+                 "threshold"_a = node->threshold.int_val);
+    } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
+      // According to IEEE 754, the result of comparison [lhs] < infinity
+      // must be identical for all finite [lhs]. Same goes for operator >.
+      result = (common::CompareWithOp(0.0, node->op, node->threshold.float_val)
+                ? "true" : "false");
+    } else {  // finite threshold
+      result = fmt::format(
+                   "data[{split_index}].fvalue.get() {opname} {threshold}f",
+                 "split_index"_a = node->split_index,
+                 "opname"_a = OpName(node->op),
+                 "threshold"_a
+                   = common::ToStringHighPrecision(node->threshold.float_val));
     }
-    return bitmap;
+    return result;
+  }
+
+  inline std::string
+  ExtractCategoricalCondition(const CategoricalConditionNode* node) {
+    std::string result;
+    std::vector<uint64_t> bitmap
+      = common_util::GetCategoricalBitmap(node->left_categories);
+    CHECK_GE(bitmap.size(), 1);
+    bool all_zeros = true;
+    for (uint64_t e : bitmap) {
+      all_zeros &= (e == 0);
+    }
+    if (all_zeros) {
+      result = "0";
+    } else {
+      std::ostringstream oss;
+      oss << "(tmp = (int)(data[" << node->split_index << "].fvalue.get()) ), "
+          << "(tmp >= 0 && tmp < 64 && (( (long)"
+          << bitmap[0] << "L >>> tmp) & 1) )";
+      for (size_t i = 1; i < bitmap.size(); ++i) {
+        oss << " || (tmp >= " << (i * 64)
+            << " && tmp < " << ((i + 1) * 64)
+            << " && (( (long)" << bitmap[i]
+            << "L >>> (tmp - " << (i * 64) << ") ) & 1) )";
+      }
+      result = oss.str();
+    }
+    return result;
+  }
+
+  inline std::string
+  RenderIsCategoricalArray(const std::vector<bool>& is_categorical) {
+    common::ArrayFormatter formatter(80, 2);
+    for (int fid = 0; fid < num_feature_; ++fid) {
+      formatter << (is_categorical[fid] ? "true" : "false");
+    }
+    return formatter.str();
+  }
+
+  inline std::string RenderOutputStatement(const OutputNode* node) {
+    std::string output_statement;
+    if (num_output_group_ > 1) {
+      if (node->is_vector) {
+        // multi-class classification with random forest
+        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_output_group_))
+          << "Ill-formed model: leaf vector must be of length [num_output_group]";
+        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
+          output_statement
+            += fmt::format("sum[{group_id}] += {output}f;\n",
+                 "group_id"_a = group_id,
+                 "output"_a
+                   = common::ToStringHighPrecision(node->vector[group_id]));
+        }
+      } else {
+        // multi-class classification with gradient boosted trees
+        output_statement
+          = fmt::format("sum[{group_id}] += {output}f;\n",
+              "group_id"_a = node->tree_id % num_output_group_,
+              "output"_a = common::ToStringHighPrecision(node->scalar));
+      }
+    } else {
+      output_statement
+        = fmt::format("sum += {output}f;\n",
+            "output"_a = common::ToStringHighPrecision(node->scalar));
+    }
+    return output_statement;
   }
 };
 

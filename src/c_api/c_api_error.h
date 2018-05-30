@@ -16,7 +16,7 @@
 /*! \brief every function starts with API_BEGIN();
      and finishes with API_END() or API_END_HANDLE_ERROR */
 #define API_END()                                    \
-     } catch(dmlc::Error &_except_) {                \
+     } catch(std::exception &_except_) {                \
        return TreeliteAPIHandleException(_except_);  \
      }                                               \
      return 0
@@ -26,7 +26,7 @@
  *   "Finalize" contains procedure to cleanup states when an error happens
  */
 #define API_END_HANDLE_ERROR(Finalize)          \
-     } catch(dmlc::Error &_except_) {           \
+     } catch(std::exception &_except_) {           \
        Finalize;                                \
        return TreeliteAPIHandleException(_except_);  \
      }                                          \
@@ -42,7 +42,7 @@ void TreeliteAPISetLastError(const char* msg);
  * \param e the exception
  * \return the return value of API after exception is handled
  */
-inline int TreeliteAPIHandleException(const dmlc::Error &e) {
+inline int TreeliteAPIHandleException(const std::exception &e) {
   TreeliteAPISetLastError(e.what());
   return -1;
 }

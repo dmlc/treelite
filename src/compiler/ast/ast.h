@@ -1,6 +1,14 @@
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
 
+#include <treelite/base.h>
+#include <dmlc/optional.h>
+
+// forward declaration
+namespace treelite_ast_protobuf {
+class ASTNode;
+}  // namespace treelite_ast_protobuf
+
 namespace treelite {
 namespace compiler {
 
@@ -20,33 +28,18 @@ inline std::string OpName(Operator op) {
   }
 }
 
-/*! \brief enum class to store branch annotation */
-enum class BranchHint : uint8_t {
-  kNone = 0,     /*!< no hint */
-  kLikely = 1,   /*!< condition >50% likely */
-  kUnlikely = 2  /*!< condition <50% likely */
-};
-
-inline std::string BranchHintName(BranchHint hint) {
-  switch (hint) {
-   case BranchHint::kNone:
-    return "kNone";
-   case BranchHint::kLikely:
-    return "kLikely";
-   case BranchHint::kUnlikely:
-    return "kUnlikely";
-  }
-  LOG(FATAL) << "Unrecognized BranchHint value";
-}
-
 class ASTNode {
  public:
   ASTNode* parent;
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  int num_descendant;
-  virtual void Dump(int indent) = 0;
+  dmlc::optional<int> num_descendant_ast_node;
+  dmlc::optional<size_t> data_count;
+  dmlc::optional<double> sum_hess;
+  virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
+ protected:
+  ASTNode() : parent(nullptr), node_id(-1), tree_id(-1) {}
 };
 
 class MainNode : public ASTNode {
@@ -55,66 +48,50 @@ class MainNode : public ASTNode {
            int num_feature)
     : global_bias(global_bias), average_result(average_result),
       num_tree(num_tree), num_feature(num_feature) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "MainNode {"
-              << "global_bias: " << this->global_bias << ", "
-              << "average_result: " << this->average_result << ", "
-              << "num_tree: " << this->num_tree << ", "
-              << "num_feature: " << this->num_feature << "}"
-              << std::endl;
-  }
   tl_float global_bias;
   bool average_result;
   int num_tree;
   int num_feature;
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class TranslationUnitNode : public ASTNode {
  public:
   TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "TranslationUnitNode {"
-              << "unit_id: " << unit_id << "}"
-              << std::endl;
-  }
   int unit_id;
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class QuantizerNode : public ASTNode {
  public:
-  QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts,
-                const std::vector<bool>& is_categorical)
-    : cut_pts(cut_pts), is_categorical(is_categorical) {}
-  QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts,
-                std::vector<bool>&& is_categorical)
-    : cut_pts(std::move(cut_pts)), is_categorical(std::move(is_categorical)) {}
+  QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
+    : cut_pts(cut_pts) {}
+  QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
+    : cut_pts(std::move(cut_pts)) {}
   std::vector<std::vector<tl_float>> cut_pts;
-  std::vector<bool> is_categorical;
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "QuantizerNode = {}" << std::endl;
-  }
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class AccumulatorContextNode : public ASTNode {
  public:
   AccumulatorContextNode() {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ')
-              << "AccumulatorContextNode = {}" << std::endl;
-  }
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
+};
+
+class CodeFolderNode : public ASTNode {
+ public:
+  CodeFolderNode() {}
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class ConditionNode : public ASTNode {
  public:
-  ConditionNode(unsigned split_index, bool default_left, BranchHint branch_hint)
-    : split_index(split_index), default_left(default_left),
-      branch_hint(branch_hint) {}
+  ConditionNode(unsigned split_index, bool default_left)
+    : split_index(split_index), default_left(default_left) {}
   unsigned split_index;
   bool default_left;
-  BranchHint branch_hint;
+  dmlc::optional<double> gain;
+  virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
 };
 
 union ThresholdVariant {
@@ -128,48 +105,23 @@ class NumericalConditionNode : public ConditionNode {
  public:
   NumericalConditionNode(unsigned split_index, bool default_left,
                          bool quantized, Operator op,
-                         ThresholdVariant threshold,
-                         BranchHint branch_hint = BranchHint::kNone)
-    : ConditionNode(split_index, default_left, branch_hint),
+                         ThresholdVariant threshold)
+    : ConditionNode(split_index, default_left),
       quantized(quantized), op(op), threshold(threshold) {}
-  void Dump(int indent) override {
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "NumericalConditionNode {"
-              << "split_index: " << this->split_index << ", "
-              << "default_left: " << this->default_left << ", "
-              << "quantized: " << this->quantized << ", "
-              << "op: " << OpName(this->op) << ", "
-              << "threshold: " << (quantized ? this->threshold.int_val
-                                             : this->threshold.float_val) << ", "
-              << "branch_hint: " << BranchHintName(this->branch_hint)
-              << "}" << std::endl;
-  }
   bool quantized;
   Operator op;
   ThresholdVariant threshold;
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           const std::vector<uint32_t>& left_categories,
-                           BranchHint branch_hint = BranchHint::kNone)
-    : ConditionNode(split_index, default_left, branch_hint),
+                           const std::vector<uint32_t>& left_categories)
+    : ConditionNode(split_index, default_left),
       left_categories(left_categories) {}
-  void Dump(int indent) override {
-    std::ostringstream oss;
-    for (uint32_t e : this->left_categories) {
-      oss << e << ", ";
-    }
-    std::cerr << std::string(indent, ' ') << std::boolalpha
-              << "CategoricalConditionNode {"
-              << "split_index: " << this->split_index << ", "
-              << "default_left: " << this->default_left << ", "
-              << "left_categories: [" << oss.str() << "], "
-              << "branch_hint: " << BranchHintName(this->branch_hint)
-              << "}" << std::endl;
-  }
   std::vector<uint32_t> left_categories;
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class OutputNode : public ASTNode {
@@ -178,25 +130,10 @@ class OutputNode : public ASTNode {
     : is_vector(false), scalar(scalar) {}
   OutputNode(const std::vector<tl_float>& vector)
     : is_vector(true), vector(vector) {}
-  void Dump(int indent) override {
-    if (this->is_vector) {
-      std::ostringstream oss;
-      for (tl_float e : this->vector) {
-        oss << e << ", ";
-      }
-      std::cerr << std::string(indent, ' ')
-                << "OutputNode {vector: [" << oss.str() << "]}"
-                << std::endl;
-    } else {
-      std::cerr << std::string(indent, ' ') 
-                << "OutputNode {scalar: " << this->scalar << "}"
-                << std::endl;
-    }
-  }
-
   bool is_vector;
   tl_float scalar;
   std::vector<tl_float> vector;
+  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 }  // namespace compiler

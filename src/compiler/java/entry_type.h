@@ -1,12 +1,26 @@
-std::string entry_type =
-"package " +
-param.java_package +
-";\n" +
-"\n" +
-"import javolution.io.Union;\n" +
-"\n" +
-"public class Entry extends Union {\n" +
-"  public Signed32 missing = new Signed32();\n" +
-"  public Float32  fvalue  = new Float32();\n" +
-"  public Signed32 qvalue  = new Signed32();\n" +
-"}\n";
+const char* entry_type_template =
+R"TREELITETEMPLATE(
+package {java_package};
+
+import javolution.io.Union;
+import ml.dmlc.treelite.Data;
+
+public class Entry extends Union implements Data {{
+  public Signed32 missing = new Signed32();
+  public Float32  fvalue  = new Float32();
+  public Signed32 qvalue  = new Signed32();
+
+  public void setFValue(float val) {{
+    this.fvalue.set(val);
+  }}
+  public void setMissing() {{
+    this.missing.set(-1);
+  }}
+  public boolean isMissing() {{
+    return this.missing.get() == -1;
+  }}
+  public float getFValue() {{
+    return this.fvalue.get();
+  }}
+}}
+)TREELITETEMPLATE";

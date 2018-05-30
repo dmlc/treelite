@@ -7,9 +7,8 @@
 
 #include <treelite/tree.h>
 #include <queue>
-
-#ifdef PROTOBUF_SUPPORT
 #include "tree.pb.h"
+
 namespace {
 
 enum class NodeType : int8_t {
@@ -43,6 +42,7 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
     CHECK(!node.has_split_type());
     CHECK(!node.has_op());
     CHECK(!node.has_threshold());
+    CHECK(!node.has_gain());
     CHECK_EQ(node.left_categories_size(), 0);
     if (node.has_leaf_value()) {
       CHECK_EQ(node.leaf_vector_size(), 0);
@@ -117,7 +117,7 @@ Model LoadProtobufModel(const char* filename) {
       const treelite_protobuf::Node& node = elem.first;
       int id = elem.second;
       const NodeType node_type = GetNodeType(node);
-      if (node_type == NodeType::kLeaf) {
+      if (node_type == NodeType::kLeaf) {  // leaf node
         CHECK(flag_leaf_vector != 1)
           << "Inconsistent use of leaf vector: if one leaf node does not use"
           << "a leaf vector, *no other* leaf node can use a leaf vector";
@@ -125,6 +125,7 @@ Model LoadProtobufModel(const char* filename) {
 
         tree[id].set_leaf(static_cast<tl_float>(node.leaf_value()));
       } else if (node_type == NodeType::kLeafVector) {
+        // leaf node with vector output
         CHECK(flag_leaf_vector != 0)
           << "Inconsistent use of leaf vector: if one leaf node uses "
           << "a leaf vector, *every* leaf node must use a leaf vector as well";
@@ -139,7 +140,7 @@ Model LoadProtobufModel(const char* filename) {
           leaf_vector[i] = static_cast<tl_float>(node.leaf_vector(i));
         }
         tree[id].set_leaf_vector(leaf_vector);
-      } else if (node_type == NodeType::kNumericalSplit) {
+      } else if (node_type == NodeType::kNumericalSplit) {  // numerical split
         const auto split_index = node.split_index();
         const std::string opname = node.op();
         CHECK_LT(split_index, model.num_feature)
@@ -173,6 +174,16 @@ Model LoadProtobufModel(const char* filename) {
         Q.push({node.left_child(), tree[id].cleft()});
         Q.push({node.right_child(), tree[id].cright()});
       }
+      /* set node statistics */
+      if (node.has_data_count()) {
+        tree[id].set_data_count(static_cast<size_t>(node.data_count()));
+      }
+      if (node.has_sum_hess()) {
+        tree[id].set_sum_hess(node.sum_hess());
+      }
+      if (node.has_gain()) {
+        tree[id].set_gain(node.gain());
+      }
     }
   }
   if (flag_leaf_vector == 0) {
@@ -199,20 +210,3 @@ Model LoadProtobufModel(const char* filename) {
 
 }  // namespace frontend
 }  // namespace treelite
-
-#else
-
-namespace treelite {
-namespace frontend {
-
-DMLC_REGISTRY_FILE_TAG(protobuf);
-
-Model LoadProtobufModel(const char* filename) {
-  LOG(FATAL) << "Protobuf library not linked";
-  return Model();
-}
-
-}  // namespace frontend
-}  // napespace treelite
-
-#endif  // PROTOBUF_SUPPORT

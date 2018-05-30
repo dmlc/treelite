@@ -1,28 +1,3 @@
-function(read_filelist FILENAME RESULT_NAME)
-  file(READ ${FILENAME} CONTENTS)
-  # Convert file contents into a CMake list (where each element in the list
-  # is one line of the file)
-  string(REGEX REPLACE ";" "\\\\;" CONTENTS "${CONTENTS}")
-  string(REGEX REPLACE "\n" ";" CONTENTS "${CONTENTS}")
-  # Ignore all lines starting with # (comments)
-  set(RESULT "")
-  foreach(f ${CONTENTS})
-    if(NOT "${f}" MATCHES "^#.*")
-      list(APPEND RESULT "${f}")
-    endif()
-  endforeach()
-  set(${RESULT_NAME} ${RESULT} PARENT_SCOPE)
-endfunction(read_filelist)
-
-# Deploy a file from the source directory into a subdirectory of the build
-# directory. Relative paths for FILENAME are evaluated with respect to the
-# current source directory, and relative paths for DESTDIR are evaluated with
-# respect to the current build directory.
-function(deploy_file FILENAME DESTDIR)
-  get_filename_component(FILEDIR "${FILENAME}" DIRECTORY)
-  file(COPY "${FILENAME}" DESTINATION "${DESTDIR}/${FILEDIR}")
-endfunction(deploy_file)
-
 # Automatically set source group based on folder
 function(auto_source_group SOURCES)
 
@@ -87,3 +62,99 @@ function(format_gencode_flags flags out)
   endforeach()
   set(${out} "${${out}}" PARENT_SCOPE)
 endfunction(format_gencode_flags flags)
+
+#=============================================================================
+# Copyright 2009 Kitware, Inc.
+# Copyright 2009-2011 Philip Lowman <philip@yhbt.com>
+# Copyright 2008 Esben Mose Hansen, Ange Optimization ApS
+#
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file Copyright.txt for details.
+#
+# This software is distributed WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
+#=============================================================================
+# (To distribute this file outside of CMake, substitute the full
+#  License text for the above reference.)
+function(PROTOBUF_GENERATE_CPP SRCS HDRS)
+  if(NOT ARGN)
+    message(SEND_ERROR "Error: PROTOBUF_GENERATE_CPP() called without any proto files")
+    return()
+  endif()
+
+  # Create an include path for each file specified
+  foreach(FIL ${ARGN})
+    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+    get_filename_component(ABS_PATH ${ABS_FIL} PATH)
+    list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+    if(${_contains_already} EQUAL -1)
+      list(APPEND _protobuf_include_path -I ${ABS_PATH})
+    endif()
+  endforeach()
+
+  if(DEFINED PROTOBUF_IMPORT_DIRS)
+    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+      get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+      if(${_contains_already} EQUAL -1)
+        list(APPEND _protobuf_include_path -I ${ABS_PATH})
+      endif()
+    endforeach()
+  endif()
+
+  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+
+  set(${SRCS})
+  set(${HDRS})
+  foreach(FIL ${ARGN})
+    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+    get_filename_component(FIL_WE ${FIL} NAME_WE)
+
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h")
+
+    add_custom_command(
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc"
+           "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
+      COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+      ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
+      DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
+      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
+      VERBATIM
+    )
+  endforeach()
+
+  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+endfunction()
+
+function(PROTOBUF_GENERATE_JAVA TARGET_NAME PROTO_FILE)
+  get_filename_component(ABS_FIL ${PROTO_FILE} ABSOLUTE)
+  get_filename_component(ABS_PATH ${ABS_FIL} PATH)
+  get_filename_component(FIL_WE ${PROTO_FILE} NAME_WE)
+  list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+  if(${_contains_already} EQUAL -1)
+    list(APPEND _protobuf_include_path -I ${ABS_PATH})
+  endif()
+
+  if(DEFINED PROTOBUF_IMPORT_DIRS)
+    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+      get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+      if(${_contains_already} EQUAL -1)
+        list(APPEND _protobuf_include_path -I ${ABS_PATH})
+      endif()
+    endforeach()
+  endif()
+
+  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+
+  add_custom_target(${TARGET_NAME} ALL
+    ${PROTOBUF_PROTOC_EXECUTABLE} --java_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
+    DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
+    COMMENT "Running Java protocol buffer compiler on ${PROTO_FILE}"
+    VERBATIM
+  )
+endfunction()

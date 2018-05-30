@@ -36,6 +36,7 @@
 
 # build folder
 build/*
+runtime/native/build/*
 
 # Executables
 *.exe
@@ -54,5 +55,12 @@ treelite
 # Python wheel binaries
 python/dist/
 
+# Python cache
+__pycache__
+
 # symbol directories
 *.dSYM/
+
+# 3rd party libraries
+3rdparty/inja.hpp
+3rdparty/json.hpp

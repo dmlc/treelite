@@ -290,7 +290,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
 
   /* compile model */
-  // TODO: produce recipe.json
   impl->compiler.reset(Compiler::Create(impl->name, cparam));
   auto compiled_model = impl->compiler->Compile(*model_);
   if (verbose > 0) {
@@ -298,17 +297,11 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   }
 
   if (!compiled_model.file_prefix.empty()) {
-    const std::vector<std::string> tokens
-      = common::Split(compiled_model.file_prefix, '/');
-    std::string accum = dirpath_ + "/" + tokens[0];
-    for (size_t i = 0; i < tokens.size(); ++i) {
-      common::filesystem::CreateDirectoryIfNotExist(accum.c_str());
-      if (i < tokens.size() - 1) {
-        accum += "/";
-        accum += tokens[i + 1];
-      }
-    }
+    common::filesystem::CreateDirectoryIfNotExistRecursive(
+      dirpath_ + "/" + compiled_model.file_prefix);
   }
+  common::filesystem::CreateDirectoryIfNotExistRecursive(
+    dirpath_ + "/src/main/java/ml/dmlc/treelite");
 
   for (const auto& it : compiled_model.files) {
     LOG(INFO) << "Writing file " << it.first << "...";

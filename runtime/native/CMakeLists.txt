@@ -1,7 +1,6 @@
 cmake_minimum_required (VERSION 3.1)
 project(treelite_runtime)
 include(cmake/Utils.cmake)
-find_package(OpenMP)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -13,20 +12,13 @@ if(MSVC)
   endif()
 endif()
 
-if(OPENMP_FOUND)
-  message("Got OpenMP")
-  add_definitions(-DTREELITE_OPENMP_SUPPORT)
-else()
-  message("Don't have OpenMP")
-endif()
-
 set_default_configuration_release()
 msvc_use_static_runtime()
 
 # Compiler flags
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
   # Multithreaded compilation
@@ -36,16 +28,14 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
 endif()
 
-include_directories (
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/dmlc-core/include
-)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+copy_files(FILELIST RUNTIME_FILES)
 
 file(GLOB_RECURSE SOURCES
     src/*.cc
     src/*.h
     include/*.h
-    dmlc-core/include/*.h
 )
 
 # -ldl for UNIX-like systems

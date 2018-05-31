@@ -110,6 +110,9 @@ add_library(objtreelite OBJECT ${SOURCES})
 # Native runtime
 add_subdirectory(runtime/native)
 
+# JNI runtime
+add_subdirectory(runtime/java)
+
 # Shared library
 add_library(treelite $<TARGET_OBJECTS:objtreelite>)
 target_link_libraries(treelite ${LINK_LIBRARIES})

@@ -1,10 +1,14 @@
 #include "ast.h"
+
+#ifdef TREELITE_PROTOBUF_SUPPORT
 #include "ast.pb.h"
+#endif  // TREELITE_PROTOBUF_SUPPORT
 
 namespace treelite {
 namespace compiler {
 
 void ASTNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   out->set_node_id(node_id);
   out->set_tree_id(tree_id);
   if (data_count) {
@@ -17,25 +21,37 @@ void ASTNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
     treelite_ast_protobuf::ASTNode* node = out->add_children();
     child->Serialize(node);
   }
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void MainNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   treelite_ast_protobuf::MainNode* e = out->mutable_main_variant();
   e->set_global_bias(global_bias);
   e->set_average_result(average_result);
   e->set_num_tree(num_tree);
   e->set_num_feature(num_feature);
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void TranslationUnitNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   treelite_ast_protobuf::TranslationUnitNode* e
     = out->mutable_translation_unit_variant();
   e->set_unit_id(unit_id);
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void QuantizerNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   treelite_ast_protobuf::QuantizerNode* e = out->mutable_quantizer_variant();
   for (const auto& cut_pts_per_feature : cut_pts) {
@@ -46,19 +62,31 @@ void QuantizerNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
                             cut_pts_per_feature.end());
     f->mutable_cut_pts()->Swap(&feature_threshod_list);
   }
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void AccumulatorContextNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   out->mutable_accumulator_context_variant();
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void CodeFolderNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   out->mutable_code_folder_variant();
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void ConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   treelite_ast_protobuf::ConditionNode* e = out->mutable_condition_variant();
   e->set_split_index(split_index);
@@ -66,9 +94,13 @@ void ConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   if (gain) {
     e->set_gain(gain.value());
   }
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void NumericalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ConditionNode::Serialize(out);
   CHECK_EQ(out->subclasses_case(),
            treelite_ast_protobuf::ASTNode::SubclassesCase::kConditionVariant);
@@ -82,9 +114,13 @@ void NumericalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   } else {
     f->set_float_threshold(threshold.float_val);
   }
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void CategoricalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ConditionNode::Serialize(out);
   CHECK_EQ(out->subclasses_case(),
            treelite_ast_protobuf::ASTNode::SubclassesCase::kConditionVariant);
@@ -94,9 +130,13 @@ void CategoricalConditionNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   google::protobuf::RepeatedField<google::protobuf::uint32>
     left_categories_pf(left_categories.begin(), left_categories.end());
   f->mutable_left_categories()->Swap(&left_categories_pf);
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 void OutputNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
+#ifdef TREELITE_PROTOBUF_SUPPORT
   ASTNode::Serialize(out);
   treelite_ast_protobuf::OutputNode* e = out->mutable_output_variant();
   e->set_is_vector(is_vector);
@@ -107,6 +147,9 @@ void OutputNode::Serialize(treelite_ast_protobuf::ASTNode* out) {
   } else {
     e->set_scalar(scalar);
   }
+#else  // TREELITE_PROTOBUF_SUPPORT
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+#endif  // TREELITE_PROTOBUF_SUPPORT
 }
 
 }  // namespace compiler

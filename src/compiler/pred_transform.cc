@@ -31,6 +31,7 @@ FUNC_NAME(const std::string& backend, const Model& model) { \
     return treelite::compiler::pred_transform::java::FUNC_NAME(model); \
   } else { \
     LOG(FATAL) << "Unrecognized backend: " << backend; \
+    return std::string(); \
   } \
 }
 

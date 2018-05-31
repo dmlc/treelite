@@ -1,4 +1,3 @@
-
 package ml.dmlc.treelite;
 
 public interface Data {

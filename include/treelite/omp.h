@@ -17,6 +17,6 @@ inline int omp_get_thread_num() {
 inline int omp_get_max_threads() {
   return 1;
 }
-#endif
+#endif  // TREELITE_OPENMP_SUPPORT
 
 #endif  // TREELITE_OMP_H_

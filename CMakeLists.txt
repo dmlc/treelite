@@ -10,17 +10,23 @@ set(CMAKE_MACOSX_RPATH TRUE)
 # Set BUILD_SHARED_LIBS as option. By default, build shared libraries;
 # User can set this to OFF to build static libraries instead.
 option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
 
 # Protobuf
-set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
-set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
-add_subdirectory(3rdparty/protobuf/cmake)
-set(PROTOBUF_PROTOC_EXECUTABLE protoc)
-set(PROTOBUF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/3rdparty/protobuf/src")
-set(PROTOBUF_LIBRARIES libprotobuf)
+if (ENABLE_PROTOBUF)
+  set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
+  set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
+  add_subdirectory(3rdparty/protobuf/cmake)
+  set(PROTOBUF_PROTOC_EXECUTABLE protoc)
+  set(PROTOBUF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/3rdparty/protobuf/src")
+  set(PROTOBUF_LIBRARIES libprotobuf)
+  add_definitions(-DTREELITE_PROTOBUF_SUPPORT)
+else()
+  set(PROTOBUF_LIBRARIES "")
+endif()
 
 # check MSVC version
 if(MSVC)
@@ -75,13 +81,15 @@ file(GLOB_RECURSE SOURCES
 )
 
 # Protobuf library
-include_directories(${PROTOBUF_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-PROTOBUF_GENERATE_CPP(TREE_PROTO_SRCS TREE_PROTO_HDRS src/tree.proto)
-PROTOBUF_GENERATE_CPP(AST_PROTO_SRCS AST_PROTO_HDRS src/compiler/ast/ast.proto)
-PROTOBUF_GENERATE_JAVA(tree_proto_java src/tree.proto)
-PROTOBUF_GENERATE_JAVA(ast_proto_java src/compiler/ast/ast.proto)
-list(INSERT SOURCES 0 ${TREE_PROTO_SRCS} ${TREE_PROTO_HDRS} ${AST_PROTO_SRCS} ${AST_PROTO_HDRS})
+if (ENABLE_PROTOBUF)
+  include_directories(${PROTOBUF_INCLUDE_DIRS})
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+  PROTOBUF_GENERATE_CPP(TREE_PROTO_SRCS TREE_PROTO_HDRS src/tree.proto)
+  PROTOBUF_GENERATE_CPP(AST_PROTO_SRCS AST_PROTO_HDRS src/compiler/ast/ast.proto)
+  PROTOBUF_GENERATE_JAVA(tree_proto_java src/tree.proto)
+  PROTOBUF_GENERATE_JAVA(ast_proto_java src/compiler/ast/ast.proto)
+  list(INSERT SOURCES 0 ${TREE_PROTO_SRCS} ${TREE_PROTO_HDRS} ${AST_PROTO_SRCS} ${AST_PROTO_HDRS})
+endif()
 
 # dmlc-core
 set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS

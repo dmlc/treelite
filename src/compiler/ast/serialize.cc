@@ -1,8 +1,11 @@
 #include "./builder.h"
-#include "ast.pb.h"
 #include <cmath>
+
+#ifdef TREELITE_PROTOBUF_SUPPORT
+
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include "ast.pb.h"
 
 namespace treelite {
 namespace compiler {
@@ -40,3 +43,23 @@ void ASTBuilder::Serialize(const std::string& filename, bool binary) {
 
 }  // namespace compiler
 }  // namespace treelite
+
+#else   // TREELITE_PROTOBUF_SUPPORT
+
+namespace treelite {
+namespace compiler {
+
+DMLC_REGISTRY_FILE_TAG(serialize);
+
+void ASTBuilder::Serialize(std::ostream* output, bool binary) {
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+}
+
+void ASTBuilder::Serialize(const std::string& filename, bool binary) {
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+}
+
+}  // namespace compiler
+}  // namespace treelite
+
+#endif  // TREELITE_PROTOBUF_SUPPORT

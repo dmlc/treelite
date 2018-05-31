@@ -6,7 +6,11 @@
  */
 
 #include <treelite/tree.h>
+#include <dmlc/logging.h>
 #include <queue>
+
+#ifdef TREELITE_PROTOBUF_SUPPORT
+
 #include "tree.pb.h"
 
 namespace {
@@ -210,3 +214,19 @@ Model LoadProtobufModel(const char* filename) {
 
 }  // namespace frontend
 }  // namespace treelite
+
+#else   // TREELITE_PROTOBUF_SUPPORT
+
+namespace treelite {
+namespace frontend {
+
+DMLC_REGISTRY_FILE_TAG(protobuf);
+
+Model LoadProtobufModel(const char* filename) {
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+  return Model();  // should not reach here
+}
+}  // namespace frontend
+}  // namespace treelite
+
+#endif  // TREELITE_PROTOBUF_SUPPORT

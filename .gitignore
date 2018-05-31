@@ -19,6 +19,9 @@
 *_pb3.py
 *_pb3.pyc
 
+# Compiled Java classes
+*.class
+
 # Compiled Dynamic libraries
 *.so
 *.dylib
@@ -37,6 +40,7 @@
 # build folder
 build/*
 runtime/native/build/*
+runtime/java/build/*
 
 # Executables
 *.exe

@@ -51,7 +51,13 @@ class TreeliteJNI {
 
   public final static native int TreelitePredictorPredictBatch(
     long handle, long batch, boolean batch_sparse, boolean verbose,
-    boolean pred_margin, float[] out_result);
+    boolean pred_margin, float[] out_result, long[] out_result_size);
+
+  public final static native int TreelitePredictorQueryResultSize(
+    long handle, long batch, boolean batch_sparse, long[] out);
+
+  public final static native int TreelitePredictorQueryNumOutputGroup(
+    long handle, long[] out);
 
   public final static native int TreelitePredictorFree(long handle);
 

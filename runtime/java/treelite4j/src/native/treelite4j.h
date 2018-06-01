@@ -76,7 +76,26 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorLoad(
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictBatch(
-  JNIEnv*, jclass, jlong, jlong, jboolean, jboolean, jboolean, jfloatArray);
+  JNIEnv*, jclass, jlong, jlong, jboolean, jboolean, jboolean,
+  jfloatArray, jlongArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryResultSize
+ * Signature: (JJZ[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSize(
+  JNIEnv*, jclass, jlong, jlong, jboolean, jlongArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryNumOutputGroup
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
+  JNIEnv*, jclass, jlong, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI

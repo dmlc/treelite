@@ -296,12 +296,12 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     LOG(INFO) << "Code generation finished. Writing code to files...";
   }
 
-  if (!compiled_model.file_prefix.empty()) {
+  if (impl->name == "ast_java" && !compiled_model.file_prefix.empty()) {
     common::filesystem::CreateDirectoryIfNotExistRecursive(
       dirpath_ + "/" + compiled_model.file_prefix);
+    common::filesystem::CreateDirectoryIfNotExistRecursive(
+      dirpath_ + "/src/main/java/ml/dmlc/treelite");
   }
-  common::filesystem::CreateDirectoryIfNotExistRecursive(
-    dirpath_ + "/src/main/java/ml/dmlc/treelite");
 
   for (const auto& it : compiled_model.files) {
     LOG(INFO) << "Writing file " << it.first << "...";

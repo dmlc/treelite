@@ -151,6 +151,15 @@ TREELITE_DLL int TreelitePredictorQueryResultSize(PredictorHandle handle,
 TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle,
                                                       size_t* out);
 /*!
+ * \brief Get the width (number of features) of each instance used to train
+ *        the loaded model
+ * \param handle predictor
+ * \param out number of features
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryNumFeature(PredictorHandle handle,
+                                                  size_t* out);
+/*!
  * \brief delete predictor from memory
  * \param handle predictor to remove
  * \return 0 for success, -1 for failure

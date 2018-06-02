@@ -81,3 +81,8 @@ if __name__ == "__main__":
   }[sys.platform]
   maybe_makedirs("src/main/resources/lib")
   cp("../lib/" + library_name, "src/main/resources/lib")
+
+  print("building mushroom example")
+  with cd("src/test/resources/mushroom_example"):
+    run("cmake . " + maybe_generator)
+    run("cmake --build . --config Release")

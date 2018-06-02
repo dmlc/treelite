@@ -12,7 +12,8 @@ import java.nio.file.Paths;
 class Predictor {
   private static final Log logger = LogFactory.getLog(Predictor.class);
   private long handle = 0;
-  private int num_output_group = 0;
+  private int num_output_group;
+  private int num_feature;
 
   public Predictor(
     String libpath, int nthread, boolean verbose, boolean include_master_thread)
@@ -38,7 +39,8 @@ class Predictor {
       }
     } else {  // libpath is actually the name of shared library file
       String fileext = libpath.substring(libpath.lastIndexOf('.'));
-      if (fileext == ".dll" || fileext == ".so" || fileext == ".dylib") {
+      if (fileext.equals(".dll")
+          || fileext.equals(".so") || fileext.equals(".dylib")) {
         path = libpath;
       } else {
         throw new TreeliteError(String.format(
@@ -53,16 +55,27 @@ class Predictor {
       path, nthread, include_master_thread, out));
     handle = out[0];
 
-    // Save # of output groups
+    // Save # of output groups and # of features
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumOutputGroup(
       handle, out));
     num_output_group = (int)out[0];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumFeature(
+      handle, out));
+    num_feature = (int)out[0];
 
     if (verbose) {
       logger.info(String.format(
         "Dynamic shared library %s has been successfully loaded into memory",
         path));
     }
+  }
+
+  public int GetNumOutputGroup() {
+    return this.num_output_group;
+  }
+
+  public int GetNumFeature() {
+    return this.num_feature;
   }
 
   public float[][] predict(
@@ -106,5 +119,18 @@ class Predictor {
       res[r][c] = array[i];
     }
     return res;
+  }
+
+  @Override
+  protected void finalize() throws Throwable {
+    super.finalize();
+    dispose();
+  }
+
+  public synchronized void dispose() {
+    if (handle != 0L) {
+      TreeliteJNI.TreelitePredictorFree(handle);
+      handle = 0;
+    }
   }
 }

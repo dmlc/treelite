@@ -127,12 +127,23 @@ class Predictor {
     return num_output_group_;
   }
 
+  /*!
+   * \brief Get the width (number of features) of each instance used to train
+   *        the loaded model
+   * \return number of features
+   */
+  inline size_t QueryNumFeature() const {
+    return num_feature_;
+  }
+
  private:
   LibraryHandle lib_handle_;
-  QueryFuncHandle query_func_handle_;
+  QueryFuncHandle num_output_group_query_func_handle_;
+  QueryFuncHandle num_feature_query_func_handle_;
   PredFuncHandle pred_func_handle_;
   ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
+  size_t num_feature_;
   int num_worker_thread_;
   bool include_master_thread_;  // run task on master thread?
 

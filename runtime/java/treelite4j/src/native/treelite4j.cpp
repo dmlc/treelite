@@ -233,6 +233,26 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryNumFeature
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumFeature(
+  JNIEnv* jenv, jclass jcls, jlong jhandle, jlongArray jout) {
+
+  size_t num_feature;
+  const jint ret = (jint)TreelitePredictorQueryNumFeature(
+    (PredictorHandle)jhandle, &num_feature);
+  // store dimension
+  jlong* out = jenv->GetLongArrayElements(jout, 0);
+  out[0] = (jlong)num_feature;
+  jenv->ReleaseLongArrayElements(jout, out, 0);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorFree
  * Signature: (J)I
  */

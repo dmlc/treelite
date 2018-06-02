@@ -59,6 +59,9 @@ class TreeliteJNI {
   public final static native int TreelitePredictorQueryNumOutputGroup(
     long handle, long[] out);
 
+  public final static native int TreelitePredictorQueryNumFeature(
+    long handle, long[] out);
+
   public final static native int TreelitePredictorFree(long handle);
 
 }

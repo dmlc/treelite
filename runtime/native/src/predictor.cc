@@ -197,7 +197,8 @@ namespace treelite {
 Predictor::Predictor(int num_worker_thread,
                      bool include_master_thread)
                        : lib_handle_(nullptr),
-                         query_func_handle_(nullptr),
+                         num_output_group_query_func_handle_(nullptr),
+                         num_feature_query_func_handle_(nullptr),
                          pred_func_handle_(nullptr),
                          thread_pool_handle_(nullptr),
                          include_master_thread_(include_master_thread),
@@ -213,16 +214,27 @@ Predictor::Load(const char* name) {
     << "Failed to load dynamic shared library `" << name << "'";
 
   /* 1. query # of output groups */
-  query_func_handle_ = LoadFunction<QueryFuncHandle>(lib_handle_,
-                                                     "get_num_output_group");
+  num_output_group_query_func_handle_
+    = LoadFunction<QueryFuncHandle>(lib_handle_, "get_num_output_group");
   using QueryFunc = size_t (*)(void);
-  QueryFunc query_func = reinterpret_cast<QueryFunc>(query_func_handle_);
+  QueryFunc query_func
+    = reinterpret_cast<QueryFunc>(num_output_group_query_func_handle_);
   CHECK(query_func != nullptr)
     << "Dynamic shared library `" << name
     << "' does not contain valid get_num_output_group() function";
   num_output_group_ = query_func();
 
-  /* 2. load appropriate function for margin prediction */
+  /* 2. query # of features */
+  num_feature_query_func_handle_
+    = LoadFunction<QueryFuncHandle>(lib_handle_, "get_num_feature");
+  query_func = reinterpret_cast<QueryFunc>(num_feature_query_func_handle_);
+  CHECK(query_func != nullptr)
+    << "Dynamic shared library `" << name
+    << "' does not contain valid get_num_feature() function";
+  num_feature_ = query_func();
+  CHECK_GT(num_feature_, 0) << "num_feature cannot be zero";
+
+  /* 3. load appropriate function for margin prediction */
   CHECK_GT(num_output_group_, 0) << "num_output_group cannot be zero";
   if (num_output_group_ > 1) {   // multi-class classification
     pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,

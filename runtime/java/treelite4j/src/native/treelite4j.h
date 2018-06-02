@@ -99,6 +99,15 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryNumFeature
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumFeature(
+  JNIEnv*, jclass, jlong, jlongArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorFree
  * Signature: (J)I
  */

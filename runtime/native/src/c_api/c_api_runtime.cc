@@ -125,6 +125,13 @@ int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle, size_t* out) {
   API_END();
 }
 
+int TreelitePredictorQueryNumFeature(PredictorHandle handle, size_t* out) {
+  API_BEGIN();
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out = predictor_->QueryNumFeature();
+  API_END();
+}
+
 int TreelitePredictorFree(PredictorHandle handle) {
   API_BEGIN();
   delete static_cast<Predictor*>(handle);

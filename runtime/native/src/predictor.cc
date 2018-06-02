@@ -254,7 +254,8 @@ Predictor::Load(const char* name) {
   }
 
   if (num_worker_thread_ == -1) {
-    num_worker_thread_ = std::thread::hardware_concurrency() - 1;
+    num_worker_thread_
+      = std::thread::hardware_concurrency() - (int)include_master_thread_;
   }
   thread_pool_handle_ = static_cast<ThreadPoolHandle>(
       new PredThreadPool(num_worker_thread_, this,

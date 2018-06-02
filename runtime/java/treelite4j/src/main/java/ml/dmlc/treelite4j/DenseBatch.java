@@ -1,8 +1,5 @@
 package ml.dmlc.treelite4j;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * 2D dense batch, laid out in row-major layout
  * @author Philip Cho

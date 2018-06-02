@@ -1,8 +1,5 @@
 package ml.dmlc.treelite4j;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * 2D sparse batch, laid out in CSR (Compressed Sparse Row) layout
  * @author Philip Cho

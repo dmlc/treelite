@@ -27,11 +27,11 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleSparseBatch(
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreeliteDeleteSparseBatch
- * Signature: (J)I
+ * Signature: (J[F[I[J)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteSparseBatch(
-  JNIEnv*, jclass, jlong);
+  JNIEnv*, jclass, jlong, jfloatArray, jintArray, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
@@ -45,11 +45,11 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleDenseBatch(
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreeliteDeleteDenseBatch
- * Signature: (J)I
+ * Signature: (J[F)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteDenseBatch(
-  JNIEnv*, jclass, jlong);
+  JNIEnv*, jclass, jlong, jfloatArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI

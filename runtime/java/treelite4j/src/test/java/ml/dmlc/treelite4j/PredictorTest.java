@@ -38,7 +38,7 @@ public class PredictorTest {
 
   @Test
   public void testPredict() throws TreeliteError, IOException {
-    Predictor predictor = new Predictor(mushroomLibLocation, 1, true, true);
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
     SparseBatch batch = LoadSparseBatchFromLibSVM(mushroomTestDataLocation);
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredResultLocation);

@@ -84,7 +84,7 @@
               <arguments>
                 <argument>create_jni.py</argument>
               </arguments>
-              <workingDirectory>${user.dir}</workingDirectory>
+              <workingDirectory>${project.basedir}</workingDirectory>
             </configuration>
           </execution>
         </executions>

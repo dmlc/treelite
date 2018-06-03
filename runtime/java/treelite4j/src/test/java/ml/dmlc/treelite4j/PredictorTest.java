@@ -18,15 +18,19 @@ import org.apache.commons.lang.ArrayUtils;
 public class PredictorTest {
   private final String mushroomLibLocation;
   private final String mushroomTestDataLocation;
-  private final String mushroomTestDataPredResultLocation;
+  private final String mushroomTestDataPredProbResultLocation;
+  private final String mushroomTestDataPredMarginResultLocation;
   public PredictorTest() throws IOException {
     mushroomLibLocation = NativeLibLoader.createTempFileFromResource(
       "/mushroom_example/" + System.mapLibraryName("mushroom"));
     mushroomTestDataLocation = NativeLibLoader.createTempFileFromResource(
       "/mushroom_example/agaricus.txt.test");
-    mushroomTestDataPredResultLocation
+    mushroomTestDataPredProbResultLocation
       = NativeLibLoader.createTempFileFromResource(
-          "/mushroom_example/agaricus.txt.test.res");
+          "/mushroom_example/agaricus.txt.test.prob");
+    mushroomTestDataPredMarginResultLocation
+      = NativeLibLoader.createTempFileFromResource(
+          "/mushroom_example/agaricus.txt.test.margin");
   }
 
   @Test
@@ -41,7 +45,21 @@ public class PredictorTest {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
     SparseBatch batch = LoadSparseBatchFromLibSVM(mushroomTestDataLocation);
     float[] expected_result
-      = LoadArrayFromText(mushroomTestDataPredResultLocation);
+      = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+    float[][] result = predictor.predict(batch, true, false);
+    int num_row = result.length;
+    for (int i = 0; i < num_row; ++i) {
+      TestCase.assertEquals(1, result[i].length);
+      TestCase.assertEquals(expected_result[i], result[i][0]);
+    }
+  }
+
+  @Test
+  public void testPredictMargin() throws TreeliteError, IOException {
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    SparseBatch batch = LoadSparseBatchFromLibSVM(mushroomTestDataLocation);
+    float[] expected_result
+      = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
     float[][] result = predictor.predict(batch, true, true);
     int num_row = result.length;
     for (int i = 0; i < num_row; ++i) {

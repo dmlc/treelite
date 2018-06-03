@@ -3,7 +3,6 @@ package ml.dmlc.treelite4j;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.apache.commons.io.LineIterator;

@@ -1,5 +1,7 @@
 #include <treelite/c_api_common.h>
 #include <treelite/c_api_runtime.h>
+#include <treelite/predictor.h>
+#include <dmlc/logging.h>
 #include <algorithm>
 #include <vector>
 #include "./treelite4j.h"
@@ -54,21 +56,9 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleSparseBatch(
       (const uint32_t*)col_ind, (const size_t*)row_ptr,
       (size_t)jnum_row, (size_t)jnum_col, &out);
   } else {
-    // if size_t is smaller than 64-bit, convert from 64-bit int to size_t
-    const size_t row_ptr_len = (size_t)jenv->GetArrayLength(jrow_ptr);
-    std::vector<size_t> row_ptr_new(row_ptr_len);
-    std::transform(row_ptr, row_ptr + row_ptr_len, row_ptr_new.begin(),
-                   [](uint64_t x) { return (size_t)x; } );
-    ret = (jint)TreeliteAssembleSparseBatch((const float*)data,
-      (const uint32_t*)col_ind, row_ptr_new.data(),
-      (size_t)jnum_row, (size_t)jnum_col, &out);
+    LOG(FATAL) << "32-bit platform not supported yet";
   }
   setHandle(jenv, jout, out);
-
-  // release arrays
-  jenv->ReleaseFloatArrayElements(jdata, data, 0);
-  jenv->ReleaseIntArrayElements(jcol_ind, col_ind, 0);
-  jenv->ReleaseLongArrayElements(jrow_ptr, row_ptr, 0);
 
   return ret;
 }
@@ -76,12 +66,18 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleSparseBatch(
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreeliteDeleteSparseBatch
- * Signature: (J)I
+ * Signature: (J[F[I[J)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteSparseBatch(
-  JNIEnv* jenv, jclass jcls, jlong jhandle) {
-  return (jint)TreeliteDeleteSparseBatch((CSRBatchHandle)jhandle);
+  JNIEnv* jenv, jclass jcls, jlong jhandle,
+  jfloatArray jdata, jintArray jcol_ind, jlongArray jrow_ptr) {
+
+  treelite::CSRBatch* batch = (treelite::CSRBatch*)jhandle;
+  jenv->ReleaseFloatArrayElements(jdata, (jfloat*)batch->data, 0);
+  jenv->ReleaseIntArrayElements(jcol_ind, (jint*)batch->col_ind, 0);
+  jenv->ReleaseLongArrayElements(jrow_ptr, (jlong*)batch->row_ptr, 0);
+  return (jint)TreeliteDeleteSparseBatch((CSRBatchHandle)batch);
 }
 
 /*
@@ -100,21 +96,21 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleDenseBatch(
     (float)jmissing_value, (size_t)jnum_row, (size_t)jnum_col, &out);
   setHandle(jenv, jout, out);
 
-  // release arrays
-  jenv->ReleaseFloatArrayElements(jdata, data, 0);
-
   return ret;
 }
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreeliteDeleteDenseBatch
- * Signature: (J)I
+ * Signature: (J[F)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteDenseBatch(
-  JNIEnv* jenv, jclass jcls, jlong jhandle) {
-  return (jint)TreeliteDeleteDenseBatch((DenseBatchHandle)jhandle);
+  JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jdata) {
+
+  treelite::DenseBatch* batch = (treelite::DenseBatch*)jhandle;
+  jenv->ReleaseFloatArrayElements(jdata, (jfloat*)batch->data, 0);
+  return (jint)TreeliteDeleteDenseBatch((DenseBatchHandle)batch);
 }
 
 /*

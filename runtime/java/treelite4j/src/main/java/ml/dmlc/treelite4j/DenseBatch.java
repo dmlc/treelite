@@ -38,7 +38,7 @@ class DenseBatch {
 
   public synchronized void dispose() {
     if (handle != 0L) {
-      TreeliteJNI.TreeliteDeleteDenseBatch(handle);
+      TreeliteJNI.TreeliteDeleteDenseBatch(handle, this.data);
       handle = 0;
     }
   }

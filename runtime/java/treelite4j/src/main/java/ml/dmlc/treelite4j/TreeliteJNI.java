@@ -35,12 +35,14 @@ class TreeliteJNI {
     float[] data, int[] col_ind, long[] row_ptr, long num_row, long num_col,
     long[] out);
 
-  public final static native int TreeliteDeleteSparseBatch(long handle);
+  public final static native int TreeliteDeleteSparseBatch(
+    long handle, float[] data, int[] col_ind, long[] row_ptr);
 
   public final static native int TreeliteAssembleDenseBatch(
     float[] data, float missing_value, long num_row, long num_col, long[] out);
 
-  public final static native int TreeliteDeleteDenseBatch(long handle);
+  public final static native int TreeliteDeleteDenseBatch(
+    long handle, float[] data);
 
   public final static native int TreeliteBatchGetDimension(
     long handle, boolean batch_sparse, long[] out_num_row, long[] out_num_col);

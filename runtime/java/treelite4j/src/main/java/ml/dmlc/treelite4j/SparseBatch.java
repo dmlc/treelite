@@ -40,7 +40,8 @@ class SparseBatch {
 
   public synchronized void dispose() {
     if (handle != 0L) {
-      TreeliteJNI.TreeliteDeleteSparseBatch(handle);
+      TreeliteJNI.TreeliteDeleteSparseBatch(
+        handle, this.data, this.col_ind, this.row_ptr);
       handle = 0;
     }
   }

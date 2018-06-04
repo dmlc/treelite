@@ -1,7 +1,9 @@
 #include <treelite/c_api_common.h>
 #include <treelite/c_api_runtime.h>
 #include <treelite/predictor.h>
+#include <dmlc/endian.h>
 #include <dmlc/logging.h>
+#include <dmlc/memory_io.h>
 #include <algorithm>
 #include <vector>
 #include "./treelite4j.h"
@@ -187,6 +189,46 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictBatch(
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorPredictInst
+ * Signature: (J[BZ[F[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictInst(
+  JNIEnv* jenv, jclass jcls, jlong jhandle, jbyteArray jinst,
+  jboolean jpred_margin, jfloatArray jout_result, jlongArray jout_result_size) {
+
+  // read Entry[] array from bytes
+  jbyte* inst_bytes = jenv->GetByteArrayElements(jinst, 0);
+  const size_t nbytes = jenv->GetArrayLength(jinst);
+  CHECK_EQ(nbytes % sizeof(TreelitePredictorEntry), 0);
+  const size_t num_elem = nbytes / sizeof(TreelitePredictorEntry);
+  if (!DMLC_LITTLE_ENDIAN) {  // re-order bytes on big-endian machines
+    dmlc::ByteSwap((void*)inst_bytes, nbytes, num_elem);
+  }
+  dmlc::MemoryFixedSizeStream fs((void*)inst_bytes, nbytes);
+  std::vector<TreelitePredictorEntry> inst(num_elem, {-1});
+  for (int i = 0; i < num_elem; ++i) {
+    fs.Read(&inst[i], sizeof(TreelitePredictorEntry));
+  }
+
+  jfloat* out_result = jenv->GetFloatArrayElements(jout_result, 0);
+  jlong* out_result_size = jenv->GetLongArrayElements(jout_result_size, 0);
+  size_t out_result_size_tmp;
+  const jint ret = (jint)TreelitePredictorPredictInst((PredictorHandle)jhandle,
+    inst.data(), (jpred_margin == JNI_TRUE ? 1 : 0),
+    (float*)out_result, &out_result_size_tmp);
+  out_result_size[0] = (jlong)out_result_size_tmp;
+
+  // release arrays
+  jenv->ReleaseByteArrayElements(jinst, inst_bytes, 0);
+  jenv->ReleaseFloatArrayElements(jout_result, out_result, 0);
+  jenv->ReleaseLongArrayElements(jout_result_size, out_result_size, 0);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorQueryResultSize
  * Signature: (JJZ[J)I
  */
@@ -204,6 +246,24 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSize(
   out[0] = (jlong)result_size;
   jenv->ReleaseLongArrayElements(jout, out, 0);
 
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryResultSizeSingleInst
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSizeSingleInst(
+  JNIEnv* jenv, jclass jcls, jlong jhandle, jlongArray jout) {
+  size_t result_size;
+  const jint ret = (jint)TreelitePredictorQueryResultSizeSingleInst(
+    (PredictorHandle)jhandle, &result_size);
+  // store dimension
+  jlong* out = jenv->GetLongArrayElements(jout, 0);
+  out[0] = (jlong)result_size;
+  jenv->ReleaseLongArrayElements(jout, out, 0);
   return ret;
 }
 

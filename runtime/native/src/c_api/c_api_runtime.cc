@@ -102,6 +102,17 @@ int TreelitePredictorPredictBatch(PredictorHandle handle,
   API_END();
 }
 
+int TreelitePredictorPredictInst(PredictorHandle handle,
+                                 union TreelitePredictorEntry* inst,
+                                 int pred_margin,
+                                 float* out_result, size_t* out_result_size) {
+  API_BEGIN();
+  Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out_result_size
+    = predictor_->PredictInst(inst, (pred_margin != 0), out_result);
+  API_END();
+}
+
 int TreelitePredictorQueryResultSize(PredictorHandle handle,
                                      void* batch,
                                      int batch_sparse,
@@ -115,6 +126,14 @@ int TreelitePredictorQueryResultSize(PredictorHandle handle,
     const DenseBatch* batch_ = static_cast<DenseBatch*>(batch);
     *out = predictor_->QueryResultSize(batch_);
   }
+  API_END();
+}
+
+int TreelitePredictorQueryResultSizeSingleInst(PredictorHandle handle,
+                                               size_t* out) {
+  API_BEGIN();
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out = predictor_->QueryResultSizeSingleInst();
   API_END();
 }
 

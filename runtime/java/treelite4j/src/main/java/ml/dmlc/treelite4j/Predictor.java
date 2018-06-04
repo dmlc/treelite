@@ -3,6 +3,8 @@ package ml.dmlc.treelite4j;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.io.File;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 
 /**
@@ -76,6 +78,33 @@ class Predictor {
 
   public int GetNumFeature() {
     return this.num_feature;
+  }
+
+  public float[] predict(Entry[] inst, boolean pred_margin)
+    throws TreeliteError, IOException {
+
+    assert inst.length > 0;
+
+    // query result size
+    long[] out = new long[1];
+    TreeliteJNI.checkCall(
+      TreeliteJNI.TreelitePredictorQueryResultSizeSingleInst(this.handle, out));
+    int result_size = (int)out[0];
+    float[] out_result = new float[result_size];
+
+    // serialize instance as byte array
+    ByteArrayOutputStream os = new ByteArrayOutputStream();
+    for (int i = 0; i < inst.length; ++i) {
+      inst[i].write(os);
+    }
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictInst(
+      this.handle, os.toByteArray(), pred_margin, out_result, out));
+    int actual_result_size = (int)out[0];
+    float[] result = new float[actual_result_size];
+    for (int i = 0; i < actual_result_size; ++i) {
+      result[i] = out_result[i];
+    }
+    return result;
   }
 
   public float[][] predict(

@@ -127,7 +127,7 @@ class Predictor {
       throws TreeliteError {
     long[] out = new long[1];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryResultSize(
-      this.handle, batch.getHandle(), true, out));
+      this.handle, batch.getHandle(), false, out));
     int result_size = (int)out[0];
     float[] out_result = new float[result_size];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatch(

@@ -4,7 +4,7 @@ package ml.dmlc.treelite4j;
  * 2D dense batch, laid out in row-major layout
  * @author Philip Cho
  */
-class DenseBatch {
+public class DenseBatch {
   private float[] data;
   private float missing_value;
   private int num_row;

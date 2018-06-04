@@ -4,7 +4,7 @@ package ml.dmlc.treelite4j;
  * 2D sparse batch, laid out in CSR (Compressed Sparse Row) layout
  * @author Philip Cho
  */
-class SparseBatch {
+public class SparseBatch {
   private float[] data;
   private int[] col_ind;
   private long[] row_ptr;

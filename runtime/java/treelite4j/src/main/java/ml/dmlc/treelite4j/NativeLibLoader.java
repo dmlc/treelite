@@ -11,7 +11,7 @@ import org.apache.commons.logging.LogFactory;
  *
  * @author Philip Cho
  */
-class NativeLibLoader {
+public class NativeLibLoader {
   private static final Log logger = LogFactory.getLog(NativeLibLoader.class);
 
   private static boolean initialized = false;
@@ -65,7 +65,7 @@ class NativeLibLoader {
    * @throws IOException
    * @throws IllegalArgumentException
    */
-  static String createTempFileFromResource(String path) throws
+  public static String createTempFileFromResource(String path) throws
           IOException, IllegalArgumentException {
     // Obtain filename from path
     if (!path.startsWith("/")) {

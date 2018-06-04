@@ -11,7 +11,7 @@ import java.nio.file.Paths;
  * Treelite predictor
  * @author Philip Cho
  */
-class Predictor {
+public class Predictor {
   private static final Log logger = LogFactory.getLog(Predictor.class);
   private long handle = 0;
   private int num_output_group;

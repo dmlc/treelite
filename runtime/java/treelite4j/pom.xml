@@ -35,6 +35,11 @@
       <artifactId>commons-lang</artifactId>
       <version>2.6</version>
     </dependency>
+    <dependency>
+      <groupId>org.javolution</groupId>
+      <artifactId>javolution-core-java</artifactId>
+      <version>6.0.0</version>
+    </dependency>
   </dependencies>
 
   <build>

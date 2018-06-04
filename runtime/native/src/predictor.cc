@@ -26,9 +26,13 @@
 
 namespace {
 
+enum class InputType : uint8_t {
+  kSparseBatch = 0, kDenseBatch = 1, kSingleInst = 2
+};
+
 struct InputToken {
-  bool sparse;
-  const void* batch;
+  InputType input_type;
+  const void* data;
   bool pred_margin;
   size_t num_output_group;
   treelite::Predictor::PredFuncHandle pred_func_handle;
@@ -75,7 +79,7 @@ template <typename PredFunc>
 inline size_t PredLoop(const treelite::CSRBatch* batch,
                        size_t rbegin, size_t rend,
                        float* out_pred, PredFunc func) {
-  std::vector<treelite::Predictor::Entry> inst(batch->num_col, {-1});
+  std::vector<TreelitePredictorEntry> inst(batch->num_col, {-1});
   CHECK(rbegin < rend && rend <= batch->num_row);
   CHECK(sizeof(size_t) < sizeof(int64_t)
      || (rbegin <= static_cast<size_t>(std::numeric_limits<int64_t>::max())
@@ -107,7 +111,7 @@ inline size_t PredLoop(const treelite::DenseBatch* batch,
                        float* out_pred, PredFunc func) {
   const bool nan_missing
                       = treelite::common::math::CheckNAN(batch->missing_value);
-  std::vector<treelite::Predictor::Entry> inst(batch->num_col, {-1});
+  std::vector<TreelitePredictorEntry> inst(batch->num_col, {-1});
   CHECK(rbegin < rend && rend <= batch->num_row);
   CHECK(sizeof(size_t) < sizeof(int64_t)
      || (rbegin <= static_cast<size_t>(std::numeric_limits<int64_t>::max())
@@ -154,21 +158,21 @@ inline size_t PredictBatch_(const BatchType* batch,
     // Note that size of prediction may be smaller than out_pred (this occurs
     // when pred_function is set to "max_index").
   if (num_output_group > 1) {  // multi-class classification task
-    using PredFunc = size_t (*)(treelite::Predictor::Entry*, int, float*);
+    using PredFunc = size_t (*)(TreelitePredictorEntry*, int, float*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
     query_result_size =
      PredLoop(batch, rbegin, rend, out_pred,
       [pred_func, num_output_group, pred_margin]
-      (int64_t rid, treelite::Predictor::Entry* inst, float* out_pred) -> size_t {
+      (int64_t rid, TreelitePredictorEntry* inst, float* out_pred) -> size_t {
         return pred_func(inst, (int)pred_margin, &out_pred[rid * num_output_group]);
       });
   } else {                     // every other task
-    using PredFunc = float (*)(treelite::Predictor::Entry*, int);
+    using PredFunc = float (*)(TreelitePredictorEntry*, int);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
     query_result_size =
      PredLoop(batch, rbegin, rend, out_pred,
       [pred_func, pred_margin]
-      (int64_t rid, treelite::Predictor::Entry* inst, float* out_pred) -> size_t {
+      (int64_t rid, TreelitePredictorEntry* inst, float* out_pred) -> size_t {
         out_pred[rid] = pred_func(inst, (int)pred_margin);
         return 1;
       });
@@ -190,6 +194,27 @@ inline size_t PredictBatch_(const BatchType* batch,
   return query_result_size;
 }
 
+inline size_t PredictInst_(TreelitePredictorEntry* inst,
+                           bool pred_margin, size_t num_output_group,
+                           treelite::Predictor::PredFuncHandle pred_func_handle,
+                           size_t expected_query_result_size, float* out_pred) {
+  CHECK(pred_func_handle != nullptr)
+    << "A shared library needs to be loaded first using Load()";
+  /* Pass the correct prediction function to PredLoop */
+  size_t query_result_size; // Dimention of output vector
+  if (num_output_group > 1) {  // multi-class classification task
+    using PredFunc = size_t (*)(TreelitePredictorEntry*, int, float*);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
+    query_result_size = pred_func(inst, (int)pred_margin, out_pred);
+  } else {  // every other task
+    using PredFunc = float (*)(TreelitePredictorEntry*, int);
+    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
+    out_pred[0] = pred_func(inst, (int)pred_margin);
+    query_result_size = 1;
+  }
+  return query_result_size;
+}
+
 }  // namespace anonymous
 
 namespace treelite {
@@ -202,7 +227,8 @@ Predictor::Predictor(int num_worker_thread,
                          pred_func_handle_(nullptr),
                          thread_pool_handle_(nullptr),
                          include_master_thread_(include_master_thread),
-                         num_worker_thread_(num_worker_thread) {}
+                         num_worker_thread_(num_worker_thread),
+                         clock_(0) {}
 Predictor::~Predictor() {
   Free();
 }
@@ -239,14 +265,14 @@ Predictor::Load(const char* name) {
   if (num_output_group_ > 1) {   // multi-class classification
     pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,
                                                      "predict_multiclass");
-    using PredFunc = size_t (*)(Entry*, int, float*);
+    using PredFunc = size_t (*)(TreelitePredictorEntry*, int, float*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
     CHECK(pred_func != nullptr)
       << "Dynamic shared library `" << name
       << "' does not contain valid predict_multiclass() function";
   } else {                      // everything else
     pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_, "predict");
-    using PredFunc = float (*)(Entry*, int);
+    using PredFunc = float (*)(TreelitePredictorEntry*, int);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle_);
     CHECK(pred_func != nullptr)
       << "Dynamic shared library `" << name
@@ -267,22 +293,42 @@ Predictor::Load(const char* name) {
         size_t query_result_size;
         const size_t rbegin = input.rbegin;
         const size_t rend = input.rend;
-        if (input.sparse) {
-          const CSRBatch* batch = static_cast<const CSRBatch*>(input.batch);
-          query_result_size
-            = PredictBatch_(batch, input.pred_margin, input.num_output_group,
-                            input.pred_func_handle,
-                            rbegin, rend,
-                            predictor->QueryResultSize(batch, rbegin, rend),
-                            input.out_pred);
-        } else {
-          const DenseBatch* batch = static_cast<const DenseBatch*>(input.batch);
-          query_result_size
-            = PredictBatch_(batch, input.pred_margin, input.num_output_group,
-                            input.pred_func_handle,
-                            rbegin, rend,
-                            predictor->QueryResultSize(batch, rbegin, rend),
-                            input.out_pred);
+        switch (input.input_type) {
+         case InputType::kSparseBatch:
+          {
+            const CSRBatch* batch = static_cast<const CSRBatch*>(input.data);
+            query_result_size
+              = PredictBatch_(batch, input.pred_margin, input.num_output_group,
+                              input.pred_func_handle,
+                              rbegin, rend,
+                              predictor->QueryResultSize(batch, rbegin, rend),
+                              input.out_pred);
+          }
+          break;
+         case InputType::kDenseBatch:
+          {
+            const DenseBatch* batch = static_cast<const DenseBatch*>(input.data);
+            query_result_size
+              = PredictBatch_(batch, input.pred_margin, input.num_output_group,
+                              input.pred_func_handle,
+                              rbegin, rend,
+                              predictor->QueryResultSize(batch, rbegin, rend),
+                              input.out_pred);
+          }
+          break;
+         case InputType::kSingleInst:
+         default:
+          {
+            TreelitePredictorEntry* inst
+              = const_cast<TreelitePredictorEntry*>(
+                  static_cast<const TreelitePredictorEntry*>(input.data));
+            query_result_size
+              = PredictInst_(inst, input.pred_margin, input.num_output_group,
+                             input.pred_func_handle,
+                             predictor->QueryResultSizeSingleInst(),
+                             input.out_pred);
+          }
+          break;
         }
         outgoing_queue->Push(OutputToken{query_result_size});
       }
@@ -324,8 +370,10 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
                 "PredictBatchBase_: unrecognized batch type");
   const double tstart = dmlc::GetTime();
   PredThreadPool* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
-  InputToken request{std::is_same<BatchType, CSRBatch>::value,
-                     static_cast<const void*>(batch), pred_margin,
+  const InputType input_type
+    = std::is_same<BatchType, CSRBatch>::value
+      ? InputType::kSparseBatch : InputType::kDenseBatch;
+  InputToken request{input_type, static_cast<const void*>(batch), pred_margin,
                      num_output_group_, pred_func_handle_,
                      0, batch->num_row, out_result};
   OutputToken response;
@@ -374,6 +422,32 @@ size_t
 Predictor::PredictBatch(const DenseBatch* batch, int verbose,
                         bool pred_margin, float* out_result) {
   return PredictBatchBase_(batch, verbose, pred_margin, out_result);
+}
+
+size_t
+Predictor::PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
+                       float* out_result) {
+  PredThreadPool* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
+  const InputType input_type = InputType::kSingleInst;
+  InputToken request{input_type, static_cast<const void*>(inst), pred_margin,
+                     num_output_group_, pred_func_handle_,
+                     0, 1, out_result};
+  OutputToken response;
+  size_t total_size;
+  if (include_master_thread_ && clock_ == 0) {
+    total_size = PredictInst_(inst, pred_margin, num_output_group_,
+                              pred_func_handle_,
+                              QueryResultSizeSingleInst(), out_result);
+  } else {
+    const int tid = clock_ - (int)include_master_thread_;
+    pool->SubmitTask(tid, request);
+    if (pool->WaitForTask(tid, &response)) {
+      total_size = response.query_result_size;
+    }
+  }
+  // round-robin scheduling
+  clock_ = (clock_ + 1) % (num_worker_thread_ + (int)include_master_thread_);
+  return total_size;
 }
 
 }  // namespace treelite

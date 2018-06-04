@@ -3,6 +3,7 @@ package ml.dmlc.treelite4j;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import junit.framework.TestCase;
 import org.junit.Test;
@@ -43,13 +44,23 @@ public class PredictorTest {
   @Test
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    SparseBatch batch
-      = CreateSparseBatch(LoadDatasetFromLibSVM(mushroomTestDataLocation));
+    List<List<MatrixEntry>> dmat
+      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    SparseBatch sparse_batch = CreateSparseBatch(dmat);
+    DenseBatch dense_batch = CreateDenseBatch(dmat);
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
-    float[][] result = predictor.predict(batch, true, false);
-    int num_row = result.length;
-    for (int i = 0; i < num_row; ++i) {
+
+    /* sparse batch */
+    float[][] result = predictor.predict(sparse_batch, true, false);
+    for (int i = 0; i < result.length; ++i) {
+      TestCase.assertEquals(1, result[i].length);
+      TestCase.assertEquals(expected_result[i], result[i][0]);
+    }
+
+    /* dense batch */
+    result = predictor.predict(dense_batch, true, false);
+    for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
     }
@@ -58,13 +69,23 @@ public class PredictorTest {
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    SparseBatch batch
-      = CreateSparseBatch(LoadDatasetFromLibSVM(mushroomTestDataLocation));
+    List<List<MatrixEntry>> dmat
+      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    SparseBatch sparse_batch = CreateSparseBatch(dmat);
+    DenseBatch dense_batch = CreateDenseBatch(dmat);
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
-    float[][] result = predictor.predict(batch, true, true);
-    int num_row = result.length;
-    for (int i = 0; i < num_row; ++i) {
+
+    /* sparse batch */
+    float[][] result = predictor.predict(sparse_batch, true, true);
+    for (int i = 0; i < result.length; ++i) {
+      TestCase.assertEquals(1, result[i].length);
+      TestCase.assertEquals(expected_result[i], result[i][0]);
+    }
+
+    /* dense batch */
+    result = predictor.predict(dense_batch, true, true);
+    for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
     }
@@ -152,7 +173,7 @@ public class PredictorTest {
     ArrayList<Float> data = new ArrayList<Float>();
     ArrayList<Integer> col_ind = new ArrayList<Integer>();
     ArrayList<Long> row_ptr = new ArrayList<Long>();
-    int num_row = 0;
+    int num_row = dmat.size();
     int num_col = 0;
     row_ptr.add(0L);
     for (List<MatrixEntry> inst : dmat) {
@@ -165,7 +186,6 @@ public class PredictorTest {
         ++nnz_current_row;
       }
       row_ptr.add(row_ptr.get(row_ptr.size() - 1) + (long)nnz_current_row);
-      ++num_row;
     }
     float[] data_arr
       = ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));
@@ -174,5 +194,28 @@ public class PredictorTest {
     long[] row_ptr_arr
       = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[row_ptr.size()]));
     return new SparseBatch(data_arr, col_ind_arr, row_ptr_arr, num_row, num_col);
+  }
+
+  private DenseBatch CreateDenseBatch(List<List<MatrixEntry>> dmat)
+       throws TreeliteError, IOException {
+    int num_row = dmat.size();
+    int num_col = 0;
+    // compute num_col
+    for (List<MatrixEntry> inst : dmat) {
+      for (MatrixEntry e : inst) {
+        num_col = Math.max(num_col, e.fid + 1);
+      }
+    }
+    float[] data = new float[num_row * num_col];
+    Arrays.fill(data, Float.NaN);
+    // write nonzero entries
+    int row_id = 0;
+    for (List<MatrixEntry> inst : dmat) {
+      for (MatrixEntry e : inst) {
+        data[row_id * num_col + e.fid] = e.fval;
+      }
+      ++row_id;
+    }
+    return new DenseBatch(data, Float.NaN, num_row, num_col);
   }
 }

@@ -3,6 +3,7 @@ package ml.dmlc.treelite4j;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.apache.commons.io.LineIterator;
@@ -42,7 +43,8 @@ public class PredictorTest {
   @Test
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    SparseBatch batch = LoadSparseBatchFromLibSVM(mushroomTestDataLocation);
+    SparseBatch batch
+      = CreateSparseBatch(LoadDatasetFromLibSVM(mushroomTestDataLocation));
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
     float[][] result = predictor.predict(batch, true, false);
@@ -56,7 +58,8 @@ public class PredictorTest {
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    SparseBatch batch = LoadSparseBatchFromLibSVM(mushroomTestDataLocation);
+    SparseBatch batch
+      = CreateSparseBatch(LoadDatasetFromLibSVM(mushroomTestDataLocation));
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
     float[][] result = predictor.predict(batch, true, true);
@@ -64,6 +67,34 @@ public class PredictorTest {
     for (int i = 0; i < num_row; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
+    }
+  }
+
+  @Test
+  public void testPredictInst() throws TreeliteError, IOException {
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    Entry[] inst_arr = new Entry[predictor.GetNumFeature()];
+    for (int i = 0; i < inst_arr.length; ++i) {
+      inst_arr[i] = new Entry();
+      inst_arr[i].setMissing();
+    }
+
+    float[] expected_result
+      = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+
+    List<List<MatrixEntry>> dmat
+      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    int row_id = 0;
+    for (List<MatrixEntry> inst : dmat) {
+      for (MatrixEntry e : inst) {
+        inst_arr[e.fid].setFValue(e.fval);
+      }
+      float[] result = predictor.predict(inst_arr, false);
+      TestCase.assertEquals(1, result.length);
+      TestCase.assertEquals(expected_result[row_id++], result[0]);
+      for (int i = 0; i < inst_arr.length; ++i) {
+        inst_arr[i].setMissing();
+      }
     }
   }
 
@@ -82,38 +113,59 @@ public class PredictorTest {
     return ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));
   }
 
-  private SparseBatch LoadSparseBatchFromLibSVM(String filename)
+  class MatrixEntry {  // (feature id, feature value) pair
+    int fid;
+    float fval;
+    public MatrixEntry(int fid, float fval) {
+      this.fid = fid;
+      this.fval = fval;
+    }
+  }
+
+  private List<List<MatrixEntry>> LoadDatasetFromLibSVM(String filename)
        throws TreeliteError, IOException {
     File file = new File(filename);
     LineIterator it = FileUtils.lineIterator(file, "UTF-8");
+    ArrayList<List<MatrixEntry>> dmat = new ArrayList<List<MatrixEntry>>();
+    try {
+      while (it.hasNext()) {
+        String line = it.nextLine();
+        String[] tokens = line.split(" ");
+        ArrayList<MatrixEntry> inst = new ArrayList<MatrixEntry>();
+        // ignore label; just read feature values
+        for (int i = 1; i < tokens.length; ++i) {
+          String[] subtokens = tokens[i].split(":");
+          int fid = Integer.parseInt(subtokens[0]);
+          float fval = Float.parseFloat(subtokens[1]);
+          inst.add(new MatrixEntry(fid, fval));
+        }
+        dmat.add(inst);
+      }
+    } finally {
+      it.close();
+    }
+    return dmat;
+  }
+
+  private SparseBatch CreateSparseBatch(List<List<MatrixEntry>> dmat)
+       throws TreeliteError, IOException {
     ArrayList<Float> data = new ArrayList<Float>();
     ArrayList<Integer> col_ind = new ArrayList<Integer>();
     ArrayList<Long> row_ptr = new ArrayList<Long>();
     int num_row = 0;
     int num_col = 0;
     row_ptr.add(0L);
-    try {
-      while (it.hasNext()) {
-        String line = it.nextLine();
-        String[] tokens = line.split(" ");
-        // ignore label; just read feature values
-
-        int nnz_current_row = 0;
-          // count number of nonzero feature values for current row
-        for (int i = 1; i < tokens.length; ++i) {
-          String[] subtokens = tokens[i].split(":");
-          int fid = Integer.parseInt(subtokens[0]);
-          float fval = Float.parseFloat(subtokens[1]);
-          data.add(fval);
-          col_ind.add(fid);
-          num_col = Math.max(num_col, fid + 1);
-          ++nnz_current_row;
-        }
-        row_ptr.add(row_ptr.get(row_ptr.size() - 1) + (long)nnz_current_row);
-        ++num_row;
+    for (List<MatrixEntry> inst : dmat) {
+      int nnz_current_row = 0;
+        // count number of nonzero feature values for current row
+      for (MatrixEntry e : inst) {
+        data.add(e.fval);
+        col_ind.add(e.fid);
+        num_col = Math.max(num_col, e.fid + 1);
+        ++nnz_current_row;
       }
-    } finally {
-      it.close();
+      row_ptr.add(row_ptr.get(row_ptr.size() - 1) + (long)nnz_current_row);
+      ++num_row;
     }
     float[] data_arr
       = ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));

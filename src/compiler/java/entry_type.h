@@ -3,7 +3,7 @@ R"TREELITETEMPLATE(
 package {java_package};
 
 import javolution.io.Union;
-import ml.dmlc.treelite.Data;
+import ml.dmlc.treelite4j.Data;
 
 public class Entry extends Union implements Data {{
   public Signed32 missing = new Signed32();

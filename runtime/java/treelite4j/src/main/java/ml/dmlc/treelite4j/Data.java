@@ -1,5 +1,4 @@
-
-package ml.dmlc.treelite;
+package ml.dmlc.treelite4j;
 
 public interface Data {
   public void setFValue(float val);

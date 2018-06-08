@@ -8,11 +8,12 @@
 
 /* Note: Make sure to use slash-asterisk form of comments in this file
    (like this one). Do not use double-slash (//). */
- 
+
 #ifndef TREELITE_C_API_RUNTIME_H_
 #define TREELITE_C_API_RUNTIME_H_
 
 #include "c_api_common.h"
+#include "entry.h"
 
 /*!
  * \addtogroup opaque_handles
@@ -128,6 +129,24 @@ TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
                                                size_t* out_result_size);
 
 /*!
+ * \brief Make predictions on a single data row (synchronously). The work
+ *        will be scheduled to a single thread.
+ * \param handle predictor
+ * \param inst single data row
+ * \param pred_margin whether to produce raw margin scores instead of
+ *                    transformed probabilities
+ * \param out_result resulting output vector; use
+ *        TreeliteQueryResultSizeSingleInst() to allocate sufficient space
+ * \param out_result_size used to save length of the output vector, which is
+ *        guaranteed to be at most TreeliteQueryResultSizeSingleInst()
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorPredictInst(PredictorHandle handle,
+                                              union TreelitePredictorEntry* inst,
+                                              int pred_margin, float* out_result,
+                                              size_t* out_result_size);
+
+/*!
  * \brief Given a batch of data rows, query the necessary size of array to
  *        hold predictions for all data points.
  * \param handle predictor
@@ -141,6 +160,16 @@ TREELITE_DLL int TreelitePredictorQueryResultSize(PredictorHandle handle,
                                                   int batch_sparse,
                                                   size_t* out);
 /*!
+ * \brief Query the necessary size of array to hold the prediction for a
+ *        single data row
+ * \param handle predictor
+ * \param out used to store the length of prediction array
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryResultSizeSingleInst(
+                                                 PredictorHandle handle,
+                                                 size_t* out);
+/*!
  * \brief Get the number of output groups in the loaded model
  * The number is 1 for most tasks;
  * it is greater than 1 for multiclass classifcation.
@@ -150,6 +179,15 @@ TREELITE_DLL int TreelitePredictorQueryResultSize(PredictorHandle handle,
  */
 TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle,
                                                       size_t* out);
+/*!
+ * \brief Get the width (number of features) of each instance used to train
+ *        the loaded model
+ * \param handle predictor
+ * \param out number of features
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryNumFeature(PredictorHandle handle,
+                                                  size_t* out);
 /*!
  * \brief delete predictor from memory
  * \param handle predictor to remove

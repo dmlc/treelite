@@ -10,6 +10,7 @@
 #include <dmlc/logging.h>
 #include <vector>
 #include <string>
+#include <regex>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -121,9 +122,29 @@ inline void CreateDirectoryIfNotExist(const char* dirpath) {
 }
 
 inline void CreateDirectoryIfNotExistRecursive(const std::string& dirpath) {
-  const std::vector<std::string> tokens = common::Split(dirpath, '/');
-  std::string accum = tokens[0];
-  for (size_t i = 0; i < tokens.size(); ++i) {
+  std::string dirpath_;
+#ifdef _WIN32
+  if (dirpath.find("/") == std::string::npos
+      && dirpath.find("\\") != std::string::npos) {
+    // replace backward slashes with forward slashes
+    dirpath_ = std::regex_replace(dirpath, std::regex("\\\\"), "/");
+  } else {
+    dirpath_ = dirpath;
+  }
+#else
+  dirpath_ = dirpath;
+#endif
+  const std::vector<std::string> tokens = common::Split(dirpath_, '/');
+  std::string accum;
+  size_t i;
+  if (tokens[0].empty()) {  // absolute path, starting with '/'
+    accum = "/" + tokens[1];
+    i = 1;
+  } else {  // relative path
+    accum = tokens[0];
+    i = 0;
+  }
+  for (; i < tokens.size(); ++i) {
     common::filesystem::CreateDirectoryIfNotExist(accum.c_str());
     if (i < tokens.size() - 1 && !tokens[i + 1].empty()) {
       accum += "/";

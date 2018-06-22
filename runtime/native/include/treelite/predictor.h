@@ -8,6 +8,7 @@
 #define TREELITE_PREDICTOR_H_
 
 #include <dmlc/logging.h>
+#include <treelite/entry.h>
 #include <cstdint>
 
 namespace treelite {
@@ -41,16 +42,6 @@ struct DenseBatch {
 /*! \brief predictor class: wrapper for optimized prediction code */
 class Predictor {
  public:
-  /*! \brief data layout. The value -1 signifies the missing value.
-      When the "missing" field is set to -1, the "fvalue" field is set to
-      NaN (Not a Number), so there is no danger for mistaking between
-      missing values and non-missing values. */
-  union Entry {
-    int missing;
-    float fvalue;
-    // may contain extra fields later, such as qvalue
-  };
-
   /*! \brief opaque handle types */
   typedef void* QueryFuncHandle;
   typedef void* PredFuncHandle;
@@ -86,6 +77,19 @@ class Predictor {
                       bool pred_margin, float* out_result);
   size_t PredictBatch(const DenseBatch* batch, int verbose,
                       bool pred_margin, float* out_result);
+  /*!
+   * \brief Make predictions on a single data row (synchronously). The work
+   *        will be scheduled to a single thread.
+   * \param inst single data row
+   * \param pred_margin whether to produce raw margin scores instead of
+   *                    transformed probabilities
+   * \param out_result resulting output vector; use
+   *                   QueryResultSizeSingleInst() to allocate sufficient space
+   * \return length of the output vector, which is guaranteed to be less than
+   *         or equal to QueryResultSizeSingleInst()
+   */
+  size_t PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
+                     float* out_result);
 
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
@@ -98,11 +102,25 @@ class Predictor {
       << "A shared library needs to be loaded first using Load()";
     return batch->num_row * num_output_group_;
   }
+  /*!
+   * \brief Given a batch of data rows, query the necessary size of array to
+   *        hold predictions for all data points.
+   * \param batch a batch of rows
+   * \return length of prediction array
+   */
   inline size_t QueryResultSize(const DenseBatch* batch) const {
     CHECK(pred_func_handle_ != nullptr)
       << "A shared library needs to be loaded first using Load()";
     return batch->num_row * num_output_group_;
   }
+  /*!
+   * \brief Given a batch of data rows, query the necessary size of array to
+   *        hold predictions for all data points.
+   * \param batch a batch of rows
+   * \param rbegin beginning of range of rows
+   * \param rend end of range of rows
+   * \return length of prediction array
+   */
   inline size_t QueryResultSize(const CSRBatch* batch,
                                 size_t rbegin, size_t rend) const {
     CHECK(pred_func_handle_ != nullptr)
@@ -110,12 +128,30 @@ class Predictor {
     CHECK(rbegin < rend && rend <= batch->num_row);
     return (rend - rbegin) * num_output_group_;
   }
+  /*!
+   * \brief Given a batch of data rows, query the necessary size of array to
+   *        hold predictions for all data points.
+   * \param batch a batch of rows
+   * \param rbegin beginning of range of rows
+   * \param rend end of range of rows
+   * \return length of prediction array
+   */
   inline size_t QueryResultSize(const DenseBatch* batch,
                                 size_t rbegin, size_t rend) const {
     CHECK(pred_func_handle_ != nullptr)
       << "A shared library needs to be loaded first using Load()";
     CHECK(rbegin < rend && rend <= batch->num_row);
     return (rend - rbegin) * num_output_group_;
+  }
+  /*!
+   * \brief Query the necessary size of array to hold the prediction for a
+   *        single data row
+   * \return length of prediction array
+   */
+  inline size_t QueryResultSizeSingleInst() const {
+    CHECK(pred_func_handle_ != nullptr)
+      << "A shared library needs to be loaded first using Load()";
+    return num_output_group_;
   }
   /*!
    * \brief Get the number of output groups in the loaded model
@@ -127,14 +163,27 @@ class Predictor {
     return num_output_group_;
   }
 
+  /*!
+   * \brief Get the width (number of features) of each instance used to train
+   *        the loaded model
+   * \return number of features
+   */
+  inline size_t QueryNumFeature() const {
+    return num_feature_;
+  }
+
  private:
   LibraryHandle lib_handle_;
-  QueryFuncHandle query_func_handle_;
+  QueryFuncHandle num_output_group_query_func_handle_;
+  QueryFuncHandle num_feature_query_func_handle_;
   PredFuncHandle pred_func_handle_;
   ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
+  size_t num_feature_;
   int num_worker_thread_;
   bool include_master_thread_;  // run task on master thread?
+  int clock_;
+    // internal variable, used to schedule PredictInst() in round-robin fashion
 
   template <typename BatchType>
   size_t PredictBatchBase_(const BatchType* batch, int verbose,

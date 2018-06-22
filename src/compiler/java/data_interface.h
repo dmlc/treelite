@@ -14,7 +14,7 @@ namespace java {
 
 const char* data_interface =
 R"TREELITETEMPLATE(
-package ml.dmlc.treelite;
+package ml.dmlc.treelite4j;
 
 public interface Data {
   public void setMissing();

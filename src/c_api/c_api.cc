@@ -300,7 +300,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     common::filesystem::CreateDirectoryIfNotExistRecursive(
       dirpath_ + "/" + compiled_model.file_prefix);
     common::filesystem::CreateDirectoryIfNotExistRecursive(
-      dirpath_ + "/src/main/java/ml/dmlc/treelite");
+      dirpath_ + "/src/main/java/ml/dmlc/treelite4j");
   }
 
   for (const auto& it : compiled_model.files) {

@@ -84,6 +84,7 @@ class ASTJavaCompiler : public Compiler {
           "java_package"_a = param.java_package,
           "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
     files_["src/main/java/ml/dmlc/treelite4j/Data.java"] = data_interface;
+    files_["src/main/java/ml/dmlc/treelite4j/InferenceEngine.java"] = inference_engine_interface;
     files_["pom.xml"]
       = fmt::format(pom_xml_template,
           "java_package"_a = param.java_package,

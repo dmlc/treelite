@@ -1,4 +1,4 @@
-const char* data_interface =
+const char* inference_engine_interface =
 R"TREELITETEMPLATE(
 package ml.dmlc.treelite4j;
 

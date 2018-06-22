@@ -73,6 +73,7 @@ class ASTJavaCompiler : public Compiler {
     }
     #include "./java/entry_type.h"
     #include "./java/data_interface.h"
+    #include "./java/inference_engine_interface.h"
     #include "./java/node_type.h"
     #include "./java/pom_xml.h"
     files_[file_prefix_ + "Entry.java"]

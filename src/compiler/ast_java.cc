@@ -194,7 +194,7 @@ class ASTJavaCompiler : public Compiler {
           "public static long predict_multiclass(Entry[] data, "
                                                 "boolean pred_margin, "
                                                 "float[] result)"
-        : "public static float predict(Entry[] data, boolean pred_margin)";
+        : "public float predict(Data[] entry, boolean pred_margin)";
     AppendToBuffer(dest,
       fmt::format(java::main_start_template,
         "java_package"_a = param.java_package,

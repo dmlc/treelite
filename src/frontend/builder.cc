@@ -69,7 +69,7 @@ struct _Tree {
   inline _Tree() : root(nullptr), nodes() {}
 };
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 namespace frontend {

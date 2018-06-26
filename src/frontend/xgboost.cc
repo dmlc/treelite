@@ -18,7 +18,7 @@ treelite::Model ParseStream(dmlc::Stream* fi);
 void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
                        const char* name_obj);
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 namespace frontend {
@@ -518,4 +518,4 @@ inline void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
   fo->Write(dmlc::BeginPtr(tree_info_), sizeof(int) * tree_info_.size());
 }
 
-}  // namespace anonymous
+}  // anonymous namespace

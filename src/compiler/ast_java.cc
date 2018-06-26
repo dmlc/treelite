@@ -1,3 +1,9 @@
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file ast_java.cc
+ * \author Philip Cho
+ * \brief Java code generator
+ */
 #include <treelite/compiler.h>
 #include <treelite/common.h>
 #include <unordered_map>
@@ -54,6 +60,7 @@ class ASTJavaCompiler : public Compiler {
     cm.file_prefix = file_prefix_;
     return cm;
   }
+
  private:
   CompilerParam param;
   int num_output_group_;

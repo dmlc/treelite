@@ -125,7 +125,7 @@ TREELITE_DLL int TreeliteDMatrixGetArrays(DMatrixHandle handle,
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDMatrixFree(DMatrixHandle handle);
-/*! \} */ 
+/*! \} */
 
 /*!
  * \defgroup annotator

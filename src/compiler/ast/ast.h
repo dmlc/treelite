@@ -1,5 +1,14 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file ast.h
+ * \brief Definition for AST classes
+ * \author Philip Cho
+ */
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
+
+#include <string>
+#include <vector>
 
 namespace treelite {
 namespace compiler {
@@ -10,7 +19,7 @@ namespace compiler {
  * \return string representation
  */
 inline std::string OpName(Operator op) {
-  switch(op) {
+  switch (op) {
     case Operator::kEQ: return "==";
     case Operator::kLT: return "<";
     case Operator::kLE: return "<=";
@@ -29,12 +38,12 @@ enum class BranchHint : uint8_t {
 
 inline std::string BranchHintName(BranchHint hint) {
   switch (hint) {
-   case BranchHint::kNone:
-    return "kNone";
-   case BranchHint::kLikely:
-    return "kLikely";
-   case BranchHint::kUnlikely:
-    return "kUnlikely";
+    case BranchHint::kNone:
+      return "kNone";
+    case BranchHint::kLikely:
+      return "kLikely";
+    case BranchHint::kUnlikely:
+      return "kUnlikely";
   }
   LOG(FATAL) << "Unrecognized BranchHint value";
 }
@@ -72,7 +81,7 @@ class MainNode : public ASTNode {
 
 class TranslationUnitNode : public ASTNode {
  public:
-  TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
+  explicit TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
   void Dump(int indent) override {
     std::cerr << std::string(indent, ' ')
               << "TranslationUnitNode {"
@@ -174,9 +183,9 @@ class CategoricalConditionNode : public ConditionNode {
 
 class OutputNode : public ASTNode {
  public:
-  OutputNode(tl_float scalar)
+  explicit OutputNode(tl_float scalar)
     : is_vector(false), scalar(scalar) {}
-  OutputNode(const std::vector<tl_float>& vector)
+  explicit OutputNode(const std::vector<tl_float>& vector)
     : is_vector(true), vector(vector) {}
   void Dump(int indent) override {
     if (this->is_vector) {
@@ -188,7 +197,7 @@ class OutputNode : public ASTNode {
                 << "OutputNode {vector: [" << oss.str() << "]}"
                 << std::endl;
     } else {
-      std::cerr << std::string(indent, ' ') 
+      std::cerr << std::string(indent, ' ')
                 << "OutputNode {scalar: " << this->scalar << "}"
                 << std::endl;
     }

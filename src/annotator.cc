@@ -87,7 +87,7 @@ inline void ComputeBranchLoop(const treelite::Model& model,
   }
 }
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 

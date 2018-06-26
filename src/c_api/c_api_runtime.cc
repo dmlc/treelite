@@ -4,7 +4,7 @@
  * \author Philip Cho
  * \brief C API of treelite (runtime portion)
  */
- 
+
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
 #include "./c_api_error.h"
@@ -75,7 +75,7 @@ int TreelitePredictorLoad(const char* library_path,
                           PredictorHandle* out) {
   API_BEGIN();
   Predictor* predictor = new Predictor(num_worker_thread,
-                                       (bool)include_master_thread);
+                                       static_cast<bool>(include_master_thread));
   predictor->Load(library_path);
   *out = static_cast<PredictorHandle>(predictor);
   API_END();

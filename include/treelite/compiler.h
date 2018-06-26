@@ -11,6 +11,7 @@
 #include <treelite/common.h>
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace treelite {
 

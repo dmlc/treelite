@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file count_descendant.cc
+ * \brief Count number of descendants for each AST node
+ */
 #include "./builder.h"
 
 namespace treelite {

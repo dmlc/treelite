@@ -28,7 +28,7 @@ struct CompilerHandleImpl {
   std::string name;
   std::vector<std::pair<std::string, std::string>> cfg;
   std::unique_ptr<Compiler> compiler;
-  CompilerHandleImpl(const std::string& name)
+  explicit CompilerHandleImpl(const std::string& name)
     : name(name), cfg(), compiler(nullptr) {}
   ~CompilerHandleImpl() = default;
 };
@@ -43,7 +43,7 @@ struct TreeliteAPIThreadLocalEntry {
 using TreeliteAPIThreadLocalStore
   = dmlc::ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 int TreeliteDMatrixCreateFromFile(const char* path,
                                   const char* format,
@@ -290,7 +290,6 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
 
   /* compile model */
-  // TODO: produce recipe.json
   impl->compiler.reset(Compiler::Create(impl->name, cparam));
   auto compiled_model = impl->compiler->Compile(*model_);
   if (verbose > 0) {

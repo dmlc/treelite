@@ -160,7 +160,8 @@ inline size_t PredictBatch_(const BatchType* batch,
      PredLoop(batch, rbegin, rend, out_pred,
       [pred_func, num_output_group, pred_margin]
       (int64_t rid, treelite::Predictor::Entry* inst, float* out_pred) -> size_t {
-        return pred_func(inst, (int)pred_margin, &out_pred[rid * num_output_group]);
+        return pred_func(inst, static_cast<int>(pred_margin),
+                         &out_pred[rid * num_output_group]);
       });
   } else {                     // every other task
     using PredFunc = float (*)(treelite::Predictor::Entry*, int);
@@ -169,7 +170,7 @@ inline size_t PredictBatch_(const BatchType* batch,
      PredLoop(batch, rbegin, rend, out_pred,
       [pred_func, pred_margin]
       (int64_t rid, treelite::Predictor::Entry* inst, float* out_pred) -> size_t {
-        out_pred[rid] = pred_func(inst, (int)pred_margin);
+        out_pred[rid] = pred_func(inst, static_cast<int>(pred_margin));
         return 1;
       });
   }
@@ -190,7 +191,7 @@ inline size_t PredictBatch_(const BatchType* batch,
   return query_result_size;
 }
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 
@@ -319,9 +320,9 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
   CHECK_GT(batch->num_row, 0);
   const int nthread = std::min(num_worker_thread_,
                                static_cast<int>(batch->num_row)
-                                 - (int)(include_master_thread_));
+                                 - static_cast<int>(include_master_thread_));
   const std::vector<size_t> row_ptr
-    = SplitBatch(batch, nthread + (int)(include_master_thread_));
+    = SplitBatch(batch, nthread + static_cast<int>(include_master_thread_));
   for (int tid = 0; tid < nthread; ++tid) {
     request.rbegin = row_ptr[tid];
     request.rend = row_ptr[tid + 1];

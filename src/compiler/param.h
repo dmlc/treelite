@@ -4,10 +4,11 @@
  * \brief Parameters for tree compiler
  * \author Philip Cho
  */
-#ifndef TREELITE_PARAM_H_
-#define TREELITE_PARAM_H_
+#ifndef TREELITE_COMPILER_PARAM_H_
+#define TREELITE_COMPILER_PARAM_H_
 
 #include <dmlc/parameter.h>
+#include <string>
 
 namespace treelite {
 namespace compiler {
@@ -60,4 +61,4 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
 }  // namespace compiler
 }  // namespace treelite
 
-#endif  // TREELITE_PARAM_H_
+#endif  // TREELITE_COMPILER_PARAM_H_

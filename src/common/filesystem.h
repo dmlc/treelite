@@ -8,6 +8,8 @@
 #define TREELITE_COMMON_FILESYSTEM_H_
 
 #include <dmlc/logging.h>
+#include <vector>
+#include <string>
 
 #ifdef _WIN32
 #define NOMINMAX

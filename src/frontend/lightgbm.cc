@@ -14,7 +14,7 @@ namespace {
 
 treelite::Model ParseStream(dmlc::Stream* fi);
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 namespace frontend {
@@ -361,4 +361,4 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   return model;
 }
 
-}  // namespace anonymous
+}  // anonymous namespace

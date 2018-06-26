@@ -70,7 +70,7 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
     lib_ext = '.so'
   else:
     raise ValueError('Unknown platform: must be one of {windows, osx, unix}')
-  
+
   _toolchain_exist_check(toolchain)
   if toolchain == 'msvc':
     if platform != 'windows':
@@ -210,7 +210,7 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
              'Expect long compilation time.\u001B[0m '+\
              'You may want to adjust the parameter ' +\
              '\x1B[33mparallel_comp\u001B[0m.\n')
-  
+
   tstart = time.time()
   _toolchain_exist_check(toolchain)
   if toolchain == 'msvc':

@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file dump.cc
+ * \brief Dump AST as text
+ */
 #include "./builder.h"
 
 namespace treelite {

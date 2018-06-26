@@ -54,7 +54,7 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
   }
 }
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 namespace frontend {

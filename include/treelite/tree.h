@@ -10,7 +10,10 @@
 #include <treelite/base.h>
 #include <treelite/common.h>
 #include <dmlc/logging.h>
+#include <algorithm>
 #include <vector>
+#include <utility>
+#include <string>
 #include <limits>
 
 namespace treelite {
@@ -361,7 +364,7 @@ struct Model {
   int num_output_group;
   /*! \brief flag for random forest;
    *  True for random forests and False for gradient boosted trees */
-  bool random_forest_flag; 
+  bool random_forest_flag;
   /*! \brief extra parameters */
   ModelParam param;
 

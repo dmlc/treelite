@@ -7,8 +7,8 @@
  */
 
 /* Note: Make sure to use slash-asterisk form of comments in this file
-   (like this one). Do not use double-slash (//). */
- 
+ * (like this one). Do not use double-slash (//). */
+
 #ifndef TREELITE_C_API_RUNTIME_H_
 #define TREELITE_C_API_RUNTIME_H_
 

@@ -1,3 +1,4 @@
+"""Utilities for contrib module"""
 # coding: utf-8
 
 from __future__ import absolute_import as _abs
@@ -18,24 +19,22 @@ def _toolchain_exist_check(toolchain):
                               stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
     if retcode != 0:
       raise ValueError('Toolchain {} not found. '.format(toolchain) +
-                      'Ensure that it is installed and that it is a variant ' +
-                      'of GCC or Clang.')
+                       'Ensure that it is installed and that it is a variant ' +
+                       'of GCC or Clang.')
 
 def _shell():
   if _is_windows():
     return 'cmd.exe'
   elif 'SHELL' in os.environ:
     return os.environ['SHELL']
-  else:
-    return '/bin/sh'  # use POSIX-compliant shell if SHELL is not set
+  return '/bin/sh'  # use POSIX-compliant shell if SHELL is not set
 
 def _libext():
   if _platform == 'darwin':
     return '.dylib'
   elif _platform == 'win32' or _platform == 'cygwin':
     return '.dll'
-  else:
-    return '.so'
+  return '.so'
 
 def _create_log_cmd_unix(logfile):
   return 'true > {}'.format(logfile)
@@ -43,8 +42,7 @@ def _create_log_cmd_unix(logfile):
 def _save_retcode_cmd_unix(logfile):
   if _shell().endswith('fish'):  # special handling for fish shell
     return 'echo $status >> {}'.format(logfile)
-  else:
-    return 'echo $? >> {}'.format(logfile)
+  return 'echo $? >> {}'.format(logfile)
 
 def _create_log_cmd_windows(logfile):
   return 'type NUL > {}'.format(logfile)
@@ -84,6 +82,7 @@ def _wait(proc, args):
     retcode = [int(line) for line in f]
   return {'stdout':_str_decode(stdout), 'retcode':retcode}
 
+# pylint: disable=R0914
 def _create_shared_base(dirpath, recipe, nthread, verbose):
   # Fetch toolchain-specific commands
   obj_cmd = recipe['create_object_cmd']

@@ -93,7 +93,7 @@ pred_transform_multiclass_db = {
    be a matrix with dimensions [number of data points] * [number of classes].
     [pred_transform_multiclass_db] */
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 std::string
 treelite::compiler::PredTransformFunction(const std::string& backend,

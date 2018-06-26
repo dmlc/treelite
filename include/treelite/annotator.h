@@ -9,6 +9,7 @@
 
 #include <treelite/tree.h>
 #include <treelite/data.h>
+#include <vector>
 
 namespace treelite {
 
@@ -51,6 +52,7 @@ class BranchAnnotator {
   inline std::vector<std::vector<size_t>> Get() const {
     return counts;
   }
+
  private:
   std::vector<std::vector<size_t>> counts;
 };

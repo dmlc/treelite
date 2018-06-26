@@ -1,5 +1,10 @@
-#include "./builder.h"
+/*!
+ * Copyright 2017 by Contributors
+ * \file annotate.cc
+ * \brief Annotate an AST
+ */
 #include <cmath>
+#include "./builder.h"
 
 namespace treelite {
 namespace compiler {

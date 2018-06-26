@@ -1,3 +1,9 @@
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file ast_native.cc
+ * \author Philip Cho
+ * \brief C code generator
+ */
 #include <treelite/compiler.h>
 #include <treelite/common.h>
 #include <treelite/annotator.h>

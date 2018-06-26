@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file builder.h
+ * \brief AST Builder class
+ */
 #ifndef TREELITE_COMPILER_AST_BUILDER_H_
 #define TREELITE_COMPILER_AST_BUILDER_H_
 

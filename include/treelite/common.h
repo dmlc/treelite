@@ -11,6 +11,9 @@
 #include <dmlc/logging.h>
 #include <dmlc/json.h>
 #include <dmlc/data.h>
+#include <algorithm>
+#include <limits>
+#include <string>
 #include <memory>
 #include <iterator>
 #include <functional>
@@ -25,8 +28,8 @@ namespace common {
 class Cloneable {
  public:
   virtual ~Cloneable() = default;
-  virtual Cloneable* clone() const = 0; // for copy operation
-  virtual Cloneable* move_clone() = 0;  // for move operation
+  virtual Cloneable* clone() const = 0;  // for copy operation
+  virtual Cloneable* move_clone() = 0;   // for move operation
 };
 
 /*! \brief macro to define boilerplate code for Cloneable classes */
@@ -145,8 +148,7 @@ inline void WrapText(std::ostringstream* p_stm, size_t* p_length,
  * \tparam T type of elements
  */
 template<class Iter, class T>
-Iter binary_search(Iter begin, Iter end, const T& val)
-{
+Iter binary_search(Iter begin, Iter end, const T& val) {
   Iter i = std::lower_bound(begin, end, val);
   if (i != end && !(val < *i)) {
     return i;  // found
@@ -224,11 +226,9 @@ inline float TextToNumber(const std::string& str) {
   float val = std::strtof(str.c_str(), &endptr);
   if (errno == ERANGE) {
     LOG(FATAL) << "Range error while converting string to double";
-  }
-  else if (errno != 0) {
+  } else if (errno != 0) {
     LOG(FATAL) << "Unknown error";
-  }
-  else if (*endptr != '\0') {
+  } else if (*endptr != '\0') {
     LOG(FATAL) << "String does not represent a valid floating-point number";
   }
   return val;
@@ -241,11 +241,9 @@ inline double TextToNumber(const std::string& str) {
   double val = std::strtod(str.c_str(), &endptr);
   if (errno == ERANGE) {
     LOG(FATAL) << "Range error while converting string to double";
-  }
-  else if (errno != 0) {
+  } else if (errno != 0) {
     LOG(FATAL) << "Unknown error";
-  }
-  else if (*endptr != '\0') {
+  } else if (*endptr != '\0') {
     LOG(FATAL) << "String does not represent a valid floating-point number";
   }
   return val;
@@ -255,14 +253,12 @@ template <>
 inline int TextToNumber(const std::string& str) {
   errno = 0;
   char *endptr;
-  long int val = std::strtol(str.c_str(), &endptr, 10);
+  auto val = std::strtol(str.c_str(), &endptr, 10);
   if (errno == ERANGE || val < INT_MIN || val > INT_MAX) {
     LOG(FATAL) << "Range error while converting string to int";
-  }
-  else if (errno != 0) {
+  } else if (errno != 0) {
     LOG(FATAL) << "Unknown error";
-  }
-  else if (*endptr != '\0') {
+  } else if (*endptr != '\0') {
     LOG(FATAL) << "String does not represent a valid integer";
   }
   return static_cast<int>(val);
@@ -272,14 +268,12 @@ template <>
 inline int8_t TextToNumber(const std::string& str) {
   errno = 0;
   char *endptr;
-  long int val = std::strtol(str.c_str(), &endptr, 10);
+  auto val = std::strtol(str.c_str(), &endptr, 10);
   if (errno == ERANGE || val < INT8_MIN || val > INT8_MAX) {
     LOG(FATAL) << "Range error while converting string to int8_t";
-  }
-  else if (errno != 0) {
+  } else if (errno != 0) {
     LOG(FATAL) << "Unknown error";
-  }
-  else if (*endptr != '\0') {
+  } else if (*endptr != '\0') {
     LOG(FATAL) << "String does not represent a valid integer";
   }
   return static_cast<int8_t>(val);
@@ -291,14 +285,12 @@ inline uint32_t TextToNumber(const std::string& str) {
     "unsigned long int too small to hold uint32_t");
   errno = 0;
   char *endptr;
-  unsigned long int val = std::strtoul(str.c_str(), &endptr, 10);
+  auto val = std::strtoul(str.c_str(), &endptr, 10);
   if (errno == ERANGE || val > UINT32_MAX) {
     LOG(FATAL) << "Range error while converting string to uint32_t";
-  }
-  else if (errno != 0) {
+  } else if (errno != 0) {
     LOG(FATAL) << "Unknown error";
-  }
-  else if (*endptr != '\0') {
+  } else if (*endptr != '\0') {
     LOG(FATAL) << "String does not represent a valid integer";
   }
   return static_cast<uint32_t>(val);
@@ -348,7 +340,7 @@ inline std::vector<std::string> Split(const std::string& text, char delim) {
  */
 inline bool CompareWithOp(treelite::tl_float lhs, treelite::Operator op,
                           treelite::tl_float rhs) {
-  switch(op) {
+  switch (op) {
     case treelite::Operator::kEQ: return lhs == rhs;
     case treelite::Operator::kLT: return lhs <  rhs;
     case treelite::Operator::kLE: return lhs <= rhs;

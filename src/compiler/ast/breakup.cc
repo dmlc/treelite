@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file breakup.cc
+ * \brief Break up large translation units
+ */
 #include "./builder.h"
 
 namespace treelite {

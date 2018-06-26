@@ -4,8 +4,8 @@
 * \brief tools to define prediction transform function
 * \author Philip Cho
 */
-#ifndef TREELITE_PRED_TRANSFORM_H_
-#define TREELITE_PRED_TRANSFORM_H_
+#ifndef TREELITE_COMPILER_PRED_TRANSFORM_H_
+#define TREELITE_COMPILER_PRED_TRANSFORM_H_
 
 #include <vector>
 #include <string>
@@ -19,4 +19,4 @@ std::string PredTransformFunction(const std::string& backend,
 }  // namespace compiler
 }  // namespace treelite
 
-#endif  // TREELITE_PRED_TRANSFORM_H_
+#endif  // TREELITE_COMPILER_PRED_TRANSFORM_H_

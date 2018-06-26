@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file build.cc
+ * \brief Build AST from a given model
+ */
 #include "./builder.h"
 
 namespace treelite {

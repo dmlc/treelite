@@ -59,6 +59,7 @@ def _varsall_bat_path():
 def _obj_ext():
   return '.obj'
 
+# pylint: disable=W0613
 def _obj_cmd(source, toolchain, options):
   return 'cl.exe /c /openmp /Ox {} {}'\
           .format(source + '.c', ' '.join(options))
@@ -71,6 +72,7 @@ def _lib_cmd(sources, target, lib_ext, toolchain, options):
                   ' '.join([x['name'] + obj_ext for x in sources]),
                   ' '.join(options))
 
+# pylint: disable=R0913
 def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   # Specify command to compile an object file
   recipe['object_ext'] = _obj_ext()

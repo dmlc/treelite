@@ -1,0 +1,10 @@
+[MASTER]
+indent-string='  '
+extension-pkg-whitelist=numpy
+ignore=treelite.gallery.sklearn
+
+[TYPECHECK]
+generated-members=np.float32,np.uintc,np.uintp,np.uint32
+
+[MESSAGES CONTROL]
+disable=C0103,R0912,R0913

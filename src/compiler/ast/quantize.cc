@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file quantize.cc
+ * \brief Quantize thresholds in condition nodes
+ */
 #include "./builder.h"
 #include <cmath>
 

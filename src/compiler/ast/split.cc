@@ -1,3 +1,8 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file split.cc
+ * \brief Split prediction subroutine into multiple translation units (files)
+ */
 #include "./builder.h"
 
 namespace treelite {
@@ -31,7 +36,7 @@ void ASTBuilder::Split(int parallel_comp) {
   const int ntree = static_cast<int>(tree_head.size());
   const int nunit = parallel_comp;
   const int unit_size = (ntree + nunit - 1) / nunit;
-  std::vector<ASTNode*> tu_list; // list of translation units
+  std::vector<ASTNode*> tu_list;  // list of translation units
   for (int unit_id = 0; unit_id < nunit; ++unit_id) {
     const int tree_begin = unit_id * unit_size;
     const int tree_end = std::min((unit_id + 1) * unit_size, ntree);

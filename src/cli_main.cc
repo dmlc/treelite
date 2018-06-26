@@ -153,15 +153,15 @@ DMLC_REGISTER_PARAMETER(CLIParam);
 Model ParseModel(const CLIParam& param) {
   CHECK(param.model_in != "NULL") << "model_in parameter must be provided";
   switch (param.format) {
-   case kXGBModel:
-    return frontend::LoadXGBoostModel(param.model_in.c_str());
-   case kLGBModel:
-    return frontend::LoadLightGBMModel(param.model_in.c_str());
-   case kProtobuf:
-    return frontend::LoadProtobufModel(param.model_in.c_str());
-   default:
-    LOG(FATAL) << "Unknown model format";
-    return {};  // avoid compiler warning
+    case kXGBModel:
+      return frontend::LoadXGBoostModel(param.model_in.c_str());
+    case kLGBModel:
+      return frontend::LoadLightGBMModel(param.model_in.c_str());
+    case kProtobuf:
+      return frontend::LoadProtobufModel(param.model_in.c_str());
+    default:
+      LOG(FATAL) << "Unknown model format";
+      return {};  // avoid compiler warning
   }
 }
 

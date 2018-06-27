@@ -122,12 +122,12 @@ class ASTNativeCompiler : public Compiler {
                                     "float* result)"
         : "float predict(union Entry* data, int pred_margin)";
     files_[dest] += std::string(indent, ' ') + "#include \"header.h\"\n\n";
-    files_[dest] += get_num_output_group_func(num_output_group_) + "\n"
-                    + get_num_feature_func(node->num_feature) + "\n"
+    files_[dest] += native::get_num_output_group_func(num_output_group_) + "\n"
+                    + native::get_num_feature_func(node->num_feature) + "\n"
                     + pred_tranform_func_ + "\n"
                     + std::string(indent, ' ') + prototype + " {\n";
-    files_["header.h"] += get_num_output_group_func_prototype();
-    files_["header.h"] += get_num_feature_func_prototype();
+    files_["header.h"] += native::get_num_output_group_func_prototype();
+    files_["header.h"] += native::get_num_feature_func_prototype();
     files_["header.h"] += prototype + ";\n";
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent + 2);

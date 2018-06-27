@@ -119,8 +119,8 @@ class ASTJavaCompiler : public Compiler {
                  "  static {\n    LogContext ctx = LogContext.enter();\n"
                  "    ctx.setLevel(Level.INFO);\n  }\n");
     CommitToFile(dest,
-                 get_num_output_group_func(num_output_group_) + "\n"
-                 + get_num_feature_func(node->num_feature) + "\n"
+                 java::get_num_output_group_func(num_output_group_) + "\n"
+                 + java::get_num_feature_func(node->num_feature) + "\n"
                  + pred_tranform_func_ + "\n"
                  + std::string(indent + 2, ' ') + prototype + " {\n");
     CHECK_EQ(node->children.size(), 1);

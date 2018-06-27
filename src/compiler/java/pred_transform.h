@@ -1,9 +1,19 @@
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file pred_transform.h
+ * \author Philip Cho
+ * \brief template for pred_transform() function in generated Java code
+ */
+#ifndef TREELITE_COMPILER_JAVA_PRED_TRANSFORM_H_
+#define TREELITE_COMPILER_JAVA_PRED_TRANSFORM_H_
+
 #include <treelite/common.h>
+#include <string>
 
 namespace treelite {
 namespace compiler {
-namespace pred_transform {
 namespace java {
+namespace pred_transform {
 
 inline std::string identity(const Model& model) {
   return
@@ -116,7 +126,8 @@ inline std::string multiclass_ova(const Model& model) {
   return oss.str();
 }
 
-}  // namespace java
 }  // namespace pred_transform
+}  // namespace java
 }  // namespace compiler
 }  // namespace treelite
+#endif  // TREELITE_COMPILER_JAVA_PRED_TRANSFORM_H_

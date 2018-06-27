@@ -1,6 +1,21 @@
-const char* pom_xml = 
-"<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-"xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n"
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file pom_xml.h
+ * \author Philip Cho
+ * \brief template for pom.xml in generated Java code
+ */
+#ifndef TREELITE_COMPILER_JAVA_POM_XML_H_
+#define TREELITE_COMPILER_JAVA_POM_XML_H_
+
+namespace treelite {
+namespace compiler {
+namespace java {
+
+const char* pom_xml =
+"<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
+"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+"xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 "
+"http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n"
 "<modelVersion>4.0.0</modelVersion>\n"
 "\n"
 "<build>\n"
@@ -37,3 +52,8 @@ const char* pom_xml =
 "</dependency> \n"
 "</dependencies>\n"
 "</project>\n";
+
+}  // namespace java
+}  // namespace compiler
+}  // namespace treelite
+#endif  // TREELITE_COMPILER_JAVA_POM_XML_H_

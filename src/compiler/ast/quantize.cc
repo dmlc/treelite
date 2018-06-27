@@ -3,8 +3,8 @@
  * \file quantize.cc
  * \brief Quantize thresholds in condition nodes
  */
-#include "./builder.h"
 #include <cmath>
+#include "./builder.h"
 
 namespace treelite {
 namespace compiler {

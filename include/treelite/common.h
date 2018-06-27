@@ -12,6 +12,7 @@
 #include <dmlc/json.h>
 #include <dmlc/data.h>
 #include <algorithm>
+#include <vector>
 #include <limits>
 #include <string>
 #include <memory>
@@ -281,8 +282,6 @@ inline int8_t TextToNumber(const std::string& str) {
 
 template <>
 inline uint32_t TextToNumber(const std::string& str) {
-  static_assert(sizeof(uint32_t) <= sizeof(unsigned long int),
-    "unsigned long int too small to hold uint32_t");
   errno = 0;
   char *endptr;
   auto val = std::strtoul(str.c_str(), &endptr, 10);

@@ -13,6 +13,9 @@
 #include "./ast/builder.h"
 #include "./java/get_num_feature.h"
 #include "./java/get_num_output_group.h"
+#include "./java/entry_type.h"
+#include "./java/pom_xml.h"
+#include "./java/quantize_func.h"
 
 namespace treelite {
 namespace compiler {
@@ -50,10 +53,8 @@ class ASTJavaCompiler : public Compiler {
     }
     builder.CountDescendant();
     builder.BreakUpLargeUnits(param.max_unit_size);
-    #include "java/entry_type.h"
-    #include "java/pom_xml.h"
-    files_[file_prefix_ + "Entry.java"] = entry_type;
-    files_["pom.xml"] = pom_xml;
+    files_[file_prefix_ + "Entry.java"] = java::entry_type(param.java_package);
+    files_["pom.xml"] = java::pom_xml;
     WalkAST(builder.GetRootNode(), "Main.java", 0);
 
     cm.files = std::move(files_);
@@ -349,8 +350,7 @@ class ASTJavaCompiler : public Compiler {
       common::WrapText(&oss, &length, std::to_string(e.size()) + ", ", 4, 80);
     }
     oss << "\n  };\n";
-    #include "./java/quantize_func.h"
-    oss << quantize_func;
+    oss << java::quantize_func;
     main_tail_ += oss.str();
     oss.str(""); oss.clear();
     oss << std::string(indent, ' ')

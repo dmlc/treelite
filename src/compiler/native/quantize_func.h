@@ -1,4 +1,18 @@
-const char* quantize_func = 
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file quantize_func.h
+ * \author Philip Cho
+ * \brief template for quantize() function in generated C code
+ */
+
+#ifndef TREELITE_COMPILER_NATIVE_QUANTIZE_FUNC_H_
+#define TREELITE_COMPILER_NATIVE_QUANTIZE_FUNC_H_
+
+namespace treelite {
+namespace compiler {
+namespace native {
+
+const char* quantize_func =
 "static inline int quantize(float val, unsigned fid) {\n"
 "  const float* array = &threshold[th_begin[fid]];\n"
 "  int len = th_len[fid];\n"
@@ -28,3 +42,9 @@ const char* quantize_func =
 "    return low * 2 + 1;\n"
 "  }\n"
 "}\n";
+
+}  // namespace native
+}  // namespace compiler
+}  // namespace treelite
+
+#endif  // TREELITE_COMPILER_NATIVE_QUANTIZE_FUNC_H_

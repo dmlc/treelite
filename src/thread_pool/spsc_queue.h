@@ -7,12 +7,12 @@
 #ifndef TREELITE_THREAD_POOL_SPSC_QUEUE_H_
 #define TREELITE_THREAD_POOL_SPSC_QUEUE_H_
 
+#include <dmlc/logging.h>
 #include <atomic>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <cstdint>
-#include <dmlc/logging.h>
 
 const constexpr int kL1CacheBytes = 64;
 

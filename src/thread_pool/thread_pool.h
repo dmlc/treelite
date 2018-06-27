@@ -7,14 +7,15 @@
 #ifndef TREELITE_THREAD_POOL_THREAD_POOL_H_
 #define TREELITE_THREAD_POOL_THREAD_POOL_H_
 
-#include "spsc_queue.h"
 #include <treelite/common.h>
+#include <vector>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
 #else
 #include <sched.h>
 #endif
+#include "spsc_queue.h"
 
 namespace treelite {
 

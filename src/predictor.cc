@@ -307,7 +307,7 @@ template <typename BatchType>
 inline size_t
 Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
                              bool pred_margin, float* out_result) {
-  static_assert(   std::is_same<BatchType, DenseBatch>::value
+  static_assert(std::is_same<BatchType, DenseBatch>::value
                 || std::is_same<BatchType, CSRBatch>::value,
                 "PredictBatchBase_: unrecognized batch type");
   const double tstart = dmlc::GetTime();

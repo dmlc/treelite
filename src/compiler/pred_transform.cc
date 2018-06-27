@@ -26,11 +26,12 @@ using PredTransformFuncGenerator
 std::string \
 FUNC_NAME(const std::string& backend, const Model& model) { \
   if (backend == "native") { \
-    return treelite::compiler::pred_transform::native::FUNC_NAME(model); \
+    return treelite::compiler::native::pred_transform::FUNC_NAME(model); \
   } else if (backend == "java") { \
-    return treelite::compiler::pred_transform::java::FUNC_NAME(model); \
+    return treelite::compiler::java::pred_transform::FUNC_NAME(model); \
   } else { \
     LOG(FATAL) << "Unrecognized backend: " << backend; \
+    return std::string(); \
   } \
 }
 

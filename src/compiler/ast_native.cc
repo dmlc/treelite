@@ -14,6 +14,8 @@
 #include "./ast/builder.h"
 #include "./native/get_num_feature.h"
 #include "./native/get_num_output_group.h"
+#include "./native/header.h"
+#include "./native/quantize_func.h"
 
 namespace treelite {
 namespace compiler {
@@ -54,8 +56,7 @@ class ASTNativeCompiler : public Compiler {
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
-    #include "./native/header.h"
-    files_["header.h"] = header;
+    files_["header.h"] = native::header;
     WalkAST(builder.GetRootNode(), "main.c", 0);
 
     {
@@ -81,6 +82,7 @@ class ASTNativeCompiler : public Compiler {
     cm.files = std::move(files_);
     return cm;
   }
+
  private:
   CompilerParam param;
   int num_output_group_;
@@ -242,6 +244,9 @@ class ASTNativeCompiler : public Compiler {
      case BranchHint::kUnlikely:
       cond = std::string(" UNLIKELY( ") + cond + " ) ";
       break;
+     case BranchHint::kNone:
+     default:
+      break;
     }
     files_[dest] += std::string(indent, ' ') + "if (" + cond + ") {\n";
     CHECK_EQ(node->children.size(), 2);
@@ -354,8 +359,7 @@ class ASTNativeCompiler : public Compiler {
       common::WrapText(&oss, &length, std::to_string(e.size()) + ", ", 2, 80);
     }
     oss << "\n};\n";
-    #include "./native/quantize_func.h"
-    oss << quantize_func << files_[dest] << std::string(indent, ' ')
+    oss << native::quantize_func << files_[dest] << std::string(indent, ' ')
         << "for (int i = 0; i < " << num_feature << "; ++i) {\n"
         << std::string(indent + 2, ' ')
         << "if (data[i].missing != -1 && !is_categorical[i]) {\n"

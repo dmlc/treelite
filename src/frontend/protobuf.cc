@@ -213,6 +213,6 @@ Model LoadProtobufModel(const char* filename) {
 }
 
 }  // namespace frontend
-}  // napespace treelite
+}  // namespace treelite
 
 #endif  // PROTOBUF_SUPPORT

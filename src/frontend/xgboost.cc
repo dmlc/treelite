@@ -37,7 +37,7 @@ void ExportXGBoostModel(const char* filename, const Model& model,
 }
 
 Model LoadXGBoostModel(const void* buf, size_t len) {
-  dmlc::MemoryFixedSizeStream fs((void*)buf, len);
+  dmlc::MemoryFixedSizeStream fs(const_cast<void*>(buf), len);
   return ParseStream(&fs);
 }
 
@@ -54,8 +54,8 @@ class PeekableInputStream {
  public:
   const size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
 
-  PeekableInputStream(dmlc::Stream* fi)
-   : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
+  explicit PeekableInputStream(dmlc::Stream* fi)
+    : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
 
   inline size_t Read(void* ptr, size_t size) {
     const size_t bytes_buffered = BytesBuffered();
@@ -101,8 +101,8 @@ class PeekableInputStream {
           << "Failed to peek " << size << " bytes";
         end_ptr_ += bytes_to_read;
       } else {
-        CHECK_EQ(  istm_->Read(&buf_[end_ptr_],
-                               MAX_PEEK_WINDOW + 1 - end_ptr_)
+        CHECK_EQ(istm_->Read(&buf_[end_ptr_],
+                             MAX_PEEK_WINDOW + 1 - end_ptr_)
                  + istm_->Read(&buf_[0],
                                bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1),
                  bytes_to_read)

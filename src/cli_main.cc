@@ -218,7 +218,6 @@ void CLIAnnotate(const CLIParam& param) {
 }
 
 void CLIPredict(const CLIParam& param) {
-
   CHECK_NE(param.codelib_path, "NULL")
     << "Need to specify codelib_path paramter for prediction task";
   CHECK_NE(param.test_data_path, "NULL")

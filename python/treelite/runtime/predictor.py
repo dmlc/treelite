@@ -306,7 +306,7 @@ class Predictor(object):
         ctypes.c_int(1 if pred_margin else 0),
         out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
         ctypes.byref(out_result_size)))
-    idx = out_result_size.value
+    idx = int(out_result_size.value)
     res = out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
     if self.num_output_group > 1:
       res = res.reshape((-1, self.num_output_group))

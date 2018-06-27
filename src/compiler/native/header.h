@@ -1,3 +1,17 @@
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file header.h
+ * \author Philip Cho
+ * \brief template for the header in generated C code
+ */
+
+#ifndef TREELITE_COMPILER_NATIVE_HEADER_H_
+#define TREELITE_COMPILER_NATIVE_HEADER_H_
+
+namespace treelite {
+namespace compiler {
+namespace native {
+
 const char* header =
 "#include <stdlib.h>\n"
 "#include <string.h>\n"
@@ -17,3 +31,9 @@ const char* header =
 "  float fvalue;\n"
 "  int qvalue;\n"
 "};\n\n";
+
+}  // namespace native
+}  // namespace compiler
+}  // namespace treelite
+
+#endif  // TREELITE_COMPILER_NATIVE_HEADER_H_

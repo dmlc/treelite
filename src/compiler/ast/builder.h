@@ -8,6 +8,7 @@
 
 #include <treelite/common.h>
 #include <treelite/tree.h>
+#include <vector>
 #include "./ast.h"
 
 namespace treelite {

@@ -77,7 +77,7 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
   size_t byte_read;
 
   std::string leftover = "";  // carry over between buffers
-  while ( (byte_read = fi->Read(&buf[0], sizeof(char) * bufsize)) > 0) {
+  while ((byte_read = fi->Read(&buf[0], sizeof(char) * bufsize)) > 0) {
     size_t i = 0;
     size_t tok_begin = 0;
     while (i < byte_read) {
@@ -90,7 +90,7 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
           lines.emplace_back(&buf[tok_begin], i - tok_begin);
         }
         // skip all delimiters afterwards
-        for (; (buf[i] == '\n' || buf[i] == '\r') && i < byte_read; ++i);
+        for (; (buf[i] == '\n' || buf[i] == '\r') && i < byte_read; ++i) {}
         tok_begin = i;
       } else {
         ++i;
@@ -183,7 +183,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       = treelite::common::TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
-    CHECK(it != dict.end()) 
+    CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need decision_type";
     if (it == dict.end()) {
       tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);

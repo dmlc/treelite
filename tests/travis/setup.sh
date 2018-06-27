@@ -18,6 +18,7 @@ if [ ${TASK} == "python_test" -o ${TASK} == "lint" ]; then
 
   if [ ${TASK} == "lint" ]; then
     source activate python3
+    conda install numpy scipy
     pip install 'cpplint==1.3.0' 'pylint==1.9.2' 'astroid==1.6.5'
   fi
 fi

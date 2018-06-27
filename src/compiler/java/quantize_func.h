@@ -1,4 +1,17 @@
-const char* quantize_func = 
+/*!
+ * Copyright (c) 2017 by Contributors
+ * \file quantize_func.h
+ * \author Philip Cho
+ * \brief template for quantize() function in generated Java code
+ */
+#ifndef TREELITE_COMPILER_JAVA_QUANTIZE_FUNC_H_
+#define TREELITE_COMPILER_JAVA_QUANTIZE_FUNC_H_
+
+namespace treelite {
+namespace compiler {
+namespace java {
+
+const char* quantize_func =
 "  private static int quantize(float val, int fid) {\n"
 "    final int offset = th_begin[fid];\n"
 "    final int len = th_len[fid];\n"
@@ -28,3 +41,8 @@ const char* quantize_func =
 "      return low * 2 + 1;\n"
 "    }\n"
 "  }\n";
+
+}  // namespace java
+}  // namespace compiler
+}  // namespace treelite
+#endif  // TREELITE_COMPILER_JAVA_QUANTIZE_FUNC_H_

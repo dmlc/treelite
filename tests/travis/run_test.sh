@@ -19,9 +19,8 @@ if [ ${TASK} == "python_test" ]; then
   python --version
   conda install numpy scipy pandas nose scikit-learn
 
-  python -m pip install pytest pytest-cov codecov
-  python -m nose tests/python || exit -1
-  py.test tests/python --cov=python/treelite
+  python -m pip install coverage codecov
+  python -m nose tests/python --with-coverage || exit -1
   codecov
   source activate python2
   echo "-------------------------------"

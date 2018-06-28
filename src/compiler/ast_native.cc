@@ -74,7 +74,7 @@ class ASTNativeCompiler : public Compiler {
       std::ostringstream oss;
       auto writer = common::make_unique<dmlc::JSONWriter>(&oss);
       writer->BeginObject();
-      writer->WriteObjectKeyValue("target", std::string("predictor"));
+      writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
       writer->EndObject();
       files_["recipe.json"] = oss.str();

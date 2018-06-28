@@ -169,6 +169,9 @@ class Model(object):
       # create a child directory to get desired name for target
       dirpath = os.path.join(temp_dir, target)
       os.makedirs(dirpath)
+      if params is None:
+        params = {}
+      params['native_lib_name'] = target
       self.compile(dirpath, params, compiler, verbose)
       generate_makefile(dirpath, platform, toolchain, options)
       shutil.make_archive(base_name=os.path.splitext(pkgpath)[0],

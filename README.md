@@ -13,4 +13,4 @@ Contributors
 **Treelite** is a model compiler for efficient deployment of decision tree
 ensembles.
 
-**The version 0.33 is now available.**
+**The version 0.32 is now available.**

@@ -7,6 +7,7 @@ import javolution.io.Union;
 public class Entry extends Union implements Data {
   public Signed32 missing = new Signed32();
   public Float32  fvalue  = new Float32();
+  public Signed32 qvalue  = new Signed32();
 
   public void setFValue(float val) {
     this.fvalue.set(val);
@@ -22,5 +23,11 @@ public class Entry extends Union implements Data {
   }
   public ByteOrder byteOrder() {  // use little endian when serializing
       return ByteOrder.LITTLE_ENDIAN;
+  }
+  public void setQValue(int val) {
+        this.qvalue.set(val);
+  }
+  public int getQValue() {
+         return this.qvalue.get();
   }
 }

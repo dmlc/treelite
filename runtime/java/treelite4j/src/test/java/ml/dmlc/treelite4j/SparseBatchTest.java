@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * test cases for sparse batch
+ * Test cases for sparse batch
  *
  * @author Philip Cho
  */

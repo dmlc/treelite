@@ -12,6 +12,16 @@ public class DenseBatch {
 
   private long handle;
 
+  /**
+   * Create a dense batch representing a 2D dense matrix
+   * @param data array of entries, should be of length ``[num_row]*[num_col]``
+   * @param missing_value floating-point value representing a missing value;
+   *                      usually set of ``Float.NaN``.
+   * @param num_row number of rows (data instances) in the matrix
+   * @param num_row number of columns (features) in the matrix
+   * @return Created dense batch
+   * @throws TreeliteError
+   */
   public DenseBatch(
     float[] data, float missing_value, int num_row, int num_col)
       throws TreeliteError {
@@ -26,6 +36,10 @@ public class DenseBatch {
     handle = out[0];
   }
 
+  /**
+   * Get the underlying native handle
+   * @return Integer representing memory address
+   */
   public long getHandle() {
     return this.handle;
   }
@@ -36,6 +50,9 @@ public class DenseBatch {
     dispose();
   }
 
+  /**
+   * Destructor, to be called when the object is garbage collected
+   */
   public synchronized void dispose() {
     if (handle != 0L) {
       TreeliteJNI.TreeliteDeleteDenseBatch(handle, this.data);

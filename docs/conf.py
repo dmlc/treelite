@@ -31,6 +31,8 @@ def setup(app):
 # Run Doxygen first
 call('doxygen; if [ -d tmp/dev ]; then rm -rf tmp; fi; mkdir tmp; mv html tmp/dev',
      shell=True)
+# Run javasphinx
+call('if [ -d javadoc ]; then rm -rf javadoc/; fi; javasphinx-apidoc -t \'Treelite Java API (EXPERIMENTAL)\' -c _build/javadoc_cache -o ./javadoc ../runtime/java/treelite4j/', shell=True)
 
 # -- General configuration ------------------------------------------------
 
@@ -49,6 +51,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'breathe',
+    'javasphinx',
     'sphinx.ext.graphviz',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',

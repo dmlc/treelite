@@ -12,7 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 
 /**
- * test cases for treelite predictor
+ * Test cases for Treelite Predictor
  *
  * @author Philip Cho
  */
@@ -134,7 +134,7 @@ public class PredictorTest {
     return ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));
   }
 
-  class MatrixEntry {  // (feature id, feature value) pair
+  private class MatrixEntry {  // (feature id, feature value) pair
     int fid;
     float fval;
     public MatrixEntry(int fid, float fval) {

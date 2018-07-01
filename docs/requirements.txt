@@ -1,5 +1,6 @@
 matplotlib>=2.1
 graphviz
 breathe
+javasphinx==0.9.15
 guzzle_sphinx_theme
 sh>=1.12.14

@@ -1,7 +1,7 @@
 package ml.dmlc.treelite4j;
 
 /**
- * custom error class for Treelite
+ * Custom error class for Treelite
  *
  * @author Philip Cho
  */

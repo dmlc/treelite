@@ -435,19 +435,9 @@ Predictor::PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
                      0, 1, out_result};
   OutputToken response;
   size_t total_size;
-  if (include_master_thread_ && clock_ == 0) {
-    total_size = PredictInst_(inst, pred_margin, num_output_group_,
-                              pred_func_handle_,
-                              QueryResultSizeSingleInst(), out_result);
-  } else {
-    const int tid = clock_ - (int)include_master_thread_;
-    pool->SubmitTask(tid, request);
-    if (pool->WaitForTask(tid, &response)) {
-      total_size = response.query_result_size;
-    }
-  }
-  // round-robin scheduling
-  clock_ = (clock_ + 1) % (num_worker_thread_ + (int)include_master_thread_);
+  total_size = PredictInst_(inst, pred_margin, num_output_group_,
+                            pred_func_handle_,
+                            QueryResultSizeSingleInst(), out_result);
   return total_size;
 }
 

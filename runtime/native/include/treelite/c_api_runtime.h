@@ -130,7 +130,7 @@ TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
 
 /*!
  * \brief Make predictions on a single data row (synchronously). The work
- *        will be scheduled to a single thread.
+ *        will be scheduled to the calling thread.
  * \param handle predictor
  * \param inst single data row
  * \param pred_margin whether to produce raw margin scores instead of

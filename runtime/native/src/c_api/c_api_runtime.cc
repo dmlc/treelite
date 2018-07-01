@@ -4,7 +4,7 @@
  * \author Philip Cho
  * \brief C API of treelite (runtime portion)
  */
- 
+
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
 #include "./c_api_error.h"

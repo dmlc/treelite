@@ -114,7 +114,7 @@ public class Predictor {
    * @param pred_margin whether to predict a probability or a raw margin score
    * @return Resulting predictions, of dimension ``[num_output_group]``
    */
-  public float[] predict(Entry[] inst, boolean pred_margin)
+  public float[] predict(Data[] inst, boolean pred_margin)
     throws TreeliteError, IOException {
 
     assert inst.length > 0;

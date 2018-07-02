@@ -8,13 +8,17 @@
 #include <treelite/predictor.h>
 #include <treelite/common.h>
 #include <dmlc/logging.h>
+#include <dmlc/io.h>
 #include <dmlc/timer.h>
 #include <cstdint>
 #include <algorithm>
+#include <memory>
+#include <fstream>
 #include <limits>
 #include <functional>
 #include <type_traits>
 #include "common/math.h"
+#include "common/filesystem.h"
 #include "thread_pool/thread_pool.h"
 
 #ifdef _WIN32
@@ -43,6 +47,15 @@ struct InputToken {
 struct OutputToken {
   size_t query_result_size;
 };
+
+inline std::string GetProtocol(const char* name) {
+  const char *p = std::strstr(name, "://");
+  if (p == NULL) {
+    return "";
+  } else {
+    return std::string(name, p - name + 3);
+  }
+}
 
 using PredThreadPool
   = treelite::ThreadPool<InputToken, OutputToken, treelite::Predictor>;
@@ -229,16 +242,39 @@ Predictor::Predictor(int num_worker_thread,
                          thread_pool_handle_(nullptr),
                          include_master_thread_(include_master_thread),
                          num_worker_thread_(num_worker_thread),
-                         clock_(0) {}
+                         tempdir_(nullptr) {}
 Predictor::~Predictor() {
   Free();
 }
 
 void
 Predictor::Load(const char* name) {
-  lib_handle_ = OpenLibrary(name);
-  CHECK(lib_handle_ != nullptr)
-    << "Failed to load dynamic shared library `" << name << "'";
+  const std::string protocol = GetProtocol(name);
+  if (protocol == "file://" || protocol.empty()) {
+    // local file
+    using_remote_lib_ = false;
+    lib_handle_ = OpenLibrary(name);
+  } else {
+    // remote file
+    using_remote_lib_ = true;
+    tempdir_.reset(new treelite::common::filesystem::TemporaryDirectory());
+    temp_libfile_ = tempdir_->path
+                    + "/" + treelite::common::filesystem::GetBasename(name);
+    {
+      std::unique_ptr<dmlc::Stream> strm(dmlc::Stream::Create(name, "r"));
+      dmlc::istream is(strm.get());
+      std::ofstream of(temp_libfile_);
+      of << is.rdbuf();
+    }
+    lib_handle_ = OpenLibrary(temp_libfile_.c_str());
+  }
+  if (lib_handle_ == nullptr) {
+    if (using_remote_lib_) {
+      CHECK_EQ(std::remove(temp_libfile_.c_str()), 0);
+      tempdir_.release();
+    }
+    LOG(FATAL) << "Failed to load dynamic shared library `" << name << "'";
+  }
 
   /* 1. query # of output groups */
   num_output_group_query_func_handle_
@@ -340,6 +376,12 @@ void
 Predictor::Free() {
   CloseLibrary(lib_handle_);
   delete static_cast<PredThreadPool*>(thread_pool_handle_);
+  if (using_remote_lib_) {
+    if (std::remove(temp_libfile_.c_str()) != 0) {
+      std::cerr << "Couldn't remove file " << temp_libfile_ << std::endl;
+      exit(-1);
+    }
+  }
 }
 
 template <typename BatchType>

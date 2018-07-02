@@ -26,6 +26,22 @@ std::unique_ptr<T> make_unique(Args&& ...args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+/*!
+ * \brief split text using a delimiter
+ * \param str text
+ * \param delim delimiter
+ * \return std::vector of strings, split by a delimiter
+ */
+inline std::vector<std::string> Split(const std::string& text, char delim) {
+  std::vector<std::string> array;
+  std::istringstream ss(text);
+  std::string token;
+  while (std::getline(ss, token, delim)) {
+    array.push_back(token);
+  }
+  return array;
+}
+
 }  // namespace common
 }  // namespace treelite
 #endif  // TREELITE_COMMON_H_

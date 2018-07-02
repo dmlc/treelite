@@ -13,6 +13,12 @@
 
 namespace treelite {
 
+namespace common {
+namespace filesystem {
+class TemporaryDirectory;  // forward declaration
+}
+}
+
 /*! \brief sparse batch in Compressed Sparse Row (CSR) format */
 struct CSRBatch {
   /*! \brief feature values */
@@ -182,8 +188,11 @@ class Predictor {
   size_t num_feature_;
   int num_worker_thread_;
   bool include_master_thread_;  // run task on master thread?
-  int clock_;
-    // internal variable, used to schedule PredictInst() in round-robin fashion
+
+  bool using_remote_lib_;  // load lib from remote location?
+  // information for temporary file to cache remote lib
+  std::unique_ptr<common::filesystem::TemporaryDirectory> tempdir_;
+  std::string temp_libfile_;
 
   template <typename BatchType>
   size_t PredictBatchBase_(const BatchType* batch, int verbose,

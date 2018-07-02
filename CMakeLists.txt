@@ -38,11 +38,14 @@ endif()
 set_default_configuration_release()
 msvc_use_static_runtime()
 
+# dmlc-core option
+include(dmlc-core/cmake/Utils.cmake)
+dmlccore_option(USE_S3 "Build with S3 support" ON)
+
 # OpenMP check
 if(OPENMP_FOUND)
   add_definitions(-DTREELITE_OPENMP_SUPPORT)
 else(OPENMP_FOUND)
-  include(dmlc-core/cmake/Utils.cmake)
   dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)
 endif(OPENMP_FOUND)
 

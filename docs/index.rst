@@ -1,9 +1,9 @@
-###############################################
-Treelite : toolbox for decision tree deployment
-###############################################
+#####################################################
+Treelite : model compiler for decision tree ensembles
+#####################################################
 
-**Treelite** is a flexible toolbox for efficient deployment of decision tree
-ensembles.
+**Treelite** is a model compiler for decision tree ensembles, aimed at
+efficient deployment.
 
 .. raw:: html
 
@@ -155,6 +155,7 @@ Contents
   treelite-api
   treelite-runtime-api
   treelite-c-api
+  javadoc/packages
   knobs/index
   Internal docs <http://treelite.readthedocs.io/en/latest/dev/>
 

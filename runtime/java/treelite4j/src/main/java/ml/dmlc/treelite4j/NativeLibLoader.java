@@ -19,6 +19,10 @@ public class NativeLibLoader {
   private static final String nativeResourcePath = "/lib/";
   private static final String[] libNames = new String[]{"treelite4j"};
 
+  /**
+   * Initialization method to load the native treelite4j lib at startup
+   * @throws IOException when treelite4j lib is not found
+   */
   static synchronized void initTreeliteRuntime() throws IOException {
     if (!initialized) {
       for (String libName : libNames) {
@@ -62,8 +66,8 @@ public class NativeLibLoader {
    * {@code path}.
    * @param path Path to the resources in the jar
    * @return The created temp file.
-   * @throws IOException
-   * @throws IllegalArgumentException
+   * @throws IOException When the temp file could not be created
+   * @throws IllegalArgumentException When the file name contains invalid letters
    */
   public static String createTempFileFromResource(String path) throws
           IOException, IllegalArgumentException {

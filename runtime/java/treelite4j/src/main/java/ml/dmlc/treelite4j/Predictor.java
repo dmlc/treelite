@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 
 /**
- * Treelite predictor
+ * Treelite Predictor
  * @author Philip Cho
  */
 public class Predictor {
@@ -17,6 +17,23 @@ public class Predictor {
   private int num_output_group;
   private int num_feature;
 
+  /**
+   * Create a Predictor by loading a shared library (dll/so/dylib).
+   * The library is expected to contain the compiled code for making prediction
+   * for a particular tree ensemble model. The predictor also spawns a
+   * fixed-size pool of worker threads, who will wait for prediction tasks.
+   * (Note that the worker threads will go to sleep when no prediction task
+   * is available, to free up CPU cycles for other processes.)
+   * @param libpath Path to the shared library
+   * @param nthread Number of workers threads to spawn
+   * @param verbose Whether to print extra diagnostic messages
+   * @param include_master_thread Whether the master thread (the thread calling
+   *                              the :java:ref:`predict()` method) should
+   *                              itself be assigned work. This option is
+   *                              applicable only to batch prediction.
+   * @return Created dense batch
+   * @throws TreeliteError
+   */
   public Predictor(
     String libpath, int nthread, boolean verbose, boolean include_master_thread)
       throws TreeliteError {
@@ -72,15 +89,32 @@ public class Predictor {
     }
   }
 
+  /**
+   * Get the number of output groups for the compiled model. This number is
+   * 1 for tasks other than multi-class classification. For multi-class
+   * classification task, the number is equal to the number of classes.
+   * @return Number of output groups
+   */
   public int GetNumOutputGroup() {
     return this.num_output_group;
   }
 
+  /**
+   * Get the number of features used by the compiled model. Call this method
+   * to allocate array for storing data entries of a single instance.
+   * @return Number of features
+   */
   public int GetNumFeature() {
     return this.num_feature;
   }
 
-  public float[] predict(Entry[] inst, boolean pred_margin)
+  /**
+   * Perform single-instance prediction
+   * @param inst array of data entires comprising the instance
+   * @param pred_margin whether to predict a probability or a raw margin score
+   * @return Resulting predictions, of dimension ``[num_output_group]``
+   */
+  public float[] predict(Data[] inst, boolean pred_margin)
     throws TreeliteError, IOException {
 
     assert inst.length > 0;
@@ -107,6 +141,14 @@ public class Predictor {
     return result;
   }
 
+  /**
+   * Perform batch prediction with a 2D sparse data matrix
+   * @param batch a :java:ref:`SparseBatch`, representing a slice of a 2D
+   *              sparse matrix
+   * @param verbose whether to print extra diagnostic messages
+   * @param pred_margin whether to predict probabilities or raw margin scores
+   * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
+   */
   public float[][] predict(
     SparseBatch batch, boolean verbose, boolean pred_margin)
       throws TreeliteError {
@@ -122,6 +164,14 @@ public class Predictor {
     return reshape(out_result, actual_result_size, this.num_output_group);
   }
 
+  /**
+   * Perform batch prediction with a 2D dense data matrix
+   * @param batch a :java:ref:`DenseBatch`, representing a slice of a 2D dense
+   *              matrix
+   * @param verbose whether to print extra diagnostic messages
+   * @param pred_margin whether to predict probabilities or raw margin scores
+   * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
+   */
   public float[][] predict(
     DenseBatch batch, boolean verbose, boolean pred_margin)
       throws TreeliteError {
@@ -156,6 +206,9 @@ public class Predictor {
     dispose();
   }
 
+  /**
+   * Destructor, to be called when the object is garbage collected
+   */
   public synchronized void dispose() {
     if (handle != 0L) {
       TreeliteJNI.TreelitePredictorFree(handle);

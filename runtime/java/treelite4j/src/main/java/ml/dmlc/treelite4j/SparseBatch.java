@@ -13,6 +13,18 @@ public class SparseBatch {
 
   private long handle;
 
+  /**
+   * Create a sparse batch representing a 2D sparse matrix
+   * @param data nonzero (non-missing) entries
+   * @param col_ind corresponding column indices, should be of same length as
+   *                ``data``
+   * @param row_ptr offsets to define each instance, should be of length
+   *                ``[num_row]+1``
+   * @param num_row number of rows (data instances) in the matrix
+   * @param num_row number of columns (features) in the matrix
+   * @return Created sparse batch
+   * @throws TreeliteError
+   */
   public SparseBatch(
     float[] data, int[] col_ind, long[] row_ptr, int num_row, int num_col)
       throws TreeliteError {
@@ -28,6 +40,10 @@ public class SparseBatch {
     handle = out[0];
   }
 
+  /**
+   * Get the underlying native handle
+   * @return Integer representing memory address
+   */
   public long getHandle() {
     return this.handle;
   }
@@ -38,6 +54,9 @@ public class SparseBatch {
     dispose();
   }
 
+  /**
+   * Destructor, to be called when the object is garbage collected
+   */
   public synchronized void dispose() {
     if (handle != 0L) {
       TreeliteJNI.TreeliteDeleteSparseBatch(

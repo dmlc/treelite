@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * test cases for dense batch
+ * Test cases for dense batch
  *
  * @author Philip Cho
  */

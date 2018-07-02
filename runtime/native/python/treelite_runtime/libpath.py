@@ -42,7 +42,9 @@ def find_lib_path(basename, libformat=True):
 
   curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
   # List possible locations for the library file
-  dll_path = [curr_path, os.path.join(curr_path, '../../lib/'),
+  dll_path = [curr_path,
+              os.path.join(curr_path, '../../lib/'),
+              os.path.join(curr_path, '../../'),
               os.path.join(curr_path, './lib/'),
               os.path.join(sys.prefix, 'treelite')]
   # Windows hack: additional candidate locations

@@ -11,7 +11,7 @@ class BinaryDistribution(Distribution):
     """Has an extension module"""
     return True
 
-LIBPATH_PY = os.path.abspath('./treelite/common/libpath.py')
+LIBPATH_PY = os.path.abspath('./treelite/libpath.py')
 LIBPATH = {'__file__': LIBPATH_PY}
 # pylint: disable=W0122
 exec(compile(open(LIBPATH_PY, "rb").read(), LIBPATH_PY, 'exec'),
@@ -41,6 +41,13 @@ if os.path.exists(RT_DEST):
   os.remove(RT_DEST)
 shutil.copy(LIB_PATH[0], LIB_DEST)
 shutil.copy(RT_PATH[0], RT_DEST)
+
+# copy treelite.runtime
+PY_RT_SRC = '../runtime/native/python/treelite_runtime'
+PY_RT_DEST = './treelite/runtime/treelite_runtime'
+if os.path.exists(PY_RT_DEST):
+  shutil.rmtree(PY_RT_DEST)
+shutil.copytree(PY_RT_SRC, PY_RT_DEST)
 
 with open('../VERSION', 'r') as f:
   VERSION = f.readlines()[0].rstrip('\n')

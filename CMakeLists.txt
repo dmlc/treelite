@@ -11,6 +11,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 # User can set this to OFF to build static libraries instead.
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
+option(ENABLE_S3 "Build with S3 support" OFF)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -40,7 +41,9 @@ msvc_use_static_runtime()
 
 # dmlc-core option
 include(dmlc-core/cmake/Utils.cmake)
-dmlccore_option(USE_S3 "Build with S3 support" ON)
+if (ENABLE_S3)
+  dmlccore_option(USE_S3 "Build with S3 support" ON)
+endif()
 
 # OpenMP check
 if(OPENMP_FOUND)

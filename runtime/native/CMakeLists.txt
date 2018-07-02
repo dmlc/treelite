@@ -16,6 +16,8 @@ endif()
 set_default_configuration_release()
 msvc_use_static_runtime()
 
+option(ENABLE_S3 "Build with S3 support" OFF)
+
 # Compiler flags
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,7 +59,9 @@ if (NOT TARGET dmlc)
   set(BUILD_SHARED_LIBS OFF)  # dmlc lib must always be static
   # dmlc-core options
   include(${GRANDPARENT_DIR}/dmlc-core/cmake/Utils.cmake)
-  dmlccore_option(USE_S3 "Build with S3 support" ON)
+  if (ENABLE_S3)
+    dmlccore_option(USE_S3 "Build with S3 support" ON)
+  endif()
   # OpenMP check
   if(NOT OPENMP_FOUND)
     dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)

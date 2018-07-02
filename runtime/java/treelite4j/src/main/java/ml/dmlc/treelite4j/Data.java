@@ -1,5 +1,8 @@
 package ml.dmlc.treelite4j;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 /**
  * Interface to specify a single data entry.
  * @author Philip Cho
@@ -35,4 +38,11 @@ public interface Data {
    * @return integer value
    */
   public int getQValue();
+
+  /**
+   * Serialize
+   * @param out
+   * @throws IOException
+   */
+  public void write(OutputStream out) throws IOException;
 }

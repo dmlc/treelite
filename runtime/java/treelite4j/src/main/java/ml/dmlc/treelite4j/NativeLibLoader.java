@@ -7,7 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * class to load native library
+ * Class to load native library
  *
  * @author Philip Cho
  */

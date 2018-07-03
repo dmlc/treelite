@@ -25,7 +25,10 @@ public class Predictor {
    * (Note that the worker threads will go to sleep when no prediction task
    * is available, to free up CPU cycles for other processes.)
    * @param libpath Path to the shared library
-   * @param nthread Number of workers threads to spawn
+   * @param nthread Number of workers threads to spawn. Set to -1 to use default,
+   *                i.e., to launch as many threads as CPU cores available on
+   *                the system. You are not allowed to launch more threads than
+   *                CPU cores.
    * @param verbose Whether to print extra diagnostic messages
    * @param include_master_thread Whether the master thread (the thread calling
    *                              the :java:ref:`predict()` method) should

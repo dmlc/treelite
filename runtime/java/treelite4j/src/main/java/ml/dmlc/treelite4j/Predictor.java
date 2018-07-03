@@ -34,7 +34,7 @@ public class Predictor {
    *                              the :java:ref:`predict()` method) should
    *                              itself be assigned work. This option is
    *                              applicable only to batch prediction.
-   * @return Created dense batch
+   * @return Created Predictor
    * @throws TreeliteError
    */
   public Predictor(

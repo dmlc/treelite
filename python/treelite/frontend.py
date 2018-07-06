@@ -86,7 +86,7 @@ class Model(object):
     .. code-block:: python
 
        model.compile(dirpath='/temporary/directory', params={}, verbose=True)
-       create_shared(toolchain='msvc', dirpath='/temporary/directory',
+       treelite.create_shared(toolchain='msvc', dirpath='/temporary/directory',
                      verbose=True)
        # move the library out of the temporary directory
        shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')

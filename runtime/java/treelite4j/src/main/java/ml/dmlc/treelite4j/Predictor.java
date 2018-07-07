@@ -25,13 +25,16 @@ public class Predictor {
    * (Note that the worker threads will go to sleep when no prediction task
    * is available, to free up CPU cycles for other processes.)
    * @param libpath Path to the shared library
-   * @param nthread Number of workers threads to spawn
+   * @param nthread Number of workers threads to spawn. Set to -1 to use default,
+   *                i.e., to launch as many threads as CPU cores available on
+   *                the system. You are not allowed to launch more threads than
+   *                CPU cores.
    * @param verbose Whether to print extra diagnostic messages
    * @param include_master_thread Whether the master thread (the thread calling
    *                              the :java:ref:`predict()` method) should
    *                              itself be assigned work. This option is
    *                              applicable only to batch prediction.
-   * @return Created dense batch
+   * @return Created Predictor
    * @throws TreeliteError
    */
   public Predictor(
@@ -109,7 +112,7 @@ public class Predictor {
   }
 
   /**
-   * Perform single-instance prediction
+   * Perform single-instance prediction. Prediction is run by the calling thread.
    * @param inst array of data entires comprising the instance
    * @param pred_margin whether to predict a probability or a raw margin score
    * @return Resulting predictions, of dimension ``[num_output_group]``
@@ -142,14 +145,16 @@ public class Predictor {
   }
 
   /**
-   * Perform batch prediction with a 2D sparse data matrix
+   * Perform batch prediction with a 2D sparse data matrix. Worker threads
+   * will internally divide up work for batch prediction. Note that this
+   * function may be called by only one thread at a time.
    * @param batch a :java:ref:`SparseBatch`, representing a slice of a 2D
    *              sparse matrix
    * @param verbose whether to print extra diagnostic messages
    * @param pred_margin whether to predict probabilities or raw margin scores
    * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
    */
-  public float[][] predict(
+  public synchronized float[][] predict(
     SparseBatch batch, boolean verbose, boolean pred_margin)
       throws TreeliteError {
     long[] out = new long[1];
@@ -165,14 +170,16 @@ public class Predictor {
   }
 
   /**
-   * Perform batch prediction with a 2D dense data matrix
+   * Perform batch prediction with a 2D dense data matrix. Worker threads
+   * will internally divide up work for batch prediction. Note that this
+   * function may be called by only one thread at a time.
    * @param batch a :java:ref:`DenseBatch`, representing a slice of a 2D dense
    *              matrix
    * @param verbose whether to print extra diagnostic messages
    * @param pred_margin whether to predict probabilities or raw margin scores
    * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
    */
-  public float[][] predict(
+  public synchronized float[][] predict(
     DenseBatch batch, boolean verbose, boolean pred_margin)
       throws TreeliteError {
     long[] out = new long[1];

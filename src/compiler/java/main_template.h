@@ -8,7 +8,7 @@ import javolution.context.LogContext.Level;
 import ml.dmlc.treelite4j.InferenceEngine;
 import ml.dmlc.treelite4j.Data;
 
-public class Main implements InferenceEngine {{
+public class Main {{
   static {{
     LogContext ctx = LogContext.enter();
     ctx.setLevel(Level.INFO);
@@ -24,17 +24,18 @@ public class Main implements InferenceEngine {{
 {pred_transform_function}
   {predict_function_signature} {{
   Entry[] data = new Entry[entry.length];
-  for (int i=0; i < entry.length; i++)
+  for (int i = 0; i < entry.length; i++) {{
     data[i] = (Entry) entry[i];
+  }}
 )TREELITETEMPLATE";
 
 const char* main_end_multiclass_template =
 R"TREELITETEMPLATE(
     for (int i = 0; i < {num_output_group}; ++i) {{
-      result[i] = sum[i]{optional_average_field} + (float)({global_bias});
+      sum[i] = sum[i]{optional_average_field} + (float)({global_bias});
     }}
     if (!pred_margin) {{
-      return pred_transform(result);
+      return pred_transform(sum);
     }} else {{
       return {num_output_group};
     }}

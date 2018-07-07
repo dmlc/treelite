@@ -7,7 +7,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * class to load native library
+ * Class to load the native lib ``libtreelite4j.dylib``. Normally, users
+ * do not have to worry about this class, since ``mvn package`` automatically
+ * bundles ``libtreelite4j.dylib`` into the JAR file. However, the method
+ * :java:ref:`createTempFileFromResource` may be useful to some users, who
+ * would like to bundle other files into the JAR file as well.
  *
  * @author Philip Cho
  */
@@ -33,14 +37,12 @@ public class NativeLibLoader {
   }
 
   /**
-   * Loads library from current JAR archive
-   * <p/>
-   * The file from JAR is copied into system temporary directory and then loaded.
-   * The temporary file is deleted after exiting.
-   * Method uses String as filename because the pathname is "abstract", not system-dependent.
-   * <p/>
-   * The restrictions of {@link File#createTempFile(java.lang.String, java.lang.String)} apply to
-   * {@code path}.
+   * Loads library from current JAR archive. The file from JAR is copied into
+   * system temporary directory and then loaded. The temporary file is deleted
+   * after exiting. Method uses String as filename because the pathname is
+   * "abstract", not system-dependent.
+   * The restrictions of :java:ref:`java.lang.File.createTempFile` apply to
+   * ``path``.
    *
    * @param path The filename inside JAR as absolute path (beginning with '/'),
    *             e.g. /package/File.ext

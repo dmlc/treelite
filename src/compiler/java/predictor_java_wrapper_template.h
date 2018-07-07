@@ -20,11 +20,11 @@ import ml.dmlc.treelite4j.InferenceEngine;
 import ml.dmlc.treelite4j.Data;
 public class PredictorJavaWrapper implements InferenceEngine {{
   Main main = new Main();
-  public int GetNumOutputGroup() {{
+  public int getNumOutputGroup() {{
     return main.get_num_output_group();
   }}
 
-  public int GetNumFeature() {{
+  public int getNumFeature() {{
     return main.get_num_feature();
   }}
 
@@ -43,7 +43,7 @@ R"TREELITETEMPLATE(
 
 const char* pred_logic_multiclass =
 R"TREELITETEMPLATE(
-    int num_output_group = GetNumOutputGroup();
+    int num_output_group = getNumOutputGroup();
     int ret = main.predict_multiclass(inst, pred_margin, scores);
     if (ret != num_output_group) {
       float[] new_scores = new float[ret];

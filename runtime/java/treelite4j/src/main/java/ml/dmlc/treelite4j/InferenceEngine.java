@@ -11,14 +11,14 @@ public interface InferenceEngine {
    * classification task, the number is equal to the number of classes.
    * @return Number of output groups
    */
-  public int GetNumOutputGroup();
+  public int getNumOutputGroup();
 
   /**
    * Get the number of features used by the compiled model. Call this method
    * to allocate array for storing data entries of a single instance.
    * @return Number of features
    */
-  public int GetNumFeature();
+  public int getNumFeature();
 
   /**
    * Perform single-instance prediction

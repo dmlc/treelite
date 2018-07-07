@@ -14,6 +14,10 @@ namespace java {
 
 const char* predictor_java_wrapper_template =
 R"TREELITETEMPLATE(
+package {java_package};
+
+import ml.dmlc.treelite4j.InferenceEngine;
+import ml.dmlc.treelite4j.Data;
 public class PredictorJavaWrapper implements InferenceEngine {{
   Main main = new Main();
   public int GetNumOutputGroup() {{

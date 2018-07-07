@@ -86,6 +86,7 @@ class ASTJavaCompiler : public Compiler {
           "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
     files_[file_prefix_ + "PredictorJavaWrapper.java"]
       = fmt::format(predictor_java_wrapper_template,
+          "java_package"_a = param.java_package,
           "pred_logic"_a = (num_output_group_ > 1 ? pred_logic_multiclass : pred_logic));
     files_["src/main/java/ml/dmlc/treelite4j/Data.java"] = data_interface;
     files_["src/main/java/ml/dmlc/treelite4j/InferenceEngine.java"] = inference_engine_interface;

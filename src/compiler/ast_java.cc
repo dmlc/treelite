@@ -14,6 +14,7 @@
 #include "./ast/builder.h"
 #include "./java/entry_type.h"
 #include "./java/data_interface.h"
+#include "./java/predictor_java_wrapper_template.h"
 #include "./java/inference_engine_interface.h"
 #include "./java/node_type.h"
 #include "./java/pom_xml.h"
@@ -92,6 +93,9 @@ class ASTJavaCompiler : public Compiler {
       = fmt::format(java::node_type_template,
           "java_package"_a = param.java_package,
           "threshold_type"_a = (param.quantize > 0 ? "int" : "float"));
+    files_[file_prefix_ + "PredictorJavaWrapper.java"]
+      = fmt::format(java::predictor_java_wrapper_template,
+          "pred_logic"_a = (num_output_group_ > 1 ? java::pred_logic_multiclass : java::pred_logic));
     files_["src/main/java/ml/dmlc/treelite4j/Data.java"] = java::data_interface;
     files_["src/main/java/ml/dmlc/treelite4j/InferenceEngine.java"] = java::inference_engine_interface;
     files_["pom.xml"]
@@ -191,9 +195,9 @@ class ASTJavaCompiler : public Compiler {
                       size_t indent) {
     const char* predict_function_signature
       = (num_output_group_ > 1) ?
-          "public static long predict_multiclass(Entry[] data, "
-                                                "boolean pred_margin, "
-                                                "float[] result)"
+          "public int predict_multiclass(Data[] entry, "
+                                        "boolean pred_margin, "
+                                        "float[] result)"
         : "public float predict(Data[] entry, boolean pred_margin)";
     AppendToBuffer(dest,
       fmt::format(java::main_start_template,
@@ -231,9 +235,13 @@ class ASTJavaCompiler : public Compiler {
                     size_t indent) {
     if (num_output_group_ > 1) {
       AppendToBuffer(dest,
-        fmt::format("float[] sum = new float[{num_output_group}];\n"
-                    "int tmp;\n"
-                    "int nid, fid; boolean cond;  /* used for folded subtrees */\n",
+        fmt::format(
+            "float[] sum = result;\n"
+            "for (int i = 0; i < {num_output_group}; ++i) {{\n"
+            "  sum[i] = 0.0f;\n"
+            "}}\n"
+            "int tmp;\n"
+            "int nid, fid; boolean cond;  /* used for folded subtrees */\n",
           "num_output_group"_a = num_output_group_), indent);
     } else {
       AppendToBuffer(dest,

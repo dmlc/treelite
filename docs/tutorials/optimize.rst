@@ -41,16 +41,16 @@ To utilize the branch annotation record, supply the compiler parameter
 
   # Export a source directory
   model.compile(dirpath='./mymodel', verbose=True,
-                params={'quantize': 1})
+                params={'annotate_in': 'mymodel-annotation.json'})
 
   # Export a source directory, packaged in a zip archive
   model.export_srcpkg(platform='unix', toolchain='gcc', pkgpath='./mymodel.zip',
                       libname='mymodel.so', verbose=True,
-                      params={'quantize': 1})
+                      params={'annotate_in': 'mymodel-annotation.json'})
 
   # Export a shared library
   model.export_lib(toolchain='gcc', libpath='./mymodel.so', verbose=True,
-                   params={'quantize': 1})    
+                   params={'annotate_in': 'mymodel-annotation.json'})
 
 Technical details
 ~~~~~~~~~~~~~~~~~

@@ -9,7 +9,8 @@ if [ ${TASK} == "python_test" ]; then
   echo "-------------------------------"
   source activate python3
   python --version
-  conda install numpy scipy pandas nose scikit-learn xgboost
+  conda install numpy scipy pandas nose scikit-learn
+  pip install xgboost
 
   python -m pip install coverage codecov
   python -m nose tests/python --with-coverage || exit -1
@@ -17,7 +18,8 @@ if [ ${TASK} == "python_test" ]; then
   source activate python2
   echo "-------------------------------"
   python --version
-  conda install numpy scipy pandas nose scikit-learn xgboost
+  conda install numpy scipy pandas nose scikit-learn
+  pip install xgboost
   python -m nose tests/python || exit -1
   exit 0
 fi

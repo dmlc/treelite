@@ -98,7 +98,7 @@ class TestBasic(unittest.TestCase):
       zip_ref.extractall('.')
     subprocess.call(['make', '-C', 'mushroom'])
 
-    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+    predictor = treelite.runtime.Predictor(libpath='./mushroom', verbose=True)
 
     dmat = treelite.DMatrix(dmat_path)
     batch = treelite.runtime.Batch.from_csr(dmat)

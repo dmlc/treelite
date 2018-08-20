@@ -5,12 +5,12 @@ endif
 ifndef NPROC
 	NPROC=1
 endif
-lint: 
-	python3 dmlc-core/scripts/lint.py treelite ${LINT_LANG} include src python \
-	--exclude_path python/treelite/gallery/sklearn
+lint:
+	python3 dmlc-core/scripts/lint.py treelite $(LINT_LANG) include src python \
+	--exclude_path python/treelite/gallery/sklearn --pylint-rc $(PWD)/python/.pylintrc
 
 doxygen:
 	cd docs; doxygen
 
 all:
-	rm -rf build; mkdir build; cd build; cmake .. && make -j${NPROC}
+	rm -rf build; mkdir build; cd build; cmake .. && make -j$(NPROC)

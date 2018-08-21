@@ -4,7 +4,7 @@ from __future__ import print_function
 import unittest
 import os
 import numpy as np
-import xgboost
+import nose
 import treelite
 import treelite.runtime
 from sklearn.datasets import load_boston
@@ -13,6 +13,11 @@ from util import os_compatible_toolchains, libname
 
 class TestXGBoostIntegration(unittest.TestCase):
   def test_xgb(self):
+    try:
+      import xgboost
+    except ImportError:
+      raise nose.SkipTest()  # skip this test if XGBoost is not installed
+
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test \
       = train_test_split(X, y, test_size=0.2, shuffle=False)

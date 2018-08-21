@@ -20,7 +20,7 @@ class TestBasic(unittest.TestCase):
     """
     def run_test(model_path, dtrain_path, dtest_path, libname_fmt,
                  expected_prob_path, expected_margin_path,
-                 multiclass=False, use_annotation=False):
+                 multiclass, use_annotation, use_quantize):
       model_path = os.path.join(dpath, model_path)
       dtrain_path = os.path.join(dpath, dtrain_path)
       dtest_path = os.path.join(dpath, dtest_path)
@@ -44,6 +44,8 @@ class TestBasic(unittest.TestCase):
         annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
         annotator.save(path='./annotation.json')
         params['annotate_in'] = './annotation.json'
+      if use_quantize:
+        params['quantize'] = 1
 
       for toolchain in os_compatible_toolchains():
         model.export_lib(toolchain=toolchain, libpath=libpath,
@@ -54,39 +56,29 @@ class TestBasic(unittest.TestCase):
         out_margin = predictor.predict(batch, pred_margin=True)
         assert np.allclose(out_margin, expected_margin, atol=1e-11, rtol=1e-8)
 
-    run_test(model_path='mushroom/mushroom.model',
-             dtrain_path='mushroom/agaricus.txt.train',
-             dtest_path='mushroom/agaricus.txt.test',
-             libname_fmt='./agaricus{}',
-             expected_prob_path='mushroom/agaricus.txt.test.prob',
-             expected_margin_path='mushroom/agaricus.txt.test.margin')
-    run_test(model_path='mushroom/mushroom.model',
-             dtrain_path='mushroom/agaricus.txt.train',
-             dtest_path='mushroom/agaricus.txt.test',
-             libname_fmt='./agaricus{}',
-             expected_prob_path='mushroom/agaricus.txt.test.prob',
-             expected_margin_path='mushroom/agaricus.txt.test.margin',
-             use_annotation=True)
-    run_test(model_path='dermatology/dermatology.model',
-             dtrain_path='mushroom/agaricus.txt.train',
-             dtest_path='dermatology/dermatology.test',
-             libname_fmt='./dermatology{}',
-             expected_prob_path='dermatology/dermatology.test.prob',
-             expected_margin_path='dermatology/dermatology.test.margin',
-             multiclass=True)
-    run_test(model_path='dermatology/dermatology.model',
-             dtrain_path='mushroom/agaricus.txt.train',
-             dtest_path='dermatology/dermatology.test',
-             libname_fmt='./dermatology{}',
-             expected_prob_path='dermatology/dermatology.test.prob',
-             expected_margin_path='dermatology/dermatology.test.margin',
-             multiclass=True,
-             use_annotation=True)
+    for model_path, dtrain_path, dtest_path, libname_fmt, \
+        expected_prob_path, expected_margin_path, multiclass in \
+        [('mushroom/mushroom.model', 'mushroom/agaricus.train',
+          'mushroom/agaricus.test', './agaricus{}',
+          'mushroom/agaricus.test.prob',
+          'mushroom/agaricus.test.margin', False),
+         ('dermatology/dermatology.model', 'dermatology/dermatology.train',
+          'dermatology/dermatology.test', './dermatology{}',
+          'dermatology/dermatology.test.prob',
+          'dermatology/dermatology.test.margin', True)]:
+      for use_annotation in [True, False]:
+        for use_quantize in [True, False]:
+          run_test(model_path=model_path, dtrain_path=dtrain_path,
+                   dtest_path=dtest_path, libname_fmt=libname_fmt,
+                   expected_prob_path=expected_prob_path,
+                   expected_margin_path=expected_margin_path,
+                   multiclass=multiclass, use_annotation=use_annotation,
+                   use_quantize=use_quantize)
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""
     model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    dmat_path = os.path.join(dpath, 'mushroom/agaricus.txt.test')
+    dmat_path = os.path.join(dpath, 'mushroom/agaricus.test')
     libpath = libname('./mushroom/mushroom{}')
     model = treelite.Model.load(model_path, model_format='xgboost')
 
@@ -103,7 +95,7 @@ class TestBasic(unittest.TestCase):
     dmat = treelite.DMatrix(dmat_path)
     batch = treelite.runtime.Batch.from_csr(dmat)
 
-    expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.txt.test.prob')
+    expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
     expected_prob = load_txt(expected_prob_path)
     out_prob = predictor.predict(batch)
     assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-8)

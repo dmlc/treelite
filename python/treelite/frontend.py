@@ -741,6 +741,8 @@ class ModelBuilder(object):
     elif isinstance(params, STRING_TYPES) and value is not None:
       params = [(params, value)]
     for key, val in params:
+      if not isinstance(val, STRING_TYPES):
+        val = str(val)
       _check_call(_LIB.TreeliteModelBuilderSetModelParam(self.handle,
                                                          c_str(key),
                                                          c_str(val)))

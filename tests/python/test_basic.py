@@ -8,7 +8,8 @@ from zipfile import ZipFile
 import numpy as np
 import treelite
 import treelite.runtime
-from util import load_txt, os_compatible_toolchains, os_platform, libname
+from util import load_txt, os_compatible_toolchains, os_platform, libname, \
+                 run_pipeline_test, make_annotation
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -18,44 +19,6 @@ class TestBasic(unittest.TestCase):
     Test a basic workflow: load a model, compile and export as shared lib,
     and make predictions
     """
-    def run_test(model_path, dtrain_path, dtest_path, libname_fmt,
-                 expected_prob_path, expected_margin_path,
-                 multiclass, use_annotation, use_quantize):
-      model_path = os.path.join(dpath, model_path)
-      dtrain_path = os.path.join(dpath, dtrain_path)
-      dtest_path = os.path.join(dpath, dtest_path)
-      libpath = libname(libname_fmt)
-      model = treelite.Model.load(model_path, model_format='xgboost')
-      dtest = treelite.DMatrix(dtest_path)
-      batch = treelite.runtime.Batch.from_csr(dtest)
-
-      expected_prob_path = os.path.join(dpath, expected_prob_path)
-      expected_margin_path = os.path.join(dpath, expected_margin_path)
-      expected_prob = load_txt(expected_prob_path)
-      expected_margin = load_txt(expected_margin_path)
-      if multiclass:
-        nrow = dtest.shape[0]
-        expected_prob = expected_prob.reshape((nrow, -1))
-        expected_margin = expected_margin.reshape((nrow, -1))
-      params = {}
-      if use_annotation:
-        dtrain = treelite.DMatrix(dtrain_path)
-        annotator = treelite.Annotator()
-        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-        annotator.save(path='./annotation.json')
-        params['annotate_in'] = './annotation.json'
-      if use_quantize:
-        params['quantize'] = 1
-
-      for toolchain in os_compatible_toolchains():
-        model.export_lib(toolchain=toolchain, libpath=libpath,
-                         params=params, verbose=True)
-        predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
-        out_prob = predictor.predict(batch)
-        assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-8)
-        out_margin = predictor.predict(batch, pred_margin=True)
-        assert np.allclose(out_margin, expected_margin, atol=1e-11, rtol=1e-8)
-
     for model_path, dtrain_path, dtest_path, libname_fmt, \
         expected_prob_path, expected_margin_path, multiclass in \
         [('mushroom/mushroom.model', 'mushroom/agaricus.train',
@@ -66,14 +29,18 @@ class TestBasic(unittest.TestCase):
           'dermatology/dermatology.test', './dermatology{}',
           'dermatology/dermatology.test.prob',
           'dermatology/dermatology.test.margin', True)]:
-      for use_annotation in [True, False]:
+      model_path = os.path.join(dpath, model_path)
+      model = treelite.Model.load(model_path, model_format='xgboost')
+      make_annotation(model=model, dtrain_path=dtrain_path,
+                      annotation_path='./annotation.json')
+      for use_annotation in ['./annotation.json', None]:
         for use_quantize in [True, False]:
-          run_test(model_path=model_path, dtrain_path=dtrain_path,
-                   dtest_path=dtest_path, libname_fmt=libname_fmt,
-                   expected_prob_path=expected_prob_path,
-                   expected_margin_path=expected_margin_path,
-                   multiclass=multiclass, use_annotation=use_annotation,
-                   use_quantize=use_quantize)
+          run_pipeline_test(model=model, dtest_path=dtest_path,
+                            libname_fmt=libname_fmt,
+                            expected_prob_path=expected_prob_path,
+                            expected_margin_path=expected_margin_path,
+                            multiclass=multiclass, use_annotation=use_annotation,
+                            use_quantize=use_quantize)
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

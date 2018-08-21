@@ -38,5 +38,4 @@ class TestXGBoostIntegration(unittest.TestCase):
                        params={}, verbose=True)
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
-      assert np.allclose(out_pred, expected_pred, atol=1e-11, rtol=1e-6), \
-        np.max(np.abs(out_pred - expected_pred))
+      assert np.allclose(out_pred, expected_pred, atol=1e-11, rtol=1e-6)

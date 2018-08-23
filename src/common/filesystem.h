@@ -217,10 +217,11 @@ class TemporaryDirectory {
   }
   ~TemporaryDirectory() {
 #if _WIN32
-    if (!RemoveDirectoryA(path.c_str())) {
+    const bool path_deleted = (RemoveDirectoryA(path.c_str()) != 0);
 #else
-    if (rmdir(path.c_str()) == -1) {
+    const bool path_deleted = (rmdir(path.c_str()) == 0);
 #endif
+    if (path_deleted) {
       std::cerr << "~TemporaryDirectory(): "
                 << "Could not remove temporary directory " << path << std::endl;
       exit(-1);

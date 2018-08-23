@@ -4,6 +4,7 @@
 import ctypes
 import sys
 import os
+import re
 import numpy as np
 from .common.util import c_str, _get_log_callback_func, TreeliteError, \
                           lineno, log_info, _load_ver
@@ -231,7 +232,7 @@ class Predictor(object):
 
   def __init__(self, libpath, nthread=None, verbose=False,
                include_master_thread=True):
-    if os.path.isdir(libpath):  # libpath is a diectory
+    if os.path.isdir(libpath):  # libpath is a directory
       # directory is given; locate shared library inside it
       basename = os.path.basename(libpath.rstrip('/\\'))
       lib_found = False
@@ -254,7 +255,8 @@ class Predictor(object):
                             'the share library must have one of the '+\
                             'following extensions: .so / .dll / .dylib')
     self.handle = ctypes.c_void_p()
-    path = os.path.abspath(path)
+    if not re.match(r'^[a-zA-Z]+://', path):
+      path = os.path.abspath(path)
     _check_call(_LIB.TreelitePredictorLoad(
         c_str(path),
         ctypes.c_int(nthread if nthread is not None else -1),

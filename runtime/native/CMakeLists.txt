@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.1)
 project(treelite_runtime)
 include(cmake/Utils.cmake)
+find_package(OpenMP)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -14,6 +15,8 @@ endif()
 
 set_default_configuration_release()
 msvc_use_static_runtime()
+
+option(ENABLE_S3 "Build with S3 support" OFF)
 
 # Compiler flags
 set(CMAKE_CXX_STANDARD 11)
@@ -46,6 +49,31 @@ if (UNIX)
 endif (UNIX)
 
 add_library(objtreelite_runtime OBJECT ${SOURCES})
+
+get_filename_component(PARENT_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
+get_filename_component(GRANDPARENT_DIR ${PARENT_DIR} DIRECTORY)
+
+# dmlc-core
+if (NOT TARGET dmlc)
+  set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")  # Save BUILD_SHARED_LIBS
+  set(BUILD_SHARED_LIBS OFF)  # dmlc lib must always be static
+  # dmlc-core options
+  include(${GRANDPARENT_DIR}/dmlc-core/cmake/Utils.cmake)
+  if (ENABLE_S3)
+    dmlccore_option(USE_S3 "Build with S3 support" ON)
+  endif()
+  # OpenMP check
+  if(NOT OPENMP_FOUND)
+    dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)
+  endif()
+  add_subdirectory(${GRANDPARENT_DIR}/dmlc-core ${GRANDPARENT_DIR}/dmlc-core/build)
+  include_directories(${GRANDPARENT_DIR}/dmlc-core/include)
+  set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")  # Restore BUILD_SHARED_LIBS
+  if (TARGET dmlc_unit_tests)
+    set_target_properties(dmlc_unit_tests PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
+  endif()
+endif()
+list(APPEND RUNTIME_LINK_LIBRARIES dmlc)
 
 # Shared library
 add_library(treelite_runtime SHARED $<TARGET_OBJECTS:objtreelite_runtime>)

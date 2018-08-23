@@ -7,21 +7,13 @@
 # 5. Don't have any blank line; use an empty comment instead
 #
 # C/C++ runtime
-../../dmlc-core/include/dmlc/base.h           -> include/dmlc/
-../../dmlc-core/include/dmlc/endian.h         -> include/dmlc/
-../../dmlc-core/include/dmlc/io.h             -> include/dmlc/
-../../dmlc-core/include/dmlc/logging.h        -> include/dmlc/
-../../dmlc-core/include/dmlc/memory_io.h      -> include/dmlc/
-../../dmlc-core/include/dmlc/serializer.h     -> include/dmlc/
-../../dmlc-core/include/dmlc/thread_local.h   -> include/dmlc/
-../../dmlc-core/include/dmlc/timer.h          -> include/dmlc/
-../../dmlc-core/include/dmlc/type_traits.h    -> include/dmlc/
 ../../include/treelite/c_api_common.h         -> include/treelite/
 ../../include/treelite/logging.h              -> include/treelite/
 ../../src/c_api/c_api_common.cc               -> src/c_api/
 ../../src/c_api/c_api_error.cc                -> src/c_api/
 ../../src/c_api/c_api_error.h                 -> src/c_api/
 ../../src/common/math.h                       -> src/common/
+../../src/common/filesystem.h                 -> src/common/
 ../../src/logging.cc                          -> src/
 #
 # Python runtime

@@ -8,15 +8,17 @@
 #define TREELITE_COMMON_FILESYSTEM_H_
 
 #include <dmlc/logging.h>
+#include <treelite/common.h>
 #include <vector>
 #include <string>
 #include <regex>
+#include <cstdlib>
 
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
-#include <cstdlib>
 #else
+#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -152,6 +154,82 @@ inline void CreateDirectoryIfNotExistRecursive(const std::string& dirpath) {
     }
   }
 }
+
+class TemporaryDirectory {
+ public:
+  TemporaryDirectory() {
+#if _WIN32
+    /* locate the root directory of temporary area */
+    char tmproot[MAX_PATH] = {0};
+    const DWORD dw_retval = GetTempPathA(MAX_PATH, tmproot);
+    if (dw_retval > MAX_PATH || dw_retval == 0) {
+      std::cerr << "TemporaryDirectory(): "
+                << "Could not create temporary directory" << std::endl;
+      exit(-1);
+    }
+    /* generate a unique 8-letter alphanumeric string */
+    const std::string letters = "abcdefghijklmnopqrstuvwxyz0123456789_";
+    std::string uniqstr(8, '\0');
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, letters.length() - 1);
+    std::generate(uniqstr.begin(), uniqstr.end(),
+      [&dis, &gen, &letters]() -> char {
+        return letters[dis(gen)];
+      });
+    /* combine paths to get the name of the temporary directory */
+    char tmpdir[MAX_PATH] = {0};
+    PathCombineA(tmpdir, tmproot, uniqstr.c_str());
+    if (!CreateDirectoryA(tmpdir, NULL)) {
+      std::cerr << "TemporaryDirectory(): "
+                << "Could not create temporary directory" << std::endl;
+      exit(-1);
+    }
+    path = std::string(tmpdir);
+#else
+    std::string tmproot; /* root directory of temporary area */
+    std::string dirtemplate; /* template for temporary directory name */
+    /* Get TMPDIR env variable or fall back to /tmp/ */
+    {
+      const char* tmpenv = getenv("TMPDIR");
+      if (tmpenv) {
+        tmproot = std::string(tmpenv);
+        // strip trailing forward slashes
+        while (tmproot.length() != 0 && tmproot[tmproot.length() - 1] == '/') {
+          tmproot.resize(tmproot.length() - 1);
+        }
+      } else {
+        tmproot = "/tmp";
+      }
+    }
+    dirtemplate = tmproot + "/tmpdir.XXXXXX";
+    std::vector<char> dirtemplate_buf(dirtemplate.begin(), dirtemplate.end());
+    dirtemplate_buf.push_back('\0');
+    char* tmpdir = mkdtemp(&dirtemplate_buf[0]);
+    if (!tmpdir) {
+      std::cerr << "TemporaryDirectory(): "
+                << "Could not create temporary directory" << std::endl;
+      exit(-1);
+    }
+    path = std::string(tmpdir);
+#endif
+    std::cerr << "Created temporary directory " << path << std::endl;
+  }
+  ~TemporaryDirectory() {
+#if _WIN32
+    const bool path_deleted = (RemoveDirectoryA(path.c_str()) != 0);
+#else
+    const bool path_deleted = (rmdir(path.c_str()) == 0);
+#endif
+    if (path_deleted) {
+      std::cerr << "~TemporaryDirectory(): "
+                << "Could not remove temporary directory " << path << std::endl;
+      exit(-1);
+    }
+    std::cerr << "Successfully deleted temporary directory " << path << std::endl;
+  }
+  std::string path;
+};
 
 }  // namespace filesystem
 }  // namespace common

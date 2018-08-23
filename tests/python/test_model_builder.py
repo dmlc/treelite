@@ -4,9 +4,12 @@ from __future__ import print_function
 import unittest
 import os
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import load_iris
 import treelite
 import treelite.runtime
-from util import run_pipeline_test, make_annotation
+from util import run_pipeline_test, make_annotation, \
+                 libname, os_compatible_toolchains
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -1369,3 +1372,54 @@ class TestModelBuilder(unittest.TestCase):
                           expected_margin_path='dermatology/dermatology.test.margin',
                           multiclass=True, use_annotation=use_annotation,
                           use_quantize=use_quantize)
+
+  def test_model_builder3(self):
+    """Test programmatic model construction using scikit-learn random forest"""
+    X, y = load_iris(return_X_y=True)
+    clf = RandomForestClassifier(max_depth=3, random_state=0)
+    clf.fit(X, y)
+    expected_prob = clf.predict_proba(X)
+
+    def process_node(treelite_tree, sklearn_tree, nodeid):
+      if sklearn_tree.children_left[nodeid] == -1:  # leaf node
+        leaf_count = sklearn_tree.value[nodeid].squeeze()
+        prob_distribution = leaf_count / leaf_count.sum()
+        treelite_tree[nodeid].set_leaf_node(prob_distribution)
+      else:  # test node
+        treelite_tree[nodeid].set_numerical_test_node(
+          feature_id=sklearn_tree.feature[nodeid],
+          opname='<=',
+          threshold=sklearn_tree.threshold[nodeid],
+          default_left=True,
+          left_child_key=sklearn_tree.children_left[nodeid],
+          right_child_key=sklearn_tree.children_right[nodeid])
+
+    def process_tree(sklearn_tree):
+      treelite_tree = treelite.ModelBuilder.Tree()
+      treelite_tree[0].set_root()
+      for nodeid in range(sklearn_tree.node_count):
+        process_node(treelite_tree, sklearn_tree, nodeid)
+      return treelite_tree
+
+    builder = treelite.ModelBuilder(num_feature=clf.n_features_,
+                                    num_output_group=clf.n_classes_,
+                                    random_forest=True,
+                                    pred_transform='identity_multiclass')
+    for i in range(clf.n_estimators):
+      builder.append(process_tree(clf.estimators_[i].tree_))
+
+    model = builder.commit()
+
+    dtrain = treelite.DMatrix(X)
+    annotator = treelite.Annotator()
+    annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
+    annotator.save(path='./annotation.json')
+
+    libpath = libname('./iris{}')
+    for toolchain in os_compatible_toolchains():
+      model.export_lib(toolchain=toolchain, libpath=libpath,
+                       params={'annotate_in': './annotation.json'}, verbose=True)
+      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      batch = treelite.runtime.Batch.from_npy2d(X)
+      out_prob = predictor.predict(batch)
+      assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-6)

@@ -1,8 +1,21 @@
+# coding: utf-8
 """Setup script"""
 from __future__ import print_function
 import os
 import shutil
+import tempfile
 from setuptools import setup, Distribution, find_packages
+
+class TemporaryDirectory(object):
+  """Context manager for tempfile.mkdtemp()"""
+  # pylint: disable=R0903
+
+  def __enter__(self):
+    self.name = tempfile.mkdtemp()    # pylint: disable=W0201
+    return self.name
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    shutil.rmtree(self.name)
 
 class BinaryDistribution(Distribution):
   """Overrides Distribution class to bundle platform-specific binaries"""
@@ -54,6 +67,20 @@ with open('../VERSION', 'r') as f:
   with open('./treelite/VERSION', 'w') as f2:
     print('{}'.format(VERSION), file=f2)
 
+# Create a zipped package containing glue code for deployment
+with TemporaryDirectory() as tempdir:
+  shutil.copytree('../runtime/native/', os.path.abspath(os.path.join(tempdir, 'runtime')))
+  libpath = os.path.abspath(os.path.join(tempdir, 'runtime', 'lib'))
+  filelist = os.path.abspath(os.path.join(tempdir, 'runtime', 'FILELIST'))
+  if os.path.exists(libpath):  # remove compiled lib
+    shutil.rmtree(libpath)
+  if os.path.exists(filelist):
+    os.remove(filelist)
+  shutil.make_archive(base_name='./treelite/treelite_runtime',
+                      format='zip',
+                      root_dir=os.path.abspath(tempdir),
+                      base_dir='runtime/')
+
 setup(
     name='treelite',
     version=VERSION,
@@ -65,7 +92,7 @@ setup(
     packages=find_packages(),
     install_requires=['numpy', 'scipy'],
     package_data={
-        'treelite': [LIB_BASENAME, RT_BASENAME, 'VERSION']
+        'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip', 'VERSION']
     },
     distclass=BinaryDistribution
 )

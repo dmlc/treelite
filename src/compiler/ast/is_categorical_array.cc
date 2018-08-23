@@ -1,3 +1,9 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file is_categorical_array.cc
+ * \brief AST manipulation logic to determine whether each feature is categorical or not
+ * \author Philip Cho
+ */
 #include "./builder.h"
 
 namespace treelite {

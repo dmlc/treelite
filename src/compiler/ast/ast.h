@@ -7,10 +7,10 @@
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
 
+#include <dmlc/optional.h>
+#include <treelite/base.h>
 #include <string>
 #include <vector>
-#include <treelite/base.h>
-#include <dmlc/optional.h>
 
 // forward declaration
 namespace treelite_ast_protobuf {
@@ -72,9 +72,9 @@ class TranslationUnitNode : public ASTNode {
 
 class QuantizerNode : public ASTNode {
  public:
-  QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
+  explicit QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
     : cut_pts(cut_pts) {}
-  QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
+  explicit QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
     : cut_pts(std::move(cut_pts)) {}
   std::vector<std::vector<tl_float>> cut_pts;
   void Serialize(treelite_ast_protobuf::ASTNode* out) override;

@@ -9,6 +9,7 @@
 
 #include <dmlc/parameter.h>
 #include <string>
+#include <limits>
 
 namespace treelite {
 namespace compiler {

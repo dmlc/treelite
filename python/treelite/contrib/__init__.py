@@ -9,6 +9,7 @@ import json
 import time
 import shutil
 from ..common.util import TreeliteError, lineno, log_info
+from ..libpath import find_lib_path
 from .util import _libext, _toolchain_exist_check
 
 def _check_ext(toolchain, dllpath):
@@ -97,6 +98,20 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
       f.write('\t{}\n'.format(_obj_cmd(source=source['name'],
                                        toolchain=toolchain,
                                        options=options)))
+
+def save_runtime_package(destdir):
+  """
+  Save a copy of the (zipped) runtime package, containing all glue code
+  necessary to deploy compiled models into the wild
+
+  Parameters
+  ----------
+  destdir : :py:class:`str <python:str>`
+      directory to save the zipped package
+  """
+  pkg_path = find_lib_path(basename='treelite_runtime.zip',
+                           libformat=False)
+  shutil.copy(pkg_path[0], os.path.join(destdir, 'treelite_runtime.zip'))
 
 def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
   """Create shared library.

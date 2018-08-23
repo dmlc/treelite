@@ -5,8 +5,8 @@
  * \brief template for Java predictor interface
  */
 
-#ifndef TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_H_
-#define TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_H_
+#ifndef TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_INTERFACE_H_
+#define TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_INTERFACE_H_
 
 namespace treelite {
 namespace compiler {
@@ -45,4 +45,4 @@ public interface InferenceEngine {
 }  // namespace java
 }  // namespace compiler
 }  // namespace treelite
-#endif  // TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_H_
+#endif  // TREELITE_COMPILER_JAVA_INFERENCE_ENGINE_INTERFACE_H_

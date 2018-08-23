@@ -30,7 +30,9 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-copy_files(FILELIST RUNTIME_FILES)
+if(EXISTS ${PROJECT_SOURCE_DIR}/FILELIST)
+  copy_files(FILELIST RUNTIME_FILES)
+endif()
 
 file(GLOB_RECURSE SOURCES
     src/*.cc

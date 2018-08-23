@@ -1,12 +1,19 @@
+/*!
+ * Copyright (c) 2018 by Contributors
+ * \file code_folding_util.h
+ * \author Philip Cho
+ * \brief Utilities for code folding
+ */
 #ifndef TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 #define TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 
 #include <dmlc/logging.h>
 #include <treelite/common.h>
+#include <fmt/format.h>
 #include <queue>
 #include <set>
 #include <string>
-#include <fmt/format.h>
+#include <vector>
 #include "../ast/ast.h"
 #include "./categorical_bitmap.h"
 
@@ -105,7 +112,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
            = quantize ? std::to_string(t2->threshold.int_val)
                       : common::ToStringHighPrecision(t2->threshold.float_val);
         } else {
-          CHECK( (t3 = dynamic_cast<CategoricalConditionNode*>(e)) );
+          CHECK((t3 = dynamic_cast<CategoricalConditionNode*>(e)));
           default_left = t3->default_left;
           split_index = t3->split_index;
           threshold = "-1";  // dummy value

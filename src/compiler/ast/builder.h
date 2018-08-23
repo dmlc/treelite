@@ -8,6 +8,8 @@
 
 #include <treelite/common.h>
 #include <treelite/tree.h>
+#include <map>
+#include <string>
 #include <vector>
 #include <ostream>
 #include "./ast.h"

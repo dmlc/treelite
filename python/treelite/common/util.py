@@ -9,7 +9,6 @@ import time
 import shutil
 import os
 import sys
-from .libpath import TreeliteLibraryNotFound
 from .compat import py_str, PY3
 
 class TreeliteVersionNotFound(Exception):

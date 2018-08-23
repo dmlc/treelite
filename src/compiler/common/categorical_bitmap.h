@@ -1,3 +1,9 @@
+/*!
+ * Copyright (c) 2018 by Contributors
+ * \file categorical_bitmap.h
+ * \author Philip Cho
+ * \brief Function to generate bitmaps for categorical splits
+ */
 #ifndef TREELITE_COMPILER_COMMON_CATEGORICAL_BITMAP_H_
 #define TREELITE_COMPILER_COMMON_CATEGORICAL_BITMAP_H_
 

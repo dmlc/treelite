@@ -1,3 +1,9 @@
+/*!
+ * Copyright 2017 by Contributors
+ * \file ast.h
+ * \brief Definition for AST classes
+ * \author Philip Cho
+ */
 #include "ast.h"
 
 #ifdef TREELITE_PROTOBUF_SUPPORT

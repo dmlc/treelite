@@ -1,5 +1,11 @@
-#include "./builder.h"
+/*!
+ * Copyright (c) 2018 by Contributors
+ * \file serialize.cc
+ * \author Philip Cho
+ * \brief Serialization for AST nodes (requires Protobuf)
+ */
 #include <cmath>
+#include "./builder.h"
 
 #ifdef TREELITE_PROTOBUF_SUPPORT
 

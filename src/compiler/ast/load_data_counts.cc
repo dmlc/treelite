@@ -1,5 +1,11 @@
-#include "./builder.h"
+/*!
+ * Copyright 2017 by Contributors
+ * \file load_data_counts.cc
+ * \brief AST manipulation logic to load data counts
+ * \author Philip Cho
+ */
 #include <cmath>
+#include "./builder.h"
 
 namespace treelite {
 namespace compiler {

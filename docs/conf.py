@@ -20,13 +20,44 @@ documentation root, use os.path.abspath to make it absolute, like shown here.
 from subprocess import call
 import os
 import sys
+import shutil
 import guzzle_sphinx_theme
 from sh.contrib import git
+from contextlib import contextmanager
 sys.path.insert(0, os.path.abspath('../python'))
 
 def setup(app):
   """Apply custom stylesheet"""
   app.add_stylesheet('custom.css')
+
+@contextmanager
+def cd(path):
+  """Context manager to switch working directory"""
+  def normpath(path):
+    """Normalize UNIX path to a native path."""
+    normalized = os.path.join(*path.split('/'))
+    if os.path.isabs(path):
+      return os.path.abspath('/') + normalized
+    return normalized
+  path = normpath(path)
+  cwd = os.getcwd()
+  os.chdir(path)
+  try:
+    yield path
+  finally:
+    os.chdir(cwd)
+
+# Copy files to runtime directory
+with cd('../runtime/native'):
+  with open('FILELIST', 'r') as f:
+    for l in f:
+      if not l.startswith('#'):
+        args = [x.strip(' ') for x in l.rstrip('\n\r').split('->')]
+        try:
+          os.mkdir(args[1])
+        except FileExistsError:
+          pass
+        shutil.copy(args[0], args[1])
 
 # Run Doxygen first
 call('doxygen; if [ -d tmp/dev ]; then rm -rf tmp; fi; mkdir tmp; mv html tmp/dev',

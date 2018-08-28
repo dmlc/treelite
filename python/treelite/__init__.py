@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-treelite: a framework to optimize decision tree ensembles for fast prediction
+Treelite: a model compiler for decision tree ensembles
 """
 
 from __future__ import absolute_import as _abs

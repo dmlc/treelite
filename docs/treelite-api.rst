@@ -2,7 +2,7 @@
 Treelite API
 ============
 
-API of treelite Python package.
+API of Treelite Python package.
 
 .. automodule:: treelite
    :members:

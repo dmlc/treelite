@@ -42,8 +42,21 @@ class TestSingleInst(unittest.TestCase):
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       for i in range(X_test.shape[0]):
         x = X_test[i,:]
+        # Scipy CSR matrix
         out_prob = predictor.predict_instance(x)
         out_margin = predictor.predict_instance(x, pred_margin=True)
+        assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
+        assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
+        # NumPy 1D array with 0 as missing value
+        x = x.toarray().flatten()
+        out_prob = predictor.predict_instance(x, missing=0.0)
+        out_margin = predictor.predict_instance(x, missing=0.0, pred_margin=True)
+        assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
+        assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
+        # NumPy 1D array with np.nan as missing value
+        np.place(x, x == 0.0, [np.nan])
+        out_prob = predictor.predict_instance(x, missing=np.nan)
+        out_margin = predictor.predict_instance(x, missing=np.nan, pred_margin=True)
         assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
         assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
 

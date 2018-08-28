@@ -310,6 +310,7 @@ class Predictor(object):
     entry = (PredictorEntry * self.num_feature)()
     for i in range(self.num_feature):
       entry[i].missing = -1
+
     if isinstance(inst, scipy.sparse.csr_matrix):
       if inst.shape[0] != 1:
         raise ValueError('inst cannot have more than one row')
@@ -326,8 +327,17 @@ class Predictor(object):
       if inst.shape[0] > self.num_feature:
         raise ValueError('Too many features. This model was trained with only '+\
                          '{} features'.format(self.num_feature))
-      for i in range(inst.shape[0]):
-        entry[i].fvalue = inst[i]
+      if missing is None:
+        for i in range(inst.shape[0]):
+          entry[i].fvalue = inst[i]
+      elif np.isnan(missing):
+        for i in range(inst.shape[0]):
+          if not np.isnan(inst[i]):
+            entry[i].fvalue = inst[i]
+      else:
+        for i in range(inst.shape[0]):
+          if inst[i] != missing:
+            entry[i].fvalue = inst[i]
     elif isinstance(inst, dict):
       for k, v in inst.items():
         entry[k].fvalue = v

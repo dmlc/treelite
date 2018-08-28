@@ -6,6 +6,7 @@ import sys
 import os
 import re
 import numpy as np
+import scipy.sparse
 from .common.util import c_str, _get_log_callback_func, TreeliteError, \
                           lineno, log_info, _load_ver
 from .libpath import TreeliteLibraryNotFound, find_lib_path
@@ -45,6 +46,9 @@ def _check_call(ret):
   """
   if ret != 0:
     raise TreeliteError(_LIB.TreeliteGetLastError())
+
+class PredictorEntry(ctypes.Union):
+  _fields_ = [('missing', ctypes.c_int), ('fvalue', ctypes.c_float)]
 
 class Batch(object):
   """Batch of rows to be used for prediction"""
@@ -262,6 +266,12 @@ class Predictor(object):
         ctypes.c_int(nthread if nthread is not None else -1),
         ctypes.c_int(1 if include_master_thread else 0),
         ctypes.byref(self.handle)))
+    # save # of features
+    num_feature = ctypes.c_size_t()
+    _check_call(_LIB.TreelitePredictorQueryNumFeature(
+        self.handle,
+        ctypes.byref(num_feature)))
+    self.num_feature = num_feature.value
     # save # of output groups
     num_output_group = ctypes.c_size_t()
     _check_call(_LIB.TreelitePredictorQueryNumOutputGroup(
@@ -273,6 +283,74 @@ class Predictor(object):
       log_info(__file__, lineno(),
                'Dynamic shared library {} has been '.format(path)+\
                'successfully loaded into memory')
+
+  def predict_instance(self, inst, missing=None, pred_margin=False):
+    """
+    Make predictions on a single data row (synchronously). The work will be
+    scheduled to the calling thread.
+
+    Parameters
+    ----------
+    inst: :py:class:`numpy.ndarray` / :py:class:`scipy.sparse.csr_matrix` /\
+          :py:class:`dict <python:dict>`
+        Data instance for which a prediction will be made. If ``inst`` is of
+        type :py:class:`scipy.sparse.csr_matrix`, its first dimension must be 1
+        (``shape[0]==1``). If ``inst`` is of type :py:class:`numpy.ndarray`,
+        it must be one-dimensional. If ``inst`` is of type
+        :py:class:`dict <python:dict>`, it must be a dictionary where the keys
+        indicate feature indices (0-based) and the values corresponding
+        feature values.
+    missing : :py:class:`float <python:float>`, optional
+        Value in the data instance that represents a missing value. If set to
+        ``None``, ``numpy.nan`` will be used. Only applicable if ``inst`` is
+        of type :py:class:`numpy.ndarray`.
+    pred_margin: :py:class:`bool <python:bool>`, optional
+        Whether to produce raw margins rather than transformed probabilities
+    """
+    entry = (PredictorEntry * self.num_feature)()
+    for i in range(self.num_feature):
+      entry[i].missing = -1
+    if isinstance(inst, scipy.sparse.csr_matrix):
+      if inst.shape[0] != 1:
+        raise ValueError('inst cannot have more than one row')
+      if inst.shape[1] > self.num_feature:
+        raise ValueError('Too many features. This model was trained with only '+\
+                         '{} features'.format(self.num_feature))
+      for i in range(inst.nnz):
+        entry[inst.indices[i]].fvalue = inst.data[i]
+    elif isinstance(inst, scipy.sparse.csc_matrix):
+      raise TypeError('inst must be csr_matrix')
+    elif isinstance(inst, np.ndarray):
+      if len(inst.shape) > 1:
+        raise ValueError('inst must be 1D')
+      if inst.shape[0] > self.num_feature:
+        raise ValueError('Too many features. This model was trained with only '+\
+                         '{} features'.format(self.num_feature))
+      for i in range(inst.shape[0]):
+        entry[i].fvalue = inst[i]
+    elif isinstance(inst, dict):
+      for k, v in inst.items():
+        entry[k].fvalue = v
+    else:
+      raise TypeError('inst must be NumPy array, SciPy CSR matrix, or a dictionary')
+
+    result_size = ctypes.c_size_t()
+    _check_call(_LIB.TreelitePredictorQueryResultSizeSingleInst(
+        self.handle,
+        ctypes.byref(result_size)))
+    out_result = np.zeros(result_size.value, dtype=np.float32, order='C')
+    out_result_size = ctypes.c_size_t()
+    _check_call(_LIB.TreelitePredictorPredictInst(
+        self.handle,
+        ctypes.byref(entry),
+        ctypes.c_int(1 if pred_margin else 0),
+        out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        ctypes.byref(out_result_size)))
+    idx = int(out_result_size.value)
+    res = out_result[0:idx].reshape((1, -1)).squeeze()
+    if self.num_output_group > 1:
+      res = res.reshape((-1, self.num_output_group))
+    return res
 
   def predict(self, batch, verbose=False, pred_margin=False):
     """

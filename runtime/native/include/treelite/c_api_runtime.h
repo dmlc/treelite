@@ -136,9 +136,9 @@ TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
  * \param pred_margin whether to produce raw margin scores instead of
  *                    transformed probabilities
  * \param out_result resulting output vector; use
- *        TreeliteQueryResultSizeSingleInst() to allocate sufficient space
+ *        TreelitePredictorQueryResultSizeSingleInst() to allocate sufficient space
  * \param out_result_size used to save length of the output vector, which is
- *        guaranteed to be at most TreeliteQueryResultSizeSingleInst()
+ *        guaranteed to be at most TreelitePredictorQueryResultSizeSingleInst()
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorPredictInst(PredictorHandle handle,

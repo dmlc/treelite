@@ -30,7 +30,6 @@ class ThreadPool {
     CHECK(num_worker_ > 0 && num_worker_ <= std::thread::hardware_concurrency())
     << "Number of worker threads must be between 1 and "
     << std::thread::hardware_concurrency();
-    LOG(INFO) << "new thread pool with " << num_worker_ << " worker threads";
     for (int i = 0; i < num_worker_; ++i) {
       incoming_queue_.emplace_back(common::make_unique<SpscQueue<InputToken>>());
       outgoing_queue_.emplace_back(common::make_unique<SpscQueue<OutputToken>>());
@@ -45,7 +44,6 @@ class ThreadPool {
     SetAffinity();
   }
   ~ThreadPool() {
-    LOG(INFO) << "delete thread pool";
     for (int i = 0; i < num_worker_; ++i) {
       incoming_queue_[i]->SignalForKill();
       outgoing_queue_[i]->SignalForKill();

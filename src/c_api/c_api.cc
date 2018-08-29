@@ -304,7 +304,9 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
   }
 
   for (const auto& it : compiled_model.files) {
-    LOG(INFO) << "Writing file " << it.first << "...";
+    if (verbose > 0) {
+      LOG(INFO) << "Writing file " << it.first << "...";
+    }
     const std::string filename_full = dirpath_ + "/" + it.first;
     common::WriteToFile(filename_full, it.second);
   }

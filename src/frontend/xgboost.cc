@@ -370,7 +370,6 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   // read parameter
   CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
       << "Ill-formed XGBoost model file: corrupted header";
-  LOG(INFO) << "Global bias of the model: " << mparam_.base_score;
   {
     // backward compatibility code for compatible with old model type
     // for new model, Read(&name_obj_) is suffice
@@ -408,8 +407,6 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
-  LOG(INFO) << "gbm_param_.num_feature = " << gbm_param_.num_feature;
-  LOG(INFO) << "gbm_param_.num_output_group = " << gbm_param_.num_output_group;
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());

@@ -286,8 +286,7 @@ class Predictor(object):
 
   def predict_instance(self, inst, missing=None, pred_margin=False):
     """
-    Make predictions on a single data row (synchronously). The work will be
-    scheduled to the calling thread.
+    Perform single-instance prediction. Prediction is run by the calling thread.
 
     Parameters
     ----------
@@ -364,8 +363,11 @@ class Predictor(object):
 
   def predict(self, batch, verbose=False, pred_margin=False):
     """
-    Make prediction using a batch of data rows (synchronously). This will
-    internally split workload among worker threads.
+    Perform batch prediction with a 2D sparse data matrix. Worker threads will
+    internally divide up work for batch prediction. **Note that this function
+    may be called by only one thread at a time.** In order to use multiple
+    threads to process multiple prediction requests simultaneously, use
+    :py:meth:`predict_instance` instead.
 
     Parameters
     ----------

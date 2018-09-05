@@ -146,8 +146,10 @@ public class Predictor {
 
   /**
    * Perform batch prediction with a 2D sparse data matrix. Worker threads
-   * will internally divide up work for batch prediction. Note that this
-   * function may be called by only one thread at a time.
+   * will internally divide up work for batch prediction. **Note that this
+   * function may be called by only one thread at a time.** In order to use
+   * multiple threads to process multiple prediction requests simultaneously,
+   * use :java:meth:`Predictor.predict(Data[], boolean)` instead.
    * @param batch a :java:ref:`SparseBatch`, representing a slice of a 2D
    *              sparse matrix
    * @param verbose whether to print extra diagnostic messages

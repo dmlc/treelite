@@ -28,7 +28,10 @@ class TestBasic(unittest.TestCase):
          ('dermatology/dermatology.model', 'dermatology/dermatology.train',
           'dermatology/dermatology.test', './dermatology{}',
           'dermatology/dermatology.test.prob',
-          'dermatology/dermatology.test.margin', True)]:
+          'dermatology/dermatology.test.margin', True),
+         ('letor/mq2008.model', 'letor/mq2008.train',
+          'letor/mq2008.test', './mq2008{}',
+          None, 'letor/mq2008.test.pred', False)]:
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='xgboost')
       make_annotation(model=model, dtrain_path=dtrain_path,

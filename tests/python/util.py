@@ -9,6 +9,8 @@ from treelite.contrib import _libext
 
 def load_txt(filename):
   """Get 1D array from text file"""
+  if filename is None:
+    return None
   content = []
   with open(filename, 'r') as f:
     for line in f:
@@ -53,13 +55,15 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
   dtest = treelite.DMatrix(dtest_path)
   batch = treelite.runtime.Batch.from_csr(dtest)
 
-  expected_prob_path = os.path.join(dpath, expected_prob_path)
+  expected_prob_path = os.path.join(dpath, expected_prob_path) \
+                       if expected_prob_path is not None else None
   expected_margin_path = os.path.join(dpath, expected_margin_path)
   expected_prob = load_txt(expected_prob_path)
   expected_margin = load_txt(expected_margin_path)
   if multiclass:
     nrow = dtest.shape[0]
-    expected_prob = expected_prob.reshape((nrow, -1))
+    expected_prob = expected_prob.reshape((nrow, -1)) \
+                    if expected_prob is not None else None
     expected_margin = expected_margin.reshape((nrow, -1))
   params = {}
   if use_annotation is not None:
@@ -72,6 +76,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
                      params=params, verbose=True)
     predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
     out_prob = predictor.predict(batch)
-    assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-6)
+    if expected_prob is not None:
+      assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-6)
     out_margin = predictor.predict(batch, pred_margin=True)
     assert np.allclose(out_margin, expected_margin, atol=1e-11, rtol=1e-6)

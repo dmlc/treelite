@@ -19,7 +19,8 @@ def test_iris_single_inst():
 
   X, y = load_iris(return_X_y=True)
   dtrain = xgboost.DMatrix(X, label=y)
-  param = {'max_depth': 6, 'eta': 1, 'silent': 1, 'objective': 'reg:linear'}
+  param = {'max_depth': 6, 'eta': 1, 'silent': 1, 'objective': 'multi:softprob',
+           'num_class': 3}
   num_round = 10
   watchlist = [(dtrain, 'train')]
   bst = xgboost.train(param, dtrain, num_round, watchlist)

@@ -19,6 +19,7 @@
 #include <string>
 #include <sstream>
 #include <iterator>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <iomanip>
@@ -251,11 +252,8 @@ inline std::string ToStringHighPrecision(T value) {
  */
 inline void WriteToFile(const std::string& filename,
                         const std::string& content) {
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename.c_str(), "w"));
-  dmlc::ostream os(fo.get());
-  os << content;
-  // force flush before fo destruct.
-  os.set_stream(nullptr);
+  std::ofstream of(filename);
+  of << content;
 }
 
 /*!

@@ -12,5 +12,8 @@ lint:
 doxygen:
 	cd docs; doxygen
 
+cpp-coverage:
+	rm -rf build; mkdir build; cd build; cmake .. -DTEST_COVERAGE=ON && make -j$(NPROC)
+
 all:
 	rm -rf build; mkdir build; cd build; cmake .. && make -j$(NPROC)

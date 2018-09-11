@@ -12,6 +12,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
 option(ENABLE_S3 "Build with S3 support" OFF)
+option(TEST_COVERAGE "C++ test coverage" OFF)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -67,6 +68,9 @@ if(MSVC)
 else()
   # Performance
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
+endif()
+if(TEST_COVERAGE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
 include_directories (

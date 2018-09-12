@@ -22,6 +22,7 @@
 #include <fstream>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <iomanip>
 #include <cerrno>
 #include <climits>
@@ -365,11 +366,15 @@ inline uint32_t TextToNumber(const std::string& str) {
 /*!
  * \brief convert text to number array
  * \param str string containing numbers, separated by spaces in between
+ * \param num_entry number of entries
  * \return std::vector of numbers, converted to type T
  * \tparam T type of value (should be a floating-point or integer type)
  */
 template <typename T>
 inline std::vector<T> TextToArray(const std::string& text, int num_entry) {
+  if (text.empty() && num_entry > 0) {
+    LOG(FATAL) << "Cannot convert empty text into array";
+  }
   std::vector<T> array;
   std::istringstream ss(text);
   std::string token;

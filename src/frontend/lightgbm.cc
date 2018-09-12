@@ -180,17 +180,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     tree.num_cat = treelite::common::TextToNumber<int>(it->second);
 
     it = dict.find("leaf_value");
-    CHECK(it != dict.end())
+    CHECK(it != dict.end() && !it->second.empty())
       << "Ill-formed LightGBM model file: need leaf_value";
     tree.leaf_value
       = treelite::common::TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
-    CHECK(it != dict.end())
-      << "Ill-formed LightGBM model file: need decision_type";
     if (it == dict.end()) {
       tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
     } else {
+      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
+        << "Ill-formed LightGBM model file: decision_type cannot be empty string";
       tree.decision_type
         = treelite::common::TextToArray<int8_t>(it->second,
                                                 tree.num_leaves - 1);
@@ -198,12 +198,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
     if (tree.num_cat > 0) {
       it = dict.find("cat_boundaries");
-      CHECK(it != dict.end())
+      CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries
         = treelite::common::TextToArray<int>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
-      CHECK(it != dict.end())
+      CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";
       tree.cat_threshold
         = treelite::common::TextToArray<uint32_t>(it->second,
@@ -211,19 +211,21 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
 
     it = dict.find("split_feature");
-    CHECK(it != dict.end())
+    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need split_feature";
     tree.split_feature
       = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("threshold");
-    CHECK(it != dict.end())
+    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need threshold";
     tree.threshold
       = treelite::common::TextToArray<double>(it->second, tree.num_leaves - 1);
 
     it = dict.find("split_gain");
     if (it != dict.end()) {
+      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
+        << "Ill-formed LightGBM model file: split_gain cannot be empty string";
       tree.split_gain
         = treelite::common::TextToArray<float>(it->second, tree.num_leaves - 1);
     } else {
@@ -232,6 +234,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
     it = dict.find("internal_count");
     if (it != dict.end()) {
+      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
+        << "Ill-formed LightGBM model file: internal_count cannot be empty string";
       tree.internal_count
         = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
     } else {
@@ -240,6 +244,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
     it = dict.find("leaf_count");
     if (it != dict.end()) {
+      CHECK(!it->second.empty())
+        << "Ill-formed LightGBM model file: leaf_count cannot be empty string";
       tree.leaf_count
         = treelite::common::TextToArray<int>(it->second, tree.num_leaves);
     } else {
@@ -247,13 +253,13 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
 
     it = dict.find("left_child");
-    CHECK(it != dict.end())
+    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need left_child";
     tree.left_child
       = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("right_child");
-    CHECK(it != dict.end())
+    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need right_child";
     tree.right_child
       = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);

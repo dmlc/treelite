@@ -19,6 +19,8 @@ env:
     - TASK=python_test
     # C++ tests
     - TASK=cpp_test
+    # Java tests
+    - TASK=java_test
 
 matrix:
   exclude:
@@ -26,6 +28,8 @@ matrix:
     env: TASK=lint
   - os: osx
     env: TASK=cpp_test
+  - os: osx
+    env: TASK=java_test
 
 # dependent apt packages
 addons:

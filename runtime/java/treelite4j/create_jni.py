@@ -70,6 +70,8 @@ if __name__ == "__main__":
         maybe_generator = ' -G"Visual Studio 14 Win64"'
       else:
         maybe_generator = ""
+      if 'cpp-coverage' in sys.argv:
+        maybe_generator += ' -DTEST_COVERAGE=ON'
       run("cmake .. " + maybe_generator)
       run("cmake --build . --config Release")
 

@@ -14,6 +14,7 @@ set_default_configuration_release()
 msvc_use_static_runtime()
 
 option(ENABLE_S3 "Build with S3 support" OFF)
+option(TEST_COVERAGE "C++ test coverage" OFF)
 
 # Compiler flags
 set(CMAKE_CXX_STANDARD 11)
@@ -26,6 +27,9 @@ if(MSVC)
 else()
   # Performance
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
+endif()
+if(TEST_COVERAGE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
 # -ldl for UNIX-like systems

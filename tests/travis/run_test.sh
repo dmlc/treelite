@@ -43,8 +43,19 @@ if [ ${TASK} == "cpp_test" ]; then
   lcov --remove coverage.info '/usr/*' --output-file coverage.info
   lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
   lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
-  # print covered symbols
-  lcov --list coverage.info
+  # Uploading report to Codecov
+  bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+fi
+
+if [ ${TASK} == "java_test" ]; then
+  cd runtime/java/treelite4j
+  mvn test -DJNI.args=cpp-coverage
+  # capture coverage info
+  lcov --directory . --capture --output-file coverage.info
+  # filter system and 3rd-party headers
+  lcov --remove coverage.info '/usr/*' --output-file coverage.info
+  lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
+  lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
   # Uploading report to Codecov
   bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
 fi

@@ -15,8 +15,6 @@
 namespace {
 
 treelite::Model ParseStream(dmlc::Stream* fi);
-void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
-                       const char* name_obj);
 
 }  // anonymous namespace
 
@@ -28,12 +26,6 @@ DMLC_REGISTRY_FILE_TAG(xgboost);
 Model LoadXGBoostModel(const char* filename) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
   return ParseStream(fi.get());
-}
-
-void ExportXGBoostModel(const char* filename, const Model& model,
-                        const char* name_obj) {
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename, "w"));
-  SaveModelToStream(fo.get(), model, name_obj);
 }
 
 Model LoadXGBoostModel(const void* buf, size_t len) {
@@ -322,30 +314,6 @@ class XGBTree {
       << "Invalid XGBoost model file: treelite does not support trees "
       << "with multiple roots";
   }
-  inline void Save(dmlc::Stream* fo, int num_feature) const {
-    TreeParam param_;
-    const bst_float nan = std::numeric_limits<bst_float>::quiet_NaN();
-    std::vector<NodeStat> stats_(nodes.size(), NodeStat{nan, nan, nan, -1});
-    param_.num_roots = 1;
-    param_.num_nodes = static_cast<int>(nodes.size());
-    param_.num_deleted = 0;
-    std::function<int(int)> max_depth_func;
-    max_depth_func = [&max_depth_func, this](int nid) -> int {
-      if (nodes[nid].is_leaf()) {
-        return 0;
-      } else {
-        return 1 + std::max(max_depth_func(nodes[nid].cleft()),
-                            max_depth_func(nodes[nid].cright()));
-      }
-    };
-    param_.max_depth = max_depth_func(0);
-    param_.num_feature = num_feature;
-    param_.size_leaf_vector = 0;
-    fo->Write(&param_, sizeof(TreeParam));
-    fo->Write(dmlc::BeginPtr(nodes), sizeof(Node) * nodes.size());
-    // write dummy stats
-    fo->Write(dmlc::BeginPtr(stats_), sizeof(NodeStat) * nodes.size());
-  }
 };
 
 inline treelite::Model ParseStream(dmlc::Stream* fi) {
@@ -471,65 +439,6 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
   }
   return model;
-}
-
-inline void SaveModelToStream(dmlc::Stream* fo, const treelite::Model& model,
-                              const char* name_obj) {
-  LearnerModelParam mparam_;
-  GBTreeModelParam gbm_param_;
-  /* Learner parameters */
-  mparam_.base_score = model.param.global_bias;
-  mparam_.num_feature = model.num_feature;
-  mparam_.num_class = model.num_output_group;
-  mparam_.contain_extra_attrs = 0;
-  mparam_.contain_eval_metrics = 0;
-  fo->Write(&mparam_, sizeof(LearnerModelParam));
-  /* name of objective and gbm class */
-  const std::string name_gbm_ = "gbtree";
-  fo->Write(std::string(name_obj));
-  fo->Write(name_gbm_);
-  /* GBTree parameters */
-  gbm_param_.num_trees = model.trees.size();
-  gbm_param_.num_roots = 1;
-  gbm_param_.num_feature = model.num_feature;
-  gbm_param_.num_output_group = model.num_output_group;
-  gbm_param_.size_leaf_vector = 0;
-  fo->Write(&gbm_param_, sizeof(gbm_param_));
-  /* Individual decision trees */
-  for (const treelite::Tree& tree : model.trees) {
-    XGBTree xgb_tree_;
-    xgb_tree_.Init();
-    std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
-    Q.push({0, 0});
-    while (!Q.empty()) {
-      int old_id, new_id;
-      std::tie(old_id, new_id) = Q.front(); Q.pop();
-      const treelite::Tree::Node& node = tree[old_id];
-      if (node.is_leaf()) {
-        const treelite::tl_float leaf_value = node.leaf_value();
-        xgb_tree_[new_id].set_leaf(static_cast<bst_float>(leaf_value));
-      } else {
-        const treelite::tl_float split_cond = node.threshold();
-        xgb_tree_.AddChilds(new_id);
-        CHECK(node.comparison_op() == treelite::Operator::kLT)
-          << "Comparison operator must be `<`";
-        xgb_tree_[new_id].set_split(node.split_index(),
-                                    static_cast<bst_float>(split_cond),
-                                    node.default_left());
-        Q.push({node.cleft(), xgb_tree_[new_id].cleft()});
-        Q.push({node.cright(), xgb_tree_[new_id].cright()});
-      }
-    }
-    xgb_tree_.Save(fo, model.num_feature);
-  }
-  // write dummy tree_info
-  std::vector<int> tree_info_(model.trees.size(), 0);
-  if (model.num_output_group > 1) {
-    for (size_t i = 0; i < model.trees.size(); ++i) {
-      tree_info_[i] = i % model.num_output_group;
-    }
-  }
-  fo->Write(dmlc::BeginPtr(tree_info_), sizeof(int) * tree_info_.size());
 }
 
 }  // anonymous namespace

@@ -8,7 +8,8 @@ from sklearn.datasets import load_svmlight_file
 import numpy as np
 import treelite
 import treelite.runtime
-from util import load_txt, os_compatible_toolchains, libname, make_annotation
+from util import load_txt, os_compatible_toolchains, libname, make_annotation,\
+                 assert_almost_equal
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -45,20 +46,20 @@ class TestSingleInst(unittest.TestCase):
         # Scipy CSR matrix
         out_prob = predictor.predict_instance(x)
         out_margin = predictor.predict_instance(x, pred_margin=True)
-        assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
-        assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
+        assert_almost_equal(out_prob, expected_prob[i])
+        assert_almost_equal(out_margin, expected_margin[i])
         # NumPy 1D array with 0 as missing value
         x = x.toarray().flatten()
         out_prob = predictor.predict_instance(x, missing=0.0)
         out_margin = predictor.predict_instance(x, missing=0.0, pred_margin=True)
-        assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
-        assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
+        assert_almost_equal(out_prob, expected_prob[i])
+        assert_almost_equal(out_margin, expected_margin[i])
         # NumPy 1D array with np.nan as missing value
         np.place(x, x == 0.0, [np.nan])
         out_prob = predictor.predict_instance(x, missing=np.nan)
         out_margin = predictor.predict_instance(x, missing=np.nan, pred_margin=True)
-        assert np.allclose(out_prob, expected_prob[i], atol=1e-11, rtol=1e-6)
-        assert np.allclose(out_margin, expected_margin[i], atol=1e-11, rtol=1e-6)
+        assert_almost_equal(out_prob, expected_prob[i])
+        assert_almost_equal(out_margin, expected_margin[i])
 
   def test_single_inst(self):
     for model_path, dtrain_path, dtest_path, libname_fmt, \

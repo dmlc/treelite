@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 import treelite
 import treelite.runtime
 from util import run_pipeline_test, make_annotation, \
-                 libname, os_compatible_toolchains
+                 libname, os_compatible_toolchains, assert_almost_equal
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -1423,4 +1423,4 @@ class TestModelBuilder(unittest.TestCase):
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
-      assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-6)
+      assert_almost_equal(out_prob, expected_prob)

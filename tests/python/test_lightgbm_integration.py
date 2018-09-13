@@ -9,7 +9,7 @@ import treelite
 import treelite.runtime
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from util import os_compatible_toolchains, libname
+from util import os_compatible_toolchains, libname, assert_almost_equal
 
 class TestLightGBMIntegration(unittest.TestCase):
   def test_lightgbm(self):
@@ -42,4 +42,4 @@ class TestLightGBMIntegration(unittest.TestCase):
                        params={}, verbose=True)
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
-      assert np.allclose(out_pred, expected_pred, atol=1e-11, rtol=1e-6)
+      assert_almost_equal(out_pred, expected_pred)

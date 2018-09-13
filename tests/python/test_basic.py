@@ -9,7 +9,7 @@ import numpy as np
 import treelite
 import treelite.runtime
 from util import load_txt, os_compatible_toolchains, os_platform, libname, \
-                 run_pipeline_test, make_annotation
+                 run_pipeline_test, make_annotation, assert_almost_equal
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -70,4 +70,4 @@ class TestBasic(unittest.TestCase):
     expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
     expected_prob = load_txt(expected_prob_path)
     out_prob = predictor.predict(batch)
-    assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-8)
+    assert_almost_equal(out_prob, expected_prob)

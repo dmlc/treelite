@@ -45,6 +45,47 @@ def make_annotation(model, dtrain_path, annotation_path):
   annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
   annotator.save(path=annotation_path)
 
+def get_atol(atol=None):
+  """Get default numerical threshold for regression test."""
+  return 1e-8 if atol is None else atol
+
+def get_rtol(rtol=None):
+  """Get default numerical threshold for regression test."""
+  return 1e-3 if rtol is None else rtol
+
+def find_max_violation(a, b, rtol=None, atol=None):
+  """Finds and returns the location of maximum violation."""
+  rtol = get_rtol(rtol)
+  atol = get_atol(atol)
+  diff = np.abs(a-b)
+  tol = atol + rtol * np.abs(b)
+  violation = diff / (tol + 1e-20)
+  loc = np.argmax(violation)
+  idx = np.unravel_index(loc, violation.shape)
+  return idx, np.max(violation)
+
+def assert_almost_equal(a, b, rtol=None, atol=None, names=('a', 'b'), equal_nan=False):
+  """Test that two numpy arrays are almost equal. Raise exception message if not.
+  Parameters
+  ----------
+  a : np.ndarray
+  b : np.ndarray
+  threshold : None or float
+      The checking threshold. Default threshold will be used if set to ``None``.
+  """
+  rtol = get_rtol(rtol)
+  atol = get_atol(atol)
+  if np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan):
+    return
+  index, rel = find_max_violation(a, b, rtol, atol)
+  np.set_printoptions(threshold=4, suppress=True)
+  msg = np.testing.build_err_msg([a, b],
+                          err_msg="Error %f exceeds tolerance rtol=%f, atol=%f. "
+                                  " Location of maximum error:%s, a=%f, b=%f"
+                          % (rel, rtol, atol, str(index), a[index], b[index]),
+                          names=names)
+  raise AssertionError(msg)
+
 @nottest
 def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
@@ -80,6 +121,6 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
     predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
     out_prob = predictor.predict(batch)
     if expected_prob is not None:
-      assert np.allclose(out_prob, expected_prob, atol=1e-11, rtol=1e-6)
+      assert_almost_equal(out_prob, expected_prob)
     out_margin = predictor.predict(batch, pred_margin=True)
-    assert np.allclose(out_margin, expected_margin, atol=1e-11, rtol=1e-6)
+    assert_almost_equal(out_margin, expected_margin)

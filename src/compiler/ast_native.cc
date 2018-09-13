@@ -310,7 +310,7 @@ class ASTNativeCompiler : public Compiler {
     if (num_output_group_ > 1) {
       AppendToBuffer(new_file,
         fmt::format("  for (int i = 0; i < {num_output_group}; ++i) {{\n"
-                    "    result[i] = sum[i];\n"
+                    "    result[i] += sum[i];\n"
                     "  }}\n"
                     "}}\n",
           "num_output_group"_a = num_output_group_), 0);

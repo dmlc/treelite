@@ -38,12 +38,14 @@ class TestBasic(unittest.TestCase):
                       annotation_path='./annotation.json')
       for use_annotation in ['./annotation.json', None]:
         for use_quantize in [True, False]:
-          run_pipeline_test(model=model, dtest_path=dtest_path,
-                            libname_fmt=libname_fmt,
-                            expected_prob_path=expected_prob_path,
-                            expected_margin_path=expected_margin_path,
-                            multiclass=multiclass, use_annotation=use_annotation,
-                            use_quantize=use_quantize)
+          for use_parallel_comp in [None, 2]:
+            run_pipeline_test(model=model, dtest_path=dtest_path,
+                              libname_fmt=libname_fmt,
+                              expected_prob_path=expected_prob_path,
+                              expected_margin_path=expected_margin_path,
+                              multiclass=multiclass, use_annotation=use_annotation,
+                              use_quantize=use_quantize,
+                              use_parallel_comp=use_parallel_comp)
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

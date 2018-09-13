@@ -26,11 +26,10 @@ void ASTBuilder::Split(int parallel_comp) {
   CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
 
   /* tree_head[i] stores reference to head of tree i */
-  std::vector<ConditionNode*> tree_head;
+  std::vector<ASTNode*> tree_head;
   for (ASTNode* node : top_ac_node->children) {
-    ConditionNode* tree_head_node = dynamic_cast<ConditionNode*>(node);
-    CHECK(tree_head_node);
-    tree_head.push_back(tree_head_node);
+    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode*>(node));
+    tree_head.push_back(node);
   }
   /* dynamic_cast<> is used here to check node types. This is to ensure
      that we don't accidentally call Split() twice. */
@@ -50,7 +49,7 @@ void ASTBuilder::Split(int parallel_comp) {
       AccumulatorContextNode* ac = AddNode<AccumulatorContextNode>(tu);
       tu->children.push_back(ac);
       for (int tree_id = tree_begin; tree_id < tree_end; ++tree_id) {
-        ConditionNode* tree_head_node = tree_head[tree_id];
+        ASTNode* tree_head_node = tree_head[tree_id];
         tree_head_node->parent = ac;
         ac->children.push_back(tree_head_node);
       }

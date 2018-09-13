@@ -84,7 +84,8 @@ class TestModelBuilder(unittest.TestCase):
                           expected_prob_path='mushroom/agaricus.test.prob',
                           expected_margin_path='mushroom/agaricus.test.margin',
                           multiclass=False, use_annotation=use_annotation,
-                          use_quantize=use_quantize)
+                          use_quantize=use_quantize,
+                          use_parallel_comp=None)
 
   def test_model_builder2(self):
     builder = treelite.ModelBuilder(num_feature=33, random_forest=False,
@@ -1371,7 +1372,7 @@ class TestModelBuilder(unittest.TestCase):
                           expected_prob_path='dermatology/dermatology.test.prob',
                           expected_margin_path='dermatology/dermatology.test.margin',
                           multiclass=True, use_annotation=use_annotation,
-                          use_quantize=use_quantize)
+                          use_quantize=use_quantize, use_parallel_comp=None)
 
   def test_model_builder3(self):
     """Test programmatic model construction using scikit-learn random forest"""

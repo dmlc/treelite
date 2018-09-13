@@ -48,7 +48,8 @@ def make_annotation(model, dtrain_path, annotation_path):
 @nottest
 def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
-                      multiclass, use_annotation, use_quantize):
+                      multiclass, use_annotation, use_quantize,
+                      use_parallel_comp):
   dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
   dtest_path = os.path.join(dpath, dtest_path)
   libpath = libname(libname_fmt)
@@ -70,6 +71,8 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
     params['annotate_in'] = use_annotation
   if use_quantize:
     params['quantize'] = 1
+  if use_parallel_comp is not None:
+    params['parallel_comp'] = use_parallel_comp
 
   for toolchain in os_compatible_toolchains():
     model.export_lib(toolchain=toolchain, libpath=libpath,

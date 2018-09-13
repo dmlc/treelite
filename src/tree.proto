@@ -2,9 +2,6 @@ syntax = "proto2";
 
 package treelite_protobuf;
 
-option java_package = "ml.dmlc";
-option java_outer_classname = "TreeliteModel";
-
 message Model {
   repeated Tree trees = 1;
   optional int32 num_feature = 2;

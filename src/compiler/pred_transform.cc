@@ -11,7 +11,6 @@
 #include "pred_transform.h"
 
 #include "./native/pred_transform.h"
-#include "./java/pred_transform.h"
 
 #define PRED_TRANSFORM_FUNC(name) {#name, &(name)}
 
@@ -27,8 +26,6 @@ std::string \
 FUNC_NAME(const std::string& backend, const Model& model) { \
   if (backend == "native") { \
     return treelite::compiler::native::pred_transform::FUNC_NAME(model); \
-  } else if (backend == "java") { \
-    return treelite::compiler::java::pred_transform::FUNC_NAME(model); \
   } else { \
     LOG(FATAL) << "Unrecognized backend: " << backend; \
     return std::string(); \

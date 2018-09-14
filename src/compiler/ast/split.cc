@@ -10,7 +10,13 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(split);
 
-int count_tu_nodes(ASTNode* node);
+int count_tu_nodes(ASTNode* node) {
+  int accum = (dynamic_cast<TranslationUnitNode*>(node)) ? 1 : 0;
+  for (ASTNode* child : node->children) {
+    accum += count_tu_nodes(child);
+  }
+  return accum;
+}
 
 void ASTBuilder::Split(int parallel_comp) {
   if (parallel_comp <= 0) {

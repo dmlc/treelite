@@ -34,9 +34,6 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   int parallel_comp;
   /*! \brief if >0, produce extra messages */
   int verbose;
-  /*! \brief parameter to conform to Java's 64K bytecode limit.
-             Not applicable to native target */
-  int max_unit_size;
   /*! \brief native lib name (without extension) */
   std::string native_lib_name;
   /*! \brief parameter for folding rarely visited subtrees (no if/else blocks);
@@ -45,10 +42,6 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
              folded. To diable folding, set to +inf. If hessian sums are
              available, they will be used as proxies of data counts. */
   double code_folding_req;
-  /*! \brief path to save a dump of AST. If NULL, don't generate dump */
-  std::string ast_dump_path;
-  /*! \brief whether AST dump should be binary (>0) or human-readable text (<=0) */
-  int ast_dump_binary;
   /*! \} */
 
   // declare parameters
@@ -63,16 +56,10 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
                 "into [parallel_comp] files.");
     DMLC_DECLARE_FIELD(verbose).set_default(0)
       .describe("if >0, produce extra messages");
-    DMLC_DECLARE_FIELD(max_unit_size).set_default(100).set_lower_bound(5);
     DMLC_DECLARE_FIELD(native_lib_name).set_default("predictor");
     DMLC_DECLARE_FIELD(code_folding_req)
        .set_default(std::numeric_limits<double>::infinity())
        .set_lower_bound(0);
-    DMLC_DECLARE_FIELD(ast_dump_path)
-       .set_default("NULL")
-       .describe("Path to save a dump of AST");
-    DMLC_DECLARE_FIELD(ast_dump_binary)
-       .set_default(1);
   }
 };
 

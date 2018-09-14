@@ -55,28 +55,14 @@ class ASTBuilder {
   void Split(int parallel_comp);
   /* \brief replace split thresholds with integers */
   void QuantizeThresholds();
-  /* \brief call this function before BreakUpLargeTranslationUnits() */
-  void CountDescendant();
-  /*
-   * \brief break up large translation units, to keep 64K bytecode size limit
-   *        in Java
-   * \param num_descendant_limit max number of AST nodes that are allowed to
-   *                             be in each translation unit
-   */
-  void BreakUpLargeTranslationUnits(int num_descendant_limit);
-  /* \brief call this function before BreakUpLargeTranslationUnits() */
+  /* \brief Load data counts from annotation file */
   void LoadDataCounts(const std::vector<std::vector<size_t>>& counts);
-  /* \brief serialize to output stream. This function uses Protobuf. */
-  void Serialize(std::ostream* output, bool binary = true);
-  /* \brief serialize to a file. This function uses Protobuf. */
-  void Serialize(const std::string& filename, bool binary = true);
 
   inline const ASTNode* GetRootNode() {
     return main_node;
   }
 
  private:
-  friend bool treelite::compiler::breakup(ASTNode*, int, int*, ASTBuilder*);
   friend bool treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*,
                                             ASTBuilder*);
 

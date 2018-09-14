@@ -42,13 +42,13 @@ class ASTNode {
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  dmlc::optional<int> num_descendant_ast_node;
   dmlc::optional<size_t> data_count;
   dmlc::optional<double> sum_hess;
-  virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
+  virtual ~ASTNode() = 0;  // force ASTNode to be abstract class
  protected:
   ASTNode() : parent(nullptr), node_id(-1), tree_id(-1) {}
 };
+inline ASTNode::~ASTNode() {}
 
 class MainNode : public ASTNode {
  public:
@@ -60,14 +60,12 @@ class MainNode : public ASTNode {
   bool average_result;
   int num_tree;
   int num_feature;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class TranslationUnitNode : public ASTNode {
  public:
   explicit TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
   int unit_id;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class QuantizerNode : public ASTNode {
@@ -77,19 +75,16 @@ class QuantizerNode : public ASTNode {
   explicit QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
     : cut_pts(std::move(cut_pts)) {}
   std::vector<std::vector<tl_float>> cut_pts;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class AccumulatorContextNode : public ASTNode {
  public:
   AccumulatorContextNode() {}
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class CodeFolderNode : public ASTNode {
  public:
   CodeFolderNode() {}
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class ConditionNode : public ASTNode {
@@ -99,7 +94,6 @@ class ConditionNode : public ASTNode {
   unsigned split_index;
   bool default_left;
   dmlc::optional<double> gain;
-  virtual void Serialize(treelite_ast_protobuf::ASTNode* out) = 0;
 };
 
 union ThresholdVariant {
@@ -119,7 +113,6 @@ class NumericalConditionNode : public ConditionNode {
   bool quantized;
   Operator op;
   ThresholdVariant threshold;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class CategoricalConditionNode : public ConditionNode {
@@ -129,7 +122,6 @@ class CategoricalConditionNode : public ConditionNode {
     : ConditionNode(split_index, default_left),
       left_categories(left_categories) {}
   std::vector<uint32_t> left_categories;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 class OutputNode : public ASTNode {
@@ -141,7 +133,6 @@ class OutputNode : public ASTNode {
   bool is_vector;
   tl_float scalar;
   std::vector<tl_float> vector;
-  void Serialize(treelite_ast_protobuf::ASTNode* out) override;
 };
 
 }  // namespace compiler

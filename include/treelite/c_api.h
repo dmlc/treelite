@@ -261,6 +261,16 @@ TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
 TREELITE_DLL int TreeliteLoadProtobufModel(const char* filename,
                                            ModelHandle* out);
 /*!
+ * \brief export a model in Protocol Buffers format. Protocol Buffers
+ *        (google/protobuf) is a language- and platform-neutral mechanism for
+ *        serializing structured data. See src/tree.proto for format spec.
+ * \param filename name of model file
+ * \param model model to export
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteExportProtobufModel(const char* filename,
+                                             ModelHandle model);
+/*!
  * \brief delete model from memory
  * \param handle model to remove
  * \return 0 for success, -1 for failure

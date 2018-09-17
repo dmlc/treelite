@@ -7,6 +7,7 @@
 
 #include <dmlc/data.h>
 #include <dmlc/memory_io.h>
+#include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <memory>
 #include <queue>

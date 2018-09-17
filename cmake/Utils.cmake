@@ -158,3 +158,32 @@ function(PROTOBUF_GENERATE_JAVA TARGET_NAME PROTO_FILE)
     VERBATIM
   )
 endfunction()
+
+function(PROTOBUF_GENERATE_PYTHON TARGET_NAME PROTO_FILE)
+  get_filename_component(ABS_FIL ${PROTO_FILE} ABSOLUTE)
+  get_filename_component(ABS_PATH ${ABS_FIL} PATH)
+  get_filename_component(FIL_WE ${PROTO_FILE} NAME_WE)
+  list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+  if(${_contains_already} EQUAL -1)
+    list(APPEND _protobuf_include_path -I ${ABS_PATH})
+  endif()
+
+  if(DEFINED PROTOBUF_IMPORT_DIRS)
+    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+      get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+      list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
+      if(${_contains_already} EQUAL -1)
+        list(APPEND _protobuf_include_path -I ${ABS_PATH})
+      endif()
+    endforeach()
+  endif()
+
+  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+
+  add_custom_target(${TARGET_NAME} ALL
+    ${PROTOBUF_PROTOC_EXECUTABLE} --python_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
+    DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
+    COMMENT "Running Python protocol buffer compiler on ${PROTO_FILE}"
+    VERBATIM
+  )
+endfunction()

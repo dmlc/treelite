@@ -148,14 +148,6 @@ TREELITE_DLL int TreeliteAnnotateBranch(ModelHandle model,
                                         int verbose,
                                         AnnotationHandle* out);
 /*!
- * \brief load branch annotation from a JSON file
- * \param path path to JSON file
- * \param out used to save handle for the loaded annotation
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteAnnotationLoad(const char* path,
-                                        AnnotationHandle* out);
-/*!
  * \brief save branch annotation to a JSON file
  * \param handle annotation to save
  * \param path path to JSON file

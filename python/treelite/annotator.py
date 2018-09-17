@@ -11,24 +11,9 @@ class Annotator(object):
   """
   Branch annotator class: annotate branches in a given model using frequency
   patterns in the training data
-
-  Parameters
-  ----------
-  path: :py:class:`str <python:str>`, optional
-      if given, the predictor will load branch frequency information
-      from the path
   """
-  def __init__(self, path=None):
-    if path is None:
-      self.handle = None
-    else:
-      if not os.path.exists(path):
-        raise TreeliteError('No file with name {} exists'.format(path))
-      elif os.path.isdir(path):
-        raise TreeliteError('{} is a directory, not a file'.format(path))
-      self.handle = ctypes.c_void_p()
-      _check_call(_LIB.TreeliteAnnotationLoad(c_str(path),
-                                              ctypes.byref(self.handle)))
+  def __init__(self):
+    self.handle = None
 
   def annotate_branch(self, model, dmat, nthread=None, verbose=False):
     """

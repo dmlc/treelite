@@ -214,16 +214,6 @@ int TreeliteAnnotateBranch(ModelHandle model,
   API_END();
 }
 
-int TreeliteAnnotationLoad(const char* path,
-                           AnnotationHandle* out) {
-  API_BEGIN();
-  BranchAnnotator* annotator = new BranchAnnotator();
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(path, "r"));
-  annotator->Load(fi.get());
-  *out = static_cast<AnnotationHandle>(annotator);
-  API_END();
-}
-
 int TreeliteAnnotationSave(AnnotationHandle handle,
                            const char* path) {
   API_BEGIN();

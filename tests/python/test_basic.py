@@ -6,6 +6,7 @@ import os
 import subprocess
 from zipfile import ZipFile
 import numpy as np
+from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite.runtime
 from util import load_txt, os_compatible_toolchains, os_platform, libname, \
@@ -64,7 +65,8 @@ class TestBasic(unittest.TestCase):
 
     predictor = treelite.runtime.Predictor(libpath='./mushroom', verbose=True)
 
-    dmat = treelite.DMatrix(dmat_path)
+    X, _ = load_svmlight_file(dmat_path, zero_based=True)
+    dmat = treelite.DMatrix(X)
     batch = treelite.runtime.Batch.from_csr(dmat)
 
     expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')

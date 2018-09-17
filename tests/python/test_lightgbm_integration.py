@@ -68,15 +68,11 @@ class TestLightGBMIntegration(unittest.TestCase):
                          3      1
                          4      2
     """
-    try:
-      import lightgbm
-    except ImportError:
-      raise nose.SkipTest()  # skip this test if LightGBM is not installed
 
-    for model_path, dtrain_path, dtest_path, libname_fmt, \
+    for model_path, dtest_path, libname_fmt, \
         expected_prob_path, expected_margin_path, multiclass in \
         [('toy_categorical/toy_categorical_model.txt',
-          None, 'toy_categorical/toy_categorical.test', './toycat{}',
+          'toy_categorical/toy_categorical.test', './toycat{}',
           None, 'toy_categorical/toy_categorical.test.pred', False)]:
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='lightgbm')

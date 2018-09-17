@@ -335,6 +335,14 @@ int TreeliteLoadProtobufModel(const char* filename,
   API_END();
 }
 
+int TreeliteExportProtobufModel(const char* filename,
+                                ModelHandle model) {
+  API_BEGIN();
+  Model* model_ = static_cast<Model*>(model);
+  frontend::ExportProtobufModel(filename, *model_);
+  API_END();
+}
+
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);

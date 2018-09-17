@@ -17,6 +17,9 @@ option(TEST_COVERAGE "C++ test coverage" OFF)
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
 
+# use fPIC globally
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Protobuf
 if (ENABLE_PROTOBUF)
   set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
@@ -61,7 +64,6 @@ if(OPENMP_FOUND)
 else(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif(OPENMP_FOUND)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
   # Multithreaded compilation
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -95,10 +97,9 @@ if (ENABLE_PROTOBUF)
   include_directories(${PROTOBUF_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   PROTOBUF_GENERATE_CPP(TREE_PROTO_SRCS TREE_PROTO_HDRS src/tree.proto)
-  PROTOBUF_GENERATE_CPP(AST_PROTO_SRCS AST_PROTO_HDRS src/compiler/ast/ast.proto)
   PROTOBUF_GENERATE_JAVA(tree_proto_java src/tree.proto)
-  PROTOBUF_GENERATE_JAVA(ast_proto_java src/compiler/ast/ast.proto)
-  list(INSERT SOURCES 0 ${TREE_PROTO_SRCS} ${TREE_PROTO_HDRS} ${AST_PROTO_SRCS} ${AST_PROTO_HDRS})
+  PROTOBUF_GENERATE_PYTHON(tree_proto_python src/tree.proto)
+  list(INSERT SOURCES 0 ${TREE_PROTO_SRCS} ${TREE_PROTO_HDRS})
 endif()
 
 # dmlc-core

@@ -5,9 +5,9 @@
  * \author Philip Cho
  */
 
+#include <dmlc/registry.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
-#include <dmlc/registry.h>
 #include <memory>
 #include <queue>
 #include "../c_api/c_api_error.h"

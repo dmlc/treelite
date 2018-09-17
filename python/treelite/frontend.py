@@ -226,6 +226,25 @@ class Model(object):
         c_str(dirpath)))
     _check_call(_LIB.TreeliteCompilerFree(compiler_handle))
 
+  def export_protobuf(self, filename):
+    """
+    Export a tree ensemble model as a Protocol Buffers format. Protocol Buffers
+    (google/protobuf) is a language- and platform-neutral mechanism for
+    serializing structured data. See src/tree.proto for format spec.
+
+    Parameters
+    ----------
+    filename : :py:class:`str <python:str>`
+        path to save Protocol Buffers output
+
+    Example
+    -------
+    .. code-block:: python
+
+       model.export_protobuf('./my.buffer')
+    """
+    _check_call(_LIB.TreeliteExportProtobufModel(c_str(filename), self.handle))
+
   @staticmethod
   def _set_compiler_param(compiler_handle, params, value=None):
     """

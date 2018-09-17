@@ -17,6 +17,9 @@ option(TEST_COVERAGE "C++ test coverage" OFF)
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
 
+# use fPIC globally
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Protobuf
 if (ENABLE_PROTOBUF)
   set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
@@ -61,7 +64,6 @@ if(OPENMP_FOUND)
 else(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif(OPENMP_FOUND)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
   # Multithreaded compilation
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")

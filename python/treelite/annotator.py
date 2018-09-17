@@ -2,7 +2,6 @@
 """branch annotator module"""
 
 import ctypes
-import os
 from .common.util import c_str, TreeliteError
 from .core import _LIB, DMatrix, _check_call
 from .frontend import Model

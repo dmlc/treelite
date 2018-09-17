@@ -220,12 +220,10 @@ void ExportProtobufModel(const char* filename, const Model& model) {
   treelite_protobuf::Model protomodel;
 
   protomodel.set_num_feature(
-    static_cast<google::protobuf::int32>(model.num_feature)
-  );
+    static_cast<google::protobuf::int32>(model.num_feature));
 
   protomodel.set_num_output_group(
-    static_cast<google::protobuf::int32>(model.num_output_group)
-  );
+    static_cast<google::protobuf::int32>(model.num_output_group));
 
   protomodel.set_random_forest_flag(model.random_forest_flag);
 
@@ -305,8 +303,7 @@ void ExportProtobufModel(const char* filename, const Model& model) {
       /* set node statistics */
       if (tree[nid].has_data_count()) {
         proto_node->set_data_count(
-          static_cast<google::protobuf::uint64>(tree[nid].data_count())
-        );
+          static_cast<google::protobuf::uint64>(tree[nid].data_count()));
       }
       if (tree[nid].has_sum_hess()) {
         proto_node->set_sum_hess(tree[nid].sum_hess());

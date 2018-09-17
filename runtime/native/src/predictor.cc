@@ -252,14 +252,11 @@ Predictor::Load(const char* name) {
   const std::string protocol = GetProtocol(name);
   if (protocol == "file://" || protocol.empty()) {
     // local file
-    using_remote_lib_ = false;
     lib_handle_ = OpenLibrary(name);
   } else {
     // remote file
-    using_remote_lib_ = true;
-    tempdir_.reset(new treelite::common::filesystem::TemporaryDirectory());
-    temp_libfile_ = tempdir_->path
-                    + "/" + treelite::common::filesystem::GetBasename(name);
+    tempdir_.reset(new common::filesystem::TemporaryDirectory());
+    temp_libfile_ = tempdir_->AddFile(common::filesystem::GetBasename(name));
     {
       std::unique_ptr<dmlc::Stream> strm(dmlc::Stream::Create(name, "r"));
       dmlc::istream is(strm.get());
@@ -269,10 +266,6 @@ Predictor::Load(const char* name) {
     lib_handle_ = OpenLibrary(temp_libfile_.c_str());
   }
   if (lib_handle_ == nullptr) {
-    if (using_remote_lib_) {
-      CHECK_EQ(std::remove(temp_libfile_.c_str()), 0);
-      tempdir_.release();
-    }
     LOG(FATAL) << "Failed to load dynamic shared library `" << name << "'";
   }
 
@@ -324,7 +317,7 @@ Predictor::Load(const char* name) {
       new PredThreadPool(num_worker_thread_, this,
                          [](SpscQueue<InputToken>* incoming_queue,
                             SpscQueue<OutputToken>* outgoing_queue,
-                            const treelite::Predictor* predictor) {
+                            const Predictor* predictor) {
       InputToken input;
       while (incoming_queue->Pop(&input)) {
         size_t query_result_size;
@@ -376,12 +369,6 @@ void
 Predictor::Free() {
   CloseLibrary(lib_handle_);
   delete static_cast<PredThreadPool*>(thread_pool_handle_);
-  if (using_remote_lib_) {
-    if (std::remove(temp_libfile_.c_str()) != 0) {
-      std::cerr << "Couldn't remove file " << temp_libfile_ << std::endl;
-      exit(-1);
-    }
-  }
 }
 
 template <typename BatchType>

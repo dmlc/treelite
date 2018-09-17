@@ -163,9 +163,8 @@ class TemporaryDirectory {
     char tmproot[MAX_PATH] = {0};
     const DWORD dw_retval = GetTempPathA(MAX_PATH, tmproot);
     if (dw_retval > MAX_PATH || dw_retval == 0) {
-      std::cerr << "TemporaryDirectory(): "
-                << "Could not create temporary directory" << std::endl;
-      exit(-1);
+      LOG(FATAL) << "TemporaryDirectory(): "
+                 << "Could not create temporary directory";
     }
     /* generate a unique 8-letter alphanumeric string */
     const std::string letters = "abcdefghijklmnopqrstuvwxyz0123456789_";
@@ -181,9 +180,8 @@ class TemporaryDirectory {
     char tmpdir[MAX_PATH] = {0};
     PathCombineA(tmpdir, tmproot, uniqstr.c_str());
     if (!CreateDirectoryA(tmpdir, NULL)) {
-      std::cerr << "TemporaryDirectory(): "
-                << "Could not create temporary directory" << std::endl;
-      exit(-1);
+      LOG(FATAL) << "TemporaryDirectory(): "
+                 << "Could not create temporary directory";
     }
     path = std::string(tmpdir);
 #else
@@ -207,28 +205,42 @@ class TemporaryDirectory {
     dirtemplate_buf.push_back('\0');
     char* tmpdir = mkdtemp(&dirtemplate_buf[0]);
     if (!tmpdir) {
-      std::cerr << "TemporaryDirectory(): "
-                << "Could not create temporary directory" << std::endl;
-      exit(-1);
+      LOG(FATAL) << "TemporaryDirectory(): "
+                 << "Could not create temporary directory";
     }
     path = std::string(tmpdir);
 #endif
-    std::cerr << "Created temporary directory " << path << std::endl;
+    LOG(INFO) << "Created temporary directory " << path;
   }
   ~TemporaryDirectory() {
-#if _WIN32
-    const bool path_deleted = (RemoveDirectoryA(path.c_str()) != 0);
-#else
-    const bool path_deleted = (rmdir(path.c_str()) == 0);
-#endif
-    if (path_deleted) {
-      std::cerr << "~TemporaryDirectory(): "
-                << "Could not remove temporary directory " << path << std::endl;
-      exit(-1);
+    for (const std::string& filename : file_list) {
+      if (std::remove(filename.c_str()) != 0) {
+        LOG(FATAL) << "Couldn't remove file " << filename;
+      }
     }
-    std::cerr << "Successfully deleted temporary directory " << path << std::endl;
+#if _WIN32
+    const bool rmdir_success = (RemoveDirectoryA(path.c_str()) != 0);
+#else
+    const bool rmdir_success = (rmdir(path.c_str()) == 0);
+#endif
+    if (rmdir_success) {
+      LOG(INFO) << "Successfully deleted temporary directory " << path;
+    } else {
+      LOG(FATAL) << "~TemporaryDirectory(): "
+                 << "Could not remove temporary directory ";
+    }
   }
+
+  std::string AddFile(const std::string& filename) {
+    const std::string file_path = this->path + "/" + filename;
+    file_list.push_back(file_path);
+    return file_path;
+  }
+
   std::string path;
+
+ private:
+  std::vector<std::string> file_list;
 };
 
 }  // namespace filesystem

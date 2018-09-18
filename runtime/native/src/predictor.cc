@@ -191,20 +191,6 @@ inline size_t PredictBatch_(const BatchType* batch,
         return 1;
       });
   }
-  // re-shape output if query_result_size < dimension of out_pred
-  if (query_result_size < expected_query_result_size) {
-    CHECK_GT(num_output_group, 1);
-    CHECK_EQ(query_result_size % batch->num_row, 0);
-    const size_t query_size_per_instance = query_result_size / batch->num_row;
-    CHECK_GT(query_size_per_instance, 0);
-    CHECK_LT(query_size_per_instance, num_output_group);
-    for (size_t rid = 0; rid < batch->num_row; ++rid) {
-      for (size_t k = 0; k < query_size_per_instance; ++k) {
-        out_pred[rid * query_size_per_instance + k]
-          = out_pred[rid * num_output_group + k];
-      }
-    }
-  }
   return query_result_size;
 }
 
@@ -432,6 +418,20 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
   for (int tid = 0; tid < nthread; ++tid) {
     if (pool->WaitForTask(tid, &response)) {
       total_size += response.query_result_size;
+    }
+  }
+  // re-shape output if total_size < dimension of out_result
+  if (total_size < QueryResultSize(batch, 0, batch->num_row)) {
+    CHECK_GT(num_output_group_, 1);
+    CHECK_EQ(total_size % batch->num_row, 0);
+    const size_t query_size_per_instance = total_size / batch->num_row;
+    CHECK_GT(query_size_per_instance, 0);
+    CHECK_LT(query_size_per_instance, num_output_group_);
+    for (size_t rid = 0; rid < batch->num_row; ++rid) {
+      for (size_t k = 0; k < query_size_per_instance; ++k) {
+        out_result[rid * query_size_per_instance + k]
+          = out_result[rid * num_output_group_ + k];
+      }
     }
   }
   const double tend = dmlc::GetTime();

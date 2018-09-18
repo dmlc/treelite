@@ -13,7 +13,7 @@ doxygen:
 	cd docs; doxygen
 
 cpp-coverage:
-	rm -rf build; mkdir build; cd build; cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON && make -j$(NPROC)
+	rm -rf build; mkdir build; cd build; cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug && make -j$(NPROC)
 
 all:
 	rm -rf build; mkdir build; cd build; cmake .. -DENABLE_PROTOBUF=ON && make -j$(NPROC)

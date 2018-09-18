@@ -400,7 +400,7 @@ class Predictor(object):
         ctypes.byref(out_result_size)))
     idx = int(out_result_size.value)
     res = out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
-    if self.num_output_group > 1:
+    if self.num_output_group > 1 and batch.shape()[0] != idx:
       res = res.reshape((-1, self.num_output_group))
     return res
 

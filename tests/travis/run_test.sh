@@ -11,7 +11,8 @@ if [ ${TASK} == "python_test" ]; then
   python --version
   conda install numpy scipy pandas nose scikit-learn
   if [ ${TRAVIS_OS_NAME} == "linux" ]; then
-    python -m pip install xgboost lightgbm  # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install xgboost  # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install --no-binary :all: lightgbm
   fi
 
   python -m pip install coverage codecov
@@ -23,7 +24,8 @@ if [ ${TASK} == "python_test" ]; then
   python --version
   conda install numpy scipy pandas nose scikit-learn
   if [ ${TRAVIS_OS_NAME} == "linux" ]; then
-    python -m pip install xgboost lightgbm # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install xgboost  # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install --no-binary :all: lightgbm
   fi
   python -m pip install coverage codecov
   python -m nose tests/python --with-coverage || exit -1
@@ -38,7 +40,8 @@ if [ ${TASK} == "cpp_test" ]; then
   source activate python3
   conda install numpy scipy pandas nose scikit-learn
   if [ ${TRAVIS_OS_NAME} == "linux" ]; then
-    python -m pip install xgboost lightgbm # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install xgboost  # Run XGBoost/LightGBM integration only on Linux
+    python -m pip install --no-binary :all: lightgbm
   fi
   python -m nose tests/python || exit -1
   # capture coverage info

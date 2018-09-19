@@ -146,6 +146,8 @@ class Batch(object):
         ctypes.byref(batch.handle)))
     # save handles for internal arrays
     batch.data = data_subset
+    # save pointer to mat so that it doesn't get garbage-collected prematurely
+    batch.mat = mat
     return batch
 
   @classmethod
@@ -214,6 +216,8 @@ class Batch(object):
     batch.data = data_subset
     batch.indices = indices_subset
     batch.indptr = indptr_subset
+    # save pointer to csr so that it doesn't get garbage-collected prematurely
+    batch.csr = csr
     return batch
 
 class Predictor(object):

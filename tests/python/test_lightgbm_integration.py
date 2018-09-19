@@ -15,7 +15,7 @@ from util import os_compatible_toolchains, libname, assert_almost_equal,\
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
 class TestLightGBMIntegration(unittest.TestCase):
-  def test_lightgbm(self):
+  def test_lightgbm_multiclass_classification(self):
     try:
       import lightgbm
     except ImportError:
@@ -24,28 +24,67 @@ class TestLightGBMIntegration(unittest.TestCase):
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test \
       = train_test_split(X, y, test_size=0.2, shuffle=False)
-    dtrain = lightgbm.Dataset(X_train, y_train)
-    dtest = lightgbm.Dataset(X_test, y_test, reference=dtrain)
+    dtrain = lightgbm.Dataset(X_train, y_train, free_raw_data=False)
+    dtest = lightgbm.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
     param = {'task': 'train', 'boosting_type': 'gbdt',
-             'objective': 'multiclass', 'metric': 'multi_logloss',
-             'num_class': 3, 'num_leaves': 31, 'learning_rate': 0.05}
+             'metric': 'multi_logloss', 'num_class': 3,
+             'num_leaves': 31, 'learning_rate': 0.05}
     num_round = 10
     watchlist = [dtrain, dtest]
     watchlist_names = ['train', 'test']
-    bst = lightgbm.train(param, dtrain, num_round, watchlist, watchlist_names)
-    bst.save_model('./iris_lightgbm.txt')
+    for objective in ['multiclass', 'multiclassova']:
+      param['objective'] = objective
+      bst = lightgbm.train(param, dtrain, num_round, watchlist, watchlist_names)
+      bst.save_model('./iris_lightgbm.txt')
 
-    expected_pred = bst.predict(X_test)
+      expected_pred = bst.predict(X_test)
 
-    model = treelite.Model.load('./iris_lightgbm.txt', model_format='lightgbm')
-    libpath = libname('./iris{}')
-    batch = treelite.runtime.Batch.from_npy2d(X_test)
-    for toolchain in os_compatible_toolchains():
-      model.export_lib(toolchain=toolchain, libpath=libpath,
-                       params={}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
-      out_pred = predictor.predict(batch)
-      assert_almost_equal(out_pred, expected_pred)
+      model = treelite.Model.load('./iris_lightgbm.txt', model_format='lightgbm')
+      libpath = libname('./iris_{}{{}}'.format(objective))
+      batch = treelite.runtime.Batch.from_npy2d(X_test)
+      for toolchain in os_compatible_toolchains():
+        model.export_lib(toolchain=toolchain, libpath=libpath,
+                         params={}, verbose=True)
+        predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+        out_pred = predictor.predict(batch)
+        assert_almost_equal(out_pred, expected_pred)
+
+  def test_lightgbm_binary_classification(self):
+    try:
+      import lightgbm
+    except ImportError:
+      raise nose.SkipTest()  # skip this test if LightGBM is not installed
+
+    dtrain_path = os.path.join(dpath, 'mushroom/agaricus.train')
+    dtest_path = os.path.join(dpath, 'mushroom/agaricus.test')
+    dtrain = lightgbm.Dataset(dtrain_path)
+    dtest = lightgbm.Dataset(dtest_path, reference=dtrain)
+    watchlist = [dtrain, dtest]
+    watchlist_names = ['train', 'test']
+    param = {'task': 'train', 'boosting_type': 'gbdt',
+             'metric': 'auc', 'num_leaves': 7, 'learning_rate': 0.1}
+    num_round = 10
+
+    for objective in ['binary', 'xentlambda', 'xentropy']:
+      param['objective'] = objective
+      bst = lightgbm.train(param, dtrain, num_round, watchlist, watchlist_names)
+      bst.save_model('./mushroom_lightgbm.txt')
+
+      expected_prob = bst.predict(dtest_path)
+      expected_margin = bst.predict(dtest_path, raw_score=True)
+
+      model = treelite.Model.load('./mushroom_lightgbm.txt',
+                                  model_format='lightgbm')
+      libpath = libname('./agaricus_{}{{}}'.format(objective))
+      batch = treelite.runtime.Batch.from_csr(treelite.DMatrix(dtest_path))
+      for toolchain in os_compatible_toolchains():
+        model.export_lib(toolchain=toolchain, libpath=libpath,
+                         params={}, verbose=True)
+        predictor = treelite.runtime.Predictor(libpath, verbose=True)
+        out_prob = predictor.predict(batch)
+        assert_almost_equal(out_prob, expected_prob)
+        out_margin = predictor.predict(batch, pred_margin=True)
+        assert_almost_equal(out_margin, expected_margin)
 
   def test_categorical_data(self):
     """

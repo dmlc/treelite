@@ -19,8 +19,18 @@
 *_pb3.py
 *_pb3.pyc
 
+# Python compiled
+*.pyc
+
 # Compiled Java classes
 *.class
+runtime/java/treelite4j/target/
+
+# Auxiliary Java files
+runtime/java/treelite4j/.classpath
+runtime/java/treelite4j/.project
+runtime/java/treelite4j/.settings/
+runtime/java/treelite4j/coverage.info
 
 # Compiled Dynamic libraries
 *.so

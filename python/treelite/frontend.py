@@ -97,6 +97,8 @@ class Model(object):
       self.compile(temp_dir, params, compiler, verbose)
       temp_libpath = create_shared(toolchain, temp_dir, nthread,
                                    verbose, options)
+      if os.path.exists(libpath) and os.path.isfile(libpath):
+        os.remove(libpath)
       shutil.move(temp_libpath, libpath)
 
   def export_srcpkg(self, platform, toolchain, pkgpath, libname, params=None,

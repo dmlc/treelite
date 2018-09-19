@@ -51,6 +51,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
     std::queue<ASTNode*> Q;
     std::set<treelite::Operator> ops;
     int new_node_id = 0;
+    int new_leaf_id = -1;
     Q.push(node->children[0]);
     while (!Q.empty()) {
       ASTNode* e = Q.front(); Q.pop();
@@ -61,10 +62,14 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
       OutputNode* t2 = dynamic_cast<OutputNode*>(e);
       NumericalConditionNode* t3;
       CHECK(t1 || t2);
-      if ( (t3 = dynamic_cast<NumericalConditionNode*>(t1)) ) {
-        ops.insert(t3->op);
+      if (t2) {  // e is OutputNode
+        descendants[e] = new_leaf_id--;
+      } else {
+        if ( (t3 = dynamic_cast<NumericalConditionNode*>(t1)) ) {
+          ops.insert(t3->op);
+        }
+        descendants[e] = new_node_id++;
       }
-      descendants[e] = new_node_id++;
       for (ASTNode* child : e->children) {
         Q.push(child);
       }
@@ -98,13 +103,6 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
         CHECK_EQ(e->children.size(), 2U);
         left_child_id = descendants[ e->children[0] ];
         right_child_id = descendants[ e->children[1] ];
-        // negate node ID of child node if it is OutputNode
-        if ( dynamic_cast<OutputNode*>(e->children[0]) ) {
-          left_child_id = -left_child_id;
-        }
-        if ( dynamic_cast<OutputNode*>(e->children[1]) ) {
-          right_child_id = -right_child_id;
-        }
         if ( (t2 = dynamic_cast<NumericalConditionNode*>(e)) ) {
           default_left = t2->default_left;
           split_index = t2->split_index;
@@ -160,7 +158,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   // 4. Render switch statement to associate each node ID with an output
   *output_switch_statements = "switch (nid) {\n";
   for (OutputNode* e : output_nodes) {
-    const int node_id = -descendants[static_cast<ASTNode*>(e)];
+    const int node_id = descendants[static_cast<ASTNode*>(e)];
     *output_switch_statements
       += fmt::format(" case {node_id}:\n"
                       "{output_statement}"

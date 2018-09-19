@@ -131,9 +131,8 @@ class ArrayFormatter {
    */
   ArrayFormatter(size_t text_width, size_t indent, char delimiter = ',')
     : oss_(), text_width_(text_width), indent_(indent), delimiter_(delimiter),
-      default_precision_(oss_.precision()), line_length_(indent) {
-    oss_ << std::string(indent, ' ');
-  }
+      default_precision_(oss_.precision()), line_length_(indent),
+      is_empty_(true) {}
 
   /*!
    * \brief add an entry (will use high precision for floating-point values)
@@ -141,6 +140,10 @@ class ArrayFormatter {
    */
   template <typename T>
   inline ArrayFormatter& operator<<(const T& e) {
+    if (is_empty_) {
+      is_empty_ = false;
+      oss_ << std::string(indent_, ' ');
+    }
     std::ostringstream tmp;
     tmp << std::setprecision(GetPrecision<T>()) << e << delimiter_ << " ";
     const std::string token = tmp.str();  // token to be added to wrapped text
@@ -169,6 +172,7 @@ class ArrayFormatter {
   const char delimiter_;  // delimiter (defaults to comma)
   const int default_precision_;  // default precision used by string stream
   size_t line_length_;  // width of current line
+  bool is_empty_;  // true if no entry has been added yet
 
   template <typename T>
   inline int GetPrecision() {

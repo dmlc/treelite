@@ -413,15 +413,24 @@ class ASTNativeCompiler : public Compiler {
                      "array_cat_bitmap"_a = array_cat_bitmap,
                      "cat_begin_name"_a = cat_begin_name,
                      "array_cat_begin"_a = array_cat_begin), 0);
-    AppendToBuffer(dest,
-                   fmt::format(native::eval_loop_template,
-                     "node_array_name"_a = node_array_name,
-                     "cat_bitmap_name"_a = cat_bitmap_name,
-                     "cat_begin_name"_a = cat_begin_name,
-                     "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
-                     "comp_op"_a = OpName(common_comp_op),
-                     "output_switch_statement"_a
-                       = output_switch_statement), indent);
+    if (array_nodes.empty()) {
+      /* folded code consists of a single leaf node */
+      AppendToBuffer(dest,
+                     fmt::format("nid = -1;\n"
+                                 "{output_switch_statement}\n",
+                       "output_switch_statement"_a
+                         = output_switch_statement), indent);
+    } else {
+      AppendToBuffer(dest,
+                     fmt::format(native::eval_loop_template,
+                       "node_array_name"_a = node_array_name,
+                       "cat_bitmap_name"_a = cat_bitmap_name,
+                       "cat_begin_name"_a = cat_begin_name,
+                       "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                       "comp_op"_a = OpName(common_comp_op),
+                       "output_switch_statement"_a
+                         = output_switch_statement), indent);
+    }
   }
 
   inline std::string

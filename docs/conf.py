@@ -76,7 +76,6 @@ call('if [ -d javadoc ]; then rm -rf javadoc/; fi; javasphinx-apidoc -t \'Treeli
 # ones.
 # pylint: disable=C0103
 extensions = [
-    'matplotlib.sphinxext.only_directives',
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',

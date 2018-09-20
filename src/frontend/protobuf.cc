@@ -332,6 +332,11 @@ Model LoadProtobufModel(const char* filename) {
   LOG(FATAL) << "Treelite was not compiled with Protobuf!";
   return Model();  // should not reach here
 }
+
+void ExportProtobufModel(const char* filename, const Model& model) {
+  LOG(FATAL) << "Treelite was not compiled with Protobuf!";
+}
+
 }  // namespace frontend
 }  // namespace treelite
 

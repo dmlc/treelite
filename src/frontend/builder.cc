@@ -138,8 +138,6 @@ TreeBuilder::SetRootNode(int node_key) {
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetRootNode: no node found with node_key");
   _Node* node = nodes[node_key].get();
-  CHECK_EARLY_RETURN(node->status != _Node::_Status::kLeaf,
-                     "SetRootNode: cannot set a leaf node as root");
   CHECK_EARLY_RETURN(node->parent == nullptr,
                      "SetRootNode: a root node cannot have a parent");
   tree.root = node;

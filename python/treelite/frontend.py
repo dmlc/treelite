@@ -604,16 +604,16 @@ class ModelBuilder(object):
     self._set_param(kwargs)
     self.trees = []
 
-  def insert(self, tree, index):
+  def insert(self, index, tree):
     """
     Insert a tree at specified location in the ensemble
 
     Parameters
     ----------
-    tree : :py:class:`.Tree` object
-        tree to be inserted
     index : :py:class:`int <python:int>`
         index of the element before which to insert the tree
+    tree : :py:class:`.Tree` object
+        tree to be inserted
 
     Example
     -------
@@ -623,7 +623,7 @@ class ModelBuilder(object):
 
        builder = ModelBuilder(num_feature=4227)
        tree = ...               # build tree somehow
-       builder.insert(tree, 0)  # insert tree at index 0
+       builder.insert(0, tree)  # insert tree at index 0
 
     """
     if not isinstance(index, int):
@@ -664,7 +664,7 @@ class ModelBuilder(object):
        tree = ...               # build tree somehow
        builder.append(tree)     # add tree at the end of the ensemble
     """
-    self.insert(tree, len(self))
+    self.insert(len(self), tree)
 
   def commit(self):
     """

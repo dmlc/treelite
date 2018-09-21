@@ -22,9 +22,6 @@ class TestCodeFolding(unittest.TestCase):
           'dermatology/dermatology.train', 'dermatology/dermatology.test',
           './dermatology{}', 'dermatology/dermatology.test.prob',
           'dermatology/dermatology.test.margin', True, None),
-         ('xgboost', 'letor/mq2008.model', 'letor/mq2008.train',
-          'letor/mq2008.test', './mq2008{}', None, 'letor/mq2008.test.pred',
-          False, 64),
          ('lightgbm', 'toy_categorical/toy_categorical_model.txt', None,
           'toy_categorical/toy_categorical.test', './toycat{}',
           None, 'toy_categorical/toy_categorical.test.pred', False, 2)]:

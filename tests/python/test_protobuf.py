@@ -21,8 +21,6 @@ class TestProtobuf(unittest.TestCase):
           'dermatology/dermatology.test', './dermatology{}',
           'dermatology/dermatology.test.prob',
           'dermatology/dermatology.test.margin', True),
-         ('xgboost', 'letor/mq2008.model', 'letor/mq2008.test', './mq2008{}',
-          None, 'letor/mq2008.test.pred', False),
          ('lightgbm', 'toy_categorical/toy_categorical_model.txt',
           'toy_categorical/toy_categorical.test', './toycat{}',
           None, 'toy_categorical/toy_categorical.test.pred', False)]:

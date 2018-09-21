@@ -21,25 +21,26 @@ class TestBasic(unittest.TestCase):
     and make predictions
     """
     for model_path, dtrain_path, dtest_path, libname_fmt, \
-        expected_prob_path, expected_margin_path, multiclass in \
+        expected_prob_path, expected_margin_path, multiclass, \
+        parallel_comp_opts in \
         [('mushroom/mushroom.model', 'mushroom/agaricus.train',
           'mushroom/agaricus.test', './agaricus{}',
           'mushroom/agaricus.test.prob',
-          'mushroom/agaricus.test.margin', False),
+          'mushroom/agaricus.test.margin', False, [None, 2]),
          ('dermatology/dermatology.model', 'dermatology/dermatology.train',
           'dermatology/dermatology.test', './dermatology{}',
           'dermatology/dermatology.test.prob',
-          'dermatology/dermatology.test.margin', True),
+          'dermatology/dermatology.test.margin', True, [None, 2]),
          ('letor/mq2008.model', 'letor/mq2008.train',
           'letor/mq2008.test', './mq2008{}',
-          None, 'letor/mq2008.test.pred', False)]:
+          None, 'letor/mq2008.test.pred', False, [700])]:
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='xgboost')
       make_annotation(model=model, dtrain_path=dtrain_path,
                       annotation_path='./annotation.json')
       for use_annotation in ['./annotation.json', None]:
         for use_quantize in [True, False]:
-          for use_parallel_comp in [None, 2]:
+          for use_parallel_comp in parallel_comp_opts:
             run_pipeline_test(model=model, dtest_path=dtest_path,
                               libname_fmt=libname_fmt,
                               expected_prob_path=expected_prob_path,

@@ -21,26 +21,22 @@ class TestBasic(unittest.TestCase):
     and make predictions
     """
     for model_path, dtrain_path, dtest_path, libname_fmt, \
-        expected_prob_path, expected_margin_path, multiclass, \
-        parallel_comp_opts in \
+        expected_prob_path, expected_margin_path, multiclass in \
         [('mushroom/mushroom.model', 'mushroom/agaricus.train',
           'mushroom/agaricus.test', './agaricus{}',
           'mushroom/agaricus.test.prob',
-          'mushroom/agaricus.test.margin', False, [None, 2]),
+          'mushroom/agaricus.test.margin', False),
          ('dermatology/dermatology.model', 'dermatology/dermatology.train',
           'dermatology/dermatology.test', './dermatology{}',
           'dermatology/dermatology.test.prob',
-          'dermatology/dermatology.test.margin', True, [None, 2]),
-         ('letor/mq2008.model', 'letor/mq2008.train',
-          'letor/mq2008.test', './mq2008{}',
-          None, 'letor/mq2008.test.pred', False, [700])]:
+          'dermatology/dermatology.test.margin', True)]:
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='xgboost')
       make_annotation(model=model, dtrain_path=dtrain_path,
                       annotation_path='./annotation.json')
       for use_annotation in ['./annotation.json', None]:
         for use_quantize in [True, False]:
-          for use_parallel_comp in parallel_comp_opts:
+          for use_parallel_comp in [None, 2]:
             run_pipeline_test(model=model, dtest_path=dtest_path,
                               libname_fmt=libname_fmt,
                               expected_prob_path=expected_prob_path,
@@ -48,6 +44,18 @@ class TestBasic(unittest.TestCase):
                               multiclass=multiclass, use_annotation=use_annotation,
                               use_quantize=use_quantize,
                               use_parallel_comp=use_parallel_comp)
+    # LETOR
+    model_path = os.path.join(dpath, 'letor/mq2008.model')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+    make_annotation(model=model, dtrain_path='letor/mq2008.train',
+                    annotation_path='./annotation.json')
+    run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
+                      libname_fmt='./mq2008{}',
+                      expected_prob_path=None,
+                      expected_margin_path='letor/mq2008.test.pred',
+                      multiclass=False, use_annotation='./annotation.json',
+                      use_quantize=1, use_parallel_comp=700,
+                      use_all_toolchains=False)
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

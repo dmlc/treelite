@@ -407,11 +407,15 @@ class ModelBuilder(object):
       """
 
       if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
         raise ValueError(
-          'Cannot modify a non-empty node. ' + \
-          'If you meant to change type of node {}, '.format(self.node_key) + \
-          'delete it first and then add an empty node with ' + \
-          'the same key.')
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
 
       # check if leaf_value is a list-like object
       try:
@@ -471,11 +475,15 @@ class ModelBuilder(object):
           unique integer key to identify the right child node
       """
       if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
         raise ValueError(
-          'Cannot modify a non-empty node. ' + \
-          'If you meant to change type of node {}, '.format(self.node_key) + \
-          'delete it first and then add an empty node with ' + \
-          'the same key.')
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:
@@ -521,11 +529,15 @@ class ModelBuilder(object):
           unique integer key to identify the right child node
       """
       if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
         raise ValueError(
-          'Cannot modify a non-empty node. ' + \
-          'If you meant to change type of node {}, '.format(self.node_key) + \
-          'delete it first and then add an empty node with ' + \
-          'the same key.')
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:
@@ -597,7 +609,7 @@ class ModelBuilder(object):
 
     def __delitem__(self, key):
       _check_call(_LIB.TreeliteTreeBuilderDeleteNode(
-        self.handle, ctypes.c_int(key)))
+          self.handle, ctypes.c_int(key)))
       self.nodes.__delitem__(key)
 
     def __iter__(self):

@@ -60,6 +60,12 @@ class TestSingleInst(unittest.TestCase):
         out_margin = predictor.predict_instance(x, missing=np.nan, pred_margin=True)
         assert_almost_equal(out_prob, expected_prob[i])
         assert_almost_equal(out_margin, expected_margin[i])
+        # NumPy 1D array with np.nan as missing value
+        # (default when `missing` parameter is unspecified)
+        out_prob = predictor.predict_instance(x)
+        out_margin = predictor.predict_instance(x, pred_margin=True)
+        assert_almost_equal(out_prob, expected_prob[i])
+        assert_almost_equal(out_margin, expected_margin[i])
 
   def test_single_inst(self):
     for model_path, dtrain_path, dtest_path, libname_fmt, \

@@ -405,6 +405,18 @@ class ModelBuilder(object):
           Usually a single leaf value (weight) of the leaf node. For multiclass
           random forest classifier, leaf_value should be a list of leaf weights.
       """
+
+      if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
+        raise ValueError(
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
+
       # check if leaf_value is a list-like object
       try:
         _ = iter(leaf_value)
@@ -462,6 +474,16 @@ class ModelBuilder(object):
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
       """
+      if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
+        raise ValueError(
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:
@@ -506,6 +528,16 @@ class ModelBuilder(object):
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
       """
+      if not self.empty:
+        try:
+          node_key = self.node_key
+        except AttributeError:
+          node_key = '_'
+        raise ValueError(
+            'Cannot modify a non-empty node. ' + \
+            'If you meant to change type of node {}, '.format(node_key) + \
+            'delete it first and then add an empty node with ' + \
+            'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:
@@ -576,6 +608,8 @@ class ModelBuilder(object):
       value.tree = self
 
     def __delitem__(self, key):
+      _check_call(_LIB.TreeliteTreeBuilderDeleteNode(
+          self.handle, ctypes.c_int(key)))
       self.nodes.__delitem__(key)
 
     def __iter__(self):
@@ -604,16 +638,16 @@ class ModelBuilder(object):
     self._set_param(kwargs)
     self.trees = []
 
-  def insert(self, tree, index):
+  def insert(self, index, tree):
     """
     Insert a tree at specified location in the ensemble
 
     Parameters
     ----------
-    tree : :py:class:`.Tree` object
-        tree to be inserted
     index : :py:class:`int <python:int>`
         index of the element before which to insert the tree
+    tree : :py:class:`.Tree` object
+        tree to be inserted
 
     Example
     -------
@@ -623,7 +657,7 @@ class ModelBuilder(object):
 
        builder = ModelBuilder(num_feature=4227)
        tree = ...               # build tree somehow
-       builder.insert(tree, 0)  # insert tree at index 0
+       builder.insert(0, tree)  # insert tree at index 0
 
     """
     if not isinstance(index, int):
@@ -664,7 +698,7 @@ class ModelBuilder(object):
        tree = ...               # build tree somehow
        builder.append(tree)     # add tree at the end of the ensemble
     """
-    self.insert(tree, len(self))
+    self.insert(len(self), tree)
 
   def commit(self):
     """

@@ -330,10 +330,7 @@ class Predictor(object):
       if inst.shape[0] > self.num_feature:
         raise ValueError('Too many features. This model was trained with only '+\
                          '{} features'.format(self.num_feature))
-      if missing is None:
-        for i in range(inst.shape[0]):
-          entry[i].fvalue = inst[i]
-      elif np.isnan(missing):
+      if missing is None or np.isnan(missing):
         for i in range(inst.shape[0]):
           if not np.isnan(inst[i]):
             entry[i].fvalue = inst[i]

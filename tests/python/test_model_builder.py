@@ -1424,3 +1424,44 @@ class TestModelBuilder(unittest.TestCase):
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
+
+  def test_node_insert_delete(self):
+    """Test ability to add and remove nodes"""
+    builder = treelite.ModelBuilder(num_feature=3)
+    builder.append(treelite.ModelBuilder.Tree())
+    builder[0][1].set_root()
+    builder[0][1].set_numerical_test_node(
+      feature_id=2, opname='<', threshold=-0.5, default_left=True,
+      left_child_key=5, right_child_key=10)
+    builder[0][5].set_leaf_node(-1)
+    builder[0][10].set_numerical_test_node(
+      feature_id=0, opname='<=', threshold=0.5, default_left=False,
+      left_child_key=7, right_child_key=8)
+    builder[0][7].set_leaf_node(0.0)
+    builder[0][8].set_leaf_node(1.0)
+    del builder[0][1]
+    del builder[0][5]
+    builder[0][5].set_categorical_test_node(
+      feature_id=1, left_categories=[1, 2, 4], default_left=True,
+      left_child_key=20, right_child_key=10)
+    builder[0][20].set_leaf_node(2.0)
+    builder[0][5].set_root()
+
+    model = builder.commit()
+    libpath = libname('./libtest{}')
+    model.export_lib(toolchain='gcc', libpath=libpath, verbose=True)
+    predictor = treelite.runtime.Predictor(libpath=libpath)
+    for f0 in [-0.5, 0.5, 1.5, np.nan]:
+      for f1 in [0, 1, 2, 3, 4, np.nan]:
+        for f2 in [-1.0, -0.5, 1.0, np.nan]:
+          x = np.array([f0, f1, f2])
+          pred = predictor.predict_instance(x)
+          if f1 in [1, 2, 4] or np.isnan(f1):
+            expected_pred = 2.0
+          elif f0 <= 0.5 and not np.isnan(f0):
+            expected_pred = 0.0
+          else:
+            expected_pred = 1.0
+          assert pred == expected_pred, \
+            'Prediction wrong for f0={}, f1={}, f2={}: '.format(f0, f1, f2) + \
+            'expected_pred = {} vs actual_pred = {}'.format(expected_pred, pred)

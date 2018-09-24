@@ -405,6 +405,14 @@ class ModelBuilder(object):
           Usually a single leaf value (weight) of the leaf node. For multiclass
           random forest classifier, leaf_value should be a list of leaf weights.
       """
+
+      if not self.empty:
+        raise ValueError(
+          'Cannot modify a non-empty node. ' + \
+          'If you meant to change type of node {}, '.format(self.node_key) + \
+          'delete it first and then add an empty node with ' + \
+          'the same key.')
+
       # check if leaf_value is a list-like object
       try:
         _ = iter(leaf_value)
@@ -462,6 +470,12 @@ class ModelBuilder(object):
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
       """
+      if not self.empty:
+        raise ValueError(
+          'Cannot modify a non-empty node. ' + \
+          'If you meant to change type of node {}, '.format(self.node_key) + \
+          'delete it first and then add an empty node with ' + \
+          'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:
@@ -506,6 +520,12 @@ class ModelBuilder(object):
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
       """
+      if not self.empty:
+        raise ValueError(
+          'Cannot modify a non-empty node. ' + \
+          'If you meant to change type of node {}, '.format(self.node_key) + \
+          'delete it first and then add an empty node with ' + \
+          'the same key.')
       try:
         # automatically create child nodes that don't exist yet
         if left_child_key not in self.tree:

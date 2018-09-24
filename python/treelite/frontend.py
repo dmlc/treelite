@@ -596,6 +596,8 @@ class ModelBuilder(object):
       value.tree = self
 
     def __delitem__(self, key):
+      _check_call(_LIB.TreeliteTreeBuilderDeleteNode(
+        self.handle, ctypes.c_int(key)))
       self.nodes.__delitem__(key)
 
     def __iter__(self):

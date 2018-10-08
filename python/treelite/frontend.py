@@ -8,8 +8,7 @@ import os
 from .common.compat import STRING_TYPES
 from .common.util import c_str, TreeliteError, TemporaryDirectory
 from .core import _LIB, c_array, _check_call
-from .contrib import create_shared, generate_makefile, _check_ext, \
-                     _toolchain_exist_check
+from .contrib import create_shared, generate_makefile, _toolchain_exist_check
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""
@@ -91,7 +90,6 @@ class Model(object):
        # move the library out of the temporary directory
        shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
     """
-    _check_ext(toolchain, libpath)  # check for file extension
     _toolchain_exist_check(toolchain)
     with TemporaryDirectory() as temp_dir:
       self.compile(temp_dir, params, compiler, verbose)
@@ -163,7 +161,6 @@ class Model(object):
     if fileext != '.zip':
       raise ValueError('Source package file should have .zip extension')
     libname = os.path.basename(libname)
-    _check_ext(toolchain, libname)
     _toolchain_exist_check(toolchain)
 
     with TemporaryDirectory() as temp_dir:

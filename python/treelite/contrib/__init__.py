@@ -12,13 +12,6 @@ from ..common.util import TreeliteError, lineno, log_info
 from ..libpath import find_lib_path
 from .util import _libext, _toolchain_exist_check
 
-def _check_ext(toolchain, dllpath):
-  if toolchain == 'msvc':
-    from .msvc import _check_ext
-  else:
-    from .gcc import _check_ext
-  _check_ext(dllpath)
-
 def generate_makefile(dirpath, platform, toolchain, options=None):
   """
   Generate a Makefile for a given directory of headers and sources. The
@@ -78,9 +71,7 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
                        'set platform=\'windows\'')
     from .msvc import _obj_ext, _obj_cmd, _lib_cmd
   else:
-    from .gcc import _obj_ext, _obj_cmd, _lib_cmd, _openmp_supported
-    if _openmp_supported(toolchain):
-      options += ['-fopenmp']
+    from .gcc import _obj_ext, _obj_cmd, _lib_cmd
   obj_ext = _obj_ext()
 
   with open(os.path.join(dirpath, 'Makefile'), 'w') as f:
@@ -204,7 +195,7 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
   if toolchain == 'msvc':
     from .msvc import _create_shared
   else:
-    from .gcc import _create_shared, _openmp_supported
+    from .gcc import _create_shared
   libpath = \
     _create_shared(dirpath, toolchain, recipe, nthread, options, verbose)
   if verbose:

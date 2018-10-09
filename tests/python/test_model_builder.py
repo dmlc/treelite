@@ -1377,7 +1377,7 @@ class TestModelBuilder(unittest.TestCase):
   def test_model_builder3(self):
     """Test programmatic model construction using scikit-learn random forest"""
     X, y = load_iris(return_X_y=True)
-    clf = RandomForestClassifier(max_depth=3, random_state=0)
+    clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=10)
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
@@ -1417,6 +1417,17 @@ class TestModelBuilder(unittest.TestCase):
     annotator.save(path='./annotation.json')
 
     libpath = libname('./iris{}')
+    for toolchain in os_compatible_toolchains():
+      model.export_lib(toolchain=toolchain, libpath=libpath,
+                       params={'annotate_in': './annotation.json'}, verbose=True)
+      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      batch = treelite.runtime.Batch.from_npy2d(X)
+      out_prob = predictor.predict(batch)
+      assert_almost_equal(out_prob, expected_prob)
+
+    # Test round-trip with Protobuf
+    model.export_protobuf('./my.buffer')
+    model = treelite.Model.load('./my.buffer', 'protobuf')
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={'annotate_in': './annotation.json'}, verbose=True)

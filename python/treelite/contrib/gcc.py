@@ -4,11 +4,7 @@ Tools to interact with toolchains GCC, Clang, and other UNIX compilers
 """
 
 from __future__ import absolute_import as _abs
-import os
-import subprocess
 
-from ..common.compat import DEVNULL
-from ..common.util import TemporaryDirectory
 from .util import _create_shared_base, _libext
 
 LIBEXT = _libext()

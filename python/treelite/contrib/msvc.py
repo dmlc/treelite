@@ -89,9 +89,4 @@ def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
                                   'amd64' if _is_64bit_windows() else 'x86')
   return _create_shared_base(dirpath, recipe, nthread, verbose)
 
-def _check_ext(dllpath):
-  fileext = os.path.splitext(dllpath)[1]
-  if fileext != '.dll':
-    raise ValueError('Library file should have .dll extension')
-
 __all__ = []

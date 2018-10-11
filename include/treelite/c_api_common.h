@@ -34,7 +34,7 @@
  * Note. Each thread will get the last error occured in its own context.
  * \return error string
  */
-TREELITE_DLL const char* TreeliteGetLastError();
+TREELITE_DLL const char* TreeliteGetLastError(void);
 
 /*!
  * \brief register callback function for LOG(INFO) messages -- helpful messages

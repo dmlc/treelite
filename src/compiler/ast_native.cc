@@ -183,7 +183,7 @@ class ASTNativeCompiler : public Compiler {
         "get_num_feature_function_signature"_a
           = get_num_feature_function_signature,
         "predict_function_signature"_a = predict_function_signature,
-        "threshold_type"_a = (param.quantize > 0 ? "int" : "float")),
+        "threshold_type"_a = (param.quantize > 0 ? "int" : "double")),
       indent);
 
     CHECK_EQ(node->children.size(), 1);

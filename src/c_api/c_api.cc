@@ -349,6 +349,27 @@ int TreeliteFreeModel(ModelHandle handle) {
   API_END();
 }
 
+int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
+  API_BEGIN();
+  const Model* model_ = static_cast<Model*>(handle);
+  *out = model_->trees.size();
+  API_END();
+}
+
+int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
+  API_BEGIN();
+  const Model* model_ = static_cast<Model*>(handle);
+  *out = static_cast<size_t>(model_->num_feature);
+  API_END();
+}
+
+int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
+  API_BEGIN();
+  const Model* model_ = static_cast<Model*>(handle);
+  *out = static_cast<size_t>(model_->num_output_group);
+  API_END();
+}
+
 int TreeliteCreateTreeBuilder(TreeBuilderHandle* out) {
   API_BEGIN();
   auto builder = new frontend::TreeBuilder();

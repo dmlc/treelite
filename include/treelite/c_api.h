@@ -271,6 +271,27 @@ TREELITE_DLL int TreeliteLoadProtobufModel(const char* filename,
 TREELITE_DLL int TreeliteExportProtobufModel(const char* filename,
                                              ModelHandle model);
 /*!
+ * \brief Query the number of trees in the model
+ * \param handle model to query
+ * \param out number of trees
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteQueryNumTree(ModelHandle handle, size_t* out);
+/*!
+ * \brief Query the number of features used in the model
+ * \param handle model to query
+ * \param out number of features
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteQueryNumFeature(ModelHandle handle, size_t* out);
+/*!
+ * \brief Query the number of output groups of the model
+ * \param handle model to query
+ * \param out number of output groups
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out);
+/*!
  * \brief delete model from memory
  * \param handle model to remove
  * \return 0 for success, -1 for failure

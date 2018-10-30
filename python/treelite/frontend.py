@@ -41,6 +41,33 @@ class Model(object):
       _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
+  @property
+  def num_tree(self):
+    """Number of decision trees in the model"""
+    if self.handle is None:
+      raise AttributeError('Model not loaded yet')
+    out = ctypes.c_size_t()
+    _check_call(_LIB.TreeliteQueryNumTree(self.handle, ctypes.byref(out)))
+    return out.value
+
+  @property
+  def num_feature(self):
+    """Number of features used in the model"""
+    if self.handle is None:
+      raise AttributeError('Model not loaded yet')
+    out = ctypes.c_size_t()
+    _check_call(_LIB.TreeliteQueryNumFeature(self.handle, ctypes.byref(out)))
+    return out.value
+
+  @property
+  def num_output_group(self):
+    """Number of output groups of the model"""
+    if self.handle is None:
+      raise AttributeError('Model not loaded yet')
+    out = ctypes.c_size_t()
+    _check_call(_LIB.TreeliteQueryNumOutputGroups(self.handle, ctypes.byref(out)))
+    return out.value
+
   # pylint: disable=R0913
   def export_lib(self, toolchain, libpath, params=None, compiler='ast_native',
                  verbose=False, nthread=None, options=None):

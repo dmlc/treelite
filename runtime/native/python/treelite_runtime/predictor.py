@@ -275,13 +275,13 @@ class Predictor(object):
     _check_call(_LIB.TreelitePredictorQueryNumFeature(
         self.handle,
         ctypes.byref(num_feature)))
-    self.num_feature = num_feature.value
+    self.num_feature_ = num_feature.value
     # save # of output groups
     num_output_group = ctypes.c_size_t()
     _check_call(_LIB.TreelitePredictorQueryNumOutputGroup(
         self.handle,
         ctypes.byref(num_output_group)))
-    self.num_output_group = num_output_group.value
+    self.num_output_group_ = num_output_group.value
 
     if verbose:
       log_info(__file__, lineno(),
@@ -310,16 +310,16 @@ class Predictor(object):
     pred_margin: :py:class:`bool <python:bool>`, optional
         Whether to produce raw margins rather than transformed probabilities
     """
-    entry = (PredictorEntry * self.num_feature)()
-    for i in range(self.num_feature):
+    entry = (PredictorEntry * self.num_feature_)()
+    for i in range(self.num_feature_):
       entry[i].missing = -1
 
     if isinstance(inst, scipy.sparse.csr_matrix):
       if inst.shape[0] != 1:
         raise ValueError('inst cannot have more than one row')
-      if inst.shape[1] > self.num_feature:
+      if inst.shape[1] > self.num_feature_:
         raise ValueError('Too many features. This model was trained with only '+\
-                         '{} features'.format(self.num_feature))
+                         '{} features'.format(self.num_feature_))
       for i in range(inst.nnz):
         entry[inst.indices[i]].fvalue = inst.data[i]
     elif isinstance(inst, scipy.sparse.csc_matrix):
@@ -327,9 +327,9 @@ class Predictor(object):
     elif isinstance(inst, np.ndarray):
       if len(inst.shape) > 1:
         raise ValueError('inst must be 1D')
-      if inst.shape[0] > self.num_feature:
+      if inst.shape[0] > self.num_feature_:
         raise ValueError('Too many features. This model was trained with only '+\
-                         '{} features'.format(self.num_feature))
+                         '{} features'.format(self.num_feature_))
       if missing is None or np.isnan(missing):
         for i in range(inst.shape[0]):
           if not np.isnan(inst[i]):
@@ -358,8 +358,8 @@ class Predictor(object):
         ctypes.byref(out_result_size)))
     idx = int(out_result_size.value)
     res = out_result[0:idx].reshape((1, -1)).squeeze()
-    if self.num_output_group > 1:
-      res = res.reshape((-1, self.num_output_group))
+    if self.num_output_group_ > 1:
+      res = res.reshape((-1, self.num_output_group_))
     return res
 
   def predict(self, batch, verbose=False, pred_margin=False):
@@ -401,13 +401,23 @@ class Predictor(object):
         ctypes.byref(out_result_size)))
     idx = int(out_result_size.value)
     res = out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
-    if self.num_output_group > 1 and batch.shape()[0] != idx:
-      res = res.reshape((-1, self.num_output_group))
+    if self.num_output_group_ > 1 and batch.shape()[0] != idx:
+      res = res.reshape((-1, self.num_output_group_))
     return res
 
   def __del__(self):
     if self.handle is not None:
       _check_call(_LIB.TreelitePredictorFree(self.handle))
       self.handle = None
+
+  @property
+  def num_feature(self):
+    """Query number of features used in the model"""
+    return self.num_feature_
+
+  @property
+  def num_output_group(self):
+    """Query number of output groups of the model"""
+    return self.num_output_group_
 
 __all__ = ['Predictor', 'Batch', '__version__']

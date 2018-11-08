@@ -138,3 +138,9 @@ endif()
 
 # Group sources
 auto_source_group("${SOURCES}")
+
+install(TARGETS treelite
+        LIBRARY DESTINATION lib)
+
+install(DIRECTORY include/treelite DESTINATION include
+        FILES_MATCHING PATTERN "*.h")

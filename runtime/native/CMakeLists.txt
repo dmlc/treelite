@@ -87,3 +87,9 @@ if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite_runtime PROPERTIES PREFIX "")
 endif()
+
+install(TARGETS treelite_runtime
+        LIBRARY DESTINATION lib)
+
+install(DIRECTORY include/treelite DESTINATION include
+        FILES_MATCHING PATTERN "*.h")

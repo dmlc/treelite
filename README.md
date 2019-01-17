@@ -14,4 +14,6 @@ Contributors
 **Treelite** is a model compiler for efficient deployment of decision tree
 ensembles.
 
+**Neo-ai-treelite** is a AWS-managed fork of Treelite, that hosts vendor- and product-oriented features on top of upstream codebase.
+
 **The version 0.32 is now available.**

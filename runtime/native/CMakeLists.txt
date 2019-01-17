@@ -81,8 +81,11 @@ list(APPEND RUNTIME_LINK_LIBRARIES dmlc)
 
 # Shared library
 add_library(treelite_runtime SHARED $<TARGET_OBJECTS:objtreelite_runtime>)
+add_library(treelite_runtime_static STATIC $<TARGET_OBJECTS:objtreelite_runtime>)
 target_link_libraries(treelite_runtime ${RUNTIME_LINK_LIBRARIES})
+target_link_libraries(treelite_runtime_static ${RUNTIME_LINK_LIBRARIES})
 set_output_directory(treelite_runtime ${PROJECT_SOURCE_DIR}/lib)
+set_output_directory(treelite_runtime_static ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite_runtime PROPERTIES PREFIX "")

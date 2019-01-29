@@ -56,7 +56,7 @@ fi
 
 if [ ${TASK} == "java_test" ]; then
   cd runtime/java/treelite4j
-  mvn test -DJNI.args=cpp-coverage
+  mvn test -DJNI.args=cpp-coverage || exit -1
   # capture coverage info
   lcov --directory . --capture --output-file coverage.info
   # filter system and 3rd-party headers

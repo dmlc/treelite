@@ -62,4 +62,54 @@ and invoke the prediction function.
 
 Predict with a batch of inputs
 ------------------------------
-[Under construction]
+For predicting with a batch of inputs, we create a list of DataPoint objects. Each DataPoint object consists of feature values and corresponding feature indices.
+
+Let us look at an example. Consider the following 4-by-6 data matrix
+
+.. math::
+
+  \left[
+    \begin{array}{cccccc}
+      10 & 20 & \cdot & \cdot & \cdot & \cdot\\
+      \cdot & 30 & \cdot & 40 & \cdot & \cdot\\
+      \cdot & \cdot & 50 & 60 & 70 & \cdot\\
+      \cdot & \cdot & \cdot & \cdot & \cdot & 80
+    \end{array}
+  \right]
+
+where the dot (.) indicates the missing value. The matrix consists of 4 data points (instances), each with 6 feature values.
+Since not all feature values are present, we need to store feature indices as well as feature values:
+
+.. code-block:: java
+
+  import ml.dmlc.treelite4j.DataPoint;
+
+  // Create a list consisting of 4 data points
+  List<DataPoint> dmat = new ArrayList<DataPoint>() {
+    {
+      //                feature indices     feature values
+      add(new DataPoint(new int[]{0, 1},    new float[]{10f, 20f}));
+      add(new DataPoint(new int[]{1, 3},    new float[]{30f, 40f}));
+      add(new DataPoint(new int[]{2, 3, 4}, new float[]{50f, 60f, 70f}));
+      add(new DataPoint(new int[]{5},       new float[]{80f}));
+    }
+  };
+
+Once the list is created, we then convert it into a SparseBatch object. We use SparseBatch rather than DenseBatch because significant portion of the data matrix
+consists of missing values.
+
+.. code-block:: java
+
+  import ml.dmlc.treelite4j.BatchBuilder;
+
+  // Convert data point list into SparseBatch object
+  SparseBatch batch = BatchBuilder.CreateSparseBatch(dmat);
+
+Now invoke the batch prediction function using the SparseBatch object:
+
+.. code-block:: java
+
+  // verbose=true, pred_margin=false
+  float[][] result = predictor.predict(batch, true, false);
+
+The returned array is a two-dimensional array where the array ``result[i]`` represents the prediction for the ``i``-th data point. For most applications, each ``result[i]`` has length 1. Multi-class classification task is specical, in that for that task ``result[i]`` contains class probabilities, so the array is as long as the number of target classes.

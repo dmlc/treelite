@@ -87,6 +87,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.imgmath']
 
+imgmath_dvipng_args = ['-gamma', '1.5', '-D', '180', '-bg', 'Transparent']
+
 graphviz_output_format = 'png'
 plot_formats = [('svg', 300), ('png', 100), ('hires.png', 300)]
 plot_html_show_source_link = False

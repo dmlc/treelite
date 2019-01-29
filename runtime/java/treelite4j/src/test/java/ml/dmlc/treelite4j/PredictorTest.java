@@ -44,10 +44,10 @@ public class PredictorTest {
   @Test
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    List<List<MatrixEntry>> dmat
-      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = CreateSparseBatch(dmat);
-    DenseBatch dense_batch = CreateDenseBatch(dmat);
+    List<DataPoint> dmat
+      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
+    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
@@ -69,10 +69,10 @@ public class PredictorTest {
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
-    List<List<MatrixEntry>> dmat
-      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = CreateSparseBatch(dmat);
-    DenseBatch dense_batch = CreateDenseBatch(dmat);
+    List<DataPoint> dmat
+      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
+    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
 
@@ -103,12 +103,14 @@ public class PredictorTest {
     float[] expected_result
       = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
-    List<List<MatrixEntry>> dmat
-      = LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    List<DataPoint> dmat
+      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     int row_id = 0;
-    for (List<MatrixEntry> inst : dmat) {
-      for (MatrixEntry e : inst) {
-        inst_arr[e.fid].setFValue(e.fval);
+    for (DataPoint inst : dmat) {
+      int[] indices = inst.indices();
+      float[] values = inst.values();
+      for (int i = 0; i < indices.length; ++i) {
+        inst_arr[indices[i]].setFValue(values[i]);
       }
       float[] result = predictor.predict(inst_arr, false);
       TestCase.assertEquals(1, result.length);
@@ -131,91 +133,6 @@ public class PredictorTest {
     } finally {
       it.close();
     }
-    return ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));
-  }
-
-  private class MatrixEntry {  // (feature id, feature value) pair
-    int fid;
-    float fval;
-    public MatrixEntry(int fid, float fval) {
-      this.fid = fid;
-      this.fval = fval;
-    }
-  }
-
-  private List<List<MatrixEntry>> LoadDatasetFromLibSVM(String filename)
-       throws TreeliteError, IOException {
-    File file = new File(filename);
-    LineIterator it = FileUtils.lineIterator(file, "UTF-8");
-    ArrayList<List<MatrixEntry>> dmat = new ArrayList<List<MatrixEntry>>();
-    try {
-      while (it.hasNext()) {
-        String line = it.nextLine();
-        String[] tokens = line.split(" ");
-        ArrayList<MatrixEntry> inst = new ArrayList<MatrixEntry>();
-        // ignore label; just read feature values
-        for (int i = 1; i < tokens.length; ++i) {
-          String[] subtokens = tokens[i].split(":");
-          int fid = Integer.parseInt(subtokens[0]);
-          float fval = Float.parseFloat(subtokens[1]);
-          inst.add(new MatrixEntry(fid, fval));
-        }
-        dmat.add(inst);
-      }
-    } finally {
-      it.close();
-    }
-    return dmat;
-  }
-
-  private SparseBatch CreateSparseBatch(List<List<MatrixEntry>> dmat)
-       throws TreeliteError, IOException {
-    ArrayList<Float> data = new ArrayList<Float>();
-    ArrayList<Integer> col_ind = new ArrayList<Integer>();
-    ArrayList<Long> row_ptr = new ArrayList<Long>();
-    int num_row = dmat.size();
-    int num_col = 0;
-    row_ptr.add(0L);
-    for (List<MatrixEntry> inst : dmat) {
-      int nnz_current_row = 0;
-        // count number of nonzero feature values for current row
-      for (MatrixEntry e : inst) {
-        data.add(e.fval);
-        col_ind.add(e.fid);
-        num_col = Math.max(num_col, e.fid + 1);
-        ++nnz_current_row;
-      }
-      row_ptr.add(row_ptr.get(row_ptr.size() - 1) + (long)nnz_current_row);
-    }
-    float[] data_arr
-      = ArrayUtils.toPrimitive(data.toArray(new Float[data.size()]));
-    int[] col_ind_arr
-      = ArrayUtils.toPrimitive(col_ind.toArray(new Integer[col_ind.size()]));
-    long[] row_ptr_arr
-      = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[row_ptr.size()]));
-    return new SparseBatch(data_arr, col_ind_arr, row_ptr_arr, num_row, num_col);
-  }
-
-  private DenseBatch CreateDenseBatch(List<List<MatrixEntry>> dmat)
-       throws TreeliteError, IOException {
-    int num_row = dmat.size();
-    int num_col = 0;
-    // compute num_col
-    for (List<MatrixEntry> inst : dmat) {
-      for (MatrixEntry e : inst) {
-        num_col = Math.max(num_col, e.fid + 1);
-      }
-    }
-    float[] data = new float[num_row * num_col];
-    Arrays.fill(data, Float.NaN);
-    // write nonzero entries
-    int row_id = 0;
-    for (List<MatrixEntry> inst : dmat) {
-      for (MatrixEntry e : inst) {
-        data[row_id * num_col + e.fid] = e.fval;
-      }
-      ++row_id;
-    }
-    return new DenseBatch(data, Float.NaN, num_row, num_col);
+    return ArrayUtils.toPrimitive(data.toArray(new Float[0]));
   }
 }

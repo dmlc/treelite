@@ -3,8 +3,11 @@ package ml.dmlc.treelite4j;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
 import junit.framework.TestCase;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -35,7 +38,7 @@ public class SparseBatchTest {
         }
       }
       long[] row_ptr_arr
-        = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[row_ptr.size()]));
+        = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[0]));
       SparseBatch batch
         = new SparseBatch(data, col_ind, row_ptr_arr, num_row, num_col);
       long[] out_num_row = new long[1];
@@ -45,5 +48,26 @@ public class SparseBatchTest {
       TestCase.assertEquals(num_row, out_num_row[0]);
       TestCase.assertEquals(num_col, out_num_col[0]);
     }
+  }
+
+  @Test
+  public void testSparseBatchBuilder() throws TreeliteError, IOException {
+    List<DataPoint> dmat = new ArrayList<DataPoint>() {
+      {
+        add(new DataPoint(new int[]{0, 1},    new float[]{10f, 20f}));
+        add(new DataPoint(new int[]{1, 3},    new float[]{30f, 40f}));
+        add(new DataPoint(new int[]{2, 3, 4}, new float[]{50f, 60f, 70f}));
+        add(new DataPoint(new int[]{5},       new float[]{80f}));
+      }
+    };
+    SparseBatch batch = BatchBuilder.CreateSparseBatch(dmat);
+
+    // should get 4-by-6 matrix
+    long[] out_num_row = new long[1];
+    long[] out_num_col = new long[1];
+    TreeliteJNI.checkCall(TreeliteJNI.TreeliteBatchGetDimension(
+      batch.getHandle(), true, out_num_row, out_num_col));
+    TestCase.assertEquals(4, out_num_row[0]);
+    TestCase.assertEquals(6, out_num_col[0]);
   }
 }

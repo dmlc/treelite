@@ -10,7 +10,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Collection of utility functions to create batch objects
+ * @author Philip Cho
+ */
 public class BatchBuilder {
+  /**
+   * Assemble a sparse batch from a list of data points
+   * @param dmat List of data points
+   * @return Created sparse batch
+   * @throws TreeliteError Treelite error
+   * @throws IOException IO error
+   */
   public static SparseBatch CreateSparseBatch(List<DataPoint> dmat)
       throws TreeliteError, IOException {
     ArrayList<Float> data = new ArrayList<Float>();
@@ -49,6 +60,13 @@ public class BatchBuilder {
     return new SparseBatch(data_arr, col_ind_arr, row_ptr_arr, num_row, num_col);
   }
 
+  /**
+   * Assemble a dense batch from a list of data points
+   * @param dmat List of data points
+   * @return Created dense batch
+   * @throws TreeliteError Treelite error
+   * @throws IOException IO error
+   */
   public static DenseBatch CreateDenseBatch(List<DataPoint> dmat)
       throws TreeliteError, IOException {
     int num_row = dmat.size();
@@ -91,6 +109,13 @@ public class BatchBuilder {
     return new DenseBatch(data, Float.NaN, num_row, num_col);
   }
 
+  /**
+   * Load a LIBSVM data file and construct a list of data points
+   * @param filename path to LIBSVM file
+   * @return Created list of data points
+   * @throws TreeliteError Treelite error
+   * @throws IOException IO error
+   */
   public static List<DataPoint> LoadDatasetFromLibSVM(String filename)
       throws TreeliteError, IOException {
     File file = new File(filename);

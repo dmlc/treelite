@@ -3,8 +3,6 @@
 if [ ${TASK} == "python_test" -o ${TASK} == "lint" -o ${TASK} == "cpp_test" ]; then
   if [ ${TRAVIS_OS_NAME} == "osx" ]; then
     wget -O conda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-    brew update
-    brew install gcc@7
   else
     wget -O conda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   fi

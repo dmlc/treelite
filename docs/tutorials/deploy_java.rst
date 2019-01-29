@@ -113,3 +113,10 @@ Now invoke the batch prediction function using the SparseBatch object:
   float[][] result = predictor.predict(batch, true, false);
 
 The returned array is a two-dimensional array where the array ``result[i]`` represents the prediction for the ``i``-th data point. For most applications, each ``result[i]`` has length 1. Multi-class classification task is specical, in that for that task ``result[i]`` contains class probabilities, so the array is as long as the number of target classes.
+
+For your convenience, we also provide a convenience method to load a data text file in the LIBSVM format:
+
+.. code-block:: java
+
+  List<DataPoint> dmat = BatchBuilder.LoadDatasetFromLibSVM("path/to/my.data.libsvm");
+  SparseBatch batch = BatchBuilder.CreateSparseBatch(dmat);

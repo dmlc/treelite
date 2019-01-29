@@ -33,8 +33,8 @@ matrix:
 addons:
   apt:
     packages:
-      - cmake-data
-      - cmake
+      - cmake3-data
+      - cmake3
       - gcc-4.8
       - g++-4.8
       - clang-3.4

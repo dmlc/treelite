@@ -12,5 +12,6 @@ This page lists tutorials about treelite.
  import
  optimize
  deploy
+ deploy_java
  builder
  protobuf

@@ -13,10 +13,12 @@
 #include <string>
 #include <regex>
 #include <cstdlib>
+#include <random>
 
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
+#include <Shlwapi.h>
 #else
 #include <unistd.h>
 #include <errno.h>

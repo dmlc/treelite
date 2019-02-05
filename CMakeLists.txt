@@ -139,8 +139,13 @@ endif()
 # Group sources
 auto_source_group("${SOURCES}")
 
-install(TARGETS treelite
-        LIBRARY DESTINATION lib)
+if(WIN32)
+  install(TARGETS treelite
+          RUNTIME DESTINATION lib)
+else()
+  install(TARGETS treelite
+          LIBRARY DESTINATION lib)
+endif()
 
 install(DIRECTORY include/treelite DESTINATION include
         FILES_MATCHING PATTERN "*.h")

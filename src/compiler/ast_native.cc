@@ -22,6 +22,12 @@
 #include "./common/code_folding_util.h"
 #include "./common/categorical_bitmap.h"
 
+#if defined(_MSC_VER) || defined(_WIN32)
+#define DLLEXPORT_KEYWORD "__declspec(dllexport) "
+#else
+#define DLLEXPORT_KEYWORD ""
+#endif
+
 using namespace fmt::literals;
 
 namespace treelite {
@@ -164,6 +170,12 @@ class ASTNativeCompiler : public Compiler {
                                     "float* result)"
         : "float predict(union Entry* data, int pred_margin)";
 
+    if (!array_is_categorical_.empty()) {
+      array_is_categorical_
+        = fmt::format("const unsigned char is_categorical[] = {{\n{}\n}}",
+                      array_is_categorical_);
+    }
+
     AppendToBuffer(dest,
       fmt::format(native::main_start_template,
         "array_is_categorical"_a = array_is_categorical_,
@@ -178,6 +190,7 @@ class ASTNativeCompiler : public Compiler {
       indent);
     AppendToBuffer("header.h",
       fmt::format(native::header_template,
+        "dllexport"_a = DLLEXPORT_KEYWORD,
         "get_num_output_group_function_signature"_a
           = get_num_output_group_function_signature,
         "get_num_feature_function_signature"_a

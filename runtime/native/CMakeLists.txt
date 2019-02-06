@@ -88,8 +88,13 @@ if(MINGW)
   set_target_properties(treelite_runtime PROPERTIES PREFIX "")
 endif()
 
-install(TARGETS treelite_runtime
-        LIBRARY DESTINATION lib)
+if(WIN32)
+  install(TARGETS treelite_runtime
+          RUNTIME DESTINATION lib)
+else()
+  install(TARGETS treelite_runtime
+          LIBRARY DESTINATION lib)
+endif()
 
 install(DIRECTORY include/treelite DESTINATION include
         FILES_MATCHING PATTERN "*.h")

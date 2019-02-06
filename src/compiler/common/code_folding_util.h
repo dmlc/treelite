@@ -119,9 +119,12 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
           cat_bitmap.insert(cat_bitmap.end(), bitmap.begin(), bitmap.end());
           cat_begin.push_back(cat_bitmap.size());
         }
-        auto BoolWrapper =
-          use_boolean_literal ? [](bool x) { return x ? "true" : "false"; }
-                              : [](bool x) { return x ? "1" : "0"; };
+        const char* (*BoolWrapper)(bool);
+        if (use_boolean_literal) {
+          BoolWrapper = [](bool x) { return x ? "true" : "false"; };
+        } else {
+          BoolWrapper = [](bool x) { return x ? "1" : "0"; };
+        }
         formatter << fmt::format(node_entry_template,
                                   "default_left"_a = BoolWrapper(default_left),
                                   "split_index"_a = split_index,

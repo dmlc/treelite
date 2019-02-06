@@ -16,9 +16,7 @@ const char* main_start_template =
 R"TREELITETEMPLATE(
 #include "header.h"
 
-const unsigned char is_categorical[] = {{
-{array_is_categorical}
-}};
+{array_is_categorical};
 
 {get_num_output_group_function_signature} {{
   return {num_output_group};

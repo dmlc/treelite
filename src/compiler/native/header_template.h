@@ -43,9 +43,9 @@ struct Node {{
 
 extern const unsigned char is_categorical[];
 
-{get_num_output_group_function_signature};
-{get_num_feature_function_signature};
-{predict_function_signature};
+{dllexport}{get_num_output_group_function_signature};
+{dllexport}{get_num_feature_function_signature};
+{dllexport}{predict_function_signature};
 )TREELITETEMPLATE";
 
 }  // namespace native

@@ -233,13 +233,10 @@ class Predictor(object):
       hardware threads
   verbose : :py:class:`bool <python:bool>`, optional
       Whether to print extra messages during construction
-  include_master_thread : :py:class:`bool <python:bool>`, optional
-      Whether to assign work to the master thread
   """
   # pylint: disable=R0903
 
-  def __init__(self, libpath, nthread=None, verbose=False,
-               include_master_thread=True):
+  def __init__(self, libpath, nthread=None, verbose=False):
     if os.path.isdir(libpath):  # libpath is a directory
       # directory is given; locate shared library inside it
       basename = os.path.basename(libpath.rstrip('/\\'))
@@ -268,7 +265,6 @@ class Predictor(object):
     _check_call(_LIB.TreelitePredictorLoad(
         c_str(path),
         ctypes.c_int(nthread if nthread is not None else -1),
-        ctypes.c_int(1 if include_master_thread else 0),
         ctypes.byref(self.handle)))
     # save # of features
     num_feature = ctypes.c_size_t()

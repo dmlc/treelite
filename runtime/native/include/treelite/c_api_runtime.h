@@ -93,15 +93,11 @@ TREELITE_DLL int TreeliteBatchGetDimension(void* handle,
  * a dynamic shared library object (.so/.dll/.dylib).
  * \param library_path path to library object file containing prediction code
  * \param num_worker_thread number of worker threads (-1 to use max number)
- * \param include_master_thread whether to assign workload to the master
- *                              thread. If not, only workers threads will be
- *                              assigned work.
  * \param out handle to predictor
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorLoad(const char* library_path,
                                        int num_worker_thread,
-                                       int include_master_thread,
                                        PredictorHandle* out);
 /*!
  * \brief Make predictions on a batch of data rows (synchronously). This

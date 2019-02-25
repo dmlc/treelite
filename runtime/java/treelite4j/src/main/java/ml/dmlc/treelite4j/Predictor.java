@@ -28,18 +28,14 @@ public class Predictor {
    * @param nthread Number of workers threads to spawn. Set to -1 to use default,
    *                i.e., to launch as many threads as CPU cores available on
    *                the system. You are not allowed to launch more threads than
-   *                CPU cores.
+   *                CPU cores. Setting ``nthread=1`` indicates that the main
+   *                thread should be exclusively used.
    * @param verbose Whether to print extra diagnostic messages
-   * @param include_master_thread Whether the master thread (the thread calling
-   *                              the :java:ref:`predict()` method) should
-   *                              itself be assigned work. This option is
-   *                              applicable only to batch prediction.
    * @return Created Predictor
    * @throws TreeliteError
    */
   public Predictor(
-    String libpath, int nthread, boolean verbose, boolean include_master_thread)
-      throws TreeliteError {
+    String libpath, int nthread, boolean verbose) throws TreeliteError {
     File f = new File(libpath);
     String path = "";
     if (f.isDirectory()) {  // libpath is a diectory
@@ -74,7 +70,7 @@ public class Predictor {
 
     long[] out = new long[1];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorLoad(
-      path, nthread, include_master_thread, out));
+      path, nthread, out));
     handle = out[0];
 
     // Save # of output groups and # of features

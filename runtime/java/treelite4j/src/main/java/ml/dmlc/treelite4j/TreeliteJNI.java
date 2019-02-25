@@ -48,8 +48,7 @@ class TreeliteJNI {
     long handle, boolean batch_sparse, long[] out_num_row, long[] out_num_col);
 
   public final static native int TreelitePredictorLoad(
-    String library_path, int num_worker_thread, boolean include_master_thread,
-    long[] out);
+    String library_path, int num_worker_thread, long[] out);
 
   public final static native int TreelitePredictorPredictBatch(
     long handle, long batch, boolean batch_sparse, boolean verbose,

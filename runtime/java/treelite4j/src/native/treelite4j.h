@@ -63,11 +63,11 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteBatchGetDimension(
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorLoad
- * Signature: (Ljava/lang/String;IZ[J)I
+ * Signature: (Ljava/lang/String;I[J)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorLoad(
-  JNIEnv*, jclass, jstring, jint, jboolean, jlongArray);
+  JNIEnv*, jclass, jstring, jint, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI

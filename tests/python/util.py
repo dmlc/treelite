@@ -91,7 +91,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
                       multiclass, use_annotation, use_quantize,
                       use_parallel_comp, use_code_folding=None,
-                      use_all_toolchains=True):
+                      use_toolchains=None):
   dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
   dtest_path = os.path.join(dpath, dtest_path)
   libpath = libname(libname_fmt)
@@ -118,9 +118,11 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
   if use_code_folding is not None:
     params['code_folding_req'] = use_code_folding
 
-  toolchains = os_compatible_toolchains()
-  if not use_all_toolchains:
-    toolchains = [toolchains[0]]
+  if use_toolchains is None:
+    toolchains = os_compatible_toolchains()
+  else:
+    gcc = os.environ.get('GCC_PATH', 'gcc')
+    toolchains = [(gcc if x == 'gcc' else x) for x in use_toolchains]
   for toolchain in toolchains:
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      params=params, verbose=True)

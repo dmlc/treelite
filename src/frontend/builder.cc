@@ -392,7 +392,7 @@ ModelBuilder::CommitModel(Model* out_model) {
                            "CommitModel: right child has wrong parent");
         tree.AddChilds(nid);
         tree[nid].set_categorical_split(node->feature_id, node->default_left,
-                                        node->left_categories);
+                                        false, node->left_categories);
         Q.push({node->left_child, tree[nid].cleft()});
         Q.push({node->right_child, tree[nid].cright()});
       } else {  // leaf node

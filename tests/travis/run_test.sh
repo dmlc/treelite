@@ -13,6 +13,8 @@ if [ ${TASK} == "python_test" ]; then
   if [ ${TRAVIS_OS_NAME} == "linux" ]; then
     python -m pip install xgboost  # Run XGBoost/LightGBM integration only on Linux
     python -m pip install --no-binary :all: lightgbm
+  elif [ ${TRAVIS_OS_NAME} == "osx" ]; then
+    export GCC_PATH=gcc-7
   fi
 
   python -m pip install coverage codecov

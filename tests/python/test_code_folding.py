@@ -21,10 +21,7 @@ class TestCodeFolding(unittest.TestCase):
          ('xgboost', 'dermatology/dermatology.model',
           'dermatology/dermatology.train', 'dermatology/dermatology.test',
           './dermatology{}', 'dermatology/dermatology.test.prob',
-          'dermatology/dermatology.test.margin', True, None),
-         ('lightgbm', 'toy_categorical/toy_categorical_model.txt', None,
-          'toy_categorical/toy_categorical.test', './toycat{}',
-          None, 'toy_categorical/toy_categorical.test.pred', False, 2)]:
+          'dermatology/dermatology.test.margin', True, None)]:
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format=model_format)
       if dtrain_path is not None:

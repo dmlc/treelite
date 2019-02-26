@@ -47,7 +47,7 @@ def _check_call(ret):
       return value from API calls
   """
   if ret != 0:
-    raise TreeliteError(_LIB.TreeliteGetLastError())
+    raise TreeliteError(_LIB.TreeliteGetLastError().decode('utf-8'))
 
 def c_array(ctype, values):
   """

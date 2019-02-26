@@ -124,3 +124,32 @@ class TestLightGBMIntegration(unittest.TestCase):
                             multiclass=multiclass, use_annotation=None,
                             use_quantize=use_quantize,
                             use_parallel_comp=use_parallel_comp)
+
+  def test_sparse_categorical_model(self):
+    """
+    LightGBM is able to produce categorical splits directly, so that
+    categorical data don't have to be one-hot encoded. Test if Treelite is
+    able to handle categorical splits.
+
+    This example produces a model with high-cardinality categorical variables.
+    The training data has many missing values, so we need to match LightGBM
+    when it comes to handling missing values
+    """
+
+    for model_path, dtest_path, libname_fmt, \
+        expected_prob_path, expected_margin_path, multiclass in \
+        [('sparse_categorical/sparse_categorical_model.txt',
+          'sparse_categorical/sparse_categorical.test', './sparsecat{}',
+          None, 'sparse_categorical/sparse_categorical.test.margin', False)]:
+      model_path = os.path.join(dpath, model_path)
+      model = treelite.Model.load(model_path, model_format='lightgbm')
+      for use_quantize in [False, True]:
+        for use_parallel_comp in [None, 2]:
+          run_pipeline_test(model=model, dtest_path=dtest_path,
+                            libname_fmt=libname_fmt,
+                            expected_prob_path=expected_prob_path,
+                            expected_margin_path=expected_margin_path,
+                            multiclass=multiclass, use_annotation=None,
+                            use_quantize=use_quantize,
+                            use_parallel_comp=use_parallel_comp,
+                            use_toolchains=['gcc'])

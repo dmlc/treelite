@@ -59,4 +59,10 @@ message Node {
    optional double gain = 13;        // change in loss that is attributed to
                                      // particular split; may be omitted if
                                      // unavailable
+   optional bool missing_category_to_zero = 14;
+                                     // Whether to convert missing value to zero
+                                     // Only applicable when split_type is
+                                     // set to CATEGORICAL. When this flag is
+                                     // set, it overrides behavior of
+                                     // default_left
 }

@@ -57,7 +57,7 @@ class TestBasic(unittest.TestCase):
                       expected_margin_path='letor/mq2008.test.pred',
                       multiclass=False, use_annotation='./annotation.json',
                       use_quantize=1, use_parallel_comp=700,
-                      use_all_toolchains=False)
+                      use_toolchains=['gcc'])
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

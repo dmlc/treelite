@@ -121,7 +121,8 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
   if use_toolchains is None:
     toolchains = os_compatible_toolchains()
   else:
-    toolchains = use_toolchains
+    gcc = os.environ.get('GCC_PATH', 'gcc')
+    toolchains = [(gcc if x == 'gcc' else x) for x in use_toolchains]
   for toolchain in toolchains:
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      params=params, verbose=True)

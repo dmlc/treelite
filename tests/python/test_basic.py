@@ -6,9 +6,11 @@ import os
 import subprocess
 from zipfile import ZipFile
 import numpy as np
+from scipy.sparse import csr_matrix
 from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite.runtime
+from nose.tools import assert_raises
 from util import load_txt, os_compatible_toolchains, os_platform, libname, \
                  run_pipeline_test, make_annotation, assert_almost_equal
 
@@ -82,3 +84,39 @@ class TestBasic(unittest.TestCase):
     expected_prob = load_txt(expected_prob_path)
     out_prob = predictor.predict(batch)
     assert_almost_equal(out_prob, expected_prob)
+
+  def test_deficient_matrix(self):
+    """
+    Test if Treelite correctly handles sparse matrix with fewer columns
+    than the training data used for the model. In this case, the matrix
+    should be padded with zeros.
+    """
+    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
+    libpath = libname('./mushroom{}')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+    toolchain = os_compatible_toolchains()[0]
+    model.export_lib(toolchain=toolchain, libpath=libpath,
+                     params={'quantize': 1}, verbose=True)
+    X = csr_matrix(([], ([], [])), shape=(3, 3))
+    batch = treelite.runtime.Batch.from_csr(X)
+    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+    predictor.predict(batch)  # should not crash
+
+  def test_too_wide_matrix(self):
+    """
+    Test if Treelite correctly handles sparse matrix with more columns
+    than the training data used for the model. In this case, an exception
+    should be thrown
+    """
+    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
+    libpath = libname('./mushroom{}')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+    toolchain = os_compatible_toolchains()[0]
+    model.export_lib(toolchain=toolchain, libpath=libpath,
+                     params={'quantize': 1}, verbose=True)
+    X = csr_matrix(([], ([], [])), shape=(3, 1000))
+    batch = treelite.runtime.Batch.from_csr(X)
+    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+    import treelite_runtime
+    err = treelite_runtime.common.util.TreeliteError
+    assert_raises(err, predictor.predict, batch)  # should crash

@@ -36,14 +36,14 @@ public class PredictorTest {
 
   @Test
   public void testPredictorBasic() throws TreeliteError {
-    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     TestCase.assertEquals(1, predictor.GetNumOutputGroup());
     TestCase.assertEquals(127, predictor.GetNumFeature());
   }
 
   @Test
   public void testPredict() throws TreeliteError, IOException {
-    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
       = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
@@ -68,7 +68,7 @@ public class PredictorTest {
 
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
-    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
       = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
@@ -93,7 +93,7 @@ public class PredictorTest {
 
   @Test
   public void testPredictInst() throws TreeliteError, IOException {
-    Predictor predictor = new Predictor(mushroomLibLocation, -1, true, true);
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     Entry[] inst_arr = new Entry[predictor.GetNumFeature()];
     for (int i = 0; i < inst_arr.length; ++i) {
       inst_arr[i] = new Entry();

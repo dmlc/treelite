@@ -143,17 +143,17 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteBatchGetDimension(
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorLoad
- * Signature: (Ljava/lang/String;IZ[J)I
+ * Signature: (Ljava/lang/String;I[J)I
  */
 JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorLoad(
   JNIEnv* jenv, jclass jcls, jstring jlibrary_path, jint jnum_worker_thread,
-  jboolean jinclude_master_thread, jlongArray jout) {
+  jlongArray jout) {
 
   const char* library_path = jenv->GetStringUTFChars(jlibrary_path, 0);
   PredictorHandle out;
   const jint ret = (jint)TreelitePredictorLoad(library_path,
-    (int)jnum_worker_thread, (jinclude_master_thread == JNI_TRUE ? 1 : 0), &out);
+    (int)jnum_worker_thread, &out);
   setHandle(jenv, jout, out);
 
   return ret;

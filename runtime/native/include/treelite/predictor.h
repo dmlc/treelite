@@ -54,8 +54,7 @@ class Predictor {
   typedef void* LibraryHandle;
   typedef void* ThreadPoolHandle;
 
-  Predictor(int num_worker_thread = -1,
-            bool include_master_thread = false);
+  Predictor(int num_worker_thread = -1);
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.
@@ -187,7 +186,6 @@ class Predictor {
   size_t num_output_group_;
   size_t num_feature_;
   int num_worker_thread_;
-  bool include_master_thread_;  // run task on master thread?
 
   bool using_remote_lib_;  // load lib from remote location?
   // information for temporary file to cache remote lib

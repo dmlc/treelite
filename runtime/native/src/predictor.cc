@@ -219,14 +219,12 @@ inline size_t PredictInst_(TreelitePredictorEntry* inst,
 
 namespace treelite {
 
-Predictor::Predictor(int num_worker_thread,
-                     bool include_master_thread)
+Predictor::Predictor(int num_worker_thread)
                        : lib_handle_(nullptr),
                          num_output_group_query_func_handle_(nullptr),
                          num_feature_query_func_handle_(nullptr),
                          pred_func_handle_(nullptr),
                          thread_pool_handle_(nullptr),
-                         include_master_thread_(include_master_thread),
                          num_worker_thread_(num_worker_thread),
                          tempdir_(nullptr) {}
 Predictor::~Predictor() {
@@ -296,11 +294,10 @@ Predictor::Load(const char* name) {
   }
 
   if (num_worker_thread_ == -1) {
-    num_worker_thread_
-      = std::thread::hardware_concurrency() - (int)include_master_thread_;
+    num_worker_thread_ = std::thread::hardware_concurrency();
   }
   thread_pool_handle_ = static_cast<ThreadPoolHandle>(
-      new PredThreadPool(num_worker_thread_, this,
+      new PredThreadPool(num_worker_thread_ - 1, this,
                          [](SpscQueue<InputToken>* incoming_queue,
                             SpscQueue<OutputToken>* outgoing_queue,
                             const Predictor* predictor) {
@@ -359,18 +356,18 @@ Predictor::Free() {
 
 template <typename BatchType>
 static inline
-std::vector<size_t> SplitBatch(const BatchType* batch, size_t nthread) {
+std::vector<size_t> SplitBatch(const BatchType* batch, size_t split_factor) {
   const size_t num_row = batch->num_row;
-  CHECK_LE(nthread, num_row);
-  const size_t portion = num_row / nthread;
-  const size_t remainder = num_row % nthread;
-  std::vector<size_t> workload(nthread, portion);
-  std::vector<size_t> row_ptr(nthread + 1, 0);
+  CHECK_LE(split_factor, num_row);
+  const size_t portion = num_row / split_factor;
+  const size_t remainder = num_row % split_factor;
+  std::vector<size_t> workload(split_factor, portion);
+  std::vector<size_t> row_ptr(split_factor + 1, 0);
   for (size_t i = 0; i < remainder; ++i) {
     ++workload[i];
   }
   size_t accum = 0;
-  for (size_t i = 0; i < nthread; ++i) {
+  for (size_t i = 0; i < split_factor; ++i) {
     accum += workload[i];
     row_ptr[i + 1] = accum;
   }
@@ -395,19 +392,18 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
   OutputToken response;
   CHECK_GT(batch->num_row, 0);
   const int nthread = std::min(num_worker_thread_,
-                               static_cast<int>(batch->num_row)
-                                 - static_cast<int>(include_master_thread_));
-  const std::vector<size_t> row_ptr
-    = SplitBatch(batch, nthread + static_cast<int>(include_master_thread_));
-  for (int tid = 0; tid < nthread; ++tid) {
+                               static_cast<int>(batch->num_row));
+  const std::vector<size_t> row_ptr = SplitBatch(batch, nthread);
+  for (int tid = 0; tid < nthread - 1; ++tid) {
     request.rbegin = row_ptr[tid];
     request.rend = row_ptr[tid + 1];
     pool->SubmitTask(tid, request);
   }
   size_t total_size = 0;
-  if (include_master_thread_) {
-    const size_t rbegin = row_ptr[nthread];
-    const size_t rend = row_ptr[nthread + 1];
+  {
+    // assign work to master
+    const size_t rbegin = row_ptr[nthread - 1];
+    const size_t rend = row_ptr[nthread];
     const size_t query_result_size
       = PredictBatch_(batch, pred_margin, num_output_group_,
                       pred_func_handle_,
@@ -415,7 +411,7 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
                       out_result);
     total_size += query_result_size;
   }
-  for (int tid = 0; tid < nthread; ++tid) {
+  for (int tid = 0; tid < nthread - 1; ++tid) {
     if (pool->WaitForTask(tid, &response)) {
       total_size += response.query_result_size;
     }

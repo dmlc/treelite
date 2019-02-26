@@ -287,9 +287,10 @@ inline T TextToNumber(const std::string& str) {
                 || std::is_same<T, double>::value
                 || std::is_same<T, int>::value
                 || std::is_same<T, int8_t>::value
-                || std::is_same<T, uint32_t>::value,
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, size_t>::value,
                 "unsupported data type for TextToNumber; use float, double, "
-                "int, int8_t, or uint32_t.");
+                "int, int8_t, uint32_t, or size_t.");
 }
 
 template <>
@@ -365,6 +366,21 @@ inline uint32_t TextToNumber(const std::string& str) {
     LOG(FATAL) << "String does not represent a valid integer";
   }
   return static_cast<uint32_t>(val);
+}
+
+template <>
+inline size_t TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  auto val = std::strtoull(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val > std::numeric_limits<size_t>::max()) {
+    LOG(FATAL) << "Range error while converting string to size_t";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<size_t>(val);
 }
 
 /*!

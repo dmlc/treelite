@@ -24,7 +24,7 @@ class Tree {
   /*! \brief tree node */
   class Node {
    public:
-    Node() : sindex_(0) {}
+    Node() : sindex_(0), missing_category_to_zero_(false) {}
     /*! \brief index of left child */
     inline int cleft() const {
       return this->cleft_;
@@ -118,6 +118,11 @@ class Tree {
     inline double gain() const {
       return gain_.value();
     }
+    /*! \brief test whether missing values should be converted into zero;
+     *         only applicable for categorical splits */
+    inline bool missing_category_to_zero() const {
+      return missing_category_to_zero_;
+    }
     /*!
      * \brief create a numerical split
      * \param split_index feature index to split
@@ -144,6 +149,7 @@ class Tree {
      *            threshold
      */
     inline void set_categorical_split(unsigned split_index, bool default_left,
+                                      bool missing_category_to_zero,
                                  const std::vector<uint32_t>& left_categories) {
       CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
@@ -151,6 +157,7 @@ class Tree {
       this->left_categories_ = left_categories;
       std::sort(this->left_categories_.begin(), this->left_categories_.end());
       this->split_type_ = SplitFeatureType::kCategorical;
+      this->missing_category_to_zero_ = missing_category_to_zero;
     }
     /*!
      * \brief set the leaf value of the node
@@ -246,6 +253,11 @@ class Tree {
      * This list is assumed to be in ascending order.
      */
     std::vector<uint32_t> left_categories_;
+    /* \brief Whether to convert missing value to zero.
+     * Only applicable when split_type_ is set to kCategorical.
+     * When this flag is set, it overrides the behavior of default_left().
+     */
+    bool missing_category_to_zero_;
     /*!
      * \brief number of data points whose traversal paths include this node.
      *        LightGBM models natively store this statistics.

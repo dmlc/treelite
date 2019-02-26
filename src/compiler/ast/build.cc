@@ -57,7 +57,8 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
       ast_node = AddNode<CategoricalConditionNode>(parent,
                                                    node.split_index(),
                                                    node.default_left(),
-                                                   node.left_categories());
+                                                   node.left_categories(),
+                                                   node.missing_category_to_zero());
     }
     if (node.has_gain()) {
       dynamic_cast<ConditionNode*>(ast_node)->gain = node.gain();

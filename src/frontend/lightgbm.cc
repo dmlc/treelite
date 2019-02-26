@@ -38,12 +38,18 @@ enum Masks : uint8_t {
   kDefaultLeftMask = 2
 };
 
+enum class MissingType : uint8_t {
+  kNone,
+  kZero,
+  kNaN
+};
+
 struct LGBTree {
   int num_leaves;
   int num_cat;  // number of categorical splits
   std::vector<double> leaf_value;
   std::vector<int8_t> decision_type;
-  std::vector<int> cat_boundaries;
+  std::vector<size_t> cat_boundaries;
   std::vector<uint32_t> cat_threshold;
   std::vector<int> split_feature;
   std::vector<double> threshold;
@@ -58,15 +64,19 @@ inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
   return (decision_type & mask) > 0;
 }
 
+inline MissingType GetMissingType(int8_t decision_type) {
+  return static_cast<MissingType>((decision_type >> 2) & 3);
+}
+
 inline std::vector<uint32_t> BitsetToList(const uint32_t* bits,
-                                          uint8_t nslots) {
+                                          size_t nslots) {
   std::vector<uint32_t> result;
-  const uint32_t nbits = static_cast<uint32_t>(nslots) * 32;
-  for (uint32_t i = 0; i < nbits; ++i) {
-    const uint32_t i1 = i / 32;
-    const uint32_t i2 = i % 32;
+  const size_t nbits = nslots * 32;
+  for (size_t i = 0; i < nbits; ++i) {
+    const size_t i1 = i / 32;
+    const uint32_t i2 = static_cast<uint32_t>(i % 32);
     if ((bits[i1] >> i2) & 1) {
-      result.push_back(i);
+      result.push_back(static_cast<uint32_t>(i));
     }
   }
   return result;
@@ -202,7 +212,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries
-        = treelite::common::TextToArray<int>(it->second, tree.num_cat + 1);
+        = treelite::common::TextToArray<size_t>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";
@@ -370,8 +380,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         const int data_count = lgb_tree.internal_count[old_id];
         const unsigned split_index =
           static_cast<unsigned>(lgb_tree.split_feature[old_id]);
-        const bool default_left
-          = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
+
         tree.AddChilds(new_id);
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
           // categorical
@@ -381,12 +390,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
-          tree[new_id].set_categorical_split(split_index, default_left,
+          const auto missing_type
+            = GetMissingType(lgb_tree.decision_type[old_id]);
+          tree[new_id].set_categorical_split(split_index, false,
+                                             (missing_type != MissingType::kNaN),
                                              left_categories);
         } else {
           // numerical
           const treelite::tl_float threshold =
             static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
+          const bool default_left
+            = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;
           tree[new_id].set_numerical_split(split_index, threshold,
                                            default_left, cmp_op);

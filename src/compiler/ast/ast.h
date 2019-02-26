@@ -102,10 +102,13 @@ class NumericalConditionNode : public ConditionNode {
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           const std::vector<uint32_t>& left_categories)
+                           const std::vector<uint32_t>& left_categories,
+                           bool convert_missing_to_zero)
     : ConditionNode(split_index, default_left),
-      left_categories(left_categories) {}
+      left_categories(left_categories),
+      convert_missing_to_zero(convert_missing_to_zero) {}
   std::vector<uint32_t> left_categories;
+  bool convert_missing_to_zero;
 };
 
 class OutputNode : public ASTNode {

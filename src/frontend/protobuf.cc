@@ -37,6 +37,7 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
     } else {  // categorical split
       CHECK(!node.has_op());
       CHECK(!node.has_threshold());
+      CHECK(node.has_missing_category_to_zero());
       return NodeType::kCategoricalSplit;
     }
   } else {  // node is leaf
@@ -47,6 +48,7 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
     CHECK(!node.has_op());
     CHECK(!node.has_threshold());
     CHECK(!node.has_gain());
+    CHECK(!node.has_missing_category_to_zero());
     CHECK_EQ(node.left_categories_size(), 0);
     if (node.has_leaf_value()) {
       CHECK_EQ(node.leaf_vector_size(), 0);
@@ -174,6 +176,7 @@ Model LoadProtobufModel(const char* filename) {
         tree.AddChilds(id);
         tree[id].set_categorical_split(static_cast<unsigned>(split_index),
                                        node.default_left(),
+                                       node.missing_category_to_zero(),
                                        left_categories);
         Q.push({node.left_child(), tree[id].cleft()});
         Q.push({node.right_child(), tree[id].cright()});
@@ -290,10 +293,12 @@ void ExportProtobufModel(const char* filename, const Model& model) {
         const unsigned split_index = tree[nid].split_index();
         const auto& left_categories = tree[nid].left_categories();
         const bool default_left = tree[nid].default_left();
+        const bool missing_category_to_zero = tree[nid].missing_category_to_zero();
 
         proto_node->set_default_left(default_left);
         proto_node->set_split_index(static_cast<google::protobuf::int32>(split_index));
         proto_node->set_split_type(treelite_protobuf::Node_SplitFeatureType_CATEGORICAL);
+        proto_node->set_missing_category_to_zero(missing_category_to_zero);
         for (auto e : left_categories) {
           proto_node->add_left_categories(static_cast<google::protobuf::uint32>(e));
         }

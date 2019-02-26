@@ -245,24 +245,24 @@ class ASTNativeCompiler : public Compiler {
                       const std::string& dest,
                       size_t indent) {
     const NumericalConditionNode* t;
-    std::string condition;
+    std::string condition, condition_with_na_check;
     if ( (t = dynamic_cast<const NumericalConditionNode*>(node)) ) {
       /* numerical split */
       condition = ExtractNumericalCondition(t);
+      const char* condition_with_na_check_template
+        = (node->default_left) ?
+            "!(data[{split_index}].missing != -1) || ({condition})"
+          : " (data[{split_index}].missing != -1) && ({condition})";
+      condition_with_na_check
+        = fmt::format(condition_with_na_check_template,
+            "split_index"_a = node->split_index,
+            "condition"_a = condition);
     } else {   /* categorical split */
       const CategoricalConditionNode* t2
         = dynamic_cast<const CategoricalConditionNode*>(node);
       CHECK(t2);
-      condition = ExtractCategoricalCondition(t2);
+      condition_with_na_check = ExtractCategoricalCondition(t2);
     }
-    const char* condition_with_na_check_template
-      = (node->default_left) ?
-          "!(data[{split_index}].missing != -1) || ({condition})"
-        : " (data[{split_index}].missing != -1) && ({condition})";
-    std::string condition_with_na_check
-      = fmt::format(condition_with_na_check_template,
-          "split_index"_a = node->split_index,
-          "condition"_a = condition);
     if (node->children[0]->data_count && node->children[1]->data_count) {
       const int left_freq = node->children[0]->data_count.value();
       const int right_freq = node->children[1]->data_count.value();
@@ -483,8 +483,23 @@ class ASTNativeCompiler : public Compiler {
       result = "0";
     } else {
       std::ostringstream oss;
-      oss << "(tmp = (unsigned int)(data[" << node->split_index << "].fvalue) ), "
-          << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
+      if (node->convert_missing_to_zero) {
+        // All missing values are converted into zeros
+        oss << fmt::format(
+          "((tmp = (data[{0}].missing == -1 ? 0U "
+          ": (unsigned int)(data[{0}].fvalue) )), ", node->split_index);
+      } else {
+        if (node->default_left) {
+          oss << fmt::format(
+            "data[{0}].missing == -1 || ("
+            "(tmp = (unsigned int)(data[{0}].fvalue) ), ", node->split_index);
+        } else {
+          oss << fmt::format(
+            "data[{0}].missing != -1 && ("
+            "(tmp = (unsigned int)(data[{0}].fvalue) ), ", node->split_index);
+        }
+      }
+      oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
           << bitmap[0] << "U >> tmp) & 1) )";
       for (size_t i = 1; i < bitmap.size(); ++i) {
         oss << " || (tmp >= " << (i * 64)
@@ -492,6 +507,7 @@ class ASTNativeCompiler : public Compiler {
             << " && (( (uint64_t)" << bitmap[i]
             << "U >> (tmp - " << (i * 64) << ") ) & 1) )";
       }
+      oss << ")";
       result = oss.str();
     }
     return result;

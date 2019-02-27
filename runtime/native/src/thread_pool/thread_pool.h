@@ -9,6 +9,7 @@
 
 #include <treelite/common.h>
 #include <vector>
+#include <cstdlib>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -41,7 +42,10 @@ class ThreadPool {
                                       context_);
     }
     /* bind threads to cores */
-    SetAffinity();
+    const char* bind_flag = getenv("TREELITE_BIND_THREADS");
+    if (bind_flag == nullptr || std::atoi(bind_flag) == 1) {
+      SetAffinity();
+    }
   }
   ~ThreadPool() {
     for (int i = 0; i < num_worker_; ++i) {

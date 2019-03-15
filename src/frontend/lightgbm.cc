@@ -49,7 +49,7 @@ struct LGBTree {
   int num_cat;  // number of categorical splits
   std::vector<double> leaf_value;
   std::vector<int8_t> decision_type;
-  std::vector<size_t> cat_boundaries;
+  std::vector<uint64_t> cat_boundaries;
   std::vector<uint32_t> cat_threshold;
   std::vector<int> split_feature;
   std::vector<double> threshold;
@@ -212,7 +212,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries
-        = treelite::common::TextToArray<size_t>(it->second, tree.num_cat + 1);
+        = treelite::common::TextToArray<uint64_t>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";

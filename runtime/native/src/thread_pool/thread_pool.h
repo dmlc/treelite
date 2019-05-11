@@ -102,13 +102,22 @@ class ThreadPool {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(0, &cpuset);
+#if defined(__ANDROID__)
+    sched_setaffinity(pthread_self(), sizeof(cpu_set_t), &cpuset);
+#else
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+#endif
     for (int i = 0; i < num_worker_; ++i) {
       const int core_id = i + 1;
       CPU_ZERO(&cpuset);
       CPU_SET(core_id, &cpuset);
+#if defined(__ANDROID__)
+      sched_setaffinity(thread_[i].native_handle(),
+                        sizeof(cpu_set_t), &cpuset);
+#else
       pthread_setaffinity_np(thread_[i].native_handle(),
                              sizeof(cpu_set_t), &cpuset);
+#endif
     }
 #endif
   }

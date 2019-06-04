@@ -9,6 +9,7 @@ import time
 import shutil
 import os
 import sys
+import site
 from .compat import py_str, PY3
 
 class TreeliteVersionNotFound(Exception):
@@ -35,7 +36,8 @@ def _load_ver():
   curr_path = os.path.abspath(os.path.join(curr_path, os.pardir))
   # List possible locations for VERSION
   ver_path = [curr_path, os.path.join(curr_path, '../../'),
-              os.path.join(sys.prefix, 'treelite')]
+              os.path.join(sys.prefix, 'treelite'),
+              os.path.join(site.USER_BASE, 'treelite')]
   ver_path = [os.path.join(p, 'VERSION') for p in ver_path]
   ver_path_found = [p for p in ver_path if os.path.exists(p) and os.path.isfile(p)]
   if not ver_path_found:

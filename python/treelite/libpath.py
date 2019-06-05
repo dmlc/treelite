@@ -8,7 +8,6 @@ import site
 
 class TreeliteLibraryNotFound(Exception):
   """Error thrown by when treelite is not found"""
-  pass
 
 
 def find_lib_path(basename, libformat=True):

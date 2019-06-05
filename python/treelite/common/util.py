@@ -14,7 +14,6 @@ from .compat import py_str, PY3
 
 class TreeliteVersionNotFound(Exception):
   """Error thrown by when version file is not found"""
-  pass
 
 def c_str(string):
   """Convert a Python string to C string"""
@@ -50,14 +49,13 @@ def _load_ver():
 
 class TreeliteError(Exception):
   """Error thrown by treelite"""
-  pass
 
 if PY3:
   # pylint: disable=W0611
   from tempfile import TemporaryDirectory
 else:
   import tempfile
-  class TemporaryDirectory(object):
+  class TemporaryDirectory():
     """Context manager for tempfile.mkdtemp()"""
     # pylint: disable=R0903
 

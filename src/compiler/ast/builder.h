@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 #include <ostream>
+#include <utility>
+#include <memory>
 #include "./ast.h"
 
 namespace treelite {

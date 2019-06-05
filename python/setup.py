@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 import shutil
 import tempfile
-from setuptools import setup, Distribution, find_packages
+from setuptools import setup, find_packages
 
 LIBPATH_PY = os.path.abspath('./treelite/libpath.py')
 LIBPATH = {'__file__': LIBPATH_PY}
@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory() as tempdir:
                       root_dir=os.path.abspath(tempdir),
                       base_dir='runtime/')
 
-DATA_FILES =   [os.path.relpath(x, os.path.dirname(__file__)) for x in LIB_PATH] \
+DATA_FILES = [os.path.relpath(x, os.path.dirname(__file__)) for x in LIB_PATH] \
              + [os.path.relpath(x, os.path.dirname(__file__)) for x in RT_PATH] \
              + ['./treelite/treelite_runtime.zip', './treelite/VERSION']
 

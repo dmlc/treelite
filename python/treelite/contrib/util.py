@@ -25,14 +25,14 @@ def _toolchain_exist_check(toolchain):
 def _shell():
   if _is_windows():
     return 'cmd.exe'
-  elif 'SHELL' in os.environ:
+  if 'SHELL' in os.environ:
     return os.environ['SHELL']
   return '/bin/sh'  # use POSIX-compliant shell if SHELL is not set
 
 def _libext():
   if _platform == 'darwin':
     return '.dylib'
-  elif _platform == 'win32' or _platform == 'cygwin':
+  if _platform in ('win32', 'cygwin'):
     return '.dll'
   return '.so'
 

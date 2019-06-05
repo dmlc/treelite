@@ -13,8 +13,14 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.7'
+        addToPath: true
     - checkout: self
       submodules: recursive
+    - script: python -m pip install --upgrade pip cpplint pylint
+      displayName: 'Installing pylint and cpplint...'
     - script: make lint
       displayName: 'Running pylint and cpplint...'
 - stage: linux_build

@@ -19,4 +19,4 @@ steps:
 - task: PublishPipelineArtifact@0
   inputs:
     artifactName: 'python_whl'
-    targetPath: 'python/dist/*.whl'
+    targetPath: 'python/dist/'

@@ -14,6 +14,7 @@ stages:
       vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
+      submodules: recursive
     - script: make lint
       displayName: 'Running pylint and cpplint...'
 - stage: linux_build

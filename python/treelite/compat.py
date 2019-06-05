@@ -39,9 +39,8 @@ try:
   from pandas import DataFrame
   PANDAS_INSTALLED = True
 except ImportError:
-  class DataFrame():
+  class DataFrame():  # pylint: disable=R0903
     """dummy for pandas.DataFrame"""
-    # pylint: disable=R0903
   PANDAS_INSTALLED = False
 
 __all__ = []

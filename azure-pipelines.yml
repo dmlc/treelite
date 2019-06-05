@@ -6,38 +6,60 @@
 trigger:
 - master
 
-stages:
-- stage: formatting_check
-  jobs:
-  - job: lint
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.7'
-        addToPath: true
-    - checkout: self
-      submodules: recursive
-    - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
-      displayName: 'Installing pylint and cpplint...'
-    - script: make lint
-      displayName: 'Running pylint and cpplint...'
-- stage: linux_build
-  jobs:
-  - job: linux_wheel_build
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - checkout: self
-      submodules: recursive
-    - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
-      displayName: 'Building Treelite...'
-    - script: |
-        rm -rf dist/* build/*
-        tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
-      displayName: 'Packaging Python wheel for Treelite...'
-    - task: PublishPipelineArtifact@0
-      inputs:
-        artifactName: 'python_whl'
-        targetPath: 'python/dist/'
+jobs:
+- job: formatting_check
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+  - checkout: self
+    submodules: recursive
+  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
+    displayName: 'Installing pylint and cpplint...'
+  - script: make lint
+    displayName: 'Running pylint and cpplint...'
+- job: linux_build
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    submodules: recursive
+  - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
+    displayName: 'Building Treelite...'
+  - script: |
+      rm -rfv python/dist python/build
+      tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
+    displayName: 'Packaging Python wheel for Treelite...'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'python_linux_whl'
+      targetPath: 'python/dist/'
+- job: osx_build
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+  - checkout: self
+    submodules: recursive
+  - script: |
+      rm -rf build/
+      mkdir build
+      cd build
+      cmake .. -DENABLE_PROTOBUF=ON
+      make -j
+    displayName: 'Building Treelite...'
+  - script: |
+      rm -rfv python/dist python/build
+      cd python/
+      python setup.py bdist_wheel --universal
+    displayName: 'Packaging Python wheel for Treelite...'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'python_osx_whl'
+      targetPath: 'python/dist/'

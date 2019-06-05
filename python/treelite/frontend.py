@@ -41,6 +41,12 @@ class Model(object):
       _check_call(_LIB.TreeliteFreeModel(self.handle))
       self.handle = None
 
+  def set_tree_limit(self, n):
+    """Set first n trees to be kept, the remaining ones will be dropped"""
+    if self.handle is None:
+      raise AttributeError('Model not loaded yet')
+    _check_call(_LIB.TreeliteSetTreeLimit(self.handle, ctypes.c_size_t(n)))
+
   @property
   def num_tree(self):
     """Number of decision trees in the model"""

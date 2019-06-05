@@ -11,7 +11,7 @@ stages:
   jobs:
   - job: lint
     pool:
-    - vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
     - script: make lint
@@ -20,7 +20,7 @@ stages:
   jobs:
   - job: Build Python wheel for Linux
     pool:
-    - vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
       submodules: recursive

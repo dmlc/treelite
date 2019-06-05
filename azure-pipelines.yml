@@ -9,14 +9,27 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- checkout: self
-  submodules: recursive
-- script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
-  displayName: 'Building Treelite...'
-- script: tests/ci_build/ci_build.sh cpu bash -c "cd python/ && rm -rf dist/* && rm -rf build/* && python setup.py bdist_wheel --universal"
-  displayName: 'Packaging Python wheel for Treelite...'
-- task: PublishPipelineArtifact@0
-  inputs:
-    artifactName: 'python_whl'
-    targetPath: 'python/dist/'
+stages:
+- stage: Formatting Check
+  jobs:
+  - job: lint
+    steps:
+    - checkout: self
+    - script: make lint
+      displayName: 'Running pylint and cpplint...'
+- stage: Linux build
+  jobs:
+  - job: Build Python wheel for Linux
+    steps:
+    - checkout: self
+      submodules: recursive
+    - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
+      displayName: 'Building Treelite...'
+    - script: |
+        rm -rf dist/* build/*
+        tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
+      displayName: 'Packaging Python wheel for Treelite...'
+    - task: PublishPipelineArtifact@0
+      inputs:
+        artifactName: 'python_whl'
+        targetPath: 'python/dist/'

@@ -6,13 +6,12 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 stages:
 - stage: Formatting Check
   jobs:
   - job: lint
+    pool:
+    - vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
     - script: make lint
@@ -20,6 +19,8 @@ stages:
 - stage: Linux build
   jobs:
   - job: Build Python wheel for Linux
+    pool:
+    - vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
       submodules: recursive

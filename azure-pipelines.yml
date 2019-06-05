@@ -7,7 +7,7 @@ trigger:
 - master
 
 stages:
-- stage: Formatting Check
+- stage: formatting_check
   jobs:
   - job: lint
     pool:
@@ -16,9 +16,9 @@ stages:
     - checkout: self
     - script: make lint
       displayName: 'Running pylint and cpplint...'
-- stage: Linux build
+- stage: linux_build
   jobs:
-  - job: Build Python wheel for Linux
+  - job: linux_wheel_build
     pool:
       vmImage: 'ubuntu-latest'
     steps:

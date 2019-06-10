@@ -57,6 +57,7 @@ jobs:
   - script: |
       rm -rfv python/dist python/build
       cd python/
+      pip install wheel setuptools
       python setup.py bdist_wheel --universal
     displayName: 'Packaging Python wheel for Treelite...'
   - task: PublishPipelineArtifact@0

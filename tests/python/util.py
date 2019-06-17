@@ -19,7 +19,7 @@ def load_txt(filename):
 
 def os_compatible_toolchains():
   if _platform == 'darwin':
-    toolchains = ['gcc-7', 'clang']
+    toolchains = ['gcc']
   elif _platform == 'win32':
     toolchains = ['msvc']
   else:

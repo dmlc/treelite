@@ -103,7 +103,7 @@ jobs:
     submodules: recursive
   - script: |
       python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
-      brew install gcc@7
+      brew install gcc@7 libomp
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

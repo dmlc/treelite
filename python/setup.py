@@ -80,5 +80,5 @@ setup(
     install_requires=['numpy', 'scipy'],
     data_files=[('treelite', DATA_FILES)],
     license='Apache-2.0',
-    python_requires='>=3.4'
+    python_requires='>=3.5'
 )

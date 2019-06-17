@@ -84,7 +84,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Linux...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m nose tests/python --with-coverage
+  - script: python -m nose tests/python -v --with-coverage
     displayName: 'Running Python tests...'
   - script: python -m codecov
     displayName: 'Submitting code coverage data to CodeCov...'
@@ -108,7 +108,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Mac OSX...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m nose tests/python --with-coverage
+  - script: python -m nose tests/python -v --with-coverage
     displayName: 'Running Python tests...'
   - script: python -m codecov
     displayName: 'Submitting code coverage data to CodeCov...'

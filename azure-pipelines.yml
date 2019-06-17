@@ -69,6 +69,10 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
   - checkout: self
     submodules: recursive
   - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
@@ -89,6 +93,10 @@ jobs:
   pool:
     vmImage: 'macOS-10.13'
   steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
   - checkout: self
     submodules: recursive
   - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov

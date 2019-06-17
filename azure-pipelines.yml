@@ -64,3 +64,43 @@ jobs:
     inputs:
       artifactName: 'python_osx_whl'
       targetPath: 'python/dist/'
+- job: linux_python_test
+  dependsOn: linux_build
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    submodules: recursive
+  - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+    displayName: 'Setting up Python environment...'
+  - task: DownloadPipelineArtifact@0
+    inputs:
+      artifactName: 'python_linux_whl'
+      targetPath: $(System.DefaultWorkingDirectory)
+    displayName: 'Downloading Treelite Python wheel for Linux...'
+  - script: python -m pip install *.whl
+    displayName: 'Installing Treelite into Python environment...'
+  - script: python -m nose tests/python --with-coverage
+    displayName: 'Running Python tests...'
+  - script: python -m codecov
+    displayName: 'Submitting code coverage data to CodeCov...'
+- job: osx_python_test
+  dependsOn: osx_build
+  pool:
+    vmImage: 'macOS-10.13'
+  steps:
+  - checkout: self
+    submodules: recursive
+  - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+    displayName: 'Setting up Python environment...'
+  - task: DownloadPipelineArtifact@0
+    inputs:
+      artifactName: 'python_osx_whl'
+      targetPath: $(System.DefaultWorkingDirectory)
+    displayName: 'Downloading Treelite Python wheel for Mac OSX...'
+  - script: python -m pip install *.whl
+    displayName: 'Installing Treelite into Python environment...'
+  - script: python -m nose tests/python --with-coverage
+    displayName: 'Running Python tests...'
+  - script: python -m codecov
+    displayName: 'Submitting code coverage data to CodeCov...'

@@ -92,6 +92,8 @@ jobs:
   dependsOn: osx_build
   pool:
     vmImage: 'macOS-10.13'
+  variables:
+    GCC_PATH: gcc-7
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -99,7 +101,9 @@ jobs:
       addToPath: true
   - checkout: self
     submodules: recursive
-  - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+  - script: |
+      python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+      brew install gcc@7
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

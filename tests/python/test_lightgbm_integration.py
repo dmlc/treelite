@@ -15,6 +15,9 @@ from util import os_compatible_toolchains, libname, assert_almost_equal,\
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
 class TestLightGBMIntegration(unittest.TestCase):
+  def shortDescription(self):
+    return None
+
   def test_lightgbm_multiclass_classification(self):
     try:
       import lightgbm
@@ -144,7 +147,7 @@ class TestLightGBMIntegration(unittest.TestCase):
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='lightgbm')
       for use_quantize in [False, True]:
-        for use_parallel_comp in [None, 2]:
+        for use_parallel_comp in [None]:
           run_pipeline_test(model=model, dtest_path=dtest_path,
                             libname_fmt=libname_fmt,
                             expected_prob_path=expected_prob_path,

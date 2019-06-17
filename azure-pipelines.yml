@@ -6,6 +6,9 @@
 trigger:
 - master
 
+variables:
+  CODECOV_TOKEN: $(CodeCovToken)
+
 jobs:
 - job: formatting_check
   pool:
@@ -86,7 +89,7 @@ jobs:
     displayName: 'Installing Treelite into Python environment...'
   - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
-  - script: python -m codecov
+  - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
 - job: osx_python_test
   dependsOn: osx_build
@@ -114,5 +117,5 @@ jobs:
     displayName: 'Installing Treelite into Python environment...'
   - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
-  - script: python -m codecov
+  - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'

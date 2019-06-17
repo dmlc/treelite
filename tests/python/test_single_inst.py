@@ -3,7 +3,6 @@
 from __future__ import print_function
 import os
 import unittest
-from nose.tools import nottest
 from sklearn.datasets import load_svmlight_file
 import numpy as np
 import treelite
@@ -14,7 +13,6 @@ from util import load_txt, os_compatible_toolchains, libname, make_annotation,\
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
 class TestSingleInst(unittest.TestCase):
-  @nottest
   def run_pipeline_test(self, model, dtest_path, libname_fmt,
                         expected_prob_path, expected_margin_path,
                         multiclass, use_annotation, use_quantize):

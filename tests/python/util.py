@@ -2,7 +2,6 @@
 import os
 from sys import platform as _platform
 import numpy as np
-from nose.tools import nottest
 import treelite
 import treelite.runtime
 from treelite.contrib import _libext
@@ -86,7 +85,6 @@ def assert_almost_equal(a, b, rtol=None, atol=None, names=('a', 'b'), equal_nan=
                           names=names)
   raise AssertionError(msg)
 
-@nottest
 def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
                       multiclass, use_annotation, use_quantize,

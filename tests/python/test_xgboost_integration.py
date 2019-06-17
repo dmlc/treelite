@@ -4,20 +4,21 @@ from __future__ import print_function
 import unittest
 import os
 import numpy as np
-import nose
+import pytest
 import treelite
 import treelite.runtime
 from sklearn.datasets import load_boston, load_iris
 from sklearn.model_selection import train_test_split
 from util import os_compatible_toolchains, libname, assert_almost_equal
 
+try:
+  import xgboost
+except ImportError:
+  # skip this test suite if XGBoost is not installed
+  pytest.skip('XGBoost not installed; skipping', allow_module_level=True)
+
 class TestXGBoostIntegration(unittest.TestCase):
   def test_xgb(self):
-    try:
-      import xgboost
-    except ImportError:
-      raise nose.SkipTest()  # skip this test if XGBoost is not installed
-
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test \
       = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -41,11 +42,6 @@ class TestXGBoostIntegration(unittest.TestCase):
       assert_almost_equal(out_pred, expected_pred)
 
   def test_xgb_iris(self):
-    try:
-      import xgboost
-    except ImportError:
-      raise nose.SkipTest()  # skip this test if XGBoost is not installed
-
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test \
       = train_test_split(X, y, test_size=0.2, shuffle=False)

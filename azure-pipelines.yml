@@ -75,7 +75,7 @@ jobs:
       addToPath: true
   - checkout: self
     submodules: recursive
-  - script: python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+  - script: python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm coverage codecov
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -84,7 +84,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Linux...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m nose tests/python -v --with-coverage
+  - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
   - script: python -m codecov
     displayName: 'Submitting code coverage data to CodeCov...'
@@ -102,7 +102,7 @@ jobs:
   - checkout: self
     submodules: recursive
   - script: |
-      python -m pip install numpy scipy pandas nose scikit-learn xgboost lightgbm coverage codecov
+      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm coverage codecov
       brew install gcc@7 libomp
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
@@ -112,7 +112,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Mac OSX...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m nose tests/python -v --with-coverage
+  - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
   - script: python -m codecov
     displayName: 'Submitting code coverage data to CodeCov...'

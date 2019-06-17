@@ -102,7 +102,7 @@ jobs:
   - checkout: self
     submodules: recursive
   - script: |
-      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm coverage codecov
+      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage codecov
       brew install gcc@7 libomp
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0

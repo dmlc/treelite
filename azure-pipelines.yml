@@ -85,7 +85,7 @@ jobs:
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
-      msbuildArguments: '/p:Configuration=Release'
+      msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building XGBoost...'
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate

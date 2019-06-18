@@ -119,7 +119,7 @@ class TestBasic(unittest.TestCase):
     predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
     import treelite_runtime
     err = treelite_runtime.common.util.TreeliteError
-    assert_raises(err, predictor.predict, batch)  # should crash
+    pytest.raises(err, predictor.predict, batch)  # should crash
 
   def test_tree_limit_setting(self):
     """

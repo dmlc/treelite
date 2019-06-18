@@ -92,6 +92,10 @@ jobs:
       cd python
       python setup.py bdist_wheel --universal
     displayName: 'Packaging Python wheel for Treelite...'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'python_win_whl'
+      targetPath: 'python/dist/'
 - job: cpp_coverage
   pool:
     vmImage: 'ubuntu-latest'

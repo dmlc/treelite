@@ -157,7 +157,7 @@ jobs:
       addToPath: true
   - checkout: self
     submodules: recursive
-  - script: python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm coverage codecov
+  - script: python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm coverage
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -180,7 +180,7 @@ jobs:
     displayName: 'Running Python tests...'
     env:
       PYTHONPATH: ./python
-  - script: python -m codecov --required
+  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: $(CodeCovToken)
@@ -196,7 +196,7 @@ jobs:
   - checkout: self
     submodules: recursive
   - script: |
-      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage codecov
+      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage
       brew install gcc@7 libomp
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
@@ -221,7 +221,7 @@ jobs:
     env:
       GCC_PATH: gcc-7
       PYTHONPATH: ./python
-  - script: python -m codecov --required
+  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: $(CodeCovToken)

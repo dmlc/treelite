@@ -93,6 +93,8 @@ jobs:
     displayName: 'Collecting C++ code coverage...'
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting C++ code coverage data to CodeCov...'
+    env:
+      CODECOV_TOKEN: $(CodeCovToken)
 - job: linux_python_test
   dependsOn: linux_build
   pool:
@@ -117,6 +119,8 @@ jobs:
     displayName: 'Running Python tests...'
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
+    env:
+      CODECOV_TOKEN: $(CodeCovToken)
 - job: osx_python_test
   dependsOn: osx_build
   pool:

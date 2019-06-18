@@ -120,3 +120,23 @@ class TestBasic(unittest.TestCase):
     import treelite_runtime
     err = treelite_runtime.common.util.TreeliteError
     pytest.raises(err, predictor.predict, batch)  # should crash
+
+  def test_tree_limit_setting(self):
+    """
+    Test Model.set_tree_limit
+    """
+    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+    assert(model.num_tree == 2)
+    pytest.raises(Exception, model.set_tree_limit, 0)
+    pytest.raises(Exception, model.set_tree_limit, 3)
+    model.set_tree_limit(1)
+    assert(model.num_tree == 1)
+
+    model_path = os.path.join(dpath, 'dermatology/dermatology.model')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+    assert(model.num_tree == 60)
+    model.set_tree_limit(30)
+    assert(model.num_tree == 30)
+    model.set_tree_limit(10)
+    assert(model.num_tree == 10)

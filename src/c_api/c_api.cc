@@ -370,6 +370,16 @@ int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
   API_END();
 }
 
+int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
+  API_BEGIN();
+  CHECK_GT(limit, 0) << "limit should be greater than 0!";
+  auto* model_ = static_cast<Model*>(handle);
+  CHECK_GE(model_->trees.size(), limit)
+    << "Model contains less trees(" << model_->trees.size() << ") than limit";
+  model_->trees.resize(limit);
+  API_END();
+}
+
 int TreeliteCreateTreeBuilder(TreeBuilderHandle* out) {
   API_BEGIN();
   auto builder = new frontend::TreeBuilder();

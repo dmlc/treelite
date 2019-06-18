@@ -291,6 +291,15 @@ TREELITE_DLL int TreeliteQueryNumFeature(ModelHandle handle, size_t* out);
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out);
+
+/*!
+ * \brief keep first N trees of model, limit must smaller than number of trees.
+ * \param handle model
+ * \param limit number of trees to keep
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSetTreeLimit(ModelHandle handle, size_t limit);
+
 /*!
  * \brief delete model from memory
  * \param handle model to remove

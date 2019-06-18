@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite.runtime
-from nose.tools import assert_raises
+import pytest
 from util import load_txt, os_compatible_toolchains, os_platform, libname, \
                  run_pipeline_test, make_annotation, assert_almost_equal
 
@@ -119,4 +119,4 @@ class TestBasic(unittest.TestCase):
     predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
     import treelite_runtime
     err = treelite_runtime.common.util.TreeliteError
-    assert_raises(err, predictor.predict, batch)  # should crash
+    pytest.raises(err, predictor.predict, batch)  # should crash

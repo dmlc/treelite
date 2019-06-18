@@ -41,9 +41,8 @@ def _varsall_bat_path():
                     'file vcvarsall.bat')
     if os.path.isfile(candidate):
       return candidate
-    else:
-      raise OSError('Environment variable TREELITE_VCVARSALL does not refer '+\
-                    'to existing vcvarsall.bat')
+    raise OSError('Environment variable TREELITE_VCVARSALL does not refer '+\
+                  'to existing vcvarsall.bat')
 
   # scan all detected Visual Studio installations, with most recent first
   for version, vcroot in sorted(vs_installs, key=lambda x: x[0], reverse=True):

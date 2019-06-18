@@ -9,6 +9,7 @@
 
 #include <dmlc/registry.h>
 #include <treelite/common.h>
+#include <unordered_map>
 #include <functional>
 #include <memory>
 #include <string>

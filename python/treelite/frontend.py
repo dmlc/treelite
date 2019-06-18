@@ -19,7 +19,7 @@ def _isascii(string):
   except UnicodeEncodeError:
     return False
 
-class Model(object):
+class Model():
   """
   Decision tree ensemble model
 
@@ -377,7 +377,7 @@ class Model(object):
                         + '{lightgbm, xgboost, protobuf}')
     return Model(handle)
 
-class ModelBuilder(object):
+class ModelBuilder():
   """
   Builder class for tree ensemble model: provides tools to iteratively build
   an ensemble of decision trees
@@ -397,7 +397,7 @@ class ModelBuilder(object):
       :py:doc:`this page <knobs/model_param>` for the full list of model
       parameters.
   """
-  class Node(object):
+  class Node():
     """Handle to a node in a tree"""
     def __init__(self):
       self.empty = True
@@ -582,7 +582,7 @@ class ModelBuilder(object):
         raise TreeliteError('This node has never been inserted into a tree; '\
                       + 'a node must be inserted before it can be a test node')
 
-  class Tree(object):
+  class Tree():
     """Handle to a decision tree in a tree ensemble Builder"""
     def __init__(self):
       self.handle = ctypes.c_void_p()

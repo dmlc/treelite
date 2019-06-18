@@ -11,6 +11,7 @@
 #include <treelite/base.h>
 #include <string>
 #include <vector>
+#include <utility>
 
 // forward declaration
 namespace treelite_ast_protobuf {

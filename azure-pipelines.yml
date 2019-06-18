@@ -89,6 +89,7 @@ jobs:
     displayName: 'Building XGBoost...'
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
+      cd python
       python setup.py bdist_wheel --universal
     displayName: 'Packaging Python wheel for Treelite...'
 - job: cpp_coverage

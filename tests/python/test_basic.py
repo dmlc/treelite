@@ -128,8 +128,8 @@ class TestBasic(unittest.TestCase):
     model_path = os.path.join(dpath, 'mushroom/mushroom.model')
     model = treelite.Model.load(model_path, model_format='xgboost')
     assert(model.num_tree == 2)
-    assert_raises(Exception, model.set_tree_limit, 0)
-    assert_raises(Exception, model.set_tree_limit, 3)
+    pytest.raises(Exception, model.set_tree_limit, 0)
+    pytest.raises(Exception, model.set_tree_limit, 3)
     model.set_tree_limit(1)
     assert(model.num_tree == 1)
 

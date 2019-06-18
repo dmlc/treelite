@@ -34,7 +34,7 @@ exec(compile(open(LIBPATH_PY, "rb").read(), LIBPATH_PY, 'exec'),
 LIB_PATH = LIBPATH['find_lib_path'](basename='treelite')
 RT_PATH = LIBPATH['find_lib_path'](basename='treelite_runtime')
 
-if (not LIB_PATH) or (not RT_PATH):
+if (not LIB_PATH) or (not RT_PATH) or (not os.path.isdir('../build/runtime')):
   raise RuntimeError('Please compile the C++ package first')
 
 # ignore libraries already in python/treelite; only use ones in ../lib

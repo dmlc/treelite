@@ -64,6 +64,35 @@ jobs:
     inputs:
       artifactName: 'python_osx_whl'
       targetPath: 'python/dist/'
+- job: cpp_coverage
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+  - checkout: self
+    submodules: recursive
+  - script: |
+      rm -rfv build/
+      mkdir build/
+      cd build/
+      cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug
+      make -j
+    displayName: 'Building Treelite...'
+  - script: python -m pip install numpy scipy pandas pytest scikit-learn xgboost lightgbm
+    displayName: 'Setting up Python environment...'
+  - script: python -m pytest -v --fulltrace tests/python
+    displayName: 'Running integration tests...'
+  - script: |
+      lcov --directory . --capture --output-file coverage.info
+      lcov --remove coverage.info '/usr/*' --output-file coverage.info
+      lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
+      lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
+    displayName: 'Collecting C++ code coverage...'
+  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    displayName: 'Submitting C++ code coverage data to CodeCov...'
 - job: linux_python_test
   dependsOn: linux_build
   pool:

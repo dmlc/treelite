@@ -140,7 +140,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Linux...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=./
+  - script: python -m pytest -v --fulltrace tests/python --cov=tests/python --cov=python/treelite --cov=runtime/native/python/treelite_runtime
     displayName: 'Running Python tests...'
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
@@ -150,8 +150,6 @@ jobs:
   dependsOn: osx_build
   pool:
     vmImage: 'macOS-10.13'
-  variables:
-    GCC_PATH: gcc-7
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -170,8 +168,10 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Mac OSX...'
   - script: python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=./
+  - script: python -m pytest -v --fulltrace tests/python --cov=tests/python --cov=python/treelite --cov=runtime/native/python/treelite_runtime
     displayName: 'Running Python tests...'
+    env:
+      GCC_PATH: gcc-7
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
     env:

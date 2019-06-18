@@ -14,6 +14,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "../ast/ast.h"
 #include "./categorical_bitmap.h"
 

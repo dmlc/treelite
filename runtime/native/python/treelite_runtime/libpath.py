@@ -4,6 +4,7 @@
 import os
 import platform
 import sys
+import site
 
 class TreeliteLibraryNotFound(Exception):
   """Error thrown by when treelite is not found"""
@@ -46,7 +47,8 @@ def find_lib_path(basename, libformat=True):
               os.path.join(curr_path, '../../lib/'),
               os.path.join(curr_path, '../../'),
               os.path.join(curr_path, './lib/'),
-              os.path.join(sys.prefix, 'treelite')]
+              os.path.join(sys.prefix, 'treelite'),
+              os.path.join(site.USER_BASE, 'treelite')]
   # Windows hack: additional candidate locations
   if sys.platform == 'win32':
     if platform.architecture()[0] == '64bit':

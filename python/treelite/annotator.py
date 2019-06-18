@@ -6,7 +6,7 @@ from .common.util import c_str, TreeliteError
 from .core import _LIB, DMatrix, _check_call
 from .frontend import Model
 
-class Annotator(object):
+class Annotator():
   """
   Branch annotator class: annotate branches in a given model using frequency
   patterns in the training data

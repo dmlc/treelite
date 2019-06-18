@@ -4,7 +4,7 @@ from __future__ import print_function
 import unittest
 import os
 import numpy as np
-import nose
+import pytest
 import treelite
 import treelite.runtime
 from sklearn.datasets import load_iris
@@ -14,13 +14,14 @@ from util import os_compatible_toolchains, libname, assert_almost_equal,\
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
+try:
+  import lightgbm
+except ImportError:
+  # skip this test suite if LightGBM is not installed
+  pytest.skip('LightGBM not installed; skipping', allow_module_level=True)
+
 class TestLightGBMIntegration(unittest.TestCase):
   def test_lightgbm_multiclass_classification(self):
-    try:
-      import lightgbm
-    except ImportError:
-      raise nose.SkipTest()  # skip this test if LightGBM is not installed
-
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test \
       = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -50,11 +51,6 @@ class TestLightGBMIntegration(unittest.TestCase):
         assert_almost_equal(out_pred, expected_pred)
 
   def test_lightgbm_binary_classification(self):
-    try:
-      import lightgbm
-    except ImportError:
-      raise nose.SkipTest()  # skip this test if LightGBM is not installed
-
     dtrain_path = os.path.join(dpath, 'mushroom/agaricus.train')
     dtest_path = os.path.join(dpath, 'mushroom/agaricus.test')
     dtrain = lightgbm.Dataset(dtrain_path)
@@ -144,7 +140,7 @@ class TestLightGBMIntegration(unittest.TestCase):
       model_path = os.path.join(dpath, model_path)
       model = treelite.Model.load(model_path, model_format='lightgbm')
       for use_quantize in [False, True]:
-        for use_parallel_comp in [None, 2]:
+        for use_parallel_comp in [None]:
           run_pipeline_test(model=model, dtest_path=dtest_path,
                             libname_fmt=libname_fmt,
                             expected_prob_path=expected_prob_path,

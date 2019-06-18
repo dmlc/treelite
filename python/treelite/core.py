@@ -84,7 +84,7 @@ def _maybe_pandas_data(data, feature_names, feature_types):
   data = data.values.astype('float')
   return data, feature_names, feature_types
 
-class DMatrix(object):
+class DMatrix():
   """Data matrix used in treelite.
 
   Parameters

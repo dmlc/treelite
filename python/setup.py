@@ -4,25 +4,7 @@ from __future__ import print_function
 import os
 import shutil
 import tempfile
-from setuptools import setup, Distribution, find_packages
-
-class TemporaryDirectory(object):
-  """Context manager for tempfile.mkdtemp()"""
-  # pylint: disable=R0903
-
-  def __enter__(self):
-    self.name = tempfile.mkdtemp()    # pylint: disable=W0201
-    return self.name
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    shutil.rmtree(self.name)
-
-class BinaryDistribution(Distribution):
-  """Overrides Distribution class to bundle platform-specific binaries"""
-  # pylint: disable=R0201
-  def has_ext_modules(self):
-    """Has an extension module"""
-    return True
+from setuptools import setup, find_packages
 
 LIBPATH_PY = os.path.abspath('./treelite/libpath.py')
 LIBPATH = {'__file__': LIBPATH_PY}
@@ -68,7 +50,7 @@ with open('../VERSION', 'r') as f:
     print('{}'.format(VERSION), file=f2)
 
 # Create a zipped package containing glue code for deployment
-with TemporaryDirectory() as tempdir:
+with tempfile.TemporaryDirectory() as tempdir:
   shutil.copytree('../runtime/native/', os.path.abspath(os.path.join(tempdir, 'runtime')))
   libpath = os.path.abspath(os.path.join(tempdir, 'runtime', 'lib'))
   filelist = os.path.abspath(os.path.join(tempdir, 'runtime', 'FILELIST'))
@@ -81,6 +63,10 @@ with TemporaryDirectory() as tempdir:
                       root_dir=os.path.abspath(tempdir),
                       base_dir='runtime/')
 
+DATA_FILES = [os.path.relpath(x, os.path.dirname(__file__)) for x in LIB_PATH] \
+             + [os.path.relpath(x, os.path.dirname(__file__)) for x in RT_PATH] \
+             + ['./treelite/treelite_runtime.zip', './treelite/VERSION']
+
 setup(
     name='treelite',
     version=VERSION,
@@ -89,10 +75,10 @@ setup(
     author='DMLC',
     maintainer='Hyunsu Cho',
     maintainer_email='chohyu01@cs.washington.edu',
+    zip_safe=False,
     packages=find_packages(),
     install_requires=['numpy', 'scipy'],
-    package_data={
-        'treelite': [LIB_BASENAME, RT_BASENAME, 'treelite_runtime.zip', 'VERSION']
-    },
-    distclass=BinaryDistribution
+    data_files=[('treelite', DATA_FILES)],
+    license='Apache-2.0',
+    python_requires='>=3.5'
 )

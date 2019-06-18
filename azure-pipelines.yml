@@ -74,6 +74,8 @@ jobs:
       addToPath: true
   - checkout: self
     submodules: recursive
+  - script: sudo apt-get install lcov
+    displayName: 'Installing lcov...'
   - script: |
       rm -rfv build/
       mkdir build/
@@ -104,6 +106,8 @@ jobs:
       addToPath: true
   - checkout: self
     submodules: recursive
+  - script: sudo apt-get install lcov
+    displayName: 'Installing lcov...'
   - script: |
       cd runtime/java/treelite4j
       mvn test -DJNI.args=cpp-coverage
@@ -111,9 +115,9 @@ jobs:
       lcov --remove coverage.info '/usr/*' --output-file coverage.info
       lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
       lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
-    displayName: 'Running integration tests...'
+    displayName: 'Running integration tests for Java runtime (treelite4j)...'
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
-    displayName: 'Submitting Java code coverage data to CodeCov...'
+    displayName: 'Submitting Java code (treelite4j) coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: $(CodeCovToken)
 - job: linux_python_test

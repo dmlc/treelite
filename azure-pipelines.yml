@@ -138,10 +138,22 @@ jobs:
       artifactName: 'python_linux_whl'
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Linux...'
-  - script: python -m pip install *.whl
+  - script: |
+      mkdir -p lib/
+      cd lib/
+      unzip -j ../*.whl 'treelite-*.data/data/treelite/libtreelite.so'
+      cd ../runtime/native
+      mkdir -p lib/
+      cd lib/
+      unzip -j ../../../*.whl 'treelite-*.data/data/treelite/libtreelite_runtime.so'
+      mkdir -p ../build
+      cd ../build
+      cmake ..
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=tests/python --cov=python/treelite --cov=runtime/native/python/treelite_runtime
+  - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
+    env:
+      PYTHONPATH: ./python
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
@@ -166,12 +178,23 @@ jobs:
       artifactName: 'python_osx_whl'
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Mac OSX...'
-  - script: python -m pip install *.whl
+  - script: |
+      mkdir -p lib/
+      cd lib/
+      unzip -j ../*.whl 'treelite-*.data/data/treelite/libtreelite.dylib'
+      cd ../runtime/native
+      mkdir -p lib/
+      cd lib/
+      unzip -j ../../../*.whl 'treelite-*.data/data/treelite/libtreelite_runtime.dylib'
+      mkdir -p ../build
+      cd ../build
+      cmake ..
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=tests/python --cov=python/treelite --cov=runtime/native/python/treelite_runtime
+  - script: python -m pytest -v --fulltrace tests/python --cov=./
     displayName: 'Running Python tests...'
     env:
       GCC_PATH: gcc-7
+      PYTHONPATH: ./python
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
     env:

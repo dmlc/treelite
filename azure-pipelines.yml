@@ -63,19 +63,15 @@ jobs:
   pool:
     vmImage: 'vs2015-win2012r2'
   steps:
-    - task: PythonScript@0
-      inputs:
-        scriptSource: 'inline'
-        script: |
-          from urllib.request import urlretrieve
-          urlretrieve('https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe',
-                      'Miniconda3-latest-Windows-x86_64.exe')
+    - powershell: |
+        (New-Object System.Net.WebClient).DownloadFile("https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe", ".\Miniconda3.exe")
       displayName: 'Downloading Miniconda...'
+    - script: start /wait "" Miniconda3.exe /InstallationType=JustMe /RegisterPython=0 /S /D=$(Agent.BuildDirectory)\CONDA
+      displayName: 'Installing Miniconda...'
     - script: |
-        start /wait "" Miniconda3-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
-        conda activate
+        call $(Agent.BuildDirectory)\CONDA\Scripts\activate
         conda install numpy scipy scikit-learn pandas
-      displayName: 'Install Miniconda...'
+      displayName: 'Setting up Python environment...'
 - job: cpp_coverage
   pool:
     vmImage: 'ubuntu-latest'

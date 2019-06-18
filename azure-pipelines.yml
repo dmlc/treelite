@@ -79,7 +79,7 @@ jobs:
       rmdir build /s /q
       mkdir build
       cd build
-      cmake .. -DENABLE_PROTOBUF=ON
+      cmake .. -G"Visual Studio 14 2015 Win64" -DENABLE_PROTOBUF=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:

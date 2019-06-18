@@ -83,16 +83,37 @@ jobs:
     displayName: 'Building Treelite...'
   - script: python -m pip install numpy scipy pandas pytest scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
-  - script: PYTHONPATH=./python python -m pytest -v --fulltrace tests/python
-    displayName: 'Running integration tests...'
   - script: |
+      PYTHONPATH=./python python -m pytest -v --fulltrace tests/python
       lcov --directory . --capture --output-file coverage.info
       lcov --remove coverage.info '/usr/*' --output-file coverage.info
       lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
       lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
-    displayName: 'Collecting C++ code coverage...'
+    displayName: 'Running integration tests...'
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting C++ code coverage data to CodeCov...'
+    env:
+      CODECOV_TOKEN: $(CodeCovToken)
+- job: java_coverage
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+  - checkout: self
+    submodules: recursive
+  - script: |
+      cd runtime/java/treelite4j
+      mvn test -DJNI.args=cpp-coverage
+      lcov --directory . --capture --output-file coverage.info
+      lcov --remove coverage.info '/usr/*' --output-file coverage.info
+      lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
+      lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
+    displayName: 'Running integration tests...'
+  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    displayName: 'Submitting Java code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: $(CodeCovToken)
 - job: linux_python_test

@@ -6,9 +6,6 @@
 trigger:
 - master
 
-variables:
-  CODECOV_TOKEN: $(CodeCovToken)
-
 jobs:
 - job: formatting_check
   pool:
@@ -119,3 +116,5 @@ jobs:
     displayName: 'Running Python tests...'
   - script: python -m codecov --required
     displayName: 'Submitting code coverage data to CodeCov...'
+    env:
+      CODECOV_TOKEN: $(CodeCovToken)

@@ -244,7 +244,8 @@ jobs:
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Windows...'
   - powershell: |
-      Expand-Archive *.whl -DestinationPath .\whl_content
+      Dir *.whl | Rename-Item -newname { $_.name -replace ".whl" ".zip" }
+      Expand-Archive *.zip -DestinationPath .\whl_content
       New-Item .\lib -ItemType Directory -ea 0
       New-Item .\runtime\native\lib -ItemType Directory -ea 0
       New-Item .\build -ItemType Directory -ea 0

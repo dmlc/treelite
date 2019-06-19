@@ -233,9 +233,11 @@ jobs:
   steps:
   - checkout: self
     submodules: recursive
+  - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+    displayName: 'Add conda to PATH'
   - script: |
-      call %CONDA%\Scripts\activate
-      conda install numpy scipy scikit-learn pandas
+      call activate
+      conda install --yes --quiet numpy scipy scikit-learn pandas
       python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
@@ -256,7 +258,7 @@ jobs:
       cmake .. -G"Visual Studio 15 2017 Win64"
     displayName: 'Installing Treelite into Python environment...'
   - script: |
-      call %CONDA%\Scripts\activate
+      call activate
       python -m pytest -v --fulltrace tests\python --cov=./
     displayName: 'Running Python tests...'
     env:

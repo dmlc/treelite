@@ -86,7 +86,7 @@ jobs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
-    displayName: 'Building XGBoost...'
+    displayName: 'Building Treelite...'
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
       cd python
@@ -222,6 +222,48 @@ jobs:
       GCC_PATH: gcc-7
       PYTHONPATH: ./python
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+    displayName: 'Submitting code coverage data to CodeCov...'
+    env:
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
+
+- job: win_python_test
+  dependsOn: win_build
+  pool:
+    vmImage: 'vs2017-win2016'
+  steps:
+  - checkout: self
+    submodules: recursive
+  - script: |
+      call %CONDA%\Scripts\activate
+      conda install numpy scipy scikit-learn pandas
+      python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
+    displayName: 'Setting up Python environment...'
+  - task: DownloadPipelineArtifact@0
+    inputs:
+      artifactName: 'python_win_whl'
+      targetPath: $(System.DefaultWorkingDirectory)
+    displayName: 'Downloading Treelite Python wheel for Windows...'
+  - powershell: |
+      Expand-Archive *.whl -DestinationPath .\whl_content
+      New-Item .\lib -ItemType Directory -ea 0
+      New-Item .\runtime\native\lib -ItemType Directory -ea 0
+      New-Item .\build -ItemType Directory -ea 0
+      Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite.dll -Destination .\lib
+      Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite_runtime.dll -Destination .\runtime\native\lib
+      Remove-Item .\whl_content -Force -Recurse
+      Remove-Item .\whl_content -Force -Recurse
+      Set-Location -Path .\build
+      cmake .. -G"Visual Studio 14 2015 Win64"
+    displayName: 'Installing Treelite into Python environment...'
+  - script: |
+      call %CONDA%\Scripts\activate
+      python -m pytest -v --fulltrace tests\python --cov=./
+    displayName: 'Running Python tests...'
+    env:
+      PYTHONPATH: .\python
+  - script: |
+      choco install codecov
+      codecov
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

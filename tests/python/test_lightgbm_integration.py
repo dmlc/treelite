@@ -148,4 +148,4 @@ class TestLightGBMIntegration(unittest.TestCase):
                             multiclass=multiclass, use_annotation=None,
                             use_quantize=use_quantize,
                             use_parallel_comp=use_parallel_comp,
-                            use_toolchains=['gcc'])
+                            use_toolchains=['msvc' if os_platform() == 'windows' else 'gcc'])

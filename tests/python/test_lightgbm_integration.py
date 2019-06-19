@@ -121,6 +121,7 @@ class TestLightGBMIntegration(unittest.TestCase):
                             use_quantize=use_quantize,
                             use_parallel_comp=use_parallel_comp)
 
+  @pytest.mark.skipif(os_platform() == 'windows', reason='MSVC cannot handle long if conditional')
   def test_sparse_categorical_model(self):
     """
     LightGBM is able to produce categorical splits directly, so that
@@ -148,4 +149,4 @@ class TestLightGBMIntegration(unittest.TestCase):
                             multiclass=multiclass, use_annotation=None,
                             use_quantize=use_quantize,
                             use_parallel_comp=use_parallel_comp,
-                            use_toolchains=['msvc' if os_platform() == 'windows' else 'gcc'])
+                            use_toolchains=['gcc'])

@@ -381,6 +381,14 @@ class ASTNativeCompiler : public Compiler {
       }
       array_th_len = formatter.str();
     }
+    if (!array_threshold.empty() && !array_th_begin.empty() && !array_th_len.empty()) {
+      PrependToBuffer(dest,
+        fmt::format(native::qnode_template,
+          "total_num_threshold"_a = total_num_threshold), 0);
+      AppendToBuffer(dest,
+        fmt::format(native::quantize_loop_template,
+          "num_feature"_a = num_feature_), indent);
+    }
     if (!array_threshold.empty()) {
       PrependToBuffer(dest,
         fmt::format("static const double threshold[] = {{\n"
@@ -398,14 +406,6 @@ class ASTNativeCompiler : public Compiler {
         fmt::format("static const int th_len[] = {{\n"
                     "{array_th_len}\n"
                     "}};\n", "array_th_len"_a = array_th_len), 0);
-    }
-    if (!array_threshold.empty() && !array_th_begin.empty() && !array_th_len.empty()) {
-      PrependToBuffer(dest,
-        fmt::format(native::qnode_template,
-          "total_num_threshold"_a = total_num_threshold), 0);
-      AppendToBuffer(dest,
-        fmt::format(native::quantize_loop_template,
-          "num_feature"_a = num_feature_), indent);
     }
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent);

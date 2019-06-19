@@ -10,7 +10,7 @@ import treelite.runtime
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from util import os_compatible_toolchains, libname, assert_almost_equal,\
-                 run_pipeline_test
+                 run_pipeline_test, os_platform
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 

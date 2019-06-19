@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 import treelite
 import treelite.runtime
-from util import run_pipeline_test, make_annotation, \
+from util import run_pipeline_test, make_annotation, os_platform, \
                  libname, os_compatible_toolchains, assert_almost_equal
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
@@ -1424,6 +1424,7 @@ class TestModelBuilder(unittest.TestCase):
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
+      del predictor
 
     # Test round-trip with Protobuf
     model.export_protobuf('./my.buffer')
@@ -1435,6 +1436,7 @@ class TestModelBuilder(unittest.TestCase):
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
+      del predictor
 
   def test_node_insert_delete(self):
     """Test ability to add and remove nodes"""
@@ -1460,7 +1462,8 @@ class TestModelBuilder(unittest.TestCase):
 
     model = builder.commit()
     libpath = libname('./libtest{}')
-    model.export_lib(toolchain='gcc', libpath=libpath, verbose=True)
+    toolchain = 'msvc' if os_platform() == 'windows' else 'gcc'
+    model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
     predictor = treelite.runtime.Predictor(libpath=libpath)
     for f0 in [-0.5, 0.5, 1.5, np.nan]:
       for f1 in [0, 1, 2, 3, 4, np.nan]:

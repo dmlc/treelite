@@ -67,8 +67,9 @@ def _varsall_bat_path():
         if os.path.isfile(candidate):
           return candidate
   # Previous versions of Visual Studio
-  for candidate in glob.glob('C:\\Program Files (x86)\\Microsoft Visual Studio*\\VC\\vcvarsall.bat') + \
-                   glob.glob('C:\\Program Files\\Microsoft Visual Studio*\\VC\\vcvarsall.bat'):
+  pattern = '\\Microsoft Visual Studio*\\VC\\vcvarsall.bat'
+  for candidate in glob.glob('C:\\Program Files (x86)' + pattern) + \
+                   glob.glob('C:\\Program Files' + pattern):
     if os.path.isfile(candidate):
       return candidate
 

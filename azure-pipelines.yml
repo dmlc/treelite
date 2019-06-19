@@ -253,7 +253,7 @@ jobs:
       Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite_runtime.dll -Destination .\runtime\native\lib
       Remove-Item .\whl_content -Force -Recurse
       Set-Location -Path .\build
-      cmake .. -G"Visual Studio 14 2015 Win64"
+      cmake .. -G"Visual Studio 15 2017 Win64"
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call %CONDA%\Scripts\activate

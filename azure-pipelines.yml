@@ -238,7 +238,6 @@ jobs:
   - script: |
       call activate
       conda install --yes --quiet numpy scipy scikit-learn pandas
-      python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -259,6 +258,7 @@ jobs:
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call activate
+      python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
       python -m pytest -v --fulltrace tests\python --cov=./
     displayName: 'Running Python tests...'
     env:

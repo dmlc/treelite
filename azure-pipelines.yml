@@ -244,14 +244,13 @@ jobs:
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Windows...'
   - powershell: |
-      Dir *.whl | Rename-Item -newname { $_.name -replace ".whl" ".zip" }
+      Dir *.whl | Rename-Item -newname { $_.name -replace ".whl", ".zip" }
       Expand-Archive *.zip -DestinationPath .\whl_content
       New-Item .\lib -ItemType Directory -ea 0
       New-Item .\runtime\native\lib -ItemType Directory -ea 0
       New-Item .\build -ItemType Directory -ea 0
       Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite.dll -Destination .\lib
       Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite_runtime.dll -Destination .\runtime\native\lib
-      Remove-Item .\whl_content -Force -Recurse
       Remove-Item .\whl_content -Force -Recurse
       Set-Location -Path .\build
       cmake .. -G"Visual Studio 14 2015 Win64"

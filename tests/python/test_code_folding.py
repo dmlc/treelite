@@ -17,7 +17,7 @@ class TestCodeFolding(unittest.TestCase):
         use_parallel_comp in \
         [('xgboost', 'mushroom/mushroom.model', 'mushroom/agaricus.train',
           'mushroom/agaricus.test', './agaricus{}', 'mushroom/agaricus.test.prob',
-          'mushroom/agaricus.test.margin', False, None),
+          'mushroom/agaricus.test.margin', False, 2),
          ('xgboost', 'dermatology/dermatology.model',
           'dermatology/dermatology.train', 'dermatology/dermatology.test',
           './dermatology{}', 'dermatology/dermatology.test.prob',
@@ -31,7 +31,7 @@ class TestCodeFolding(unittest.TestCase):
       else:
         use_annotation = None
       for use_quantize in [False, True]:
-        for use_code_folding in [1.0, 2.0, 3.0]:
+        for use_code_folding in [0.0, 1.0, 2.0, 3.0]:
           run_pipeline_test(model=model, dtest_path=dtest_path,
                             libname_fmt=libname_fmt,
                             expected_prob_path=expected_prob_path,

@@ -34,7 +34,8 @@ void ASTBuilder::Split(int parallel_comp) {
   /* tree_head[i] stores reference to head of tree i */
   std::vector<ASTNode*> tree_head;
   for (ASTNode* node : top_ac_node->children) {
-    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode*>(node));
+    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode*>(node)
+          || dynamic_cast<CodeFolderNode*>(node));
     tree_head.push_back(node);
   }
   /* dynamic_cast<> is used here to check node types. This is to ensure

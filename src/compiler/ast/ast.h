@@ -9,6 +9,8 @@
 
 #include <dmlc/optional.h>
 #include <treelite/base.h>
+#include <fmt/format.h>
+#include <limits>
 #include <string>
 #include <vector>
 #include <utility>
@@ -29,6 +31,7 @@ class ASTNode {
   int tree_id;
   dmlc::optional<size_t> data_count;
   dmlc::optional<double> sum_hess;
+  virtual std::string GetDump() const = 0;
   virtual ~ASTNode() = 0;  // force ASTNode to be abstract class
  protected:
   ASTNode() : parent(nullptr), node_id(-1), tree_id(-1) {}
@@ -45,12 +48,21 @@ class MainNode : public ASTNode {
   bool average_result;
   int num_tree;
   int num_feature;
+
+  std::string GetDump() const override {
+    return fmt::format("MainNode {{ global_bias: {}, average_result: {}, num_tree: {}, "
+                       "num_feature: {} }}", global_bias, average_result, num_tree, num_feature);
+  }
 };
 
 class TranslationUnitNode : public ASTNode {
  public:
   explicit TranslationUnitNode(int unit_id) : unit_id(unit_id) {}
   int unit_id;
+
+  std::string GetDump() const override {
+    return fmt::format("TranslationUnitNode {{ unit_id: {} }}", unit_id);
+  }
 };
 
 class QuantizerNode : public ASTNode {
@@ -60,16 +72,36 @@ class QuantizerNode : public ASTNode {
   explicit QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
     : cut_pts(std::move(cut_pts)) {}
   std::vector<std::vector<tl_float>> cut_pts;
+
+  std::string GetDump() const override {
+    std::ostringstream oss;
+    for (const auto& vec : cut_pts) {
+      oss << "[ ";
+      for (const auto& e : vec) {
+        oss << e << ", ";
+      }
+      oss << "], ";
+    }
+    return fmt::format("QuantizerNode {{ cut_pts: {} }}", oss.str());
+  }
 };
 
 class AccumulatorContextNode : public ASTNode {
  public:
   AccumulatorContextNode() {}
+
+  std::string GetDump() const override {
+    return fmt::format("AccumulatorContextNode {{}}");
+  }
 };
 
 class CodeFolderNode : public ASTNode {
  public:
   CodeFolderNode() {}
+
+  std::string GetDump() const override {
+    return fmt::format("CodeFolderNode {{}}");
+  }
 };
 
 class ConditionNode : public ASTNode {
@@ -79,6 +111,16 @@ class ConditionNode : public ASTNode {
   unsigned split_index;
   bool default_left;
   dmlc::optional<double> gain;
+
+  std::string GetDump() const override {
+    if (gain) {
+      return fmt::format("ConditionNode {{ split_index: {}, default_left: {}, gain: {} }}",
+                         split_index, default_left, gain.value());
+    } else {
+      return fmt::format("ConditionNode {{ split_index: {}, default_left: {} }}",
+                         split_index, default_left);
+    }
+  }
 };
 
 union ThresholdVariant {
@@ -98,6 +140,13 @@ class NumericalConditionNode : public ConditionNode {
   bool quantized;
   Operator op;
   ThresholdVariant threshold;
+
+  std::string GetDump() const override {
+    return fmt::format("NumericalConditionNode {{ {}, quantized: {}, op: {}, threshold: {} }}",
+                       ConditionNode::GetDump(), quantized, OpName(op),
+                       (quantized ? fmt::format("{:d}", threshold.int_val)
+                                  : fmt::format("{:f}", threshold.float_val)));
+  }
 };
 
 class CategoricalConditionNode : public ConditionNode {
@@ -110,6 +159,18 @@ class CategoricalConditionNode : public ConditionNode {
       convert_missing_to_zero(convert_missing_to_zero) {}
   std::vector<uint32_t> left_categories;
   bool convert_missing_to_zero;
+
+  std::string GetDump() const override {
+    std::ostringstream oss;
+    oss << "[";
+    for (const auto& e : left_categories) {
+      oss << e << ", ";
+    }
+    oss << "]";
+    return fmt::format("CategoricalConditionNode {{ {}, left_categories: {}, "
+                       "convert_missing_to_zero: {} }}",
+                       ConditionNode::GetDump(), oss.str(), convert_missing_to_zero);
+  }
 };
 
 class OutputNode : public ASTNode {
@@ -121,6 +182,20 @@ class OutputNode : public ASTNode {
   bool is_vector;
   tl_float scalar;
   std::vector<tl_float> vector;
+
+  std::string GetDump() const override {
+    if (is_vector) {
+      std::ostringstream oss;
+      oss << "[";
+      for (const auto& e : vector) {
+        oss << e << ", ";
+      }
+      oss << "]";
+      return fmt::format("OutputNode {{ is_vector: {}, vector {} }}", is_vector, oss.str());
+    } else {
+      return fmt::format("OutputNode {{ is_vector: {}, scalar: {} }}", is_vector, scalar);
+    }
+  }
 };
 
 }  // namespace compiler

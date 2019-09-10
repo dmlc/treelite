@@ -59,6 +59,10 @@ class ASTBuilder {
   void QuantizeThresholds();
   /* \brief Load data counts from annotation file */
   void LoadDataCounts(const std::vector<std::vector<size_t>>& counts);
+  /*
+   * \brief Get a text representation of AST
+   */
+  std::string GetDump() const;
 
   inline const ASTNode* GetRootNode() {
     return main_node;

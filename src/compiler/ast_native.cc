@@ -9,6 +9,7 @@
 #include <treelite/annotator.h>
 #include <fmt/format.h>
 #include <algorithm>
+#include <fstream>
 #include <unordered_map>
 #include <queue>
 #include <cmath>
@@ -76,6 +77,15 @@ class ASTNativeCompiler : public Compiler {
     if (param.quantize > 0) {
       builder.QuantizeThresholds();
     }
+
+    {
+      const char* destfile = getenv("TREELITE_DUMP_AST");
+      if (destfile) {
+        std::ofstream os(destfile);
+        os << builder.GetDump() << std::endl;
+      }
+    }
+
     WalkAST(builder.GetRootNode(), "main.c", 0);
     if (files_.count("arrays.c") > 0) {
       PrependToBuffer("arrays.c", "#include \"header.h\"\n", 0);

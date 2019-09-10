@@ -17,7 +17,7 @@ void get_dump_from_node(std::ostringstream* oss,
   }
 }
 
-}  // namespace anonymous
+}  // anonymous namespace
 
 namespace treelite {
 namespace compiler {

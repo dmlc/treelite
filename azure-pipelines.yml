@@ -183,7 +183,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CodeCovToken)
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
 - job: osx_python_test
   dependsOn: osx_build
   pool:
@@ -224,4 +224,4 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CodeCovToken)
+      CODECOV_TOKEN: $(CODECOV_TOKEN)

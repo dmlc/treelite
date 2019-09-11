@@ -127,7 +127,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting C++ code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CodeCovToken)
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
 - job: java_coverage
   pool:
     vmImage: 'ubuntu-latest'
@@ -145,7 +145,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting Java code (treelite4j) coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CodeCovToken)
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
 - job: linux_python_test
   dependsOn: linux_build
   pool:

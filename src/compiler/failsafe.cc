@@ -12,7 +12,7 @@
 #include <fmt/format.h>
 #include <cmath>
 #include <unordered_map>
-#include <unordered_set>
+#include <set>
 #include <tuple>
 #include <utility>
 #include "./param.h"
@@ -158,7 +158,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
 // Get the comparison op used in the tree ensemble model
 // If splits have more than one op, throw an error
 inline std::string GetCommonOp(const treelite::Model& model) {
-  std::unordered_set<treelite::Operator> ops;
+  std::set<treelite::Operator> ops;
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
       const auto& node = tree[nid];

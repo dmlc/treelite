@@ -127,7 +127,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting C++ code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: java_coverage
   pool:
     vmImage: 'ubuntu-latest'
@@ -145,7 +145,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting Java code (treelite4j) coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: linux_python_test
   dependsOn: linux_build
   pool:
@@ -183,7 +183,7 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: osx_python_test
   dependsOn: osx_build
   pool:
@@ -224,4 +224,4 @@ jobs:
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
-      CODECOV_TOKEN: $(CODECOV_TOKEN)
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

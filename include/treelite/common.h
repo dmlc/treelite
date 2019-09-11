@@ -11,6 +11,7 @@
 #include <dmlc/logging.h>
 #include <dmlc/json.h>
 #include <dmlc/data.h>
+#include <fmt/format.h>
 #include <algorithm>
 #include <vector>
 #include <limits>
@@ -244,9 +245,7 @@ Iter binary_search(Iter begin, Iter end, const T& val) {
  */
 template <typename T>
 inline std::string ToStringHighPrecision(T value) {
-  std::ostringstream oss;
-  oss << std::setprecision(std::numeric_limits<T>::digits10 + 2) << value;
-  return oss.str();
+  return fmt::format("{:.{}g}", value, std::numeric_limits<T>::digits10 + 2);
 }
 
 /*!

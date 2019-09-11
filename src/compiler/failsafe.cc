@@ -151,7 +151,8 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
     nodes_row_ptr << std::to_string(node_count);
   }
   return std::make_pair(fmt::format("const struct Node nodes[] = {{\n{}\n}};", nodes.str()),
-                        fmt::format("const int nodes_row_ptr[] = {{\n{}\n}};", nodes_row_ptr.str()));
+                        fmt::format("const int nodes_row_ptr[] = {{\n{}\n}};",
+                                    nodes_row_ptr.str()));
 }
 
 // Get the comparison op used in the tree ensemble model

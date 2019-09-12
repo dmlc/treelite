@@ -46,6 +46,11 @@ class TestBasic(unittest.TestCase):
                               multiclass=multiclass, use_annotation=use_annotation,
                               use_quantize=use_quantize,
                               use_parallel_comp=use_parallel_comp)
+      run_pipeline_test(model=model, dtest_path=dtest_path,
+                        libname_fmt=libname_fmt,
+                        expected_prob_path=expected_prob_path,
+                        expected_margin_path=expected_margin_path,
+                        multiclass=multiclass, use_compiler='failsafe')
     # LETOR
     model_path = os.path.join(dpath, 'letor/mq2008.model')
     model = treelite.Model.load(model_path, model_format='xgboost')
@@ -58,6 +63,11 @@ class TestBasic(unittest.TestCase):
                       multiclass=False, use_annotation='./annotation.json',
                       use_quantize=1, use_parallel_comp=700,
                       use_toolchains=['gcc'])
+    run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
+                      libname_fmt='./mq2008{}',
+                      expected_prob_path=None,
+                      expected_margin_path='letor/mq2008.test.pred',
+                      multiclass=False, use_compiler='failsafe')
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

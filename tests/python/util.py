@@ -87,9 +87,9 @@ def assert_almost_equal(a, b, rtol=None, atol=None, names=('a', 'b'), equal_nan=
 
 def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
-                      multiclass, use_annotation, use_quantize,
-                      use_parallel_comp, use_code_folding=None,
-                      use_toolchains=None):
+                      multiclass, use_annotation=None, use_quantize=None,
+                      use_parallel_comp=None, use_code_folding=None,
+                      use_toolchains=None, use_compiler=None):
   dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
   dtest_path = os.path.join(dpath, dtest_path)
   libpath = libname(libname_fmt)
@@ -115,6 +115,10 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
     params['parallel_comp'] = use_parallel_comp
   if use_code_folding is not None:
     params['code_folding_req'] = use_code_folding
+  if use_compiler is None:
+    import inspect
+    use_compiler \
+      = inspect.signature(model.export_lib).parameters['compiler'].default
 
   if use_toolchains is None:
     toolchains = os_compatible_toolchains()
@@ -123,7 +127,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
     toolchains = [(gcc if x == 'gcc' else x) for x in use_toolchains]
   for toolchain in toolchains:
     model.export_lib(toolchain=toolchain, libpath=libpath,
-                     params=params, verbose=True)
+                     compiler=use_compiler, params=params, verbose=True)
     predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
     out_prob = predictor.predict(batch)
     if expected_prob is not None:

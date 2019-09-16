@@ -51,6 +51,9 @@ struct Node {{
   int cright;
 }};
 
+extern const struct Node nodes[];
+extern const int nodes_row_ptr[];
+
 {dllexport}size_t get_num_output_group(void);
 {dllexport}size_t get_num_feature(void);
 {dllexport}{predict_function_signature};
@@ -58,9 +61,6 @@ struct Node {{
 
 const char* main_template = R"TREELITETEMPLATE(
 #include "header.h"
-
-{nodes}
-{nodes_row_ptr}
 
 size_t get_num_output_group(void) {{
   return {num_output_group};
@@ -114,6 +114,13 @@ R"TREELITETEMPLATE(
   }} else {{
     return sum;
   }}
+)TREELITETEMPLATE";
+
+const char* arrays_template = R"TREELITETEMPLATE(
+#include "header.h"
+
+{nodes}
+{nodes_row_ptr}
 )TREELITETEMPLATE";
 
 // Returns formatted nodes[] and nodes_row_ptr[] arrays
@@ -208,7 +215,6 @@ class FailSafeCompiler : public Compiler {
   CompiledModel Compile(const Model& model) override {
     CompiledModel cm;
     cm.backend = "native";
-    cm.files["main.c"] = "";
 
     num_feature_ = model.num_feature;
     num_output_group_ = model.num_output_group;
@@ -230,9 +236,6 @@ class FailSafeCompiler : public Compiler {
              "num_output_group"_a = num_output_group_)
          : std::string("float sum = 0.0f"));
 
-    std::string nodes, nodes_row_ptr;
-    std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
-
     std::string output_statement
       = (num_output_group_ > 1
          ? fmt::format("sum[tree_id % {num_output_group}] += tree[nid].info.leaf_value;",
@@ -248,8 +251,6 @@ class FailSafeCompiler : public Compiler {
              "global_bias"_a = common::ToStringHighPrecision(model.param.global_bias)));
 
     main_program << fmt::format(main_template,
-      "nodes"_a = nodes,
-      "nodes_row_ptr"_a = nodes_row_ptr,
       "pred_transform_function"_a = pred_tranform_func_,
       "predict_function_signature"_a = predict_function_signature,
       "num_output_group"_a = num_output_group_,
@@ -261,6 +262,12 @@ class FailSafeCompiler : public Compiler {
       "return_statement"_a = return_statement);
 
     files_["main.c"] = main_program.str();
+
+    std::string nodes, nodes_row_ptr;
+    std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
+    files_["arrays.c"] = fmt::format(arrays_template,
+      "nodes"_a = nodes,
+      "nodes_row_ptr"_a = nodes_row_ptr);
 
     files_["header.h"] = fmt::format(header_template,
       "dllexport"_a = DLLEXPORT_KEYWORD,

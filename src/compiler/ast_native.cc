@@ -48,7 +48,6 @@ class ASTNativeCompiler : public Compiler {
   CompiledModel Compile(const Model& model) override {
     CompiledModel cm;
     cm.backend = "native";
-    cm.files["main.c"] = "";
 
     num_feature_ = model.num_feature;
     num_output_group_ = model.num_output_group;
@@ -94,10 +93,10 @@ class ASTNativeCompiler : public Compiler {
     {
       /* write recipe.json */
       std::vector<std::unordered_map<std::string, std::string>> source_list;
-      for (auto kv : files_) {
+      for (const auto& kv : files_) {
         if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
           const size_t line_count
-            = std::count(kv.second.begin(), kv.second.end(), '\n');
+            = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
           source_list.push_back({ {"name",
                                    kv.first.substr(0, kv.first.length() - 2)},
                                   {"length", std::to_string(line_count)} });
@@ -109,7 +108,7 @@ class ASTNativeCompiler : public Compiler {
       writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
       writer->EndObject();
-      files_["recipe.json"] = oss.str();
+      files_["recipe.json"] = CompiledModel::FileEntry(oss.str());
     }
     cm.files = std::move(files_);
     return cm;
@@ -121,7 +120,7 @@ class ASTNativeCompiler : public Compiler {
   int num_output_group_;
   std::string pred_tranform_func_;
   std::string array_is_categorical_;
-  std::unordered_map<std::string, std::string> files_;
+  std::unordered_map<std::string, CompiledModel::FileEntry> files_;
 
   void WalkAST(const ASTNode* node,
                const std::string& dest,
@@ -156,15 +155,14 @@ class ASTNativeCompiler : public Compiler {
   inline void AppendToBuffer(const std::string& dest,
                              const std::string& content,
                              size_t indent) {
-    files_[dest] += common::IndentMultiLineString(content, indent);
+    files_[dest].content += common::IndentMultiLineString(content, indent);
   }
 
   // prepend content to a given buffer, with given level of indentation
   inline void PrependToBuffer(const std::string& dest,
                               const std::string& content,
                               size_t indent) {
-    files_[dest]
-      = common::IndentMultiLineString(content, indent) + files_[dest];
+    files_[dest].content = common::IndentMultiLineString(content, indent) + files_[dest].content;
   }
 
   void HandleMainNode(const MainNode* node,

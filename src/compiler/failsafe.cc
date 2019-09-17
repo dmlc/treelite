@@ -266,22 +266,21 @@ class FailSafeCompiler : public Compiler {
       "output_statement"_a = output_statement,
       "return_statement"_a = return_statement);
 
-    files_["main.c"] = main_program.str();
+    files_["main.c"] = CompiledModel::FileEntry(main_program.str());
 
-    files_["arrays.c"] = fmt::format(arrays_template,
-      "nodes"_a = nodes);
+    files_["arrays.c"] = CompiledModel::FileEntry(fmt::format(arrays_template, "nodes"_a = nodes));
 
-    files_["header.h"] = fmt::format(header_template,
+    files_["header.h"] = CompiledModel::FileEntry(fmt::format(header_template,
       "dllexport"_a = DLLEXPORT_KEYWORD,
-      "predict_function_signature"_a = predict_function_signature);
+      "predict_function_signature"_a = predict_function_signature));
 
     {
       /* write recipe.json */
       std::vector<std::unordered_map<std::string, std::string>> source_list;
-      for (auto kv : files_) {
+      for (const auto& kv : files_) {
         if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
           const size_t line_count
-            = std::count(kv.second.begin(), kv.second.end(), '\n');
+            = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
           source_list.push_back({ {"name",
                                    kv.first.substr(0, kv.first.length() - 2)},
                                   {"length", std::to_string(line_count)} });
@@ -293,7 +292,7 @@ class FailSafeCompiler : public Compiler {
       writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
       writer->EndObject();
-      files_["recipe.json"] = oss.str();
+      files_["recipe.json"] = CompiledModel::FileEntry(oss.str());
     }
     cm.files = std::move(files_);
     return cm;
@@ -304,7 +303,7 @@ class FailSafeCompiler : public Compiler {
   int num_feature_;
   int num_output_group_;
   std::string pred_tranform_func_;
-  std::unordered_map<std::string, std::string> files_;
+  std::unordered_map<std::string, CompiledModel::FileEntry> files_;
 };
 
 TREELITE_REGISTER_COMPILER(FailSafeCompiler, "failsafe")

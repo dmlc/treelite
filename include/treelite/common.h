@@ -262,6 +262,17 @@ inline void WriteToFile(const std::string& filename,
 }
 
 /*!
+ * \brief write a sequence of bytes to a text file
+ * \param filename name of text file
+ * \param lines a sequence of strings to be written.
+ */
+inline void WriteToFile(const std::string& filename,
+                        const std::vector<char>& content) {
+  std::ofstream of(filename, std::ios::out | std::ios::binary);
+  of.write(content.data(), content.size());
+}
+
+/*!
  * \brief apply a given transformation to a sequence of strings and append them
  *        to another sequence.
  * \param p_dest pointer to the destination sequence

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2019 by Contributors
  * \file failsafe.cc
  * \author Philip Cho
  * \brief C code generator (fail-safe). The generated code will mimic prediction

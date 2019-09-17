@@ -17,6 +17,7 @@
 #include <utility>
 #include "./param.h"
 #include "./pred_transform.h"
+#include "./elf/elf_formatter.h"
 
 #if defined(_MSC_VER) || defined(_WIN32)
 #define DLLEXPORT_KEYWORD "__declspec(dllexport) "
@@ -27,6 +28,13 @@
 using namespace fmt::literals;
 
 namespace {
+
+struct NodeStructValue {
+  unsigned int sindex;
+  float info;
+  int cleft;
+  int cright;
+};
 
 const char* header_template = R"TREELITETEMPLATE(
 #include <stdlib.h>
@@ -163,6 +171,42 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
                                     nodes_row_ptr.str()));
 }
 
+// Variant of FormatNodesArray(), where nodes[] array is dumped as an ELF binary
+inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treelite::Model& model) {
+  std::vector<char> nodes_elf;
+  treelite::compiler::AllocateELFHeader(&nodes_elf); 
+
+  treelite::common::ArrayFormatter nodes_row_ptr(100, 2);
+  NodeStructValue val;
+  int node_count = 0;
+  nodes_row_ptr << "0";
+  for (const auto& tree : model.trees) {
+    for (int nid = 0; nid < tree.num_nodes; ++nid) {
+      const auto& node = tree[nid];
+      if (node.is_leaf()) {
+        CHECK(!node.has_leaf_vector())
+          << "multi-class random forest classifier is not supported in FailSafeCompiler";
+        val = {0, static_cast<float>(node.leaf_value()), -1, -1};
+      } else {
+        CHECK(node.split_type() == treelite::SplitFeatureType::kNumerical
+              && node.left_categories().empty())
+          << "categorical splits are not supported in FailSafeCompiler";
+        val = {(node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
+               static_cast<float>(node.threshold()), node.cleft(), node.cright()};
+      }
+      const size_t beg = nodes_elf.size();
+      nodes_elf.resize(beg + sizeof(NodeStructValue));
+      std::memcpy(&nodes_elf[beg], &val, sizeof(NodeStructValue));
+    }
+    node_count += tree.num_nodes;
+    nodes_row_ptr << std::to_string(node_count);
+  }
+  treelite::compiler::FormatArrayAsELF(&nodes_elf);
+
+  return std::make_pair(nodes_elf, fmt::format("const int nodes_row_ptr[] = {{\n{}\n}};",
+                                               nodes_row_ptr.str()));
+}
+
 // Get the comparison op used in the tree ensemble model
 // If splits have more than one op, throw an error
 inline std::string GetCommonOp(const treelite::Model& model) {
@@ -179,6 +223,13 @@ inline std::string GetCommonOp(const treelite::Model& model) {
   CHECK_EQ(ops.size(), 1)
     << "FailSafeCompiler only supports models where all splits use identical comparison operator.";
   return treelite::OpName(*ops.begin());
+}
+
+
+// Test whether a string ends with a given suffix
+inline bool EndsWith(const std::string& str, const std::string& suffix) {
+  return (str.size() >= suffix.size()
+          && str.compare(str.length() - suffix.size(), suffix.size(), suffix) == 0);
 }
 
 }   // anonymous namespace
@@ -252,7 +303,15 @@ class FailSafeCompiler : public Compiler {
              "global_bias"_a = common::ToStringHighPrecision(model.param.global_bias)));
 
     std::string nodes, nodes_row_ptr;
-    std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
+    std::vector<char> nodes_elf;
+    if (param.dump_array_as_elf > 0) {
+      if (param.verbose > 0) {
+        LOG(INFO) << "Dumping arrays as an ELF relocatable object...";
+      }
+      std::tie(nodes_elf, nodes_row_ptr) = FormatNodesArrayELF(model);
+    } else {
+      std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
+    }
 
     main_program << fmt::format(main_template,
       "nodes_row_ptr"_a = nodes_row_ptr,
@@ -268,7 +327,12 @@ class FailSafeCompiler : public Compiler {
 
     files_["main.c"] = CompiledModel::FileEntry(main_program.str());
 
-    files_["arrays.c"] = CompiledModel::FileEntry(fmt::format(arrays_template, "nodes"_a = nodes));
+    if (param.dump_array_as_elf > 0) {
+      files_["arrays.o"] = CompiledModel::FileEntry(std::move(nodes_elf));
+    } else {
+      files_["arrays.c"] = CompiledModel::FileEntry(fmt::format(arrays_template,
+        "nodes"_a = nodes));
+    }
 
     files_["header.h"] = CompiledModel::FileEntry(fmt::format(header_template,
       "dllexport"_a = DLLEXPORT_KEYWORD,
@@ -277,13 +341,16 @@ class FailSafeCompiler : public Compiler {
     {
       /* write recipe.json */
       std::vector<std::unordered_map<std::string, std::string>> source_list;
+      std::vector<std::string> extra_file_list;
       for (const auto& kv : files_) {
-        if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
+        if (EndsWith(kv.first, ".c")) {
           const size_t line_count
             = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
           source_list.push_back({ {"name",
                                    kv.first.substr(0, kv.first.length() - 2)},
                                   {"length", std::to_string(line_count)} });
+        } else if (EndsWith(kv.first, ".o")) {
+          extra_file_list.push_back(kv.first);
         }
       }
       std::ostringstream oss;
@@ -291,6 +358,9 @@ class FailSafeCompiler : public Compiler {
       writer->BeginObject();
       writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
+      if (!extra_file_list.empty()) {
+        writer->WriteObjectKeyValue("extra", extra_file_list);
+      }
       writer->EndObject();
       files_["recipe.json"] = CompiledModel::FileEntry(oss.str());
     }

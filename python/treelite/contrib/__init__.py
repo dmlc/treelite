@@ -75,10 +75,10 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
   obj_ext = _obj_ext()
 
   with open(os.path.join(dirpath, 'Makefile'), 'w') as f:
-    f.write('{}: {}\n'.format(recipe['target'] + lib_ext,
-                              ' '.join([x['name'] + obj_ext \
-                                        for x in recipe['sources']])))
-    f.write('\t{}\n'.format(_lib_cmd(sources=recipe['sources'],
+    objects = [x['name'] + obj_ext for x in recipe['sources']] \
+              + recipe.get('extra', [])
+    f.write('{}: {}\n'.format(recipe['target'] + lib_ext, ' '.join(objects)))
+    f.write('\t{}\n'.format(_lib_cmd(objects=objects,
                                      target=recipe['target'],
                                      lib_ext=lib_ext,
                                      toolchain=toolchain,

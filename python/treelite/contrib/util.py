@@ -128,9 +128,11 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
               .format(
                   os.path.join(dirpath,
                                recipe['target'] + recipe['library_ext'])))
+  objects = [x['name'] + recipe['object_ext'] for x in recipe['sources']] \
+            + recipe.get('extra', [])
   workqueue = {
       'tid': 0,
-      'queue': [lib_cmd(recipe['sources'], recipe['target'])],
+      'queue': [lib_cmd(objects, recipe['target'])],
       'dirpath': os.path.abspath(dirpath),
       'init_cmd': recipe['initial_cmd'],
       'create_log_cmd': create_log_cmd,

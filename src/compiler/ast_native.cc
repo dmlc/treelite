@@ -43,6 +43,10 @@ class ASTNativeCompiler : public Compiler {
     if (param.verbose > 0) {
       LOG(INFO) << "Using ASTNativeCompiler";
     }
+    if (param.dump_array_as_elf > 0) {
+      LOG(INFO) << "Warning: 'dump_array_as_elf' parameter is not applicable "
+                   "for ASTNativeCompiler";
+    }
   }
 
   CompiledModel Compile(const Model& model) override {

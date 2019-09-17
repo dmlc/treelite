@@ -64,12 +64,10 @@ def _obj_cmd(source, toolchain, options):
           .format(source + '.c', ' '.join(options))
 
 # pylint: disable=W0613
-def _lib_cmd(sources, target, lib_ext, toolchain, options):
+def _lib_cmd(objects, target, lib_ext, toolchain, options):
   obj_ext = _obj_ext()
   return 'cl.exe /LD /Fe{} /openmp {} {}'\
-          .format(target,
-                  ' '.join([x['name'] + obj_ext for x in sources]),
-                  ' '.join(options))
+          .format(target, ' '.join(objects), ' '.join(options))
 
 # pylint: disable=R0913
 def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
@@ -79,8 +77,8 @@ def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   # pylint: disable=C0111
   def obj_cmd(source):
     return _obj_cmd(source, toolchain, options)
-  def lib_cmd(sources, target):
-    return _lib_cmd(sources, target, LIBEXT, toolchain, options)
+  def lib_cmd(objects, target):
+    return _lib_cmd(objects, target, LIBEXT, toolchain, options)
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd
   recipe['initial_cmd'] = '\"{}\" {}\n'\

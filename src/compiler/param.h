@@ -42,6 +42,11 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
              folded. To diable folding, set to +inf. If hessian sums are
              available, they will be used as proxies of data counts. */
   double code_folding_req;
+  /*! \brief Only applicable when compiler is set to ``failsafe``. If set to a positive value,
+             the fail-safe compiler will not emit large constant arrays to the C code. Instead,
+             the arrays will be emitted as an ELF binary (Linux only). For large arrays, it is
+             much faster to directly dump ELF binaries than to pass them to a C compiler. */
+  int dump_array_as_elf;
   /*! \} */
 
   // declare parameters
@@ -60,6 +65,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
     DMLC_DECLARE_FIELD(code_folding_req)
        .set_default(std::numeric_limits<double>::infinity())
        .set_lower_bound(0);
+    DMLC_DECLARE_FIELD(dump_array_as_elf).set_lower_bound(0).set_default(0);
   }
 };
 

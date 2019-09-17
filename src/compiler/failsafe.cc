@@ -62,6 +62,8 @@ extern const int nodes_row_ptr[];
 const char* main_template = R"TREELITETEMPLATE(
 #include "header.h"
 
+{nodes_row_ptr}
+
 size_t get_num_output_group(void) {{
   return {num_output_group};
 }}
@@ -120,7 +122,6 @@ const char* arrays_template = R"TREELITETEMPLATE(
 #include "header.h"
 
 {nodes}
-{nodes_row_ptr}
 )TREELITETEMPLATE";
 
 // Returns formatted nodes[] and nodes_row_ptr[] arrays
@@ -250,7 +251,11 @@ class FailSafeCompiler : public Compiler {
          : fmt::format(return_template,
              "global_bias"_a = common::ToStringHighPrecision(model.param.global_bias)));
 
+    std::string nodes, nodes_row_ptr;
+    std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
+
     main_program << fmt::format(main_template,
+      "nodes_row_ptr"_a = nodes_row_ptr,
       "pred_transform_function"_a = pred_tranform_func_,
       "predict_function_signature"_a = predict_function_signature,
       "num_output_group"_a = num_output_group_,
@@ -263,11 +268,8 @@ class FailSafeCompiler : public Compiler {
 
     files_["main.c"] = main_program.str();
 
-    std::string nodes, nodes_row_ptr;
-    std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
     files_["arrays.c"] = fmt::format(arrays_template,
-      "nodes"_a = nodes,
-      "nodes_row_ptr"_a = nodes_row_ptr);
+      "nodes"_a = nodes);
 
     files_["header.h"] = fmt::format(header_template,
       "dllexport"_a = DLLEXPORT_KEYWORD,

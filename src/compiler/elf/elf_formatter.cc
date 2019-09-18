@@ -5,7 +5,6 @@
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
 #include <dmlc/registry.h>
-#include <elf.h>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -15,6 +14,8 @@
 #include "./elf_formatter.h"
 
 #ifdef __linux__
+
+#include <elf.h>
 
 namespace {
 

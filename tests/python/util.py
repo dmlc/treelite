@@ -89,7 +89,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
                       expected_prob_path, expected_margin_path,
                       multiclass, use_annotation=None, use_quantize=None,
                       use_parallel_comp=None, use_code_folding=None,
-                      use_toolchains=None, use_compiler=None):
+                      use_toolchains=None, use_elf=False, use_compiler=None):
   dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
   dtest_path = os.path.join(dpath, dtest_path)
   libpath = libname(libname_fmt)
@@ -115,6 +115,8 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
     params['parallel_comp'] = use_parallel_comp
   if use_code_folding is not None:
     params['code_folding_req'] = use_code_folding
+  if use_elf:
+    params['dump_array_as_elf'] = 1
   if use_compiler is None:
     import inspect
     use_compiler \

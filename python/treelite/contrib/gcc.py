@@ -17,13 +17,10 @@ def _obj_cmd(source, toolchain, options):
   return '{} -c -O3 -o {} {} -fPIC -std=c99 {}'\
          .format(toolchain, source + obj_ext, source + '.c', ' '.join(options))
 
-def _lib_cmd(sources, target, lib_ext, toolchain, options):
-  obj_ext = _obj_ext()
+def _lib_cmd(objects, target, lib_ext, toolchain, options):
   return '{} -shared -O3 -o {} {} -std=c99 {}'\
-          .format(toolchain,
-                  target + lib_ext,
-                  ' '.join([x['name'] + obj_ext for x in sources]),
-                  ' '.join(options))
+          .format(toolchain, target + lib_ext,
+                  ' '.join(objects), ' '.join(options))
 
 def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   options += ['-lm']
@@ -33,8 +30,8 @@ def _create_shared(dirpath, toolchain, recipe, nthread, options, verbose):
   # pylint: disable=C0111
   def obj_cmd(source):
     return _obj_cmd(source, toolchain, options)
-  def lib_cmd(sources, target):
-    return _lib_cmd(sources, target, LIBEXT, toolchain, options)
+  def lib_cmd(objects, target):
+    return _lib_cmd(objects, target, LIBEXT, toolchain, options)
   recipe['create_object_cmd'] = obj_cmd
   recipe['create_library_cmd'] = lib_cmd
   recipe['initial_cmd'] = ''

@@ -2,6 +2,7 @@
 """Suite of basic tests"""
 from __future__ import print_function
 import unittest
+import sys
 import os
 import subprocess
 from zipfile import ZipFile
@@ -22,6 +23,9 @@ class TestBasic(unittest.TestCase):
     Test a basic workflow: load a model, compile and export as shared lib,
     and make predictions
     """
+
+    is_linux = sys.platform.startswith('linux')
+
     for model_path, dtrain_path, dtest_path, libname_fmt, \
         expected_prob_path, expected_margin_path, multiclass in \
         [('mushroom/mushroom.model', 'mushroom/agaricus.train',
@@ -46,11 +50,23 @@ class TestBasic(unittest.TestCase):
                               multiclass=multiclass, use_annotation=use_annotation,
                               use_quantize=use_quantize,
                               use_parallel_comp=use_parallel_comp)
-      run_pipeline_test(model=model, dtest_path=dtest_path,
-                        libname_fmt=libname_fmt,
-                        expected_prob_path=expected_prob_path,
-                        expected_margin_path=expected_margin_path,
-                        multiclass=multiclass, use_compiler='failsafe')
+      for use_elf in [True, False] if is_linux else [False]:
+        run_pipeline_test(model=model, dtest_path=dtest_path,
+                          libname_fmt=libname_fmt,
+                          expected_prob_path=expected_prob_path,
+                          expected_margin_path=expected_margin_path,
+                          multiclass=multiclass, use_elf=use_elf,
+                          use_compiler='failsafe')
+      if not is_linux:
+        # Expect to see an exception when using ELF in non-Linux OS
+        with pytest.raises(treelite.common.util.TreeliteError):
+          run_pipeline_test(model=model, dtest_path=dtest_path,
+                            libname_fmt=libname_fmt,
+                            expected_prob_path=expected_prob_path,
+                            expected_margin_path=expected_margin_path,
+                            multiclass=multiclass, use_elf=True,
+                            use_compiler='failsafe')
+
     # LETOR
     model_path = os.path.join(dpath, 'letor/mq2008.model')
     model = treelite.Model.load(model_path, model_format='xgboost')
@@ -67,7 +83,8 @@ class TestBasic(unittest.TestCase):
                       libname_fmt='./mq2008{}',
                       expected_prob_path=None,
                       expected_margin_path='letor/mq2008.test.pred',
-                      multiclass=False, use_compiler='failsafe')
+                      multiclass=False, use_elf=is_linux,
+                      use_compiler='failsafe')
 
   def test_srcpkg(self):
     """Test feature to export a source tarball"""

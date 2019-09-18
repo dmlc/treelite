@@ -291,7 +291,11 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
       LOG(INFO) << "Writing file " << it.first << "...";
     }
     const std::string filename_full = dirpath_ + "/" + it.first;
-    common::WriteToFile(filename_full, it.second);
+    if (it.second.is_binary) {
+      common::WriteToFile(filename_full, it.second.content_binary);
+    } else {
+      common::WriteToFile(filename_full, it.second.content);
+    }
   }
 
   API_END();

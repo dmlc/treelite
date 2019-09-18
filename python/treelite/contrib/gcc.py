@@ -18,7 +18,6 @@ def _obj_cmd(source, toolchain, options):
          .format(toolchain, source + obj_ext, source + '.c', ' '.join(options))
 
 def _lib_cmd(objects, target, lib_ext, toolchain, options):
-  obj_ext = _obj_ext()
   return '{} -shared -O3 -o {} {} -std=c99 {}'\
           .format(toolchain, target + lib_ext,
                   ' '.join(objects), ' '.join(options))

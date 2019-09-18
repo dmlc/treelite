@@ -65,7 +65,6 @@ def _obj_cmd(source, toolchain, options):
 
 # pylint: disable=W0613
 def _lib_cmd(objects, target, lib_ext, toolchain, options):
-  obj_ext = _obj_ext()
   return 'cl.exe /LD /Fe{} /openmp {} {}'\
           .format(target, ' '.join(objects), ' '.join(options))
 

@@ -174,7 +174,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
 // Variant of FormatNodesArray(), where nodes[] array is dumped as an ELF binary
 inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treelite::Model& model) {
   std::vector<char> nodes_elf;
-  treelite::compiler::AllocateELFHeader(&nodes_elf); 
+  treelite::compiler::AllocateELFHeader(&nodes_elf);
 
   treelite::common::ArrayFormatter nodes_row_ptr(100, 2);
   NodeStructValue val;

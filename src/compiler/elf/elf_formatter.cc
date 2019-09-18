@@ -5,13 +5,13 @@
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
 #include <dmlc/registry.h>
+#include <elf.h>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
 #include <vector>
 #include <cstdio>
 #include <cstring>
-#include <elf.h>
 #include "./elf_formatter.h"
 
 namespace {
@@ -19,11 +19,11 @@ namespace {
 const unsigned int SHF_X86_64_LARGE = 0x10000000;
 
 const char ident_str[EI_NIDENT] = {
-   ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3,             // magic string: 0x7F, "ELF"
-   ELFCLASS64, ELFDATA2LSB,                        // EI_CLASS, EI_DATA: 64-bit, little-endian
-   EV_CURRENT,                                     // EI_VERSION: ELF version 1
-   ELFOSABI_NONE,                                  // EI_OSABI: System V ABI or unspecified
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // EI_PAD: reserved
+  ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3,             // magic string: 0x7F, "ELF"
+  ELFCLASS64, ELFDATA2LSB,                        // EI_CLASS, EI_DATA: 64-bit, little-endian
+  EV_CURRENT,                                     // EI_VERSION: ELF version 1
+  ELFOSABI_NONE,                                  // EI_OSABI: System V ABI or unspecified
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // EI_PAD: reserved
 };
 
 void AppendToBuffer(std::vector<char>* dest, const void* src, size_t count) {
@@ -94,21 +94,21 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
                          + sizeof(symtab) + sizeof(strtab) + sizeof(shstrtab);
 
   std::memcpy(elf_header.e_ident, ident_str, EI_NIDENT);
-  elf_header.e_type = ET_REL;        // A relocatable (object) file
-  elf_header.e_machine = EM_X86_64;  // AMD64 architecture target
-  elf_header.e_version = EV_CURRENT; // ELF version 1
-  elf_header.e_entry = 0;            // Set to zero because there's no entry point
-  elf_header.e_phoff = 0;            // Set to zero because there's no program header table
-  elf_header.e_shoff = e_shoff;      // Section header table's offset
-  elf_header.e_flags = 0;            // Reserved
-  elf_header.e_ehsize = 64;          // Size of ELF header (in bytes)
-  elf_header.e_phentsize = 0;        // Set to zero because there's no program header table
-  elf_header.e_phnum = 0;            // Set to zero because there's no program header table
-  elf_header.e_shentsize = 64;       // Size of each section header (in bytes)
-  elf_header.e_shnum = 10;           // Number of section headers
-  elf_header.e_shstrndx = 9;         // Index (in section header table) of the section storing
-                                     // string representation of all section names
-                                     // In this case, the last section stores name of all sections
+  elf_header.e_type = ET_REL;         // A relocatable (object) file
+  elf_header.e_machine = EM_X86_64;   // AMD64 architecture target
+  elf_header.e_version = EV_CURRENT;  // ELF version 1
+  elf_header.e_entry = 0;             // Set to zero because there's no entry point
+  elf_header.e_phoff = 0;             // Set to zero because there's no program header table
+  elf_header.e_shoff = e_shoff;       // Section header table's offset
+  elf_header.e_flags = 0;             // Reserved
+  elf_header.e_ehsize = 64;           // Size of ELF header (in bytes)
+  elf_header.e_phentsize = 0;         // Set to zero because there's no program header table
+  elf_header.e_phnum = 0;             // Set to zero because there's no program header table
+  elf_header.e_shentsize = 64;        // Size of each section header (in bytes)
+  elf_header.e_shnum = 10;            // Number of section headers
+  elf_header.e_shstrndx = 9;          // Index (in section header table) of the section storing
+                                      // string representation of all section names
+                                      // In this case, the last section stores name of all sections
 
   /* Format section header table */
   Elf64_Shdr section_header[] = {

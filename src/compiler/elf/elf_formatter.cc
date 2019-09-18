@@ -14,6 +14,8 @@
 #include <cstring>
 #include "./elf_formatter.h"
 
+#ifdef __linux__
+
 namespace {
 
 const unsigned int SHF_X86_64_LARGE = 0x10000000;
@@ -197,3 +199,21 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
 
 }  // namespace compiler
 }  // namespace treelite
+
+#else  // __linux__
+
+namespace treelite {
+namespace compiler {
+
+void AllocateELFHeader(std::vector<char>* elf_buffer) {
+  LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
+}
+
+void FormatArrayAsELF(std::vector<char>* elf_buffer) {
+  LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
+}
+
+}  // namespace compiler
+}  // namespace treelite
+
+#endif  // __linux__

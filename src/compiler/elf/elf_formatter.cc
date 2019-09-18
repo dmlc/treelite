@@ -16,6 +16,8 @@
 
 namespace {
 
+const unsigned int SHF_X86_64_LARGE = 0x10000000;
+
 const char ident_str[EI_NIDENT] = {
    ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3,             // magic string: 0x7F, "ELF"
    ELFCLASS64, ELFDATA2LSB,                        // EI_CLASS, EI_DATA: 64-bit, little-endian
@@ -79,10 +81,10 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
   static_assert(sizeof(strtab) == 16, ".strtab has incorrect size");
 
   /* Format section name table */
-  const char shstrtab[] = "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.rodata\0.comment\0"
-                          ".note.GNU-stack\0\0\0";
+  const char shstrtab[] = "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.lrodata\0.comment\0"
+                          ".note.GNU-stack\0\0";
     // padding added at the end to ensure 4-byte alignment everywhere
-  const size_t shstrtab_padding = 3;  // remember how many NUL letters we added for padding
+  const size_t shstrtab_padding = 2;  // remember how many NUL letters we added for padding
   static_assert(sizeof(shstrtab) == 80, ".shstrtab has incorrect size");
 
   /* Format ELF header */
@@ -90,7 +92,7 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
   // Compute e_shoff, section header table's offset.
   const size_t e_shoff = sizeof(elf_header) + array_size + sizeof(comment)
                          + sizeof(symtab) + sizeof(strtab) + sizeof(shstrtab);
-            
+
   std::memcpy(elf_header.e_ident, ident_str, EI_NIDENT);
   elf_header.e_type = ET_REL;        // A relocatable (object) file
   elf_header.e_machine = EM_X86_64;  // AMD64 architecture target
@@ -104,7 +106,7 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
   elf_header.e_phnum = 0;            // Set to zero because there's no program header table
   elf_header.e_shentsize = 64;       // Size of each section header (in bytes)
   elf_header.e_shnum = 10;           // Number of section headers
-  elf_header.e_shstrndx = 9;         // Index (in section header table) of the section storing 
+  elf_header.e_shstrndx = 9;         // Index (in section header table) of the section storing
                                      // string representation of all section names
                                      // In this case, the last section stores name of all sections
 
@@ -127,19 +129,19 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
     //                 See https://www.sco.com/developers/gabi/1998-04-29/ch4.sheader.html#sh_link
     // * sh_addralign: Alignment constraint for the section. This must be a power of 2. A value of
     //                 0 or 1 indicates the lack of alignment constraint.
-    // * sh_entsize:   Size of each entry in a table (in bytes). This is only applicable if the 
+    // * sh_entsize:   Size of each entry in a table (in bytes). This is only applicable if the
     //                 section is a table of some kind (e.g. symbol table).
-    { 0,     SHT_NULL,                       0x0, 0x0, 0x0,                0, 0, 0,  0,  0},
-    {27, SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0x0, 0x0,                0, 0, 0,  1,  0}, 
-    {33, SHT_PROGBITS,     SHF_WRITE | SHF_ALLOC, 0x0, 0x0,                0, 0, 0,  1,  0},
-    {39,   SHT_NOBITS,     SHF_WRITE | SHF_ALLOC, 0x0, 0x0,                0, 0, 0,  1,  0},
-    {44, SHT_PROGBITS,                 SHF_ALLOC, 0x0, 0x0,       array_size, 0, 0, 32,  0},
-    {52, SHT_PROGBITS,   SHF_MERGE | SHF_STRINGS, 0x0, 0x0,  sizeof(comment), 0, 0,  1,  1},
-    {61, SHT_PROGBITS,                       0x0, 0x0, 0x0,                0, 0, 0,  1,  0},
-    { 1,   SHT_SYMTAB,                       0x0, 0x0, 0x0,   sizeof(symtab), 8, 8,  8, 24},
-    { 9,   SHT_STRTAB,                       0x0, 0x0, 0x0,   sizeof(strtab), 0, 0,  1,  0},
-    {17,   SHT_STRTAB,                       0x0, 0x0, 0x0, sizeof(shstrtab), 0, 0,  1,  0}
-    // Sections listed: (null)  .text     .data  .bss  .rodata  .comment  .note.GNU-stack  .symtab
+    { 0,     SHT_NULL,                          0x0, 0x0, 0x0,                0, 0, 0,  0,  0},
+    {27, SHT_PROGBITS,    SHF_ALLOC | SHF_EXECINSTR, 0x0, 0x0,                0, 0, 0,  1,  0},
+    {33, SHT_PROGBITS,        SHF_WRITE | SHF_ALLOC, 0x0, 0x0,                0, 0, 0,  1,  0},
+    {39,   SHT_NOBITS,        SHF_WRITE | SHF_ALLOC, 0x0, 0x0,                0, 0, 0,  1,  0},
+    {44, SHT_PROGBITS, SHF_ALLOC | SHF_X86_64_LARGE, 0x0, 0x0,       array_size, 0, 0, 32,  0},
+    {53, SHT_PROGBITS,      SHF_MERGE | SHF_STRINGS, 0x0, 0x0,  sizeof(comment), 0, 0,  1,  1},
+    {62, SHT_PROGBITS,                          0x0, 0x0, 0x0,                0, 0, 0,  1,  0},
+    { 1,   SHT_SYMTAB,                          0x0, 0x0, 0x0,   sizeof(symtab), 8, 8,  8, 24},
+    { 9,   SHT_STRTAB,                          0x0, 0x0, 0x0,   sizeof(strtab), 0, 0,  1,  0},
+    {17,   SHT_STRTAB,                          0x0, 0x0, 0x0, sizeof(shstrtab), 0, 0,  1,  0}
+    // Sections listed: (null)  .text     .data  .bss  .lrodata  .comment  .note.GNU-stack  .symtab
     //                  .strtab .shstrtab
     // Note that some sections are not actually present in the object (thus has size zero).
   };
@@ -159,7 +161,7 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
    * +---------------------------------+
    * | ELF Header                      |
    * +---------------------------------+
-   * | .rodata (read-only data)        |
+   * | .lrodata (read-only data) (*)   |
    * +---------------------------------+
    * | .comment (compiler information) |
    * +---------------------------------+
@@ -172,12 +174,15 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
    * | Section headers                 |
    * +---------------------------------+
    *
+   *  (*) The 'l' prefix indicates that we enabled SHF_X86_64_LARGE flag for the data section, so
+   *      that the section can hold more than 2 GB.
+   *
    **/
 
   /* Write ELF header */
   std::memcpy(elf_buffer->data(), &elf_header, sizeof(Elf64_Ehdr));
     // elf_buffer already has a placeholder for the ELF header
-  /* .rodata (read-only data) segment is already part of elf_buffer */
+  /* .lrodata (read-only data) segment is already part of elf_buffer */
   /* Write .comment (compiler information) segment */
   AppendToBuffer(elf_buffer, comment, sizeof(comment));
   /* Write .symtab (symbol table) segment */

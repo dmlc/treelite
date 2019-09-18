@@ -46,11 +46,13 @@ class TestBasic(unittest.TestCase):
                               multiclass=multiclass, use_annotation=use_annotation,
                               use_quantize=use_quantize,
                               use_parallel_comp=use_parallel_comp)
-      run_pipeline_test(model=model, dtest_path=dtest_path,
-                        libname_fmt=libname_fmt,
-                        expected_prob_path=expected_prob_path,
-                        expected_margin_path=expected_margin_path,
-                        multiclass=multiclass, use_compiler='failsafe')
+      for use_elf in [True, False]:
+        run_pipeline_test(model=model, dtest_path=dtest_path,
+                          libname_fmt=libname_fmt,
+                          expected_prob_path=expected_prob_path,
+                          expected_margin_path=expected_margin_path,
+                          multiclass=multiclass, use_elf=use_elf,
+                          use_compiler='failsafe')
     # LETOR
     model_path = os.path.join(dpath, 'letor/mq2008.model')
     model = treelite.Model.load(model_path, model_format='xgboost')

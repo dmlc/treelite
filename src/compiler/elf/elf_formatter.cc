@@ -139,6 +139,9 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
     { 1,   SHT_SYMTAB,                       0x0, 0x0, 0x0,   sizeof(symtab), 8, 8,  8, 24},
     { 9,   SHT_STRTAB,                       0x0, 0x0, 0x0,   sizeof(strtab), 0, 0,  1,  0},
     {17,   SHT_STRTAB,                       0x0, 0x0, 0x0, sizeof(shstrtab), 0, 0,  1,  0}
+    // Sections listed: (null)  .text     .data  .bss  .rodata  .comment  .note.GNU-stack  .symtab
+    //                  .strtab .shstrtab
+    // Note that some sections are not actually present in the object (thus has size zero).
   };
   // Compute offsets via cumulative sums
   section_header[1].sh_offset = 0x40;

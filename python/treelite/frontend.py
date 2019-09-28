@@ -299,6 +299,7 @@ class Model():
     for key, val in params:
       _check_call(_LIB.TreeliteCompilerSetParam(compiler_handle, c_str(key),
                                                 c_str(str(val))))
+  # pylint: disable=C0415
   @classmethod
   def from_xgboost(cls, booster):
     """

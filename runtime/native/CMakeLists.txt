@@ -96,5 +96,5 @@ else()
           LIBRARY DESTINATION lib)
 endif()
 
-install(DIRECTORY include/treelite DESTINATION include
+install(DIRECTORY include/treelite DESTINATION runtime/native/include
         FILES_MATCHING PATTERN "*.h")

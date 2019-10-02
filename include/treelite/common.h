@@ -438,7 +438,9 @@ inline bool CompareWithOp(treelite::tl_float lhs, treelite::Operator op,
     case treelite::Operator::kLE: return lhs <= rhs;
     case treelite::Operator::kGT: return lhs >  rhs;
     case treelite::Operator::kGE: return lhs >= rhs;
-    default:            LOG(FATAL) << "operator undefined";
+    default:
+      LOG(FATAL) << "operator undefined";
+      return false;
   }
 }
 

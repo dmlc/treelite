@@ -259,7 +259,7 @@ jobs:
   - script: |
       call activate
       python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
-      python -m pytest -v --fulltrace tests\python --cov=./
+      python -m pytest -v -s --fulltrace tests\python --cov=./
     displayName: 'Running Python tests...'
     env:
       PYTHONPATH: .\python

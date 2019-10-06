@@ -6,11 +6,10 @@ from __future__ import absolute_import as _abs
 import ctypes
 import inspect
 import time
-import shutil
 import os
 import sys
 import site
-from .compat import py_str, PY3
+from .compat import py_str
 
 class TreeliteVersionNotFound(Exception):
   """Error thrown by when version file is not found"""

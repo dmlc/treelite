@@ -50,22 +50,6 @@ def _load_ver():
 class TreeliteError(Exception):
   """Error thrown by treelite"""
 
-if PY3:
-  # pylint: disable=W0611
-  from tempfile import TemporaryDirectory
-else:
-  import tempfile
-  class TemporaryDirectory():
-    """Context manager for tempfile.mkdtemp()"""
-    # pylint: disable=R0903
-
-    def __enter__(self):
-      self.name = tempfile.mkdtemp()    # pylint: disable=W0201
-      return self.name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-      shutil.rmtree(self.name)
-
 def lineno():
   """Returns line number"""
   return inspect.currentframe().f_back.f_lineno

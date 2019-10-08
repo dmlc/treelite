@@ -10,7 +10,7 @@ import treelite.runtime
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from util import os_compatible_toolchains, libname, assert_almost_equal,\
-                 run_pipeline_test
+                 run_pipeline_test, os_platform
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
@@ -121,6 +121,7 @@ class TestLightGBMIntegration(unittest.TestCase):
                             use_quantize=use_quantize,
                             use_parallel_comp=use_parallel_comp)
 
+  @pytest.mark.skipif(os_platform() == 'windows', reason='MSVC cannot handle long if conditional')
   def test_sparse_categorical_model(self):
     """
     LightGBM is able to produce categorical splits directly, so that

@@ -381,15 +381,32 @@ class ASTNativeCompiler : public Compiler {
       }
       array_th_len = formatter.str();
     }
-    PrependToBuffer(dest,
-      fmt::format(native::qnode_template,
-        "array_threshold"_a = array_threshold,
-        "array_th_begin"_a = array_th_begin,
-        "array_th_len"_a = array_th_len,
-        "total_num_threshold"_a = total_num_threshold), 0);
-    AppendToBuffer(dest,
-      fmt::format(native::quantize_loop_template,
-        "num_feature"_a = num_feature_), indent);
+    if (!array_threshold.empty() && !array_th_begin.empty() && !array_th_len.empty()) {
+      PrependToBuffer(dest,
+        fmt::format(native::qnode_template,
+          "total_num_threshold"_a = total_num_threshold), 0);
+      AppendToBuffer(dest,
+        fmt::format(native::quantize_loop_template,
+          "num_feature"_a = num_feature_), indent);
+    }
+    if (!array_threshold.empty()) {
+      PrependToBuffer(dest,
+        fmt::format("static const double threshold[] = {{\n"
+                    "{array_threshold}\n"
+                    "}};\n", "array_threshold"_a = array_threshold), 0);
+    }
+    if (!array_th_begin.empty()) {
+      PrependToBuffer(dest,
+        fmt::format("static const int th_begin[] = {{\n"
+                    "{array_th_begin}\n"
+                    "}};\n", "array_th_begin"_a = array_th_begin), 0);
+    }
+    if (!array_th_len.empty()) {
+      PrependToBuffer(dest,
+        fmt::format("static const int th_len[] = {{\n"
+                    "{array_th_len}\n"
+                    "}};\n", "array_th_len"_a = array_th_len), 0);
+    }
     CHECK_EQ(node->children.size(), 1);
     WalkAST(node->children[0], dest, indent);
   }
@@ -424,20 +441,42 @@ class ASTNativeCompiler : public Compiler {
       [this](const OutputNode* node) { return RenderOutputStatement(node); },
       &array_nodes, &array_cat_bitmap, &array_cat_begin,
       &output_switch_statement, &common_comp_op);
+    if (!array_nodes.empty()) {
+      AppendToBuffer("header.h",
+                     fmt::format("extern const struct Node {node_array_name}[];\n",
+                       "node_array_name"_a = node_array_name), 0);
+      AppendToBuffer("arrays.c",
+                     fmt::format("const struct Node {node_array_name}[] = {{\n"
+                                 "{array_nodes}\n"
+                                 "}};\n",
+                       "node_array_name"_a = node_array_name,
+                       "array_nodes"_a = array_nodes), 0);
+    }
 
-    AppendToBuffer("header.h",
-                   fmt::format(native::code_folder_arrays_declaration_template,
-                     "node_array_name"_a = node_array_name,
-                     "cat_bitmap_name"_a = cat_bitmap_name,
-                     "cat_begin_name"_a = cat_begin_name), 0);
-    AppendToBuffer("arrays.c",
-                   fmt::format(native::code_folder_arrays_template,
-                     "node_array_name"_a = node_array_name,
-                     "array_nodes"_a = array_nodes,
-                     "cat_bitmap_name"_a = cat_bitmap_name,
-                     "array_cat_bitmap"_a = array_cat_bitmap,
-                     "cat_begin_name"_a = cat_begin_name,
-                     "array_cat_begin"_a = array_cat_begin), 0);
+    if (!array_cat_bitmap.empty()) {
+      AppendToBuffer("header.h",
+                     fmt::format("extern const uint64_t {cat_bitmap_name}[];\n",
+                       "cat_bitmap_name"_a = cat_bitmap_name), 0);
+      AppendToBuffer("arrays.c",
+                     fmt::format("const uint64_t {cat_bitmap_name}[] = {{\n"
+                                 "{array_cat_bitmap}\n"
+                                 "}};\n",
+                       "cat_bitmap_name"_a = cat_bitmap_name,
+                       "array_cat_bitmap"_a = array_cat_bitmap), 0);
+    }
+
+    if (!array_cat_begin.empty()) {
+      AppendToBuffer("header.h",
+                     fmt::format("extern const size_t {cat_begin_name}[];\n",
+                       "cat_begin_name"_a = cat_begin_name), 0);
+      AppendToBuffer("arrays.c",
+                     fmt::format("const size_t {cat_begin_name}[] = {{\n"
+                                 "{array_cat_begin}\n"
+                                 "}};\n",
+                       "cat_begin_name"_a = cat_begin_name,
+                       "array_cat_begin"_a = array_cat_begin), 0);
+    }
+
     if (array_nodes.empty()) {
       /* folded code consists of a single leaf node */
       AppendToBuffer(dest,
@@ -445,12 +484,20 @@ class ASTNativeCompiler : public Compiler {
                                  "{output_switch_statement}\n",
                        "output_switch_statement"_a
                          = output_switch_statement), indent);
-    } else {
+    } else if (!array_cat_bitmap.empty() && !array_cat_begin.empty()) {
       AppendToBuffer(dest,
                      fmt::format(native::eval_loop_template,
                        "node_array_name"_a = node_array_name,
                        "cat_bitmap_name"_a = cat_bitmap_name,
                        "cat_begin_name"_a = cat_begin_name,
+                       "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                       "comp_op"_a = OpName(common_comp_op),
+                       "output_switch_statement"_a
+                         = output_switch_statement), indent);
+    } else {
+      AppendToBuffer(dest,
+                     fmt::format(native::eval_loop_template_without_categorical_feature,
+                       "node_array_name"_a = node_array_name,
                        "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
                        "comp_op"_a = OpName(common_comp_op),
                        "output_switch_statement"_a

@@ -5,8 +5,9 @@ import ctypes
 import collections
 import shutil
 import os
+from tempfile import TemporaryDirectory
 from .common.compat import STRING_TYPES
-from .common.util import c_str, TreeliteError, TemporaryDirectory
+from .common.util import c_str, TreeliteError
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, _toolchain_exist_check
 
@@ -124,7 +125,7 @@ class Model():
        shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
     """
     _toolchain_exist_check(toolchain)
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(dir=os.path.dirname(libpath)) as temp_dir:
       self.compile(temp_dir, params, compiler, verbose)
       temp_libpath = create_shared(toolchain, temp_dir, nthread,
                                    verbose, options)

@@ -14,16 +14,6 @@ namespace native {
 
 const char* qnode_template =
 R"TREELITETEMPLATE(
-static const double threshold[] = {{
-{array_threshold}
-}};
-static const int th_begin[] = {{
-{array_th_begin}
-}};
-static const int th_len[] = {{
-{array_th_len}
-}};
-
 #include <stdlib.h>
 
 /*

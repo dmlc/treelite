@@ -72,13 +72,14 @@ class TestBasic(unittest.TestCase):
     model = treelite.Model.load(model_path, model_format='xgboost')
     make_annotation(model=model, dtrain_path='letor/mq2008.train',
                     annotation_path='./annotation.json')
-    run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
-                      libname_fmt='./mq2008{}',
-                      expected_prob_path=None,
-                      expected_margin_path='letor/mq2008.test.pred',
-                      multiclass=False, use_annotation='./annotation.json',
-                      use_quantize=1, use_parallel_comp=700,
-                      use_toolchains=['gcc'])
+    if os_platform() != 'windows':
+      run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
+                        libname_fmt='./mq2008{}',
+                        expected_prob_path=None,
+                        expected_margin_path='letor/mq2008.test.pred',
+                        multiclass=False, use_annotation='./annotation.json',
+                        use_quantize=1, use_parallel_comp=700,
+                        use_toolchains=['msvc' if os_platform() == 'windows' else 'gcc'])
     run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
                       libname_fmt='./mq2008{}',
                       expected_prob_path=None,
@@ -86,6 +87,7 @@ class TestBasic(unittest.TestCase):
                       multiclass=False, use_elf=is_linux,
                       use_compiler='failsafe')
 
+  @pytest.mark.skipif(os_platform() == 'windows', reason='Make unavailable on Windows')
   def test_srcpkg(self):
     """Test feature to export a source tarball"""
     model_path = os.path.join(dpath, 'mushroom/mushroom.model')

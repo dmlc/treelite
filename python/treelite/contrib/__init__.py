@@ -4,13 +4,38 @@
 Contrib API provides ways to interact with third-party libraries and tools.
 """
 
+import sys
 import os
 import json
 import time
 import shutil
+import ctypes
 from ..common.util import TreeliteError, lineno, log_info
 from ..libpath import find_lib_path
 from .util import _libext, _toolchain_exist_check
+
+def expand_windows_path(dirpath):
+  """
+  Expand a short path to full path (only applicable for Windows)
+
+  Parameters
+  ----------
+  dirpath : :py:class:`str <python:str>`
+      Path to expand
+
+  Returns
+  -------
+  fullpath : :py:class:`str <python:str>`
+      Expanded path
+  """
+  if sys.platform == 'win32':
+    BUFFER_SIZE = 500
+    buffer = ctypes.create_unicode_buffer(BUFFER_SIZE)
+    get_long_path_name = ctypes.windll.kernel32.GetLongPathNameW
+    get_long_path_name.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint]
+    get_long_path_name(dirpath, buffer, BUFFER_SIZE)
+    return buffer.value
+  return dirpath
 
 def generate_makefile(dirpath, platform, toolchain, options=None):
   """
@@ -158,6 +183,7 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
 
   if nthread is not None and nthread <= 0:
     raise TreeliteError('nthread must be positive integer')
+  dirpath = expand_windows_path(dirpath)
   if not os.path.isdir(dirpath):
     raise TreeliteError('Directory {} does not exist'.format(dirpath))
   try:

@@ -149,3 +149,5 @@ endif()
 
 install(DIRECTORY include/treelite DESTINATION include
         FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY 3rdparty/fmt/fmt DESTINATION include/fmt
+        FILES_MATCHING PATTERN "*.h")

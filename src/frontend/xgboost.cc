@@ -423,15 +423,15 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       const XGBTree::Node& node = xgb_tree[old_id];
       const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
-        const bst_float leaf_value = node.leaf_value();
-        tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+        const float leaf_value = node.leaf_value();
+        tree[new_id].set_leaf(treelite::ADT::Value(leaf_value));
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
         tree[new_id].set_numerical_split(node.split_index(),
-                                   static_cast<treelite::tl_float>(split_cond),
-                                   node.default_left(),
-                                   treelite::Operator::kLT);
+                                         treelite::ADT::Value(split_cond),
+                                         node.default_left(),
+                                         treelite::Operator::kLT);
         tree[new_id].set_gain(stat.loss_chg);
         Q.push({node.cleft(), tree[new_id].cleft()});
         Q.push({node.cright(), tree[new_id].cright()});

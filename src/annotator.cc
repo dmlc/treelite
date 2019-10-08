@@ -31,11 +31,12 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
     } else {
       bool result = true;
       if (node.split_type() == treelite::SplitFeatureType::kNumerical) {
-        const treelite::tl_float threshold = node.threshold();
+        const treelite::ADT::Value& threshold = node.threshold();
+        CHECK(treelite::ADT::IsA<treelite::ADT::Float32Value>(threshold))
+          << "Branch annotator only supports models with float32 thresholds";
         const treelite::Operator op = node.comparison_op();
-        const treelite::tl_float fvalue
-          = static_cast<treelite::tl_float>(data[split_index].fvalue);
-        result = treelite::common::CompareWithOp(fvalue, op, threshold);
+        const float fvalue = data[split_index].fvalue;
+        result = treelite::common::CompareWithOp(treelite::ADT::Value(fvalue), op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
         const uint32_t fvalue2 = static_cast<uint32_t>(fvalue);

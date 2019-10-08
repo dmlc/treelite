@@ -40,11 +40,11 @@ inline ASTNode::~ASTNode() {}
 
 class MainNode : public ASTNode {
  public:
-  MainNode(tl_float global_bias, bool average_result, int num_tree,
+  MainNode(float global_bias, bool average_result, int num_tree,
            int num_feature)
     : global_bias(global_bias), average_result(average_result),
       num_tree(num_tree), num_feature(num_feature) {}
-  tl_float global_bias;
+  float global_bias;
   bool average_result;
   int num_tree;
   int num_feature;
@@ -67,18 +67,18 @@ class TranslationUnitNode : public ASTNode {
 
 class QuantizerNode : public ASTNode {
  public:
-  explicit QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
+  explicit QuantizerNode(const std::vector<std::vector<ADT::Value>>& cut_pts)
     : cut_pts(cut_pts) {}
-  explicit QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
+  explicit QuantizerNode(std::vector<std::vector<ADT::Value>>&& cut_pts)
     : cut_pts(std::move(cut_pts)) {}
-  std::vector<std::vector<tl_float>> cut_pts;
+  std::vector<std::vector<ADT::Value>> cut_pts;
 
   std::string GetDump() const override {
     std::ostringstream oss;
     for (const auto& vec : cut_pts) {
       oss << "[ ";
       for (const auto& e : vec) {
-        oss << e << ", ";
+        oss << e.ToString() << ", ";
       }
       oss << "], ";
     }
@@ -123,29 +123,20 @@ class ConditionNode : public ASTNode {
   }
 };
 
-union ThresholdVariant {
-  tl_float float_val;
-  int int_val;
-  ThresholdVariant(tl_float val) : float_val(val) {}
-  ThresholdVariant(int val) : int_val(val) {}
-};
-
 class NumericalConditionNode : public ConditionNode {
  public:
   NumericalConditionNode(unsigned split_index, bool default_left,
                          bool quantized, Operator op,
-                         ThresholdVariant threshold)
+                         ADT::Value threshold)
     : ConditionNode(split_index, default_left),
       quantized(quantized), op(op), threshold(threshold) {}
   bool quantized;
   Operator op;
-  ThresholdVariant threshold;
+  ADT::Value threshold;
 
   std::string GetDump() const override {
     return fmt::format("NumericalConditionNode {{ {}, quantized: {}, op: {}, threshold: {} }}",
-                       ConditionNode::GetDump(), quantized, OpName(op),
-                       (quantized ? fmt::format("{:d}", threshold.int_val)
-                                  : fmt::format("{:f}", threshold.float_val)));
+                       ConditionNode::GetDump(), quantized, OpName(op), threshold.ToString());
   }
 };
 
@@ -175,25 +166,25 @@ class CategoricalConditionNode : public ConditionNode {
 
 class OutputNode : public ASTNode {
  public:
-  explicit OutputNode(tl_float scalar)
+  explicit OutputNode(ADT::Value scalar)
     : is_vector(false), scalar(scalar) {}
-  explicit OutputNode(const std::vector<tl_float>& vector)
+  explicit OutputNode(const std::vector<ADT::Value>& vector)
     : is_vector(true), vector(vector) {}
   bool is_vector;
-  tl_float scalar;
-  std::vector<tl_float> vector;
+  ADT::Value scalar;
+  std::vector<ADT::Value> vector;
 
   std::string GetDump() const override {
     if (is_vector) {
       std::ostringstream oss;
       oss << "[";
       for (const auto& e : vector) {
-        oss << e << ", ";
+        oss << e.ToString() << ", ";
       }
       oss << "]";
       return fmt::format("OutputNode {{ is_vector: {}, vector {} }}", is_vector, oss.str());
     } else {
-      return fmt::format("OutputNode {{ is_vector: {}, scalar: {} }}", is_vector, scalar);
+      return fmt::format("OutputNode {{ is_vector: {}, scalar: {} }}", is_vector, scalar.ToString());
     }
   }
 };

@@ -109,7 +109,7 @@ class TreeBuilder {
    * \return whether successful
    */
   bool SetNumericalTestNode(int node_key, unsigned feature_id,
-                            Operator op, tl_float threshold, bool default_left,
+                            Operator op, ADT::Value threshold, bool default_left,
                             int left_child_key, int right_child_key);
   /*!
    * \brief Turn an empty node into a categorical test node.
@@ -137,7 +137,7 @@ class TreeBuilder {
    * \param leaf_value leaf value (weight) of the leaf node
    * \return whether successful
    */
-  bool SetLeafNode(int node_key, tl_float leaf_value);
+  bool SetLeafNode(int node_key, ADT::Value leaf_value);
   /*!
   * \brief Turn an empty node into a leaf vector node
   * The leaf vector (collection of multiple leaf weights per leaf node) is
@@ -148,7 +148,7 @@ class TreeBuilder {
   * \return whether successful
   */
   bool SetLeafVectorNode(int node_key,
-                         const std::vector<tl_float>& leaf_vector);
+                         const std::vector<ADT::Value>& leaf_vector);
 
  private:
   std::unique_ptr<TreeBuilderImpl> pimpl;  // Pimpl pattern

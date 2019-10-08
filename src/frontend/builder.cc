@@ -27,14 +27,10 @@ struct _Node {
   enum class _Status : int8_t {
     kEmpty, kNumericalTest, kCategoricalTest, kLeaf
   };
-  union _Info {
-    treelite::tl_float leaf_value;  // for leaf nodes
-    treelite::tl_float threshold;   // for non-leaf nodes
-  };
   /*
    * leaf vector: only used for random forests with multi-class classification
    */
-  std::vector<treelite::tl_float> leaf_vector;
+  std::vector<treelite::ADT::Value> leaf_vector;
   _Status status;
   /* pointers to parent, left and right children */
   _Node* parent;
@@ -44,8 +40,9 @@ struct _Node {
   unsigned feature_id;
   // default direction for missing values
   bool default_left;
-  // extra info: leaf value or threshold
-  _Info info;
+  // leaf value or threshold
+  treelite::ADT::Value leaf_value;  // for leaf nodes
+  treelite::ADT::Value threshold;   // for non-leaf nodes
   // (for numerical split)
   // operator to use for expression of form [fval] OP [threshold]
   // If the expression evaluates to true, take the left child;
@@ -147,7 +144,7 @@ TreeBuilder::SetRootNode(int node_key) {
 bool
 TreeBuilder::SetNumericalTestNode(int node_key,
                                   unsigned feature_id,
-                                  Operator op, tl_float threshold,
+                                  Operator op, ADT::Value threshold,
                                   bool default_left, int left_child_key,
                                   int right_child_key) {
   auto& tree = pimpl->tree;
@@ -178,7 +175,7 @@ TreeBuilder::SetNumericalTestNode(int node_key,
   node->right_child->parent = node;
   node->feature_id = feature_id;
   node->default_left = default_left;
-  node->info.threshold = threshold;
+  node->threshold = threshold;
   node->op = op;
   return true;
 }
@@ -194,9 +191,9 @@ TreeBuilder::SetCategoricalTestNode(int node_key,
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
                      "SetCategoricalTestNode: no node found with node_key");
   CHECK_EARLY_RETURN(nodes.count(left_child_key) > 0,
-                  "SetCategoricalTestNode: no node found with left_child_key");
+                     "SetCategoricalTestNode: no node found with left_child_key");
   CHECK_EARLY_RETURN(nodes.count(right_child_key) > 0,
-                 "SetCategoricalTestNode: no node found with right_child_key");
+                     "SetCategoricalTestNode: no node found with right_child_key");
   _Node* node = nodes[node_key].get();
   _Node* left_child = nodes[left_child_key].get();
   _Node* right_child = nodes[right_child_key].get();
@@ -222,7 +219,7 @@ TreeBuilder::SetCategoricalTestNode(int node_key,
 }
 
 bool
-TreeBuilder::SetLeafNode(int node_key, tl_float leaf_value) {
+TreeBuilder::SetLeafNode(int node_key, ADT::Value leaf_value) {
   auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
@@ -231,13 +228,13 @@ TreeBuilder::SetLeafNode(int node_key, tl_float leaf_value) {
   CHECK_EARLY_RETURN(node->status == _Node::_Status::kEmpty,
                      "SetLeafNode: cannot modify a non-empty node");
   node->status = _Node::_Status::kLeaf;
-  node->info.leaf_value = leaf_value;
+  node->leaf_value = leaf_value;
   return true;
 }
 
 bool
 TreeBuilder::SetLeafVectorNode(int node_key,
-                               const std::vector<tl_float>& leaf_vector) {
+                               const std::vector<ADT::Value>& leaf_vector) {
   auto& tree = pimpl->tree;
   auto& nodes = tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) > 0,
@@ -377,7 +374,7 @@ ModelBuilder::CommitModel(Model* out_model) {
         CHECK_EARLY_RETURN(node->right_child->parent == node,
                            "CommitModel: right child has wrong parent");
         tree.AddChilds(nid);
-        tree[nid].set_numerical_split(node->feature_id, node->info.threshold,
+        tree[nid].set_numerical_split(node->feature_id, node->threshold,
                                       node->default_left, node->op);
         Q.push({node->left_child, tree[nid].cleft()});
         Q.push({node->right_child, tree[nid].cright()});
@@ -415,7 +412,7 @@ ModelBuilder::CommitModel(Model* out_model) {
                              "if one leaf node does not use a leaf vector, "
                              "*no other* leaf node can use a leaf vector");
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          tree[nid].set_leaf(node->info.leaf_value);
+          tree[nid].set_leaf(node->leaf_value);
         }
       }
     }

@@ -10,11 +10,10 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include "adt_value_type.h"
 
 namespace treelite {
 
-/*! \brief float type to be used internally */
-typedef float tl_float;
 /*! \brief feature split type */
 enum class SplitFeatureType : int8_t {
   kNone, kNumerical, kCategorical

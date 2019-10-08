@@ -13,6 +13,7 @@
 #define TREELITE_C_API_H_
 
 #include "c_api_common.h"
+#include "adt_value_type_c_api.h"
 
 /*!
  * \addtogroup opaque_handles
@@ -359,6 +360,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetRootNode(TreeBuilderHandle handle,
  * \param feature_id id of feature
  * \param opname binary operator to use in the test
  * \param threshold threshold value
+ * \param threshold_type type of threshold (see adt_value_type_c_api.h)
  * \param default_left default direction for missing values
  * \param left_child_key unique integer key to identify the left child node
  * \param right_child_key unique integer key to identify the right child node
@@ -368,7 +370,9 @@ TREELITE_DLL int TreeliteTreeBuilderSetNumericalTestNode(
                                              TreeBuilderHandle handle,
                                              int node_key, unsigned feature_id,
                                              const char* opname,
-                                             float threshold, int default_left,
+                                             const void* threshold,
+                                             TreeliteValueType threshold_type,
+                                             int default_left,
                                              int left_child_key,
                                              int right_child_key);
 /*!
@@ -401,11 +405,13 @@ TREELITE_DLL int TreeliteTreeBuilderSetCategoricalTestNode(
  * \param node_key unique integer key to identify the node being modified;
  *                 this node needs to be empty
  * \param leaf_value leaf value (weight) of the leaf node
+ * \param leaf_value_type type of leaf value (see adt_value_type_c_api.h)
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle,
                                                 int node_key,
-                                                float leaf_value);
+                                                const void* leaf_value,
+                                                TreeliteValueType leaf_value_type);
 /*!
  * \brief Turn an empty node into a leaf vector node
  * The leaf vector (collection of multiple leaf weights per leaf node) is
@@ -414,12 +420,14 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle,
  * \param node_key unique integer key to identify the node being modified;
  *                 this node needs to be empty
  * \param leaf_vector leaf vector of the leaf node
+ * \param leaf_value_type type of each element in leaf_vector (see adt_value_type_c_api.h)
  * \param leaf_vector_len length of leaf_vector
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
                                                       int node_key,
-                                                      const float* leaf_vector,
+                                                      const void* leaf_vector,
+                                                      TreeliteValueType leaf_value_type,
                                                       size_t leaf_vector_len);
 /*!
  * \brief Create a new model builder

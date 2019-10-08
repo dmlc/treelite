@@ -107,9 +107,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
         if ( (t2 = dynamic_cast<NumericalConditionNode*>(e)) ) {
           default_left = t2->default_left;
           split_index = t2->split_index;
-          threshold
-           = quantize ? std::to_string(t2->threshold.int_val)
-                      : common::ToStringHighPrecision(t2->threshold.float_val);
+          threshold = t2->threshold.ToString();
         } else {
           CHECK((t3 = dynamic_cast<CategoricalConditionNode*>(e)));
           default_left = t3->default_left;

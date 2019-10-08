@@ -52,7 +52,7 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
                                                  node.default_left(),
                                                  false,
                                                  node.comparison_op(),
-                    ThresholdVariant(static_cast<tl_float>(node.threshold())));
+                                                 node.threshold());
     } else {
       ast_node = AddNode<CategoricalConditionNode>(parent,
                                                    node.split_index(),

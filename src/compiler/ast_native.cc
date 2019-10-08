@@ -358,8 +358,8 @@ class ASTNativeCompiler : public Compiler {
       for (const auto& e : node->cut_pts) {
         // cut_pts had been generated in ASTBuilder::QuantizeThresholds
         // cut_pts[i][k] stores the k-th threshold of feature i.
-        for (tl_float v : e) {
-          formatter << v;
+        for (const auto& v : e) {
+          formatter << v.ToString();
         }
       }
       array_threshold = formatter.str();
@@ -512,18 +512,17 @@ class ASTNativeCompiler : public Compiler {
       result = fmt::format("data[{split_index}].qvalue {opname} {threshold}",
                  "split_index"_a = node->split_index,
                  "opname"_a = OpName(node->op),
-                 "threshold"_a = node->threshold.int_val);
-    } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
+                 "threshold"_a = node->threshold.ToString());
+    } else if (!node->threshold.IsFinite()) {  // infinite threshold
       // According to IEEE 754, the result of comparison [lhs] < infinity
       // must be identical for all finite [lhs]. Same goes for operator >.
-      result = (common::CompareWithOp(0.0, node->op, node->threshold.float_val)
+      result = (common::CompareWithOp(node->threshold.Clone(0.0), node->op, node->threshold)
                 ? "1" : "0");
     } else {  // finite threshold
       result = fmt::format("data[{split_index}].fvalue {opname} {threshold}",
                  "split_index"_a = node->split_index,
                  "opname"_a = OpName(node->op),
-                 "threshold"_a
-                   = common::ToStringHighPrecision(node->threshold.float_val));
+                 "threshold"_a = node->threshold.ToString());
     }
     return result;
   }
@@ -592,20 +591,18 @@ class ASTNativeCompiler : public Compiler {
           output_statement
             += fmt::format("sum[{group_id}] += (float){output};\n",
                  "group_id"_a = group_id,
-                 "output"_a
-                   = common::ToStringHighPrecision(node->vector[group_id]));
+                 "output"_a = node->vector[group_id].ToString());
         }
       } else {
         // multi-class classification with gradient boosted trees
         output_statement
           = fmt::format("sum[{group_id}] += (float){output};\n",
               "group_id"_a = node->tree_id % num_output_group_,
-              "output"_a = common::ToStringHighPrecision(node->scalar));
+              "output"_a = node->scalar.ToString());
       }
     } else {
       output_statement
-        = fmt::format("sum += (float){output};\n",
-            "output"_a = common::ToStringHighPrecision(node->scalar));
+        = fmt::format("sum += (float){output};\n", "output"_a = node->scalar.ToString());
     }
     return output_statement;
   }

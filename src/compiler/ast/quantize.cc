@@ -13,13 +13,16 @@ DMLC_REGISTRY_FILE_TAG(quantize);
 
 static void
 scan_thresholds(ASTNode* node,
-                std::vector<std::set<tl_float>>* cut_pts) {
+                std::vector<std::set<ADT::Value>>* cut_pts) {
   NumericalConditionNode* num_cond;
   CategoricalConditionNode* cat_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode*>(node)) ) {
     CHECK(!num_cond->quantized) << "should not be already quantized";
-    const tl_float threshold = num_cond->threshold.float_val;
-    if (std::isfinite(threshold)) {
+    const ADT::Value threshold = num_cond->threshold;
+    CHECK(ADT::IsFloat(threshold))
+      << "Cannot quantize integer threshold (currently type"
+      << threshold.GetValue().TypeStr() << ")";
+    if (threshold.IsFinite()) {
       (*cut_pts)[num_cond->split_index].insert(threshold);
     }
   }
@@ -30,16 +33,16 @@ scan_thresholds(ASTNode* node,
 
 static void
 rewrite_thresholds(ASTNode* node,
-                   const std::vector<std::vector<tl_float>>& cut_pts) {
+                   const std::vector<std::vector<ADT::Value>>& cut_pts) {
   NumericalConditionNode* num_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode*>(node)) ) {
     CHECK(!num_cond->quantized) << "should not be already quantized";
-    const tl_float threshold = num_cond->threshold.float_val;
-    if (std::isfinite(threshold)) {
+    const ADT::Value threshold = num_cond->threshold;
+    if (threshold.IsFinite()) {
       const auto& v = cut_pts[num_cond->split_index];
       auto loc = common::binary_search(v.begin(), v.end(), threshold);
       CHECK(loc != v.end());
-      num_cond->threshold.int_val = static_cast<size_t>(loc - v.begin()) * 2;
+      num_cond->threshold = ADT::Value(static_cast<int32_t>(loc - v.begin()) * 2);
       num_cond->quantized = true;
     }  // splits with infinite thresholds will not be quantized
   }
@@ -50,8 +53,8 @@ rewrite_thresholds(ASTNode* node,
 
 void ASTBuilder::QuantizeThresholds() {
   this->quantize_threshold_flag = true;
-  std::vector<std::set<tl_float>> cut_pts;
-  std::vector<std::vector<tl_float>> cut_pts_vec;
+  std::vector<std::set<ADT::Value>> cut_pts;
+  std::vector<std::vector<ADT::Value>> cut_pts_vec;
   cut_pts.resize(this->num_feature);
   cut_pts_vec.resize(this->num_feature);
   scan_thresholds(this->main_node, &cut_pts);

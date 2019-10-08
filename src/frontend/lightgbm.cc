@@ -373,7 +373,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       if (old_id < 0) {  // leaf
         const double leaf_value = lgb_tree.leaf_value[~old_id];
         const int data_count = lgb_tree.leaf_count[~old_id];
-        tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+        tree[new_id].set_leaf(treelite::ADT::Value(leaf_value));
         CHECK_GE(data_count, 0);
         tree[new_id].set_data_count(static_cast<size_t>(data_count));
       } else {  // non-leaf
@@ -397,8 +397,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
                                              left_categories);
         } else {
           // numerical
-          const treelite::tl_float threshold =
-            static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
+          const auto threshold = treelite::ADT::Value(lgb_tree.threshold[old_id]);
           const bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;

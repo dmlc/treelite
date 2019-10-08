@@ -51,14 +51,14 @@ class Tree {
       return cleft_ == -1;
     }
     /*! \return get leaf value of leaf node */
-    inline tl_float leaf_value() const {
-      return (this->info_).leaf_value;
+    inline const ADT::Value& leaf_value() const {
+      return this->leaf_value_;
     }
     /*!
      * \return get leaf vector of leaf node; useful for multi-class
      * random forest classifier
      */
-    inline const std::vector<tl_float>& leaf_vector() const {
+    inline const std::vector<ADT::Value>& leaf_vector() const {
       return this->leaf_vector_;
     }
     /*!
@@ -68,8 +68,8 @@ class Tree {
       return !(this->leaf_vector_.empty());
     }
     /*! \return get threshold of the node */
-    inline tl_float threshold() const {
-      return (this->info_).threshold;
+    inline const ADT::Value& threshold() const {
+      return this->threshold_;
     }
     /*! \brief get parent of the node */
     inline int parent() const {
@@ -132,12 +132,12 @@ class Tree {
      * \param cmp comparison operator to compare between feature value and
      *            threshold
      */
-    inline void set_numerical_split(unsigned split_index, tl_float threshold,
+    inline void set_numerical_split(unsigned split_index, ADT::Value threshold,
                                     bool default_left, Operator cmp) {
       CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
       this->sindex_ = split_index;
-      (this->info_).threshold = threshold;
+      this->threshold_ = std::move(threshold);
       this->cmp_ = cmp;
       this->split_type_ = SplitFeatureType::kNumerical;
     }
@@ -164,8 +164,8 @@ class Tree {
      * \brief set the leaf value of the node
      * \param value leaf value
      */
-    inline void set_leaf(tl_float value) {
-      (this->info_).leaf_value = value;
+    inline void set_leaf(ADT::Value value) {
+      this->leaf_value_ = std::move(value);
       this->cleft_ = -1;
       this->cright_ = -1;
       this->split_type_ = SplitFeatureType::kNone;
@@ -175,7 +175,7 @@ class Tree {
      * random forest classifier
      * \param leaf_vector leaf vector
      */
-    inline void set_leaf_vector(const std::vector<tl_float>& leaf_vector) {
+    inline void set_leaf_vector(const std::vector<ADT::Value>& leaf_vector) {
       this->leaf_vector_ = leaf_vector;
       this->cleft_ = -1;
       this->cright_ = -1;
@@ -214,16 +214,12 @@ class Tree {
 
    private:
     friend class Tree;
-    /*! \brief store either leaf value or decision threshold */
-    union Info {
-      tl_float leaf_value;  // for leaf nodes
-      tl_float threshold;   // for non-leaf nodes
-    };
+
     /*!
      * \brief leaf vector: only used for random forests with
      *                     multi-class classification
      */
-    std::vector<tl_float> leaf_vector_;
+    std::vector<ADT::Value> leaf_vector_;
     /*!
      * \brief pointer to parent
      * highest bit is used to indicate whether it's a left child or not
@@ -238,8 +234,10 @@ class Tree {
      * highest bit indicates default direction for missing values
      */
     unsigned sindex_;
-    /*! \brief storage for leaf value or decision threshold */
-    Info info_;
+    /*! \brief storage for leaf value (for leaf nodes only) */
+    ADT::Value leaf_value_;
+    /*! \brief storage for split threshold (for non-leaf nodes only) */
+    ADT::Value threshold_;
     /*!
      * \brief operator to use for expression of form [fval] OP [threshold].
      * If the expression evaluates to true, take the left child;
@@ -312,7 +310,7 @@ class Tree {
   inline void Init() {
     num_nodes = 1;
     nodes.resize(1);
-    nodes[0].set_leaf(0.0f);
+    nodes[0].set_leaf(ADT::Value(0.0f));
     nodes[0].set_parent(-1);
   }
   /*!

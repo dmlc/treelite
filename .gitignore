@@ -56,7 +56,7 @@ runtime/java/build/*
 *.exe
 *.out
 *.app
-treelite
+/treelite
 
 # Project files
 *.pyproj

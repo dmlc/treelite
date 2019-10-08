@@ -149,7 +149,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = 0,
-          "info"_a = treelite::common::ToStringHighPrecision(node.leaf_value()),
+          "info"_a = node.leaf_value().ToString(),
           "cleft"_a = -1,
           "cright"_a = -1);
       } else {
@@ -158,7 +158,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = (node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
-          "info"_a = treelite::common::ToStringHighPrecision(node.threshold()),
+          "info"_a = node.threshold().ToString(),
           "cleft"_a = node.cleft(),
           "cright"_a = node.cright());
       }
@@ -186,13 +186,20 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
       if (node.is_leaf()) {
         CHECK(!node.has_leaf_vector())
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
-        val = {0, static_cast<float>(node.leaf_value()), -1, -1};
+        const auto& leaf_value = node.leaf_value();
+        CHECK(treelite::ADT::IsA<treelite::ADT::Float32Value>(leaf_value))
+          << "FailSafeCompiler supports only models with float32 leaf values";
+        val = {0, treelite::ADT::get<const treelite::ADT::Float32Value>(leaf_value), -1, -1};
       } else {
         CHECK(node.split_type() == treelite::SplitFeatureType::kNumerical
               && node.left_categories().empty())
           << "categorical splits are not supported in FailSafeCompiler";
+        const auto& threshold = node.threshold();
+        CHECK(treelite::ADT::IsA<treelite::ADT::Float32Value>(threshold))
+          << "FailSafeCompiler supports only models with float32 split thresholds";
         val = {(node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
-               static_cast<float>(node.threshold()), node.cleft(), node.cright()};
+               treelite::ADT::get<const treelite::ADT::Float32Value>(threshold),
+               node.cleft(), node.cright()};
       }
       const size_t beg = nodes_elf.size();
       nodes_elf.resize(beg + sizeof(NodeStructValue));

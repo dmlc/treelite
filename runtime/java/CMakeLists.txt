@@ -69,9 +69,8 @@ endif()
 include_directories(${JNI_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/treelite4j/src/native ${PARENT_DIR}/native/include
                     ${GRANDPARENT_DIR}/dmlc-core/include)
 add_library(treelite4j SHARED $<TARGET_OBJECTS:objtreelite_runtime> treelite4j/src/native/treelite4j.cpp)
-set_output_directory(treelite4j ${PROJECT_SOURCE_DIR}/lib)
+set_output_directory(treelite4j ${CMAKE_BINARY_DIR}/lib)
 target_link_libraries(treelite4j ${LINK_LIBRARIES} ${JAVA_JVM_LIBRARY})
-set_output_directory(treelite4j ${PROJECT_SOURCE_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite4j PROPERTIES PREFIX "")

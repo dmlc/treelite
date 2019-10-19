@@ -82,7 +82,7 @@ if __name__ == "__main__":
     "linux": "libtreelite4j.so"
   }[sys.platform]
   maybe_makedirs("src/main/resources/lib")
-  cp("../lib/" + library_name, "src/main/resources/lib")
+  cp("../build/lib/" + library_name, "src/main/resources/lib")
 
   print("building mushroom example")
   with cd("src/test/resources/mushroom_example"):

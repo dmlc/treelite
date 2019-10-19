@@ -130,7 +130,7 @@ endif()
 # Shared library
 add_library(treelite $<TARGET_OBJECTS:objtreelite>)
 target_link_libraries(treelite ${LINK_LIBRARIES})
-set_output_directory(treelite ${PROJECT_SOURCE_DIR}/lib)
+set_output_directory(treelite ${CMAKE_BINARY_DIR}/lib)
 if(MINGW)
   # remove the 'lib' prefix to conform to windows convention for shared library names
   set_target_properties(treelite PROPERTIES PREFIX "")

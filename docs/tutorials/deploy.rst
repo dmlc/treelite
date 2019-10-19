@@ -244,7 +244,7 @@ both archives ``mymodel.zip`` and ``treelite_runtime.zip``:
   [ 83%] Building CXX object CMakeFiles/objtreelite_runtime.dir/src/predictor.cc.o
   [ 83%] Built target objtreelite_runtime
   Scanning dependencies of target treelite_runtime
-  [100%] Linking CXX shared library ../lib/libtreelite_runtime.so
+  [100%] Linking CXX shared library ../../lib/libtreelite_runtime.so
   [100%] Built target treelite_runtime
   john.doe@target-machine:/home/john.doe/runtime/build/$ cd ../..
   john.doe@target-machine:/home/john.doe/$

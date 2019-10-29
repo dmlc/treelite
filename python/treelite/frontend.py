@@ -432,7 +432,7 @@ class ModelBuilder():
         raise TreeliteError('This node has never been inserted into a tree; '\
                            + 'a node must be inserted before it can be a root')
 
-    def set_leaf_node(self, leaf_value, type='Float32'):
+    def set_leaf_node(self, leaf_value, leaf_value_type='Float32'):
       """
       Set the node as a leaf node
 
@@ -443,7 +443,7 @@ class ModelBuilder():
                    :py:class:`float <python:float>`
           Usually a single leaf value (weight) of the leaf node. For multiclass
           random forest classifier, leaf_value should be a list of leaf weights.
-      type : :py:class:`str <python:str>`, optional
+      leaf_value_type : :py:class:`str <python:str>`, optional
           Type of leaf_value. Supported: 'Float32', 'Float64'
       """
 
@@ -458,8 +458,8 @@ class ModelBuilder():
             'delete it first and then add an empty node with ' + \
             'the same key.')
 
-      if type not in ['Float32', 'Float64']:
-        raise TreeliteError('Type {} is not supported in model builder'.format(type))
+      if leaf_value_type not in ['Float32', 'Float64']:
+        raise TreeliteError('Type {} is not supported in model builder'.format(leaf_value_type))
 
       # check if leaf_value is a list-like object
       try:
@@ -482,16 +482,16 @@ class ModelBuilder():
           _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
               self.tree.handle,
               ctypes.c_int(self.node_key),
-              c_array(value_type_map[type], leaf_value),
-              ctypes.c_int(_get_value_type_code(type)),
+              c_array(value_type_map[leaf_value_type], leaf_value),
+              ctypes.c_int(_get_value_type_code(leaf_value_type)),
               ctypes.c_size_t(len(leaf_value))))
         else:
-          leaf_value_ctypes = value_type_map[type](leaf_value)
+          leaf_value_ctypes = value_type_map[leaf_value_type](leaf_value)
           _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
               self.tree.handle,
               ctypes.c_int(self.node_key),
               ctypes.byref(leaf_value_ctypes),
-              ctypes.c_int(_get_value_type_code(type))))
+              ctypes.c_int(_get_value_type_code(leaf_value_type))))
         self.empty = False
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\

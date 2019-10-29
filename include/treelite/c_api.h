@@ -512,9 +512,9 @@ TREELITE_DLL int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
  * \brief Enum constants for value types used in Treelite
  */
 enum TreeliteValueType {
-  kTreeliteInt32 = 0,   //!< Type name: Int32
-  kTreeliteFloat32 = 1, //!< Type name: Float32
-  kTreeliteFloat64 = 2  //!< Type name: Float64
+  kTreeliteInt32 = 0,    /*!< Type name: Int32 */
+  kTreeliteFloat32 = 1,  /*!< Type name: Float32 */
+  kTreeliteFloat64 = 2   /*!< Type name: Float64 */
 };
 
 /*!

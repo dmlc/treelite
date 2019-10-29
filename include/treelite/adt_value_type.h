@@ -7,15 +7,18 @@
  * \author Philip Cho
  */
 
-#ifndef TREELITE_ADT_VALUE_TYPE_H
-#define TREELITE_ADT_VALUE_TYPE_H
+#ifndef TREELITE_ADT_VALUE_TYPE_H_
+#define TREELITE_ADT_VALUE_TYPE_H_
 
+#include <treelite/c_api.h>
+#include <dmlc/logging.h>
 #include <cstdint>
 #include <type_traits>
 #include <vector>
 #include <unordered_map>
-#include <dmlc/logging.h>
-#include <treelite/c_api.h>
+#include <utility>
+#include <memory>
+#include <string>
 
 namespace treelite {
 
@@ -26,7 +29,7 @@ class Value;
 /*
  * RTTI (Run-Time Type Information), together with type erasure, is inspired by
  * https://github.com/dmlc/xgboost/blob/d2e1e4d/include/xgboost/json.h.
- * Special thanks to Jiaming Yuan (@trivialfis) 
+ * Special thanks to Jiaming Yuan (@trivialfis)
  */
 
 class ValueImpl {
@@ -75,13 +78,14 @@ T* Cast(U* value) {
 class Int32Value : public ValueImpl {
  private:
   int32_t val_;
+
  public:
   Int32Value() : ValueImpl(ValueKind::kInt32) {}
   template <typename Integer,
     typename std::enable_if<
       std::is_same<Integer, int32_t>::value ||
       std::is_same<Integer, const int32_t>::value>::type* = nullptr>
-  Int32Value(Integer val) : ValueImpl(ValueKind::kInt32), val_(val) {}
+  Int32Value(Integer val) : ValueImpl(ValueKind::kInt32), val_(val) {}  // NOLINT
 
   const int32_t& GetValue() &&     { return val_; }
   const int32_t& GetValue() const& { return val_; }
@@ -102,13 +106,14 @@ class Int32Value : public ValueImpl {
 class Float32Value : public ValueImpl {
  private:
   float val_;
+
  public:
   Float32Value() : ValueImpl(ValueKind::kFloat32) {}
   template <typename Float,
     typename std::enable_if<
       std::is_same<Float, float>::value ||
       std::is_same<Float, const float>::value>::type* = nullptr>
-  Float32Value(Float val) : ValueImpl(ValueKind::kFloat32), val_(val) {}
+  Float32Value(Float val) : ValueImpl(ValueKind::kFloat32), val_(val) {}  // NOLINT
 
   const float& GetValue() &&     { return val_; }
   const float& GetValue() const& { return val_; }
@@ -129,13 +134,14 @@ class Float32Value : public ValueImpl {
 class Float64Value : public ValueImpl {
  private:
   double val_;
+
  public:
   Float64Value() : ValueImpl(ValueKind::kFloat64) {}
   template <typename Float,
     typename std::enable_if<
       std::is_same<Float, double>::value ||
       std::is_same<Float, const double>::value>::type* = nullptr>
-  Float64Value(Float val) : ValueImpl(ValueKind::kFloat64), val_(val) {}
+  Float64Value(Float val) : ValueImpl(ValueKind::kFloat64), val_(val) {}  // NOLINT
 
   const double& GetValue() &&     { return val_; }
   const double& GetValue() const& { return val_; }
@@ -271,37 +277,37 @@ inline bool IsIntegral(const Value x) {
 namespace detail {
 template <typename T,
   typename std::enable_if<std::is_same<T, Int32Value>::value>::type* = nullptr>
-int32_t& GetImpl(T& val) {
+int32_t& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
 template <typename T,
   typename std::enable_if<std::is_same<T, Float32Value>::value>::type* = nullptr>
-float& GetImpl(T& val) {
+float& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
 template <typename T,
   typename std::enable_if<std::is_same<T, Float64Value>::value>::type* = nullptr>
-double& GetImpl(T& val) {
+double& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
 template <typename T,
   typename std::enable_if<std::is_same<T, const Int32Value>::value>::type* = nullptr>
-const int32_t& GetImpl(T& val) {
+const int32_t& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
 template <typename T,
   typename std::enable_if<std::is_same<T, const Float32Value>::value>::type* = nullptr>
-const float& GetImpl(T& val) {
+const float& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
 template <typename T,
   typename std::enable_if<std::is_same<T, const Float64Value>::value>::type* = nullptr>
-const double& GetImpl(T& val) {
+const double& GetImpl(T& val) {  // NOLINT
   return val.GetValue();
 }
 
@@ -318,4 +324,4 @@ extern const std::unordered_map<std::string, TreeliteValueType> ValueTypeNameTab
 }  // namespace ADT
 }  // namespace treelite
 
-#endif  // TREELITE_ADT_VALUE_TYPE_H
+#endif  // TREELITE_ADT_VALUE_TYPE_H_

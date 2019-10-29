@@ -184,7 +184,8 @@ class OutputNode : public ASTNode {
       oss << "]";
       return fmt::format("OutputNode {{ is_vector: {}, vector {} }}", is_vector, oss.str());
     } else {
-      return fmt::format("OutputNode {{ is_vector: {}, scalar: {} }}", is_vector, scalar.ToString());
+      return fmt::format("OutputNode {{ is_vector: {}, scalar: {} }}",
+                         is_vector, scalar.ToString());
     }
   }
 };

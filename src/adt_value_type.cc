@@ -10,6 +10,7 @@
 /*
  * RTTI (Run-Time Type Information), together with type erasure, is inspired by
  * https://github.com/dmlc/xgboost/blob/d2e1e4d/include/xgboost/json.h.
+ * Special thanks to Jiaming Yuan (@trivialfis)
  */
 
 #include <treelite/adt_value_type.h>

@@ -207,23 +207,23 @@ class Value {
     std::vector<Value> vec;
     switch (type) {
       case TreeliteValueType::kTreeliteInt32: {
-        const int32_t* ptr = static_cast<const int32_t*>(data);
+        auto ptr = static_cast<const int32_t*>(data);
         for (size_t i = 0; i < len; ++i) {
-          vec.push_back(Value(ptr[i]));
+          vec.emplace_back(ptr[i]);
         }
         break;
       }
       case TreeliteValueType::kTreeliteFloat32: {
-        const float* ptr = static_cast<const float*>(data);
+        auto ptr = static_cast<const float*>(data);
         for (size_t i = 0; i < len; ++i) {
-          vec.push_back(Value(ptr[i]));
+          vec.emplace_back(ptr[i]);
         }
         break;
       }
       case TreeliteValueType::kTreeliteFloat64: {
-        const double* ptr = static_cast<const double*>(data);
+        auto ptr = static_cast<const double*>(data);
         for (size_t i = 0; i < len; ++i) {
-          vec.push_back(Value(ptr[i]));
+          vec.emplace_back(ptr[i]);
         }
         break;
       }
@@ -239,6 +239,7 @@ class Value {
 
   inline std::string ToString() const { return ptr_->ToString(); }
   inline bool IsFinite() const { return ptr_->IsFinite(); }
+  inline ValueImpl::ValueKind Type() const { return ptr_->Type(); }
 
   template <typename T>
   inline Value Clone(T new_value) const {

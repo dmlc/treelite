@@ -21,9 +21,9 @@ namespace ADT {
 
 std::string ValueImpl::TypeStr() const {
   switch (kind_) {
-    case ValueKind::kInt32:   return "String";  break;
-    case ValueKind::kFloat32: return "Number";  break;
-    case ValueKind::kFloat64: return "Object";  break;
+    case ValueKind::kInt32:   return "Int32";  break;
+    case ValueKind::kFloat32: return "Float32";  break;
+    case ValueKind::kFloat64: return "Float64";  break;
   }
   return "";
 }

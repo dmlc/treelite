@@ -60,6 +60,42 @@ inline NodeType GetNodeType(const treelite_protobuf::Node& node) {
   }
 }
 
+treelite::ADT::Value ExtractValueVariant(treelite_protobuf::Value value, const std::string& name) {
+  treelite_protobuf::Value::ValueVariantCase kind = value.value_variant_case();
+  CHECK_NE(kind, treelite_protobuf::Value::ValueVariantCase::VALUE_VARIANT_NOT_SET)
+     << "Variant for field '" << name << "' is not set";
+  switch (kind) {
+    case treelite_protobuf::Value::ValueVariantCase::kValueInt32:
+      return treelite::ADT::Value(static_cast<int32_t>(value.value_int32()));
+    case treelite_protobuf::Value::ValueVariantCase::kValueFloat32:
+      return treelite::ADT::Value(static_cast<float>(value.value_float32()));
+    case treelite_protobuf::Value::ValueVariantCase::kValueFloat64:
+      return treelite::ADT::Value(static_cast<double>(value.value_float64()));
+    default:
+      LOG(FATAL) << "Unknown value variant for field '" << name << "'";
+  }
+  return treelite::ADT::Value();
+}
+
+void PackValueVariant(treelite_protobuf::Value* packed_value,
+                      const treelite::ADT::Value& value, const std::string& name) {
+  switch (value.Type()) {
+    case treelite::ADT::ValueImpl::ValueKind::kInt32:
+      packed_value->set_value_int32(treelite::ADT::get<const treelite::ADT::Int32Value>(value));
+      break;
+    case treelite::ADT::ValueImpl::ValueKind::kFloat32:
+      packed_value->set_value_float32(treelite::ADT::get<const treelite::ADT::Float32Value>(value));
+      break;
+    case treelite::ADT::ValueImpl::ValueKind::kFloat64:
+      packed_value->set_value_float64(treelite::ADT::get<const treelite::ADT::Float64Value>(value));
+      break;
+    default:
+      LOG(FATAL) << "Unknown value variant for field '" << name << "'";
+  }
+}
+
+const int kProtoVersion = 1;
+
 }  // anonymous namespace
 
 namespace treelite {
@@ -76,6 +112,9 @@ Model LoadProtobufModel(const char* filename) {
   CHECK(protomodel.ParseFromIstream(&is)) << "Ill-formed Protocol Buffers file";
 
   Model model;
+  CHECK(protomodel.has_version()) << "version must exist";
+  CHECK_LE(protomodel.version(), kProtoVersion) << "version must be at most " << kProtoVersion;
+
   CHECK(protomodel.has_num_feature()) << "num_feature must exist";
   const auto num_feature = protomodel.num_feature();
   CHECK_LT(num_feature, std::numeric_limits<int>::max())
@@ -128,8 +167,7 @@ Model LoadProtobufModel(const char* filename) {
           << "Inconsistent use of leaf vector: if one leaf node does not use"
           << "a leaf vector, *no other* leaf node can use a leaf vector";
         flag_leaf_vector = 0;  // now no leaf can use leaf vector
-
-        tree[id].set_leaf(static_cast<tl_float>(node.leaf_value()));
+        tree[id].set_leaf(ExtractValueVariant(node.leaf_value(), "leaf_value"));
       } else if (node_type == NodeType::kLeafVector) {
         // leaf node with vector output
         CHECK(flag_leaf_vector != 0)
@@ -141,14 +179,14 @@ Model LoadProtobufModel(const char* filename) {
         CHECK_EQ(len, model.num_output_group)
           << "The length of leaf vector must be identical to the "
           << "number of output groups";
-        std::vector<tl_float> leaf_vector(len);
-        for (int i = 0; i < len; ++i) {
-          leaf_vector[i] = static_cast<tl_float>(node.leaf_vector(i));
+        std::vector<ADT::Value> leaf_vector(len);
+        for (int k = 0; k < len; ++k) {
+          leaf_vector[k] = ExtractValueVariant(node.leaf_vector(k), "leaf_vector");
         }
         tree[id].set_leaf_vector(leaf_vector);
       } else if (node_type == NodeType::kNumericalSplit) {  // numerical split
         const auto split_index = node.split_index();
-        const std::string opname = node.op();
+        const std::string& opname = node.op();
         CHECK_LT(split_index, model.num_feature)
           << "split_index must be between 0 and [num_feature] - 1.";
         CHECK_GE(split_index, 0) << "split_index must be positive.";
@@ -156,9 +194,9 @@ Model LoadProtobufModel(const char* filename) {
                                            << opname << "\" exists";
         tree.AddChilds(id);
         tree[id].set_numerical_split(static_cast<unsigned>(split_index),
-                             static_cast<tl_float>(node.threshold()),
-                             node.default_left(),
-                             optable.at(opname.c_str()));
+                                     ExtractValueVariant(node.threshold(), "threshold"),
+                                     node.default_left(),
+                                     optable.at(opname.c_str()));
         Q.push({node.left_child(), tree[id].cleft()});
         Q.push({node.right_child(), tree[id].cright()});
       } else {  // categorical split
@@ -168,8 +206,8 @@ Model LoadProtobufModel(const char* filename) {
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         const int left_categories_size = node.left_categories_size();
         std::vector<uint32_t> left_categories;
-        for (int i = 0; i < left_categories_size; ++i) {
-          const auto cat = node.left_categories(i);
+        for (int k = 0; k < left_categories_size; ++k) {
+          const auto cat = node.left_categories(k);
           CHECK(cat <= std::numeric_limits<uint32_t>::max());
           left_categories.push_back(static_cast<uint32_t>(cat));
         }
@@ -222,6 +260,8 @@ void ExportProtobufModel(const char* filename, const Model& model) {
   dmlc::ostream os(fi.get());
   treelite_protobuf::Model protomodel;
 
+  protomodel.set_version(kProtoVersion);
+
   protomodel.set_num_feature(
     static_cast<google::protobuf::int32>(model.num_feature));
 
@@ -263,8 +303,8 @@ void ExportProtobufModel(const char* filename, const Model& model) {
           CHECK_EQ(leaf_vector.size(), model.num_output_group)
             << "The length of leaf vector must be identical to the "
             << "number of output groups";
-          for (tl_float e : leaf_vector) {
-            proto_node->add_leaf_vector(static_cast<float>(e));
+          for (const auto& e : leaf_vector) {
+            PackValueVariant(proto_node->add_leaf_vector(), e, "leaf_vector");
           }
           CHECK_EQ(proto_node->leaf_vector_size(), leaf_vector.size());
         } else {  // leaf node with scalar output
@@ -273,12 +313,12 @@ void ExportProtobufModel(const char* filename, const Model& model) {
             << "a leaf vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
 
-          proto_node->set_leaf_value(static_cast<float>(tree[nid].leaf_value()));
+          PackValueVariant(proto_node->mutable_leaf_value(), tree[nid].leaf_value(), "leaf_value");
         }
       } else if (tree[nid].split_type() == SplitFeatureType::kNumerical) {
         // numerical split
         const unsigned split_index = tree[nid].split_index();
-        const tl_float threshold = tree[nid].threshold();
+        const auto& threshold = tree[nid].threshold();
         const bool default_left = tree[nid].default_left();
         const Operator op = tree[nid].comparison_op();
 
@@ -286,7 +326,7 @@ void ExportProtobufModel(const char* filename, const Model& model) {
         proto_node->set_split_index(static_cast<google::protobuf::int32>(split_index));
         proto_node->set_split_type(treelite_protobuf::Node_SplitFeatureType_NUMERICAL);
         proto_node->set_op(OpName(op));
-        proto_node->set_threshold(threshold);
+        PackValueVariant(proto_node->mutable_threshold(), threshold, "threshold");
         Q.push({tree[nid].cleft(), proto_node->mutable_left_child()});
         Q.push({tree[nid].cright(), proto_node->mutable_right_child()});
       } else {  // categorical split

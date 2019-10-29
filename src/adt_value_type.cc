@@ -55,7 +55,7 @@ std::string Int32Value::ToString() const {
 }
 
 bool Int32Value::IsFinite() const {
-  return std::isfinite(val_);
+  return true;
 }
 
 std::shared_ptr<ValueImpl> Int32Value::Clone(const void* data) {

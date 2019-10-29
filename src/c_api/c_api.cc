@@ -424,7 +424,7 @@ int TreeliteTreeBuilderSetRootNode(TreeBuilderHandle handle, int node_key) {
 int TreeliteTreeBuilderSetNumericalTestNode(TreeBuilderHandle handle,
                                             int node_key, unsigned feature_id,
                                             const char* opname,
-                                            const void* threshold, TreeliteValueType threshold_type,
+                                            const void* threshold, int threshold_type,
                                             int default_left,
                                             int left_child_key,
                                             int right_child_key) {
@@ -437,7 +437,8 @@ int TreeliteTreeBuilderSetNumericalTestNode(TreeBuilderHandle handle,
 
   return (builder->SetNumericalTestNode(node_key, feature_id,
                                         optable.at(opname),
-                                        ADT::Value::ReadFromBuffer(threshold, threshold_type),
+                                        ADT::Value::ReadFromBuffer(threshold,
+                                          static_cast<TreeliteValueType>(threshold_type)),
                                         (default_left != 0),
                                         left_child_key, right_child_key)) \
                                         ? 0 : -1;
@@ -468,24 +469,26 @@ int TreeliteTreeBuilderSetCategoricalTestNode(
 }
 
 int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle, int node_key,
-                                   const void* leaf_value, TreeliteValueType leaf_value_type) {
+                                   const void* leaf_value, int leaf_value_type) {
   API_BEGIN();
   auto builder = static_cast<frontend::TreeBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
-  return (builder->SetLeafNode(node_key, ADT::Value::ReadFromBuffer(leaf_value, leaf_value_type))) \
-                              ? 0 : -1;
+  return (builder->SetLeafNode(node_key,
+    ADT::Value::ReadFromBuffer(leaf_value,
+      static_cast<TreeliteValueType>(leaf_value_type)))) ? 0 : -1;
   API_END();
 }
 
 int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
                                          int node_key,
                                          const void* leaf_vector,
-                                         TreeliteValueType leaf_value_type,
+                                         int leaf_value_type,
                                          size_t leaf_vector_len) {
   API_BEGIN();
   auto builder = static_cast<frontend::TreeBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
-  const auto& vec = ADT::Value::ReadArrayFromBuffer(leaf_vector, leaf_value_type, leaf_vector_len);
+  const auto& vec = ADT::Value::ReadArrayFromBuffer(leaf_vector,
+    static_cast<TreeliteValueType>(leaf_value_type), leaf_vector_len);
   return (builder->SetLeafVectorNode(node_key, vec)) ? 0 : -1;
   API_END();
 }

@@ -558,12 +558,8 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
   CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
   Model* model = new Model();
   const bool result = builder->CommitModel(model);
-  if (result) {
-    *out = static_cast<ModelHandle>(model);
-    return 0;
-  } else {
-    return -1;
-  }
+  CHECK(result) << "Failed to commit model";
+  *out = static_cast<ModelHandle>(model);
   API_END();
 }
 
@@ -571,7 +567,7 @@ int TreeliteGetValueTypeCode(const char* key) {
   try {
     return static_cast<int>(treelite::ADT::ValueTypeNameTable.at(key));
   } catch (const std::out_of_range& e) {
-    LOG(FATAL) << "No value type with name '" << key << "' exists";
+    TreeliteAPISetLastError(fmt::format("No value type with name '{}' exists", key).c_str());
   } catch (const std::exception& e) {
     TreeliteAPISetLastError(e.what());
   }

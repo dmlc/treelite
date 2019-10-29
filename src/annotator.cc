@@ -8,6 +8,7 @@
 #include <treelite/annotator.h>
 #include <treelite/common.h>
 #include <treelite/omp.h>
+#include <dmlc/common.h>
 #include <cstdint>
 #include <limits>
 
@@ -68,24 +69,29 @@ inline void ComputeBranchLoop(const treelite::Model& model,
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const int64_t rbegin_i = static_cast<int64_t>(rbegin);
   const int64_t rend_i = static_cast<int64_t>(rend);
+
+  dmlc::OMPException omp_exc;
   #pragma omp parallel for schedule(static) num_threads(nthread)
   for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
-    const int tid = omp_get_thread_num();
-    const size_t off = dmat->num_col * tid;
-    const size_t off2 = count_row_ptr[ntree] * tid;
-    const size_t ibegin = dmat->row_ptr[rid];
-    const size_t iend = dmat->row_ptr[rid + 1];
-    for (size_t i = ibegin; i < iend; ++i) {
-      inst[off + dmat->col_ind[i]].fvalue = dmat->data[i];
-    }
-    for (size_t tree_id = 0; tree_id < ntree; ++tree_id) {
-      Traverse(model.trees[tree_id], &inst[off],
-               &counts_tloc[off2 + count_row_ptr[tree_id]]);
-    }
-    for (size_t i = ibegin; i < iend; ++i) {
-      inst[off + dmat->col_ind[i]].missing = -1;
-    }
+    omp_exc.Run([&] {
+      const int tid = omp_get_thread_num();
+      const size_t off = dmat->num_col * tid;
+      const size_t off2 = count_row_ptr[ntree] * tid;
+      const size_t ibegin = dmat->row_ptr[rid];
+      const size_t iend = dmat->row_ptr[rid + 1];
+      for (size_t i = ibegin; i < iend; ++i) {
+        inst[off + dmat->col_ind[i]].fvalue = dmat->data[i];
+      }
+      for (size_t tree_id = 0; tree_id < ntree; ++tree_id) {
+        Traverse(model.trees[tree_id], &inst[off],
+                 &counts_tloc[off2 + count_row_ptr[tree_id]]);
+      }
+      for (size_t i = ibegin; i < iend; ++i) {
+        inst[off + dmat->col_ind[i]].missing = -1;
+      }
+    });
   }
+  omp_exc.Rethrow();
 }
 
 }  // anonymous namespace

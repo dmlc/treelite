@@ -1385,12 +1385,13 @@ class TestModelBuilder(unittest.TestCase):
       if sklearn_tree.children_left[nodeid] == -1:  # leaf node
         leaf_count = sklearn_tree.value[nodeid].squeeze()
         prob_distribution = leaf_count / leaf_count.sum()
-        treelite_tree[nodeid].set_leaf_node(prob_distribution)
+        treelite_tree[nodeid].set_leaf_node(prob_distribution, type='Float64')
       else:  # test node
         treelite_tree[nodeid].set_numerical_test_node(
           feature_id=sklearn_tree.feature[nodeid],
           opname='<=',
           threshold=sklearn_tree.threshold[nodeid],
+          threshold_type='Float64',
           default_left=True,
           left_child_key=sklearn_tree.children_left[nodeid],
           right_child_key=sklearn_tree.children_right[nodeid])
@@ -1412,14 +1413,9 @@ class TestModelBuilder(unittest.TestCase):
     model = builder.commit()
 
     dtrain = treelite.DMatrix(X)
-    annotator = treelite.Annotator()
-    annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-    annotator.save(path='./annotation.json')
-
     libpath = libname('./iris{}')
     for toolchain in os_compatible_toolchains():
-      model.export_lib(toolchain=toolchain, libpath=libpath,
-                       params={'annotate_in': './annotation.json'}, verbose=True)
+      model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
@@ -1430,8 +1426,7 @@ class TestModelBuilder(unittest.TestCase):
     model.export_protobuf('./my.buffer')
     model = treelite.Model.load('./my.buffer', 'protobuf')
     for toolchain in os_compatible_toolchains():
-      model.export_lib(toolchain=toolchain, libpath=libpath,
-                       params={'annotate_in': './annotation.json'}, verbose=True)
+      model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)

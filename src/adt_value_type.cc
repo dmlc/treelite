@@ -83,7 +83,7 @@ Float32Value& Float32Value::operator=(const ValueImpl& rhs) {
 }
 
 std::string Float32Value::ToString() const {
-  return fmt::format("{:{}g}", val_, std::numeric_limits<decltype(val_)>::digits10 + 2);
+  return fmt::format("{:.{}g}", val_, std::numeric_limits<decltype(val_)>::digits10 + 2);
 }
 
 bool Float32Value::IsFinite() const {
@@ -116,7 +116,7 @@ Float64Value& Float64Value::operator=(const ValueImpl& rhs) {
 }
 
 std::string Float64Value::ToString() const {
-  return fmt::format("{:{}g}", val_, std::numeric_limits<decltype(val_)>::digits10 + 2);
+  return fmt::format("{:.{}g}", val_, std::numeric_limits<decltype(val_)>::digits10 + 2);
 }
 
 bool Float64Value::IsFinite() const {

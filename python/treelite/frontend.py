@@ -384,6 +384,14 @@ class Model():
                         + '{lightgbm, xgboost, protobuf}')
     return Model(handle)
 
+value_type_map = {'Int32': ctypes.c_int32, 'Float32': ctypes.c_float, 'Float64': ctypes.c_double}
+
+def _get_value_type_code(value_type):
+  ret = _LIB.TreeliteGetValueTypeCode(c_str(value_type))
+  if ret == -1:
+    raise TreeliteError(_LIB.TreeliteGetLastError().decode('utf-8'))
+  return ret
+
 class ModelBuilder():
   """
   Builder class for tree ensemble model: provides tools to iteratively build
@@ -424,7 +432,7 @@ class ModelBuilder():
         raise TreeliteError('This node has never been inserted into a tree; '\
                            + 'a node must be inserted before it can be a root')
 
-    def set_leaf_node(self, leaf_value):
+    def set_leaf_node(self, leaf_value, type='Float32'):
       """
       Set the node as a leaf node
 
@@ -435,6 +443,8 @@ class ModelBuilder():
                    :py:class:`float <python:float>`
           Usually a single leaf value (weight) of the leaf node. For multiclass
           random forest classifier, leaf_value should be a list of leaf weights.
+      type : :py:class:`str <python:str>`, optional
+          Type of leaf_value. Supported: 'Float32', 'Float64'
       """
 
       if not self.empty:
@@ -447,6 +457,9 @@ class ModelBuilder():
             'If you meant to change type of node {}, '.format(node_key) + \
             'delete it first and then add an empty node with ' + \
             'the same key.')
+
+      if type not in ['Float32', 'Float64']:
+        raise TreeliteError('Type {} is not supported in model builder'.format(type))
 
       # check if leaf_value is a list-like object
       try:
@@ -469,13 +482,16 @@ class ModelBuilder():
           _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
               self.tree.handle,
               ctypes.c_int(self.node_key),
-              c_array(ctypes.c_float, leaf_value),
+              c_array(value_type_map[type], leaf_value),
+              ctypes.c_int(_get_value_type_code(type)),
               ctypes.c_size_t(len(leaf_value))))
         else:
+          leaf_value_ctypes = value_type_map[type](leaf_value)
           _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
               self.tree.handle,
               ctypes.c_int(self.node_key),
-              ctypes.c_float(leaf_value)))
+              ctypes.byref(leaf_value_ctypes),
+              ctypes.c_int(_get_value_type_code(type))))
         self.empty = False
       except AttributeError:
         raise TreeliteError('This node has never been inserted into a tree; '\
@@ -483,7 +499,8 @@ class ModelBuilder():
 
     # pylint: disable=R0913
     def set_numerical_test_node(self, feature_id, opname, threshold,
-                                default_left, left_child_key, right_child_key):
+                                default_left, left_child_key, right_child_key,
+                                threshold_type='Float32'):
       """
       Set the node as a test node with numerical split. The test is in the form
       ``[feature value] OP [threshold]``. Depending on the result of the test,
@@ -504,7 +521,11 @@ class ModelBuilder():
           unique integer key to identify the left child node
       right_child_key : :py:class:`int <python:int>`
           unique integer key to identify the right child node
+      threshold_type : :py:class:`str <python:str>`, optional
+          Type of threshold. Supported: 'Float32', 'Float64'
       """
+      if threshold_type not in ['Float32', 'Float64']:
+        raise TreeliteError('Type {} is not supported in model builder'.format(threshold_type))
       if not self.empty:
         try:
           node_key = self.node_key
@@ -521,11 +542,14 @@ class ModelBuilder():
           self.tree[left_child_key] = ModelBuilder.Node()
         if right_child_key not in self.tree:
           self.tree[right_child_key] = ModelBuilder.Node()
+
+        threshold_ctypes = value_type_map[threshold_type](threshold)
         _check_call(_LIB.TreeliteTreeBuilderSetNumericalTestNode(
             self.tree.handle,
             ctypes.c_int(self.node_key),
             ctypes.c_uint(feature_id), c_str(opname),
-            ctypes.c_float(threshold),
+            ctypes.byref(threshold_ctypes),
+            ctypes.c_int(_get_value_type_code(threshold_type)),
             ctypes.c_int(1 if default_left else 0),
             ctypes.c_int(left_child_key),
             ctypes.c_int(right_child_key)))

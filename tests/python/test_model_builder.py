@@ -1385,7 +1385,7 @@ class TestModelBuilder(unittest.TestCase):
       if sklearn_tree.children_left[nodeid] == -1:  # leaf node
         leaf_count = sklearn_tree.value[nodeid].squeeze()
         prob_distribution = leaf_count / leaf_count.sum()
-        treelite_tree[nodeid].set_leaf_node(prob_distribution, type='Float64')
+        treelite_tree[nodeid].set_leaf_node(prob_distribution, leaf_value_type='Float64')
       else:  # test node
         treelite_tree[nodeid].set_numerical_test_node(
           feature_id=sklearn_tree.feature[nodeid],

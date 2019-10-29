@@ -24,4 +24,4 @@ def process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model):
   # Need to shrink each leaf output by the learning rate
   leaf_value *= sklearn_model.learning_rate
   # Initialize the leaf node with given node ID
-  treelite_tree[node_id].set_leaf_node(leaf_value)
+  treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='Float64')

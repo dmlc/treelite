@@ -17,4 +17,4 @@ def process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model):
   # The `value` attribute stores the output for every leaf node.
   leaf_value = sklearn_tree.value[node_id].squeeze()
   # Initialize the leaf node with given node ID
-  treelite_tree[node_id].set_leaf_node(leaf_value)
+  treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='Float64')

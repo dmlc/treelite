@@ -17,4 +17,4 @@ def process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model):
   # Compute the fraction of positive data points at this leaf node
   fraction_positive = float(leaf_count[1]) / leaf_count.sum()
   # The fraction above is now the leaf output
-  treelite_tree[node_id].set_leaf_node(fraction_positive)
+  treelite_tree[node_id].set_leaf_node(fraction_positive, leaf_value_type='Float64')

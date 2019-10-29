@@ -21,6 +21,7 @@ def process_test_node(treelite_tree, sklearn_tree, node_id, sklearn_model):
                         feature_id=sklearn_tree.feature[node_id],
                         opname='<=',
                         threshold=sklearn_tree.threshold[node_id],
+                        threshold_type='Float64',
                         default_left=True,
                         left_child_key=sklearn_tree.children_left[node_id],
                         right_child_key=sklearn_tree.children_right[node_id])

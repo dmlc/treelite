@@ -20,4 +20,4 @@ def process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model):
   # Compute the probability distribution over label classes
   prob_distribution = leaf_count / leaf_count.sum()
   # The leaf output is the probability distribution
-  treelite_tree[node_id].set_leaf_node(prob_distribution)
+  treelite_tree[node_id].set_leaf_node(prob_distribution, leaf_value_type='Float64')

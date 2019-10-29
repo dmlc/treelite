@@ -13,8 +13,9 @@
 #include <cstdint>
 #include <type_traits>
 #include <vector>
+#include <unordered_map>
 #include <dmlc/logging.h>
-#include "adt_value_type_c_api.h"
+#include <treelite/c_api.h>
 
 namespace treelite {
 
@@ -310,6 +311,8 @@ auto get(U& adt_value) -> decltype(detail::GetImpl(*Cast<T>(&adt_value.GetValue(
   auto& value = *Cast<T>(&adt_value.GetValue());
   return detail::GetImpl(value);
 }
+
+extern const std::unordered_map<std::string, TreeliteValueType> ValueTypeNameTable;
 
 }  // namespace ADT
 }  // namespace treelite

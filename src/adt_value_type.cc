@@ -15,6 +15,7 @@
 #include <treelite/adt_value_type.h>
 #include <fmt/format.h>
 #include <limits>
+#include <unordered_map>
 
 namespace treelite {
 namespace ADT {
@@ -126,6 +127,12 @@ std::shared_ptr<ValueImpl> Float64Value::Clone(const void* data) {
   double val = *static_cast<const double*>(data);
   return std::make_shared<Float64Value>(val);
 }
+
+const std::unordered_map<std::string, TreeliteValueType> ValueTypeNameTable{
+  {"Int32", kTreeliteInt32},
+  {"Float32", kTreeliteFloat32},
+  {"Float64", kTreeliteFloat64}
+};
 
 }  // namespace ADT
 }  // namespace treelite

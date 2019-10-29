@@ -13,7 +13,7 @@
 #define TREELITE_C_API_H_
 
 #include "c_api_common.h"
-#include "adt_value_type_c_api.h"
+
 
 /*!
  * \addtogroup opaque_handles
@@ -507,6 +507,23 @@ TREELITE_DLL int TreeliteModelBuilderDeleteTree(ModelBuilderHandle handle,
  */
 TREELITE_DLL int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
                                                  ModelHandle* out);
+
+/*!
+ * \brief Enum constants for value types used in Treelite
+ */
+enum TreeliteValueType {
+  kTreeliteInt32 = 0,   //!< Type name: Int32
+  kTreeliteFloat32 = 1, //!< Type name: Float32
+  kTreeliteFloat64 = 2  //!< Type name: Float64
+};
+
+/*!
+ * \brief Get integer code for a value type
+ * \param key string representation of value type name.
+ * \return integer code
+ */
+TREELITE_DLL int TreeliteGetValueTypeCode(const char* key);
+
 /*! \} */
 
 #endif  /* TREELITE_C_API_H_ */

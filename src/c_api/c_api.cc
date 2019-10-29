@@ -566,3 +566,14 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
   }
   API_END();
 }
+
+int TreeliteGetValueTypeCode(const char* key) {
+  try {
+    return static_cast<int>(treelite::ADT::ValueTypeNameTable.at(key));
+  } catch (const std::out_of_range& e) {
+    LOG(FATAL) << "No value type with name '" << key << "' exists";
+  } catch (const std::exception& e) {
+    TreeliteAPISetLastError(e.what());
+  }
+  return -1;
+}

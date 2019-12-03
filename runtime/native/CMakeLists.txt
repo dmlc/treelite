@@ -1,7 +1,11 @@
 cmake_minimum_required (VERSION 3.1)
 project(treelite_runtime)
 include(cmake/Utils.cmake)
-find_package(OpenMP)
+
+option(USE_OPENMP "Build with OpenMP" ON)
+if (USE_OPENMP)
+  find_package(OpenMP)
+endif(USE_OPENMP)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)

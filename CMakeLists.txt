@@ -1,7 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 project(treelite)
 include(cmake/Utils.cmake)
-find_package(OpenMP)
 
 # Use RPATH on Mac OS X as flexible mechanism for locating dependencies
 # See https://blog.kitware.com/upcoming-in-cmake-2-8-12-osx-rpath-support/
@@ -13,6 +12,13 @@ option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
 option(ENABLE_S3 "Build with S3 support" OFF)
 option(TEST_COVERAGE "C++ test coverage" OFF)
+option(USE_OPENMP "Use OpenMP" ON)
+
+if (USE_OPENMP)
+  find_package(OpenMP)
+else(USE_OPENMP)
+  message(STATUS "Disabling explicitly OpenMP")
+endif(USE_OPENMP)
 
 # enable custom logging facility in dmlc-core
 add_definitions(-DDMLC_LOG_CUSTOMIZE)
@@ -53,7 +59,7 @@ endif()
 if(OPENMP_FOUND)
   add_definitions(-DTREELITE_OPENMP_SUPPORT)
 else(OPENMP_FOUND)
-  dmlccore_option(USE_OPENMP "Build with OpenMP" OFF)
+  set(USE_OPENMP OFF)
 endif(OPENMP_FOUND)
 
 # Compiler flags

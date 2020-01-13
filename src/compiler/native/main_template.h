@@ -26,6 +26,18 @@ R"TREELITETEMPLATE(
   return {num_feature};
 }}
 
+{get_pred_transform_function_signature} {{
+  return "{pred_transform}";
+}}
+
+{get_sigmoid_alpha_function_signature} {{
+  return {sigmoid_alpha};
+}}
+
+{get_global_bias_function_signature} {{
+  return {global_bias};
+}}
+
 {pred_transform_function}
 {predict_function_signature} {{
 )TREELITETEMPLATE";

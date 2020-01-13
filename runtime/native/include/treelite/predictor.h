@@ -177,14 +177,44 @@ class Predictor {
     return num_feature_;
   }
 
+  /*!
+   * \brief Get name of post prediction transformation used to train the loaded model
+   * \return name of prediction transformation
+   */
+  inline std::string QueryPredTransform() const {
+    return pred_transform_;
+  }
+
+  /*!
+   * \brief Get alpha value in sigmoid transformation used to train the loaded model
+   * \return alpha value in sigmoid transformation
+   */
+  inline float QuerySigmoidAlpha() const {
+    return sigmoid_alpha_;
+  }
+
+  /*!
+   * \brief Get global bias which adjusting predicted margin scores
+   * \return global bias
+   */
+  inline float QueryGlobalBias() const {
+    return global_bias_;
+  }
+
  private:
   LibraryHandle lib_handle_;
   QueryFuncHandle num_output_group_query_func_handle_;
   QueryFuncHandle num_feature_query_func_handle_;
+  QueryFuncHandle pred_transform_query_func_handle_;
+  QueryFuncHandle sigmoid_alpha_query_func_handle_;
+  QueryFuncHandle global_bias_query_func_handle_;
   PredFuncHandle pred_func_handle_;
   ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
   size_t num_feature_;
+  std::string pred_transform_;
+  float sigmoid_alpha_;
+  float global_bias_;
   int num_worker_thread_;
 
   bool using_remote_lib_;  // load lib from remote location?

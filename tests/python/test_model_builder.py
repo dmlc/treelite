@@ -1421,6 +1421,11 @@ class TestModelBuilder(unittest.TestCase):
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={'annotate_in': './annotation.json'}, verbose=True)
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      assert predictor.num_feature == 4
+      assert predictor.num_output_group == 3
+      assert predictor.pred_transform == 'identity_multiclass'
+      assert predictor.global_bias == 0.0
+      assert predictor.sigmoid_alpha == 1.0
       batch = treelite.runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
@@ -1465,6 +1470,11 @@ class TestModelBuilder(unittest.TestCase):
     toolchain = 'msvc' if os_platform() == 'windows' else 'gcc'
     model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
     predictor = treelite.runtime.Predictor(libpath=libpath)
+    assert predictor.num_feature == 3
+    assert predictor.num_output_group == 1
+    assert predictor.pred_transform == 'identity'
+    assert predictor.global_bias == 0.0
+    assert predictor.sigmoid_alpha == 1.0
     for f0 in [-0.5, 0.5, 1.5, np.nan]:
       for f1 in [0, 1, 2, 3, 4, np.nan]:
         for f2 in [-1.0, -0.5, 1.0, np.nan]:

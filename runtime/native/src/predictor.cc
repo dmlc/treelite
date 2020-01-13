@@ -264,25 +264,65 @@ Predictor::Load(const char* name) {
   /* 1. query # of output groups */
   num_output_group_query_func_handle_
     = LoadFunction<QueryFuncHandle>(lib_handle_, "get_num_output_group");
-  using QueryFunc = size_t (*)(void);
-  QueryFunc query_func
-    = reinterpret_cast<QueryFunc>(num_output_group_query_func_handle_);
-  CHECK(query_func != nullptr)
+  using UnsignedQueryFunc = size_t (*)(void);
+  auto uint_query_func
+    = reinterpret_cast<UnsignedQueryFunc>(num_output_group_query_func_handle_);
+  CHECK(uint_query_func != nullptr)
     << "Dynamic shared library `" << name
     << "' does not contain valid get_num_output_group() function";
-  num_output_group_ = query_func();
+  num_output_group_ = uint_query_func();
 
   /* 2. query # of features */
   num_feature_query_func_handle_
     = LoadFunction<QueryFuncHandle>(lib_handle_, "get_num_feature");
-  query_func = reinterpret_cast<QueryFunc>(num_feature_query_func_handle_);
-  CHECK(query_func != nullptr)
+  uint_query_func = reinterpret_cast<UnsignedQueryFunc>(num_feature_query_func_handle_);
+  CHECK(uint_query_func != nullptr)
     << "Dynamic shared library `" << name
     << "' does not contain valid get_num_feature() function";
-  num_feature_ = query_func();
+  num_feature_ = uint_query_func();
   CHECK_GT(num_feature_, 0) << "num_feature cannot be zero";
 
-  /* 3. load appropriate function for margin prediction */
+  /* 3. query # of pred_transform name */
+  pred_transform_query_func_handle_
+    = LoadFunction<QueryFuncHandle>(lib_handle_, "get_pred_transform");
+  using StringQueryFunc = const char* (*)(void);
+  auto str_query_func =
+      reinterpret_cast<StringQueryFunc>(pred_transform_query_func_handle_);
+  if (str_query_func == nullptr) {
+    LOG(INFO) << "Dynamic shared library `" << name
+              << "' does not contain valid get_pred_transform() function";
+    pred_transform_ = "unknown";
+  } else {
+    pred_transform_ = str_query_func();
+  }
+
+  /* 4. query # of sigmoid_alpha */
+  sigmoid_alpha_query_func_handle_
+    = LoadFunction<QueryFuncHandle>(lib_handle_, "get_sigmoid_alpha");
+  using FloatQueryFunc = float (*)(void);
+  auto float_query_func =
+      reinterpret_cast<FloatQueryFunc>(sigmoid_alpha_query_func_handle_);
+  if (float_query_func == nullptr) {
+    LOG(INFO) << "Dynamic shared library `" << name
+              << "' does not contain valid get_sigmoid_alpha() function";
+    sigmoid_alpha_ = NAN;
+  } else {
+    sigmoid_alpha_ = float_query_func();
+  }
+
+  /* 5. query # of global_bias */
+  global_bias_query_func_handle_
+    = LoadFunction<QueryFuncHandle>(lib_handle_, "get_global_bias");
+  float_query_func = reinterpret_cast<FloatQueryFunc>(global_bias_query_func_handle_);
+  if (float_query_func == nullptr) {
+    LOG(INFO) << "Dynamic shared library `" << name
+              << "' does not contain valid get_global_bias() function";
+    global_bias_ = NAN;
+  } else {
+    global_bias_ = float_query_func();
+  }
+
+  /* 6. load appropriate function for margin prediction */
   CHECK_GT(num_output_group_, 0) << "num_output_group cannot be zero";
   if (num_output_group_ > 1) {   // multi-class classification
     pred_func_handle_ = LoadFunction<PredFuncHandle>(lib_handle_,

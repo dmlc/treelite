@@ -184,6 +184,34 @@ TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle,
  */
 TREELITE_DLL int TreelitePredictorQueryNumFeature(PredictorHandle handle,
                                                   size_t* out);
+
+/*!
+ * \brief Get name of post prediction transformation used to train
+ *        the loaded model
+ * \param handle predictor
+ * \param out name of post prediction transformation
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryPredTransform(PredictorHandle handle,
+                                                     char** out);
+/*!
+ * \brief Get alpha value of sigmoid transformation used to train
+ *        the loaded model
+ * \param handle predictor
+ * \param out alpha value of sigmoid transformation
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle,
+                                                    float* out);
+
+/*!
+ * \brief Get global bias which adjusting predicted margin scores
+ * \param handle predictor
+ * \param out global bias value
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryGlobalBias(PredictorHandle handle,
+                                                  float* out);
 /*!
  * \brief delete predictor from memory
  * \param handle predictor to remove

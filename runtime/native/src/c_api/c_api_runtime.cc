@@ -8,6 +8,7 @@
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
 #include <string>
+#include <cstring>
 #include "./c_api_error.h"
 
 using namespace treelite;
@@ -154,6 +155,29 @@ int TreelitePredictorQueryNumFeature(PredictorHandle handle, size_t* out) {
   API_BEGIN();
   const Predictor* predictor_ = static_cast<Predictor*>(handle);
   *out = predictor_->QueryNumFeature();
+  API_END();
+}
+
+int TreelitePredictorQueryPredTransform(PredictorHandle handle, char** out) {
+  API_BEGIN()
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  auto predTransform = predictor_->QueryPredTransform();
+  *out = new char[predTransform.length() + 1];
+  strcpy(*out, predTransform.c_str());
+  API_END();
+}
+
+int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle, float* out) {
+  API_BEGIN()
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out = predictor_->QuerySigmoidAlpha();
+  API_END();
+}
+
+int TreelitePredictorQueryGlobalBias(PredictorHandle handle, float* out) {
+  API_BEGIN()
+  const Predictor* predictor_ = static_cast<Predictor*>(handle);
+  *out = predictor_->QueryGlobalBias();
   API_END();
 }
 

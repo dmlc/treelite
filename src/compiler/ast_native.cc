@@ -55,6 +55,9 @@ class ASTNativeCompiler : public Compiler {
 
     num_feature_ = model.num_feature;
     num_output_group_ = model.num_output_group;
+    pred_transform_ = model.param.pred_transform;
+    sigmoid_alpha_ = model.param.sigmoid_alpha;
+    global_bias_ = model.param.global_bias;
     pred_tranform_func_ = PredTransformFunction("native", model);
     files_.clear();
 
@@ -122,6 +125,9 @@ class ASTNativeCompiler : public Compiler {
   CompilerParam param;
   int num_feature_;
   int num_output_group_;
+  std::string pred_transform_;
+  float sigmoid_alpha_;
+  float global_bias_;
   std::string pred_tranform_func_;
   std::string array_is_categorical_;
   std::unordered_map<std::string, CompiledModel::FileEntry> files_;
@@ -176,6 +182,12 @@ class ASTNativeCompiler : public Compiler {
       = "size_t get_num_output_group(void)";
     const char* get_num_feature_function_signature
       = "size_t get_num_feature(void)";
+    const char* get_pred_transform_function_signature
+      = "const char* get_pred_transform(void)";
+    const char* get_sigmoid_alpha_function_signature
+      = "float get_sigmoid_alpha(void)";
+    const char* get_global_bias_function_signature
+      = "float get_global_bias(void)";
     const char* predict_function_signature
       = (num_output_group_ > 1) ?
           "size_t predict_multiclass(union Entry* data, int pred_margin, "
@@ -195,10 +207,19 @@ class ASTNativeCompiler : public Compiler {
           = get_num_output_group_function_signature,
         "get_num_feature_function_signature"_a
           = get_num_feature_function_signature,
+        "get_pred_transform_function_signature"_a
+          = get_pred_transform_function_signature,
+        "get_sigmoid_alpha_function_signature"_a
+          = get_sigmoid_alpha_function_signature,
+        "get_global_bias_function_signature"_a
+          = get_global_bias_function_signature,
         "pred_transform_function"_a = pred_tranform_func_,
         "predict_function_signature"_a = predict_function_signature,
         "num_output_group"_a = num_output_group_,
-        "num_feature"_a = node->num_feature),
+        "num_feature"_a = num_feature_,
+        "pred_transform"_a = pred_transform_,
+        "sigmoid_alpha"_a = sigmoid_alpha_,
+        "global_bias"_a = global_bias_),
       indent);
     AppendToBuffer("header.h",
       fmt::format(native::header_template,
@@ -207,6 +228,12 @@ class ASTNativeCompiler : public Compiler {
           = get_num_output_group_function_signature,
         "get_num_feature_function_signature"_a
           = get_num_feature_function_signature,
+        "get_pred_transform_function_signature"_a
+          = get_pred_transform_function_signature,
+        "get_sigmoid_alpha_function_signature"_a
+          = get_sigmoid_alpha_function_signature,
+        "get_global_bias_function_signature"_a
+          = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
         "threshold_type"_a = (param.quantize > 0 ? "int" : "double")),
       indent);

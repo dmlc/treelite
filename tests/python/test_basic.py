@@ -104,6 +104,11 @@ class TestBasic(unittest.TestCase):
     subprocess.call(['make', '-C', 'mushroom'])
 
     predictor = treelite.runtime.Predictor(libpath='./mushroom', verbose=True)
+    assert predictor.num_feature == 127
+    assert predictor.num_output_group == 1
+    assert predictor.pred_transform == 'sigmoid'
+    assert predictor.global_bias == 0.0
+    assert predictor.sigmoid_alpha == 1.0
 
     X, _ = load_svmlight_file(dmat_path, zero_based=True)
     dmat = treelite.DMatrix(X)

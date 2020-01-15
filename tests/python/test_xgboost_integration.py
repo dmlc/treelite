@@ -40,6 +40,11 @@ class TestXGBoostIntegration(unittest.TestCase):
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
       assert_almost_equal(out_pred, expected_pred)
+      assert predictor.num_feature == 13
+      assert predictor.num_output_group == 1
+      assert predictor.pred_transform == 'identity'
+      assert predictor.global_bias == 0.5
+      assert predictor.sigmoid_alpha == 1.0
 
   def test_xgb_iris(self):
     X, y = load_iris(return_X_y=True)
@@ -64,3 +69,8 @@ class TestXGBoostIntegration(unittest.TestCase):
       predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
       assert_almost_equal(out_pred, expected_pred)
+      assert predictor.num_feature == 4
+      assert predictor.num_output_group == 3
+      assert predictor.pred_transform == 'max_index'
+      assert predictor.global_bias == 0.5
+      assert predictor.sigmoid_alpha == 1.0

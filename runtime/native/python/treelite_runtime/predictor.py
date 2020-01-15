@@ -278,6 +278,24 @@ class Predictor(object):
         self.handle,
         ctypes.byref(num_output_group)))
     self.num_output_group_ = num_output_group.value
+    # save # of pred transform
+    pred_transform = ctypes.c_char_p()
+    _check_call(_LIB.TreelitePredictorQueryPredTransform(
+        self.handle,
+        ctypes.byref(pred_transform)))
+    self.pred_transform_ = bytes.decode(pred_transform.value)
+    # save # of sigmoid alpha
+    sigmoid_alpha = ctypes.c_float()
+    _check_call(_LIB.TreelitePredictorQuerySigmoidAlpha(
+        self.handle,
+        ctypes.byref(sigmoid_alpha)))
+    self.sigmoid_alpha_ = sigmoid_alpha.value
+    # save # of global bias
+    global_bias = ctypes.c_float()
+    _check_call(_LIB.TreelitePredictorQueryGlobalBias(
+        self.handle,
+        ctypes.byref(global_bias)))
+    self.global_bias_ = global_bias.value
 
     if verbose:
       log_info(__file__, lineno(),
@@ -415,5 +433,20 @@ class Predictor(object):
   def num_output_group(self):
     """Query number of output groups of the model"""
     return self.num_output_group_
+
+  @property
+  def pred_transform(self):
+    """Query pred transform of the model"""
+    return self.pred_transform_
+
+  @property
+  def global_bias(self):
+    """Query global bias of the model"""
+    return self.global_bias_
+
+  @property
+  def sigmoid_alpha(self):
+    """Query sigmoid alpha of the model"""
+    return self.sigmoid_alpha_
 
 __all__ = ['Predictor', 'Batch', '__version__']

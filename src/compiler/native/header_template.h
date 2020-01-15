@@ -45,6 +45,9 @@ extern const unsigned char is_categorical[];
 
 {dllexport}{get_num_output_group_function_signature};
 {dllexport}{get_num_feature_function_signature};
+{dllexport}{get_pred_transform_function_signature};
+{dllexport}{get_sigmoid_alpha_function_signature};
+{dllexport}{get_global_bias_function_signature};
 {dllexport}{predict_function_signature};
 )TREELITETEMPLATE";
 

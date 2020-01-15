@@ -228,6 +228,12 @@ class ASTNativeCompiler : public Compiler {
           = get_num_output_group_function_signature,
         "get_num_feature_function_signature"_a
           = get_num_feature_function_signature,
+        "get_pred_transform_function_signature"_a
+          = get_pred_transform_function_signature,
+        "get_sigmoid_alpha_function_signature"_a
+          = get_sigmoid_alpha_function_signature,
+        "get_global_bias_function_signature"_a
+          = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
         "threshold_type"_a = (param.quantize > 0 ? "int" : "double")),
       indent);

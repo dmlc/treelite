@@ -39,6 +39,9 @@ public class PredictorTest {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     TestCase.assertEquals(1, predictor.GetNumOutputGroup());
     TestCase.assertEquals(127, predictor.GetNumFeature());
+    TestCase.assertEquals("sigmoid", predictor.GetPredTransform());
+    TestCase.assertEquals(1.0f, predictor.GetSigmoidAlpha());
+    TestCase.assertEquals(0.0f, predictor.GetGlobalBias());
   }
 
   @Test

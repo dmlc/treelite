@@ -309,6 +309,68 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumFeature(
 
 /*
  * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryPredTransform
+ * Signature: (J[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryPredTransform(
+  JNIEnv* jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
+
+  char* pred_transform;
+  const jint ret = (jint)TreelitePredictorQueryPredTransform(
+      (PredictorHandle)jhandle, &pred_transform);
+  // store data
+  jstring out = nullptr;
+  if (pred_transform != nullptr) {
+    out = jenv->NewStringUTF(pred_transform);
+  }
+  jenv->SetObjectArrayElement(jout, 0, out);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQuerySigmoidAlpha
+ * Signature: (J[F)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQuerySigmoidAlpha(
+    JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jout) {
+
+  float alpha;
+  const jint ret = (jint)TreelitePredictorQuerySigmoidAlpha(
+      (PredictorHandle)jhandle, &alpha);
+  // store data
+  jfloat* out = jenv->GetFloatArrayElements(jout, 0);
+  out[0] = (jlong)alpha;
+  jenv->ReleaseFloatArrayElements(jout, out, 0);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Method:    TreelitePredictorQueryGlobalBias
+ * Signature: (J[F)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryGlobalBias(
+    JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jout) {
+
+  float bias;
+  const jint ret = (jint)TreelitePredictorQueryGlobalBias(
+      (PredictorHandle)jhandle, &bias);
+  // store data
+  jfloat* out = jenv->GetFloatArrayElements(jout, 0);
+  out[0] = (jlong)bias;
+  jenv->ReleaseFloatArrayElements(jout, out, 0);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_TreeliteJNI
  * Method:    TreelitePredictorFree
  * Signature: (J)I
  */

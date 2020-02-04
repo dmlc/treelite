@@ -16,6 +16,9 @@ public class Predictor {
   private long handle = 0;
   private int num_output_group;
   private int num_feature;
+  private String pred_transform;
+  private float sigmoid_alpha;
+  private float global_bias;
 
   /**
    * Create a Predictor by loading a shared library (dll/so/dylib).
@@ -68,18 +71,29 @@ public class Predictor {
       }
     }
 
-    long[] out = new long[1];
+    long[] long_out = new long[1];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorLoad(
-      path, nthread, out));
-    handle = out[0];
+      path, nthread, long_out));
+    handle = long_out[0];
 
-    // Save # of output groups and # of features
+    // Fetch meta information from model
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumOutputGroup(
-      handle, out));
-    num_output_group = (int)out[0];
+      handle, long_out));
+    num_output_group = (int)long_out[0];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumFeature(
-      handle, out));
-    num_feature = (int)out[0];
+      handle, long_out));
+    num_feature = (int)long_out[0];
+    String[] str_out = new String[1];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryPredTransform(
+      handle, str_out));
+    pred_transform = str_out[0];
+    float[] fp_out = new float[1];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQuerySigmoidAlpha(
+      handle, fp_out));
+    sigmoid_alpha = fp_out[0];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryGlobalBias(
+      handle, fp_out));
+    global_bias = fp_out[0];
 
     if (verbose) {
       logger.info(String.format(
@@ -105,6 +119,30 @@ public class Predictor {
    */
   public int GetNumFeature() {
     return this.num_feature;
+  }
+
+  /**
+   * Get name of post prediction transformation used to train the loaded model.
+   * @return Name of (post-)prediction transformation
+   */
+  public String GetPredTransform() {
+    return this.pred_transform;
+  }
+
+  /**
+   * Get alpha value in sigmoid transformation used to train the loaded model.
+   * @return Alpha value of sigmoid transformation
+   */
+  public float GetSigmoidAlpha() {
+    return this.sigmoid_alpha;
+  }
+
+  /**
+   * Get global bias which adjusting predicted margin scores.
+   * @return Value of global bias
+   */
+  public float GetGlobalBias() {
+    return this.global_bias;
   }
 
   /**

@@ -70,6 +70,15 @@ class TreeliteJNI {
   public final static native int TreelitePredictorQueryNumFeature(
     long handle, long[] out);
 
+  public final static native int TreelitePredictorQueryPredTransform(
+    long handle, String[] out);
+
+  public final static native int TreelitePredictorQuerySigmoidAlpha(
+    long handle, float[] out);
+
+  public final static native int TreelitePredictorQueryGlobalBias(
+    long handle, float[] out);
+
   public final static native int TreelitePredictorFree(long handle);
 
 }

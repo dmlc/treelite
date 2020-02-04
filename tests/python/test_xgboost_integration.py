@@ -61,6 +61,9 @@ class TestXGBoostIntegration(unittest.TestCase):
     expected_pred = bst.predict(dtest)
 
     model = treelite.Model.from_xgboost(bst)
+    assert model.num_output_group == 3
+    assert model.num_feature == dtrain.num_col()
+
     libpath = libname('./iris{}')
     batch = treelite.runtime.Batch.from_npy2d(X_test)
     for toolchain in os_compatible_toolchains():

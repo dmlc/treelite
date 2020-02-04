@@ -384,8 +384,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   /* 2. Export model */
   treelite::Model model;
-  model.num_feature = gbm_param_.num_feature;
-  model.num_output_group = gbm_param_.num_output_group;
+  model.num_feature = mparam_.num_feature;
+  model.num_output_group = std::max(mparam_.num_class, 1);
   model.random_forest_flag = false;
 
   // set global bias

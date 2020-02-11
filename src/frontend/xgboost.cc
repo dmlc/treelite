@@ -5,12 +5,11 @@
  * \author Philip Cho
  */
 
-#include <algorithm>
-#include <bits/stdint-uintn.h>
 #include <dmlc/data.h>
 #include <dmlc/memory_io.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
+#include <algorithm>
 #include <memory>
 #include <queue>
 #include <cstring>

@@ -77,3 +77,28 @@ class TestXGBoostIntegration(unittest.TestCase):
       assert predictor.pred_transform == 'max_index'
       assert predictor.global_bias == 0.5
       assert predictor.sigmoid_alpha == 1.0
+
+  def test_logistic(self):
+    np.random.seed(0)
+    kRows = 16
+    kCols = 8
+    X = np.random.randn(kRows, kCols)
+    y = np.random.randint(0, 2, size=kRows)
+    assert y.min() == 0
+    assert y.max() == 1
+
+    dtrain = xgboost.DMatrix(X, y)
+    booster = xgboost.train({'objective': 'binary:logistic'}, dtrain=dtrain,
+                            num_boost_round=4)
+    expected_pred = booster.predict(dtrain)
+    model = treelite.Model.from_xgboost(booster)
+    libpath = libname('./logistic{}')
+    batch = treelite.runtime.Batch.from_npy2d(X)
+    for toolchain in os_compatible_toolchains():
+      model.export_lib(toolchain=toolchain, libpath=libpath,
+                       params={}, verbose=True)
+      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      out_pred = predictor.predict(batch)
+      assert_almost_equal(out_pred, expected_pred)
+      assert predictor.num_feature == kCols
+      assert predictor.global_bias == 0

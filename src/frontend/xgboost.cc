@@ -5,6 +5,7 @@
  * \author Philip Cho
  */
 
+#include <algorithm>
 #include <dmlc/data.h>
 #include <dmlc/memory_io.h>
 #include <treelite/frontend.h>
@@ -41,6 +42,15 @@ Model LoadXGBoostModel(const void* buf, size_t len) {
 namespace {
 
 typedef float bst_float;
+
+struct ProbToMargin {
+  static float Sigmoid(float global_bias) {
+    return -logf(1.0f / global_bias - 1.0f);
+  }
+  static float Exponential(float global_bias) {
+    return logf(global_bias);
+  }
+};
 
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
@@ -340,17 +350,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
       << "Ill-formed XGBoost model file: corrupted header";
   {
-    // backward compatibility code for compatible with old model type
-    // for new model, Read(&name_obj_) is suffice
     uint64_t len;
     CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
      << "Ill-formed XGBoost model file: corrupted header";
-    if (len >= std::numeric_limits<unsigned>::max()) {
-      int gap;
-      CHECK_EQ(fp->Read(&gap, sizeof(gap)), sizeof(gap))
-          << "Ill-formed XGBoost model file: corrupted header";
-      len = len >> static_cast<uint64_t>(32UL);
-    }
     if (len != 0) {
       name_obj_.resize(len);
       CHECK_EQ(fp->Read(&name_obj_[0], len), len)
@@ -382,6 +384,21 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   }
   CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
 
+  bool need_transform_to_margin { false };
+  if (mparam_.contain_extra_attrs) {
+    std::vector<std::pair<std::string, std::string>> attr;
+    fi->Read(&attr);
+    // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
+    // 1.0 it's the original value provided by user.
+    if (std::any_of(attr.cbegin(), attr.cend(),
+                    [](std::pair<std::string, std::string> const& p) {
+                      return p.first == "version";
+                    })) {
+      need_transform_to_margin = true;
+      std::cout << "Need transform" << std::endl;
+    }
+  }
+
   /* 2. Export model */
   treelite::Model model;
   model.num_feature = mparam_.num_feature;
@@ -390,6 +407,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   // set global bias
   model.param.global_bias = static_cast<float>(mparam_.base_score);
+  std::vector<std::string> exponential_family {
+    "count:poisson", "reg:gamma", "reg:tweedie"
+  };
+  if (need_transform_to_margin) {
+    if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
+      model.param.global_bias = ProbToMargin::Sigmoid(model.param.global_bias);
+    } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
+               != exponential_family.cend()) {
+      model.param.global_bias = ProbToMargin::Exponential(model.param.global_bias);
+    }
+  }
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {
@@ -399,8 +427,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
     model.param.pred_transform = "sigmoid";
     model.param.sigmoid_alpha = 1.0f;
-  } else if (name_obj_ == "count:poisson" || name_obj_ == "reg:gamma"
-             || name_obj_ == "reg:tweedie") {
+  } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
+             != exponential_family.cend()) {
     model.param.pred_transform = "exponential";
   } else {
     model.param.pred_transform = "identity";

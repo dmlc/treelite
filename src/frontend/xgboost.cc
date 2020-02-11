@@ -6,6 +6,7 @@
  */
 
 #include <algorithm>
+#include <bits/stdint-uintn.h>
 #include <dmlc/data.h>
 #include <dmlc/memory_io.h>
 #include <treelite/frontend.h>
@@ -153,8 +154,11 @@ struct LearnerModelParam {
   int num_class;
   int contain_extra_attrs;
   int contain_eval_metrics;
-  int pad2[29];
+  uint32_t major_version;
+  uint32_t minor_version;
+  int pad2[27];
 };
+static_assert(sizeof(LearnerModelParam) == 136, "This is the size defined in XGBoost.");
 
 struct GBTreeModelParam {
   int num_trees;
@@ -384,20 +388,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   }
   CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
 
-  bool need_transform_to_margin { false };
-  if (mparam_.contain_extra_attrs) {
-    std::vector<std::pair<std::string, std::string>> attr;
-    fi->Read(&attr);
-    // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
-    // 1.0 it's the original value provided by user.
-    if (std::any_of(attr.cbegin(), attr.cend(),
-                    [](std::pair<std::string, std::string> const& p) {
-                      return p.first == "version";
-                    })) {
-      need_transform_to_margin = true;
-      std::cout << "Need transform" << std::endl;
-    }
-  }
+  // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
+  // 1.0 it's the original value provided by user.
+  bool need_transform_to_margin = mparam_.major_version >= 1;
 
   /* 2. Export model */
   treelite::Model model;

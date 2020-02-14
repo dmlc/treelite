@@ -2,7 +2,7 @@
 """Tests for XGBoost integration"""
 from __future__ import print_function
 import unittest
-import os
+import math
 import numpy as np
 import pytest
 import treelite
@@ -77,3 +77,36 @@ class TestXGBoostIntegration(unittest.TestCase):
       assert predictor.pred_transform == 'max_index'
       assert predictor.global_bias == 0.5
       assert predictor.sigmoid_alpha == 1.0
+
+
+  def run_non_linear_objective(self, objective, max_label, global_bias):
+    np.random.seed(0)
+    kRows = 16
+    kCols = 8
+    X = np.random.randn(kRows, kCols)
+    y = np.random.randint(0, max_label, size=kRows)
+    assert y.min() == 0
+    assert y.max() == max_label - 1
+
+    dtrain = xgboost.DMatrix(X, y)
+    booster = xgboost.train({'objective': objective}, dtrain=dtrain,
+                            num_boost_round=4)
+    expected_pred = booster.predict(dtrain)
+    model = treelite.Model.from_xgboost(booster)
+    libpath = libname('./'+objective+'{}')
+    batch = treelite.runtime.Batch.from_npy2d(X)
+    for toolchain in os_compatible_toolchains():
+      model.export_lib(toolchain=toolchain, libpath=libpath,
+                       params={}, verbose=True)
+      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      out_pred = predictor.predict(batch)
+      assert_almost_equal(out_pred, expected_pred)
+      assert predictor.num_feature == kCols
+      np.testing.assert_almost_equal(predictor.global_bias, global_bias,
+                                     decimal=6)
+
+  def test_logisitc(self):
+    self.run_non_linear_objective('binary:logistic', 2, 0)
+
+  def test_posson(self):
+    self.run_non_linear_objective('count:poisson', 4, math.log(0.5))

@@ -1,8 +1,9 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
+import junit.framework.TestCase;
+import ml.dmlc.treelite4j.DataPoint;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.Test;
-import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.util.ArrayList;

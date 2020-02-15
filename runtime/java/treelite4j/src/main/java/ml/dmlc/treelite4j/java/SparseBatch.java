@@ -1,4 +1,4 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
 /**
  * 2D sparse batch, laid out in CSR (Compressed Sparse Row) layout

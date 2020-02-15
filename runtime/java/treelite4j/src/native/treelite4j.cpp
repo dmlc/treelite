@@ -23,12 +23,12 @@ void setHandle(JNIEnv* jenv, jlongArray jhandle, void* handle) {
 }  // namespace anonymous
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteGetLastError
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteGetLastError(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteGetLastError(
   JNIEnv* jenv, jclass jcls) {
   jstring jresult = 0;
   const char* result = TreeliteGetLastError();
@@ -39,12 +39,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteGetLastError(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteAssembleSparseBatch
  * Signature: ([F[I[JJJ[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleSparseBatch(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteAssembleSparseBatch(
   JNIEnv* jenv, jclass jcls, jfloatArray jdata, jintArray jcol_ind,
   jlongArray jrow_ptr, jlong jnum_row, jlong jnum_col, jlongArray jout) {
 
@@ -66,12 +66,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleSparseBatch(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteDeleteSparseBatch
  * Signature: (J[F[I[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteSparseBatch(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDeleteSparseBatch(
   JNIEnv* jenv, jclass jcls, jlong jhandle,
   jfloatArray jdata, jintArray jcol_ind, jlongArray jrow_ptr) {
 
@@ -83,12 +83,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteSparseBatch(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteAssembleDenseBatch
  * Signature: ([FFJJ[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleDenseBatch(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteAssembleDenseBatch(
   JNIEnv* jenv, jclass jcls, jfloatArray jdata, jfloat jmissing_value,
   jlong jnum_row, jlong jnum_col, jlongArray jout) {
 
@@ -102,12 +102,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteAssembleDenseBatch(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteDeleteDenseBatch
  * Signature: (J[F)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteDenseBatch(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDeleteDenseBatch(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jdata) {
 
   treelite::DenseBatch* batch = (treelite::DenseBatch*)jhandle;
@@ -116,12 +116,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteDeleteDenseBatch(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreeliteBatchGetDimension
  * Signature: (JZ[J[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteBatchGetDimension(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteBatchGetDimension(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jboolean jbatch_sparse,
   jlongArray jout_num_row, jlongArray jout_num_col) {
 
@@ -141,12 +141,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreeliteBatchGetDimension(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorLoad
  * Signature: (Ljava/lang/String;I[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorLoad(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorLoad(
   JNIEnv* jenv, jclass jcls, jstring jlibrary_path, jint jnum_worker_thread,
   jlongArray jout) {
 
@@ -160,12 +160,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorLoad(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorPredictBatch
  * Signature: (JJZZZ[F)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictBatch(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatch(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jlong jbatch,
   jboolean jbatch_sparse, jboolean jverbose, jboolean jpred_margin,
   jfloatArray jout_result, jlongArray jout_result_size) {
@@ -188,12 +188,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictBatch(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorPredictInst
  * Signature: (J[BZ[F[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictInst(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictInst(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jbyteArray jinst,
   jboolean jpred_margin, jfloatArray jout_result, jlongArray jout_result_size) {
 
@@ -228,12 +228,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorPredictInst(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryResultSize
  * Signature: (JJZ[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSize(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSize(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jlong jbatch,
   jboolean jbatch_sparse, jlongArray jout) {
 
@@ -250,12 +250,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSize(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryResultSizeSingleInst
  * Signature: (J[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSizeSingleInst(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSizeSingleInst(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jlongArray jout) {
   size_t result_size;
   const jint ret = (jint)TreelitePredictorQueryResultSizeSingleInst(
@@ -268,12 +268,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryResultSizeSingleInst(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryNumOutputGroup
  * Signature: (J[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jlongArray jout) {
 
   size_t num_output_group;
@@ -288,12 +288,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryNumFeature
  * Signature: (J[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumFeature(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumFeature(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jlongArray jout) {
 
   size_t num_feature;
@@ -308,12 +308,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryNumFeature(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryPredTransform
  * Signature: (J[Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryPredTransform(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryPredTransform(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
 
   char* pred_transform;
@@ -330,12 +330,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryPredTransform(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQuerySigmoidAlpha
  * Signature: (J[F)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQuerySigmoidAlpha(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQuerySigmoidAlpha(
     JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jout) {
 
   float alpha;
@@ -350,12 +350,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQuerySigmoidAlpha(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryGlobalBias
  * Signature: (J[F)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryGlobalBias(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryGlobalBias(
     JNIEnv* jenv, jclass jcls, jlong jhandle, jfloatArray jout) {
 
   float bias;
@@ -370,12 +370,12 @@ Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorQueryGlobalBias(
 }
 
 /*
- * Class:     ml_dmlc_treelite4j_TreeliteJNI
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorFree
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_TreeliteJNI_TreelitePredictorFree(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorFree(
   JNIEnv* jenv, jclass jcls, jlong jhandle) {
   return (jint)TreelitePredictorFree((PredictorHandle)jhandle);
 }

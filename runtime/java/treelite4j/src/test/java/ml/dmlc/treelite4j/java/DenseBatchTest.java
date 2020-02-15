@@ -1,7 +1,8 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
-import org.junit.Test;
 import junit.framework.TestCase;
+import org.junit.Test;
+
 import java.util.concurrent.ThreadLocalRandom;
 
 /**

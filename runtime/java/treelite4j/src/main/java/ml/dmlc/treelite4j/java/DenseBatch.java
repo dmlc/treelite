@@ -1,4 +1,4 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
 /**
  * 2D dense batch, laid out in row-major layout

@@ -1,4 +1,4 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
 import java.nio.ByteOrder;
 

@@ -1,15 +1,15 @@
-package ml.dmlc.treelite4j;
+package ml.dmlc.treelite4j.java;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import junit.framework.TestCase;
-import org.junit.Test;
-import org.apache.commons.io.LineIterator;
+import ml.dmlc.treelite4j.DataPoint;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 import org.apache.commons.lang.ArrayUtils;
+import org.junit.Test;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Test cases for Treelite Predictor
@@ -21,17 +21,18 @@ public class PredictorTest {
   private final String mushroomTestDataLocation;
   private final String mushroomTestDataPredProbResultLocation;
   private final String mushroomTestDataPredMarginResultLocation;
+
   public PredictorTest() throws IOException {
     mushroomLibLocation = NativeLibLoader.createTempFileFromResource(
-      "/mushroom_example/" + System.mapLibraryName("mushroom"));
+        "/mushroom_example/" + System.mapLibraryName("mushroom"));
     mushroomTestDataLocation = NativeLibLoader.createTempFileFromResource(
-      "/mushroom_example/agaricus.txt.test");
+        "/mushroom_example/agaricus.txt.test");
     mushroomTestDataPredProbResultLocation
-      = NativeLibLoader.createTempFileFromResource(
-          "/mushroom_example/agaricus.txt.test.prob");
+        = NativeLibLoader.createTempFileFromResource(
+        "/mushroom_example/agaricus.txt.test.prob");
     mushroomTestDataPredMarginResultLocation
-      = NativeLibLoader.createTempFileFromResource(
-          "/mushroom_example/agaricus.txt.test.margin");
+        = NativeLibLoader.createTempFileFromResource(
+        "/mushroom_example/agaricus.txt.test.margin");
   }
 
   @Test
@@ -48,11 +49,11 @@ public class PredictorTest {
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
-      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
     DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
     float[] expected_result
-      = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+        = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
     /* sparse batch */
     float[][] result = predictor.predict(sparse_batch, true, false);
@@ -73,11 +74,11 @@ public class PredictorTest {
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
-      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
     DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
     float[] expected_result
-      = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
+        = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
 
     /* sparse batch */
     float[][] result = predictor.predict(sparse_batch, true, true);
@@ -97,6 +98,22 @@ public class PredictorTest {
   @Test
   public void testPredictInst() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
+    mushroomLibPredictionTest(predictor);
+  }
+
+  @Test
+  public void testSerialization() throws TreeliteError, IOException, ClassNotFoundException {
+    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
+    Predictor predictor2 = (Predictor) fromByteArray(toByteArray(predictor));
+    TestCase.assertEquals(predictor.GetNumFeature(), predictor2.GetNumFeature());
+    TestCase.assertEquals(predictor.GetNumOutputGroup(), predictor2.GetNumOutputGroup());
+    TestCase.assertEquals(predictor.GetPredTransform(), predictor2.GetPredTransform());
+    TestCase.assertEquals(predictor.GetSigmoidAlpha(), predictor2.GetSigmoidAlpha());
+    TestCase.assertEquals(predictor.GetGlobalBias(), predictor2.GetGlobalBias());
+    mushroomLibPredictionTest(predictor2);
+  }
+
+  private void mushroomLibPredictionTest(Predictor predictor) throws IOException, TreeliteError {
     Entry[] inst_arr = new Entry[predictor.GetNumFeature()];
     for (int i = 0; i < inst_arr.length; ++i) {
       inst_arr[i] = new Entry();
@@ -104,10 +121,10 @@ public class PredictorTest {
     }
 
     float[] expected_result
-      = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+        = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
     List<DataPoint> dmat
-      = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
     int row_id = 0;
     for (DataPoint inst : dmat) {
       int[] indices = inst.indices();
@@ -124,7 +141,7 @@ public class PredictorTest {
     }
   }
 
-  private float[] LoadArrayFromText(String filename) throws IOException {
+  public static float[] LoadArrayFromText(String filename) throws IOException {
     File file = new File(filename);
     LineIterator it = FileUtils.lineIterator(file, "UTF-8");
     ArrayList<Float> data = new ArrayList<Float>();
@@ -137,5 +154,29 @@ public class PredictorTest {
       it.close();
     }
     return ArrayUtils.toPrimitive(data.toArray(new Float[0]));
+  }
+
+  /**
+   * Read the object from ByteArray.
+   */
+  private static Object fromByteArray(byte[] data) throws IOException,
+      ClassNotFoundException {
+    ObjectInputStream ois = new ObjectInputStream(
+        new BufferedInputStream(new ByteArrayInputStream(data)));
+    Object o = ois.readObject();
+    ois.close();
+    return o;
+  }
+
+  /**
+   * Write the object to a ByteArray.
+   */
+  private static byte[] toByteArray(Serializable o) throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream(baos);
+    oos.writeObject(o);
+    oos.close();
+    byte[] ba = baos.toByteArray();
+    return ba;
   }
 }

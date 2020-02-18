@@ -50,8 +50,8 @@ public class PredictorTest {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
         = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
-    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
+    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat.iterator());
+    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat.iterator());
     float[] expected_result
         = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
@@ -75,8 +75,8 @@ public class PredictorTest {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     List<DataPoint> dmat
         = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat);
-    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat);
+    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat.iterator());
+    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat.iterator());
     float[] expected_result
         = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
 

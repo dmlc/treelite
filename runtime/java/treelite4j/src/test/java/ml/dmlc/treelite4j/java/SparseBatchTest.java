@@ -61,7 +61,7 @@ public class SparseBatchTest {
         add(new DataPoint(new int[]{5},       new float[]{80f}));
       }
     };
-    SparseBatch batch = BatchBuilder.CreateSparseBatch(dmat);
+    SparseBatch batch = BatchBuilder.CreateSparseBatch(dmat.iterator());
 
     // should get 4-by-6 matrix
     long[] out_num_row = new long[1];

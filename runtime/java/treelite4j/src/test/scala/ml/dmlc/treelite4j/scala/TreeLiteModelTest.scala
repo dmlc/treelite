@@ -68,7 +68,26 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
         .toDF("features", "prob", "margin")
   }
 
-  test("TreeLiteModel test transform") {
+  test("TreeLiteModel basic tests") {
+    val model = TreeLiteModel(mushroomLibLocation)
+    model.getBatchSize shouldEqual 4096
+    model.setBatchSize(1024)
+    model.getBatchSize shouldEqual 1024
+    model.getPredictMargin shouldEqual false
+    model.setPredictMargin(true)
+    model.getPredictMargin shouldEqual true
+    model.getVerbose shouldEqual false
+    model.setVerbose(true)
+    model.getVerbose shouldEqual true
+    val predictor = model.nativePredictor
+    predictor.numOutputGroup shouldEqual 1
+    predictor.numFeature shouldEqual 127
+    predictor.predTransform shouldEqual "sigmoid"
+    predictor.sigmoidAlpha shouldEqual 1.0f
+    predictor.globalBias shouldEqual 0.0f
+  }
+
+  test("TreeLiteModel test transforming") {
     val df = buildDataFrame()
     val model = TreeLiteModel(mushroomLibLocation)
     val retDF = model.transform(df)
@@ -78,7 +97,7 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
     }
   }
 
-  test("TreeLiteModel test transform for margin") {
+  test("TreeLiteModel test transforming with margin") {
     val df = buildDataFrame()
     val model = TreeLiteModel(mushroomLibLocation)
     model.setPredictMargin(true)

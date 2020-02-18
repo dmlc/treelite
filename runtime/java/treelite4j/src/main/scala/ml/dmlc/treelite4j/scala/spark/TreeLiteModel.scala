@@ -44,6 +44,13 @@ class TreeLiteModel private[spark](
 
   def setVerbose(value: Boolean): this.type = set(verbose, value)
 
+  /**
+   * Get the local predictor, from whom you can get meta information about the model.
+   *
+   * @return ml.dmlc.treelite4j.scala.Predictor
+   */
+  def nativePredictor: Predictor = model
+
   override protected def predict(features: Vector): Double = {
     throw new UnsupportedOperationException(
       "TreeLiteModel don't support single instance prediction!")
@@ -97,6 +104,9 @@ object TreeLiteModel {
    * @param libPath Path to the shared library
    */
   def apply(libPath: String): TreeLiteModel = {
-    new TreeLiteModel(Identifiable.randomUID("treelite"), Predictor(libPath, 1))
+    // Fix numThread on 1 to get rid of mutex lock on predictBatch method.
+    // Let Spark take over the work to orchestrate cores(threads).
+    val pred = Predictor.apply(libPath, numThread = 1)
+    new TreeLiteModel(Identifiable.randomUID("treelite"), pred)
   }
 }

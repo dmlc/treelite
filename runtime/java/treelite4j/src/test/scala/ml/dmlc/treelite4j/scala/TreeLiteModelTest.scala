@@ -6,13 +6,16 @@ import ml.dmlc.treelite4j.scala.spark.TreeLiteModel
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.linalg._
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions.col
 import org.scalatest.{BeforeAndAfterEach, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.math.min
 
 
-class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach { self: FunSuite =>
+class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
+  self: FunSuite =>
   private val mushroomLibLocation = NativeLibLoader
       .createTempFileFromResource("/mushroom_example/" + System.mapLibraryName("mushroom"))
   private val mushroomTestDataLocation = NativeLibLoader
@@ -27,6 +30,7 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
   @transient private var currentSession: SparkSession = _
 
   def ss: SparkSession = getOrCreateSession
+
   implicit def sc: SparkContext = ss.sparkContext
 
   private def sparkSessionBuilder: SparkSession.Builder = SparkSession.builder()
@@ -59,13 +63,22 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
     val probResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
     val marginResult = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
     val dataPoint = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation).asScala
+
     val localData = dataPoint.zip(probResult.zip(marginResult)).map {
       case (dp, (prob, margin)) =>
-        val feature = Vectors.sparse(dp.indices.max + 1, dp.indices, dp.values.map(_.toDouble))
-        (feature, prob, margin)
+        val sparseFeat = Vectors.sparse(
+          dp.indices.last + 1, dp.indices, dp.values.map(_.toDouble))
+        val denseBuf = dp.indices.zip(dp.values).foldLeft(mutable.ArrayBuffer[Double]())(
+          (buf, entry) => {
+            buf ++= Array.fill(entry._1 - buf.length)(Double.NaN)
+            buf += entry._2
+          }
+        )
+        val denseFeat = Vectors.dense(denseBuf.toArray)
+        (sparseFeat, denseFeat, prob, margin)
     }
     ss.createDataFrame(sc.parallelize(localData, numPartitions))
-        .toDF("features", "prob", "margin")
+        .toDF("sparseFeat", "denseFeat", "prob", "margin")
   }
 
   test("TreeLiteModel basic tests") {
@@ -88,20 +101,31 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
   }
 
   test("TreeLiteModel test transforming") {
-    val df = buildDataFrame()
     val model = TreeLiteModel(mushroomLibLocation)
-    val retDF = model.transform(df)
-    retDF.schema.fields.map(_.name) shouldEqual Array("features", "prob", "margin", "prediction")
+    val df = buildDataFrame().cache()
+    // test CSRBatchPredict
+    var retDF = model.transform(df.withColumn("features", col("sparseFeat")))
+    retDF.collect().foreach { row =>
+      row.getAs[Float]("prob") shouldEqual row.getAs[Seq[Float]]("prediction").head
+    }
+    // test DenseBatchPredict
+    retDF = model.transform(df.withColumn("features", col("denseFeat")))
     retDF.collect().foreach { row =>
       row.getAs[Float]("prob") shouldEqual row.getAs[Seq[Float]]("prediction").head
     }
   }
 
   test("TreeLiteModel test transforming with margin") {
-    val df = buildDataFrame()
     val model = TreeLiteModel(mushroomLibLocation)
+    val df = buildDataFrame().cache()
     model.setPredictMargin(true)
-    val retDF = model.transform(df)
+    // test CSRBatchPredict
+    var retDF = model.transform(df.withColumn("features", col("sparseFeat")))
+    retDF.collect().foreach { row =>
+      row.getAs[Float]("margin") shouldEqual row.getAs[Seq[Float]]("prediction").head
+    }
+    // test DenseBatchPredict
+    retDF = model.transform(df.withColumn("features", col("denseFeat")))
     retDF.collect().foreach { row =>
       row.getAs[Float]("margin") shouldEqual row.getAs[Seq[Float]]("prediction").head
     }

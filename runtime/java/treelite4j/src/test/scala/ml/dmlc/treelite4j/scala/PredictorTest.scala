@@ -1,9 +1,10 @@
 package ml.dmlc.treelite4j.scala
 
-import scala.collection.JavaConverters._
 import ml.dmlc.treelite4j.java.PredictorTest.LoadArrayFromText
-import ml.dmlc.treelite4j.java.{BatchBuilder, Entry, NativeLibLoader, Predictor => JPredictor}
+import ml.dmlc.treelite4j.java.{BatchBuilder, Entry, NativeLibLoader}
 import org.scalatest.{FunSuite, Matchers}
+
+import scala.collection.JavaConverters._
 
 class PredictorTest extends FunSuite with Matchers {
   private val mushroomLibLocation = NativeLibLoader
@@ -16,7 +17,7 @@ class PredictorTest extends FunSuite with Matchers {
       .createTempFileFromResource("/mushroom_example/agaricus.txt.test.margin")
 
   test("Basic") {
-    val predictor = new Predictor(new JPredictor(mushroomLibLocation, -1, true))
+    val predictor = Predictor(mushroomLibLocation)
     predictor.numOutputGroup shouldEqual 1
     predictor.numFeature shouldEqual 127
     predictor.predTransform shouldEqual "sigmoid"
@@ -25,29 +26,30 @@ class PredictorTest extends FunSuite with Matchers {
   }
 
   test("PredictBatch") {
-    val predictor = new Predictor(new JPredictor(mushroomLibLocation, -1, true))
+    val predictor = Predictor(mushroomLibLocation)
     val dmat = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
-    val sparseBatch = BatchBuilder.CreateSparseBatch(dmat)
-    val denseBatch = BatchBuilder.CreateDenseBatch(dmat)
-    val expectedResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
+    val sparseBatch = BatchBuilder.CreateSparseBatch(dmat.iterator())
+    val denseBatch = BatchBuilder.CreateDenseBatch(dmat.iterator())
+    val retProb = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
+    val retMargin = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
 
-    /* sparse batch */
-    var result = predictor.predictSparseBatch(sparseBatch, predMargin = true)
-    result.zip(expectedResult).foreach { case (actual, expect) =>
-      actual.length shouldEqual 1
-      actual.head shouldEqual expect
+    val sparseMargin = predictor.predictSparseBatch(sparseBatch, predMargin = true)
+    val sparseProb = predictor.predictSparseBatch(sparseBatch)
+    val denseMargin = predictor.predictDenseBatch(denseBatch, predMargin = true)
+    val denseProb = predictor.predictDenseBatch(denseBatch)
+
+    retProb.zip(denseProb.zip(sparseProb)).foreach { case (ret, (dense, sparse)) =>
+      Seq(dense.length, sparse.length) shouldEqual Seq(1, 1)
+      Seq(dense.head, sparse.head) shouldEqual Seq(ret, ret)
     }
-
-    /* dense batch */
-    result = predictor.predictDenseBatch(denseBatch, predMargin = true)
-    result.zip(expectedResult).foreach { case (actual, expect) =>
-      actual.length shouldEqual 1
-      actual.head shouldEqual expect
+    retMargin.zip(denseMargin.zip(sparseMargin)).foreach { case (ret, (dense, sparse)) =>
+      Seq(dense.length, sparse.length) shouldEqual Seq(1, 1)
+      Seq(dense.head, sparse.head) shouldEqual Seq(ret, ret)
     }
   }
 
   test("PredictInst") {
-    val predictor = new Predictor(new JPredictor(mushroomLibLocation, -1, true))
+    val predictor = Predictor(mushroomLibLocation)
     mushroomLibPredictionTest(predictor)
   }
 
@@ -58,8 +60,8 @@ class PredictorTest extends FunSuite with Matchers {
       entry
     })
     val expectedResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
-    val dmat = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
-    dmat.asScala.zipWithIndex.foreach { case (dp, row) =>
+    val dataPoints = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
+    dataPoints.asScala.zipWithIndex.foreach { case (dp, row) =>
       dp.indices.zip(dp.values).foreach { case (i, v) => instArray(i).setFValue(v) }
       val result = predictor.predictInst(instArray)
       result.length shouldEqual 1

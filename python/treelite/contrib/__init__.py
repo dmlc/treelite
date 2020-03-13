@@ -115,6 +115,61 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
                                        toolchain=toolchain,
                                        options=options)))
 
+def generate_cmakelists(dirpath, options=None):
+  """
+  Generate a CMakeLists.txt for a given directory of headers and sources. The
+  resulting CMakeLists.txt will be stored in the directory. This function is useful
+  for deploying a model on a different machine.
+
+  Parameters
+  ----------
+  dirpath : :py:class:`str <python:str>`
+      directory containing the header and source files previously generated
+      by :py:meth:`Model.compile`. The directory must contain recipe.json
+      which specifies build dependencies.
+  options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
+            optional
+      Additional options to pass to toolchain
+  """
+  if not os.path.isdir(dirpath):
+    raise TreeliteError('Directory {} does not exist'.format(dirpath))
+  try:
+    with open(os.path.join(dirpath, 'recipe.json')) as f:
+      recipe = json.load(f)
+  except IOError:
+    raise TreeliteError('Failed to open recipe.json')
+
+  if 'sources' not in recipe or 'target' not in recipe:
+    raise TreeliteError('Malformed recipe.json')
+  if options is not None:
+    try:
+      _ = iter(options)
+      options = [str(x) for x in options]
+    except TypeError:
+      raise TreeliteError('options must be a list of string')
+  else:
+    options = []
+
+  with open(os.path.join(dirpath, 'CMakeLists.txt'), 'w') as f:
+    f.write("cmake_minimum_required(VERSION 3.13)\n\n")
+    f.write("# Set flags\n")
+    f.write('list(APPEND COMPILE_FEATURES "c_std_99")\n')
+    for option in options:
+      f.write('list(APPEND COMPILE_FLAGS "{}")\n'.format(options))
+
+    f.write('set(TARGET_NAME {})\n'.format(recipe['target']))
+    for source in recipe['sources']:
+      f.write('list(APPEND SOURCES ${{CMAKE_CURRENT_SOURCE_DIR}}/{})\n'\
+        .format(source['name'] + '.c'))
+    f.write('\n')
+
+    f.write('add_library(${TARGET_NAME} SHARED ${SOURCES})\n')
+    f.write('target_compile_features(${TARGET_NAME} PUBLIC ${COMPILE_FEATURES})\n')
+    f.write('target_compile_options(${TARGET_NAME} PRIVATE ${COMPILE_FLAGS})\n')
+    f.write('target_include_directories(${TARGET_NAME} \n\
+      PUBLIC \n\
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)\n')
+
 def save_runtime_package(destdir):
   """
   Save a copy of the (zipped) runtime package, containing all glue code
@@ -230,4 +285,4 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
              '{0:.2f} seconds'.format(time.time() - tstart))
   return libpath
 
-__all__ = ['create_shared', 'save_runtime_package', 'generate_makefile']
+__all__ = ['create_shared', 'save_runtime_package', 'generate_makefile', 'generate_cmakelists']

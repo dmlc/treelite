@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from .common.compat import STRING_TYPES
 from .common.util import c_str, TreeliteError
 from .core import _LIB, c_array, _check_call
-from .contrib import create_shared, generate_makefile, _toolchain_exist_check
+from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
 
 def _isascii(string):
   """Tests if a given string is pure ASCII; works for both Python 2 and 3"""
@@ -146,7 +146,7 @@ class Model():
       compiled. Must be one of the following: 'windows' (Microsoft Windows),
       'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
     toolchain : :py:class:`str <python:str>`
-      which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+      which toolchain to use. You may choose one of 'msvc', 'clang', 'gcc' and 'cmake'.
       You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
     pkgpath : :py:class:`str <python:str>`
         location to save the zipped source package
@@ -190,12 +190,15 @@ class Model():
                            root_dir='/temporary/directory',
                            base_dir='mymodel/')
     """
+    print("[treelite] export_srcpkg, toolchain={}".format(toolchain))
+
     # check for file extension
     fileext = os.path.splitext(pkgpath)[1]
     if fileext != '.zip':
       raise ValueError('Source package file should have .zip extension')
     libname = os.path.basename(libname)
-    _toolchain_exist_check(toolchain)
+    if toolchain != 'cmake':
+      _toolchain_exist_check(toolchain)
 
     with TemporaryDirectory() as temp_dir:
       target = os.path.splitext(libname)[0]
@@ -206,7 +209,10 @@ class Model():
         params = {}
       params['native_lib_name'] = target
       self.compile(dirpath, params, compiler, verbose)
-      generate_makefile(dirpath, platform, toolchain, options)
+      if toolchain == 'cmake':
+        generate_cmakelists(dirpath, options)
+      else:
+        generate_makefile(dirpath, platform, toolchain, options)
       shutil.make_archive(base_name=os.path.splitext(pkgpath)[0],
                           format='zip',
                           root_dir=temp_dir,

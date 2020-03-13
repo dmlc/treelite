@@ -119,6 +119,39 @@ class TestBasic(unittest.TestCase):
     out_prob = predictor.predict(batch)
     assert_almost_equal(out_prob, expected_prob)
 
+  @pytest.mark.skipif(os_platform() == 'windows', reason='Make unavailable on Windows')
+  def test_srcpkg_cmake(self):
+    """Test feature to export a source tarball"""
+    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
+    dmat_path = os.path.join(dpath, 'mushroom/agaricus.test')
+    libpath = libname('./mushroom/mushroom{}')
+    model = treelite.Model.load(model_path, model_format='xgboost')
+
+    toolchain = 'cmake'
+    model.export_srcpkg(platform=os_platform(), toolchain=toolchain,
+                        pkgpath='./srcpkg.zip', libname=libpath,
+                        params={}, verbose=True)
+    with ZipFile('./srcpkg.zip', 'r') as zip_ref:
+      zip_ref.extractall('.')
+    subprocess.call(['cmake', '.'])
+    subprocess.call(['make'])
+
+    predictor = treelite.runtime.Predictor(libpath='./mushroom', verbose=True)
+    assert predictor.num_feature == 127
+    assert predictor.num_output_group == 1
+    assert predictor.pred_transform == 'sigmoid'
+    assert predictor.global_bias == 0.0
+    assert predictor.sigmoid_alpha == 1.0
+
+    X, _ = load_svmlight_file(dmat_path, zero_based=True)
+    dmat = treelite.DMatrix(X)
+    batch = treelite.runtime.Batch.from_csr(dmat)
+
+    expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
+    expected_prob = load_txt(expected_prob_path)
+    out_prob = predictor.predict(batch)
+    assert_almost_equal(out_prob, expected_prob)
+
   def test_deficient_matrix(self):
     """
     Test if Treelite correctly handles sparse matrix with fewer columns

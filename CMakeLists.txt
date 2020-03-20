@@ -88,12 +88,11 @@ include_directories (
     ${PROJECT_SOURCE_DIR}/3rdparty/fmt   # fmtlib
 )
 
-option(TREELITE_FMT "Set to ON fmt." ON)
-if (TREELITE_FMT)
+if (NOT TARGET fmt)
   # use fmtlib as header-only
   add_definitions(-DFMT_HEADER_ONLY)
   add_subdirectory(3rdparty/fmt EXCLUDE_FROM_ALL)
-endif()
+endif (NOT TARGET fmt)
 
 file(GLOB_RECURSE SOURCES
     src/*.cc

@@ -13,12 +13,12 @@ message Model {
 }
 
 message Tree {
-  optional Node head = 1;
+  repeated Node nodes = 1;
 }
 
 message Node {
-   optional Node left_child = 1;     // Left child; missing if leaf
-   optional Node right_child = 2;    // Right child; missing if leaf
+   optional int64 left_child = 1;    // Left child; missing if leaf
+   optional int64 right_child = 2;   // Right child; missing if leaf
    optional bool default_left = 3;   // Default direction for missing values
                                      // true: default to left
                                      // false: default to right

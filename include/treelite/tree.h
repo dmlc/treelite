@@ -10,11 +10,11 @@
 #include <treelite/base.h>
 #include <treelite/common.h>
 #include <dmlc/logging.h>
+#include <dmlc/io.h>
 #include <algorithm>
 #include <vector>
 #include <utility>
-#include <unordered_map>
-#include <string>
+
 #include <limits>
 
 namespace treelite {
@@ -25,7 +25,10 @@ class Tree {
   /*! \brief tree node */
   class Node {
    public:
-    Node() : sindex_(0), missing_category_to_zero_(false) {}
+    Node(std::vector<tl_float>* leaf_vector,
+         std::vector<uint32_t>* left_categories)
+      : sindex_(0), missing_category_to_zero_(false),
+        leaf_vector_(leaf_vector), left_categories_(left_categories) {}
     /*! \brief index of left child */
     inline int cleft() const {
       return this->cleft_;
@@ -59,13 +62,13 @@ class Tree {
      * random forest classifier
      */
     inline const std::vector<tl_float>& leaf_vector() const {
-      return this->leaf_vector_;
+      return *this->leaf_vector_;
     }
     /*!
      * \return tests whether leaf node has a non-empty leaf vector
      */
     inline bool has_leaf_vector() const {
-      return !(this->leaf_vector_.empty());
+      return !(this->leaf_vector_->empty());
     }
     /*! \return get threshold of the node */
     inline tl_float threshold() const {
@@ -87,9 +90,15 @@ class Tree {
     inline Operator comparison_op() const {
       return cmp_;
     }
-    /*! \brief get categories for left child node */
+    /*!
+     * \brief Get list of all categories belonging to the left child node.
+     * Categories not in this list will belong to the right child node.
+     * Categories are integers ranging from 0 to (n-1), where n is the number of
+     * categories in that particular feature.
+     * This list is assumed to be in ascending order.
+     */
     inline const std::vector<uint32_t>& left_categories() const {
-      return left_categories_;
+      return *this->left_categories_;
     }
     /*! \brief get feature split type */
     inline SplitFeatureType split_type() const {
@@ -97,27 +106,27 @@ class Tree {
     }
     /*! \brief test whether this node has data count */
     inline bool has_data_count() const {
-      return data_count_.has_value();
+      return data_count_present_;
     }
     /*! \brief get data count */
     inline size_t data_count() const {
-      return data_count_.value();
+      return data_count_;
     }
     /*! \brief test whether this node has hessian sum */
     inline bool has_sum_hess() const {
-      return sum_hess_.has_value();
+      return sum_hess_present_;
     }
     /*! \brief get hessian sum */
     inline double sum_hess() const {
-      return sum_hess_.value();
+      return sum_hess_;
     }
     /*! \brief test whether this node has gain value */
     inline bool has_gain() const {
-      return gain_.has_value();
+      return gain_present_;
     }
     /*! \brief get gain value */
     inline double gain() const {
-      return gain_.value();
+      return gain_;
     }
     /*! \brief test whether missing values should be converted into zero;
      *         only applicable for categorical splits */
@@ -155,8 +164,9 @@ class Tree {
       CHECK_LT(split_index, (1U << 31) - 1) << "split_index too big";
       if (default_left) split_index |= (1U << 31);
       this->sindex_ = split_index;
-      this->left_categories_ = left_categories;
-      std::sort(this->left_categories_.begin(), this->left_categories_.end());
+      *this->left_categories_ = left_categories;
+      std::sort(this->left_categories_->begin(),
+                this->left_categories_->end());
       this->split_type_ = SplitFeatureType::kCategorical;
       this->missing_category_to_zero_ = missing_category_to_zero;
     }
@@ -176,7 +186,7 @@ class Tree {
      * \param leaf_vector leaf vector
      */
     inline void set_leaf_vector(const std::vector<tl_float>& leaf_vector) {
-      this->leaf_vector_ = leaf_vector;
+      *this->leaf_vector_ = leaf_vector;
       this->cleft_ = -1;
       this->cright_ = -1;
       this->split_type_ = SplitFeatureType::kNone;
@@ -223,7 +233,7 @@ class Tree {
      * \brief leaf vector: only used for random forests with
      *                     multi-class classification
      */
-    std::vector<tl_float> leaf_vector_;
+    std::vector<tl_float>* leaf_vector_;
     /*!
      * \brief pointer to parent
      * highest bit is used to indicate whether it's a left child or not
@@ -253,7 +263,7 @@ class Tree {
      * categories in that particular feature.
      * This list is assumed to be in ascending order.
      */
-    std::vector<uint32_t> left_categories_;
+    std::vector<uint32_t>* left_categories_;
     /* \brief Whether to convert missing value to zero.
      * Only applicable when split_type_ is set to kCategorical.
      * When this flag is set, it overrides the behavior of default_left().
@@ -263,29 +273,40 @@ class Tree {
      * \brief number of data points whose traversal paths include this node.
      *        LightGBM models natively store this statistics.
      */
-    dmlc::optional<size_t> data_count_;
+    bool data_count_present_;
+    size_t data_count_;
     /*!
      * \brief sum of hessian values for all data points whose traversal paths
      *        include this node. This value is generally correlated positively
      *        with the data count. XGBoost models natively store this
      *        statistics.
      */
-    dmlc::optional<double> sum_hess_;
+    bool sum_hess_present_;
+    double sum_hess_;
     /*!
      * \brief change in loss that is attributed to a particular split
      */
-    dmlc::optional<double> gain_;
+    bool gain_present_;
+    double gain_;
   };
 
  private:
   // vector of nodes
-  std::vector<Node> nodes;
+  std::vector<Node> nodes_;
+  std::vector<std::vector<tl_float>> leaf_vector_;
+  std::vector<std::vector<uint32_t>> left_categories_;
+
   // allocate a new node
   inline int AllocNode() {
     int nd = num_nodes++;
     CHECK_LT(num_nodes, std::numeric_limits<int>::max())
         << "number of nodes in the tree exceed 2^31";
-    nodes.resize(num_nodes);
+    CHECK_EQ(nodes_.size(), static_cast<size_t>(nd));
+    for (int nid = nd; nid < num_nodes; ++nid) {
+      leaf_vector_.emplace_back();
+      left_categories_.emplace_back();
+      nodes_.emplace_back(&leaf_vector_[nid], &left_categories_[nid]);
+    }
     return nd;
   }
 
@@ -298,7 +319,7 @@ class Tree {
    * \return reference to node
    */
   inline Node& operator[](int nid) {
-    return nodes[nid];
+    return nodes_[nid];
   }
   /*!
    * \brief get node given nid (const version)
@@ -306,14 +327,16 @@ class Tree {
    * \return const reference to node
    */
   inline const Node& operator[](int nid) const {
-    return nodes[nid];
+    return nodes_[nid];
   }
   /*! \brief initialize the model with a single root node */
   inline void Init() {
     num_nodes = 1;
-    nodes.resize(1);
-    nodes[0].set_leaf(0.0f);
-    nodes[0].set_parent(-1);
+    leaf_vector_.emplace_back();
+    left_categories_.emplace_back();
+    nodes_.emplace_back(&leaf_vector_[0], &left_categories_[0]);
+    nodes_[0].set_leaf(0.0f);
+    nodes_[0].set_parent(-1);
   }
   /*!
    * \brief add child nodes to node
@@ -322,10 +345,10 @@ class Tree {
   inline void AddChilds(int nid) {
     const int cleft = this->AllocNode();
     const int cright = this->AllocNode();
-    nodes[nid].cleft_ = cleft;
-    nodes[nid].cright_ = cright;
-    nodes[cleft].set_parent(nid, true);
-    nodes[cright].set_parent(nid, false);
+    nodes_[nid].cleft_ = cleft;
+    nodes_[nid].cright_ = cright;
+    nodes_[cleft].set_parent(nid, true);
+    nodes_[cright].set_parent(nid, false);
   }
 
   /*!
@@ -335,7 +358,7 @@ class Tree {
   inline std::vector<unsigned> GetCategoricalFeatures() const {
     std::unordered_map<unsigned, bool> tmp;
     for (int nid = 0; nid < num_nodes; ++nid) {
-      const Node& node = nodes[nid];
+      const Node& node = nodes_[nid];
       const SplitFeatureType type = node.split_type();
       if (type != SplitFeatureType::kNone) {
         const bool flag = (type == SplitFeatureType::kCategorical);
@@ -357,6 +380,9 @@ class Tree {
     std::sort(result.begin(), result.end());
     return result;
   }
+
+  void Serialize(dmlc::Stream* fo) const;
+  void Deserialize(dmlc::Stream* fi);
 };
 
 struct ModelParam : public dmlc::Parameter<ModelParam> {
@@ -450,6 +476,9 @@ struct Model {
   Model& operator=(const Model&) = delete;
   Model(Model&&) = default;
   Model& operator=(Model&&) = default;
+
+  void Serialize(dmlc::Stream* fo) const;
+  void Deserialize(dmlc::Stream* fi);
 };
 
 }  // namespace treelite

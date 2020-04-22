@@ -270,6 +270,14 @@ TREELITE_DLL int TreeliteLoadProtobufModel(const char* filename,
  */
 TREELITE_DLL int TreeliteExportProtobufModel(const char* filename,
                                              ModelHandle model);
+
+TREELITE_DLL int TreeliteSerializeModel(const char* filename,
+                                        ModelHandle model);
+
+TREELITE_DLL int TreeliteDeserializeModel(const char* filename,
+                                          ModelHandle* out);
+
+
 /*!
  * \brief Query the number of trees in the model
  * \param handle model to query

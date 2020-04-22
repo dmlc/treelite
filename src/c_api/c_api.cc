@@ -12,6 +12,7 @@
 #include <treelite/frontend.h>
 #include <dmlc/json.h>
 #include <dmlc/thread_local.h>
+#include <dmlc/memory_io.h>
 #include <memory>
 #include <unordered_map>
 #include <algorithm>
@@ -344,6 +345,26 @@ int TreeliteExportProtobufModel(const char* filename,
   API_BEGIN();
   Model* model_ = static_cast<Model*>(model);
   frontend::ExportProtobufModel(filename, *model_);
+  API_END();
+}
+
+int TreeliteSerializeModel(const char* filename,
+                           ModelHandle model) {
+  API_BEGIN();
+  Model* model_ = static_cast<Model*>(model);
+  CHECK(model_);
+  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(filename, "w"));
+  model_->Serialize(fo.get());
+  API_END();
+}
+
+int TreeliteDeserializeModel(const char* filename,
+                             ModelHandle* out) {
+  API_BEGIN();
+  Model* model = new Model();
+  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
+  model->Deserialize(fi.get());
+  *out = static_cast<ModelHandle>(model);
   API_END();
 }
 

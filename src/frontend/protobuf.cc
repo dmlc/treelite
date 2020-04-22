@@ -259,7 +259,7 @@ void ExportProtobufModel(const char* filename, const Model& model) {
             << "The length of leaf vector must be identical to the "
             << "number of output groups";
           for (tl_float e : leaf_vector) {
-            pb_node->add_leaf_vector(static_cast<double>(e));
+            pb_node->add_leaf_vector(static_cast<float>(e));
           }
           CHECK_EQ(pb_node->leaf_vector_size(), leaf_vector.size());
         } else {  // leaf node with scalar output
@@ -267,7 +267,7 @@ void ExportProtobufModel(const char* filename, const Model& model) {
             << "Inconsistent use of leaf vector: if one leaf node does not use"
             << "a leaf vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          pb_node->set_leaf_value(static_cast<double>(tree[nid].leaf_value()));
+          pb_node->set_leaf_value(static_cast<float>(tree[nid].leaf_value()));
         }
       } else if (tree[nid].split_type() == SplitFeatureType::kNumerical) {
         // numerical split
@@ -280,7 +280,7 @@ void ExportProtobufModel(const char* filename, const Model& model) {
         pb_node->set_split_index(static_cast<google::protobuf::int32>(split_index));
         pb_node->set_split_type(treelite_protobuf::Node_SplitFeatureType_NUMERICAL);
         pb_node->set_op(OpName(op));
-        pb_node->set_threshold(static_cast<double>(threshold));
+        pb_node->set_threshold(static_cast<float>(threshold));
         pb_node->set_left_child(tree[nid].cleft());
         pb_node->set_right_child(tree[nid].cright());
       } else {  // categorical split

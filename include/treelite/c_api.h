@@ -368,7 +368,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetNumericalTestNode(
                                              TreeBuilderHandle handle,
                                              int node_key, unsigned feature_id,
                                              const char* opname,
-                                             double threshold, int default_left,
+                                             float threshold, int default_left,
                                              int left_child_key,
                                              int right_child_key);
 /*!
@@ -405,7 +405,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetCategoricalTestNode(
  */
 TREELITE_DLL int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle,
                                                 int node_key,
-                                                double leaf_value);
+                                                float leaf_value);
 /*!
  * \brief Turn an empty node into a leaf vector node
  * The leaf vector (collection of multiple leaf weights per leaf node) is
@@ -419,7 +419,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle,
  */
 TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle,
                                                       int node_key,
-                                                      const double* leaf_vector,
+                                                      const float* leaf_vector,
                                                       size_t leaf_vector_len);
 /*!
  * \brief Create a new model builder

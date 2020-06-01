@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+source $HOME/miniconda/bin/activate
+
 if [ ${TASK} == "python_test" ]
 then
   conda activate python3

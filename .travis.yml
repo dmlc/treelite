@@ -1,0 +1,30 @@
+os:
+  - osx
+
+osx_image: xcode10.1
+
+env:
+  matrix:
+    # python package test
+    - TASK=python_test
+
+# dependent brew packages
+addons:
+  homebrew:
+    packages:
+      - cmake
+      - libomp
+      - gcc@7
+      - wget
+    update: true
+
+install:
+  - source tests/travis/setup.sh
+
+script:
+  - tests/travis/run_test.sh
+
+cache:
+  directories:
+    - ${HOME}/.cache/usr
+    - ${HOME}/.cache/pip

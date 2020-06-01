@@ -13,7 +13,6 @@ addons:
   homebrew:
     packages:
       - cmake
-      - libomp
       - gcc@7
       - wget
     update: true

@@ -21,11 +21,11 @@ then
   rm -rfv python/dist python/build
   cd python/
   python setup.py bdist_wheel --universal
+  cd ..
 
   # Install Treelite into Python env
-  ls -l ./dist/*.whl
-  python -m pip install ./dist/*.whl
-  cd ..
+  ls -l ./python/dist/*.whl
+  python -m pip install ./python/dist/*.whl
 
   # Run tests
   python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage

@@ -162,8 +162,7 @@ jobs:
     displayName: 'Downloading Treelite Python wheel for Windows...'
   - script: |
       call activate
-      dir
-      python -m pip install *.whl
+      for /R %%i in (*.whl) DO python -m pip install "%%i"
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call activate

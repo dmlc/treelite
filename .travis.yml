@@ -14,6 +14,7 @@ addons:
     packages:
       - cmake
       - gcc@7
+      - libomp
       - wget
     update: true
 

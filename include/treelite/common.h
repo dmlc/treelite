@@ -7,11 +7,6 @@
 #ifndef TREELITE_COMMON_H_
 #define TREELITE_COMMON_H_
 
-#include <treelite/base.h>
-#include <dmlc/logging.h>
-#include <dmlc/json.h>
-#include <dmlc/data.h>
-#include <fmt/format.h>
 #include <algorithm>
 #include <vector>
 #include <limits>
@@ -28,6 +23,11 @@
 #include <iomanip>
 #include <cerrno>
 #include <climits>
+#include <treelite/base.h>
+#include <dmlc/logging.h>
+#include <dmlc/json.h>
+#include <dmlc/data.h>
+#include <fmt/format.h>
 
 namespace treelite {
 namespace common {

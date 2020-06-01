@@ -7,13 +7,13 @@
 #ifndef TREELITE_COMMON_FILESYSTEM_H_
 #define TREELITE_COMMON_FILESYSTEM_H_
 
-#include <dmlc/logging.h>
-#include <treelite/common.h>
 #include <vector>
 #include <string>
 #include <regex>
-#include <cstdlib>
 #include <random>
+#include <cstdlib>
+#include <dmlc/logging.h>
+#include <treelite/common.h>
 
 #ifdef _WIN32
 #define NOMINMAX

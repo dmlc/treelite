@@ -6,14 +6,14 @@
 #ifndef TREELITE_COMPILER_AST_BUILDER_H_
 #define TREELITE_COMPILER_AST_BUILDER_H_
 
-#include <treelite/common.h>
-#include <treelite/tree.h>
 #include <map>
 #include <string>
 #include <vector>
 #include <ostream>
 #include <utility>
 #include <memory>
+#include <treelite/common.h>
+#include <treelite/tree.h>
 #include "./ast.h"
 
 namespace treelite {

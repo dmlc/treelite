@@ -5,11 +5,11 @@
  * \author Philip Cho
  */
 
+#include <unordered_map>
+#include <queue>
 #include <dmlc/data.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
-#include <unordered_map>
-#include <queue>
 
 namespace {
 

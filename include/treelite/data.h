@@ -7,8 +7,8 @@
 #ifndef TREELITE_DATA_H_
 #define TREELITE_DATA_H_
 
-#include <dmlc/data.h>
 #include <vector>
+#include <dmlc/data.h>
 
 namespace treelite {
 

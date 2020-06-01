@@ -4,13 +4,13 @@
  * \author Philip Cho
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
-#include <dmlc/registry.h>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
 #include <vector>
 #include <cstdio>
 #include <cstring>
+#include <dmlc/registry.h>
 #include "./elf_formatter.h"
 
 #ifdef __linux__

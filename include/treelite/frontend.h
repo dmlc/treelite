@@ -7,10 +7,10 @@
 #ifndef TREELITE_FRONTEND_H_
 #define TREELITE_FRONTEND_H_
 
-#include <treelite/base.h>
 #include <memory>
 #include <vector>
 #include <cstdint>
+#include <treelite/base.h>
 
 namespace treelite {
 

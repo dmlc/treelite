@@ -21,11 +21,13 @@ then
   rm -rfv python/dist python/build
   cd python/
   python setup.py bdist_wheel --universal
+  TAG=macosx_10_13_x86_64.macosx_10_14_x86_64.macosx_10_15_x86_64
+  python ../tests/ci_build/rename_whl.py dist/*.whl ${TRAVIS_COMMIT} ${TAG}
   cd ..
 
   # Install Treelite into Python env
   ls -l ./python/dist/*.whl
-  python -m pip install ./python/dist/*.whl
+  python -m pip install ./python/dist/treelite-*-py3-none-${TAG}.whl
 
   # Run tests
   python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage

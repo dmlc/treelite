@@ -31,4 +31,15 @@ then
   python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
+
+  # Deploy binary wheel to S3
+  python -m pip install awscli
+  if [ "${TRAVIS_BRANCH}" == "master" ]
+  then
+    S3_DEST="s3://treelite-wheels/"
+  elif [ -z "${TRAVIS_TAG}" ]
+  then
+    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
+  fi
+  python -m awscli s3 cp python/dist/*.whl "${S3_DEST}" --acl public-read || true
 fi

@@ -7,14 +7,14 @@
 #ifndef TREELITE_COMPILER_H_
 #define TREELITE_COMPILER_H_
 
-#include <dmlc/registry.h>
-#include <treelite/common.h>
 #include <unordered_map>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 #include <utility>
+#include <dmlc/registry.h>
+#include <treelite/common.h>
 
 namespace treelite {
 

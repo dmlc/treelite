@@ -32,36 +32,9 @@ jobs:
     inputs:
       artifactName: 'python_linux_whl'
       targetPath: 'python/dist/'
-- job: osx_build
-  pool:
-    vmImage: 'macOS-10.13'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      addToPath: true
-  - checkout: self
-    submodules: recursive
-  - script: |
-      rm -rf build/
-      mkdir build
-      cd build
-      cmake .. -DENABLE_PROTOBUF=ON
-      make -j
-    displayName: 'Building Treelite...'
-  - script: |
-      rm -rfv python/dist python/build
-      cd python/
-      pip install wheel setuptools
-      python setup.py bdist_wheel --universal
-    displayName: 'Packaging Python wheel for Treelite...'
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: 'python_osx_whl'
-      targetPath: 'python/dist/'
 - job: win_build
   pool:
-    vmImage: 'vs2015-win2012r2'
+    vmImage: 'vs2017-win2016'
   steps:
   - checkout: self
     submodules: recursive
@@ -79,7 +52,7 @@ jobs:
       rmdir build /s /q
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 14 2015 Win64" -DENABLE_PROTOBUF=ON
+      cmake .. -G"Visual Studio 15 2017 Win64" -DENABLE_PROTOBUF=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:
@@ -165,67 +138,10 @@ jobs:
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Linux...'
   - script: |
-      mkdir -p lib/
-      cd lib/
-      unzip -j ../*.whl 'treelite-*.data/data/treelite/libtreelite.so'
-      cd ../runtime/native
-      mkdir -p lib/
-      cd lib/
-      unzip -j ../../../*.whl 'treelite-*.data/data/treelite/libtreelite_runtime.so'
-      mkdir -p ../build
-      cd ../build
-      cmake ..
+      python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=./
+  - script: python -m pytest -v --fulltrace tests/python
     displayName: 'Running Python tests...'
-    env:
-      PYTHONPATH: ./python
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
-    displayName: 'Submitting code coverage data to CodeCov...'
-    env:
-      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
-- job: osx_python_test
-  dependsOn: osx_build
-  pool:
-    vmImage: 'macOS-10.13'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      addToPath: true
-  - checkout: self
-    submodules: recursive
-  - script: |
-      python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage
-      brew install gcc@7 libomp
-    displayName: 'Setting up Python environment...'
-  - task: DownloadPipelineArtifact@0
-    inputs:
-      artifactName: 'python_osx_whl'
-      targetPath: $(System.DefaultWorkingDirectory)
-    displayName: 'Downloading Treelite Python wheel for Mac OSX...'
-  - script: |
-      mkdir -p lib/
-      cd lib/
-      unzip -j ../*.whl 'treelite-*.data/data/treelite/libtreelite.dylib'
-      cd ../runtime/native
-      mkdir -p lib/
-      cd lib/
-      unzip -j ../../../*.whl 'treelite-*.data/data/treelite/libtreelite_runtime.dylib'
-      mkdir -p ../build
-      cd ../build
-      cmake ..
-    displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python --cov=./
-    displayName: 'Running Python tests...'
-    env:
-      GCC_PATH: gcc-7
-      PYTHONPATH: ./python
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
-    displayName: 'Submitting code coverage data to CodeCov...'
-    env:
-      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
-
 - job: win_python_test
   dependsOn: win_build
   pool:
@@ -244,28 +160,12 @@ jobs:
       artifactName: 'python_win_whl'
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Windows...'
-  - powershell: |
-      Dir *.whl | Rename-Item -newname { $_.name -replace ".whl", ".zip" }
-      Expand-Archive *.zip -DestinationPath .\whl_content
-      New-Item .\lib -ItemType Directory -ea 0
-      New-Item .\runtime\native\lib -ItemType Directory -ea 0
-      New-Item .\build -ItemType Directory -ea 0
-      Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite.dll -Destination .\lib
-      Move-Item -Path .\whl_content\treelite-*.data\data\treelite\treelite_runtime.dll -Destination .\runtime\native\lib
-      Remove-Item .\whl_content -Force -Recurse
-      Set-Location -Path .\build
-      cmake .. -G"Visual Studio 15 2017 Win64"
+  - script: |
+      call activate
+      for /R %%i in (*.whl) DO python -m pip install "%%i"
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call activate
       python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov
-      python -m pytest -v --fulltrace tests\python --cov=./
+      python -m pytest -v --fulltrace tests\python
     displayName: 'Running Python tests...'
-    env:
-      PYTHONPATH: .\python
-  - script: |
-      choco install codecov
-      codecov
-    displayName: 'Submitting code coverage data to CodeCov...'
-    env:
-      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

@@ -7,8 +7,8 @@
 #ifndef TREELITE_LOGGING_H_
 #define TREELITE_LOGGING_H_
 
-#include <dmlc/thread_local.h>
 #include <iostream>
+#include <dmlc/thread_local.h>
 
 namespace treelite {
 

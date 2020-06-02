@@ -4,15 +4,15 @@
  * \author Philip Cho
  * \brief C code generator
  */
-#include <treelite/compiler.h>
-#include <treelite/common.h>
-#include <treelite/annotator.h>
-#include <fmt/format.h>
 #include <algorithm>
 #include <fstream>
 #include <unordered_map>
 #include <queue>
 #include <cmath>
+#include <treelite/compiler.h>
+#include <treelite/common.h>
+#include <treelite/annotator.h>
+#include <fmt/format.h>
 #include "./param.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"

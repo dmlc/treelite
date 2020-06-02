@@ -5,9 +5,9 @@
  * \author Philip Cho
  */
 
+#include <queue>
 #include <dmlc/logging.h>
 #include <treelite/tree.h>
-#include <queue>
 
 #ifdef TREELITE_PROTOBUF_SUPPORT
 

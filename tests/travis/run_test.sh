@@ -73,5 +73,9 @@ if [ ${TASK} == "python_sdist_test" ]; then
   then
     S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
   fi
+  for file in ./treelite-*.tar.gz
+  do
+    mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
+  done
   python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
 fi

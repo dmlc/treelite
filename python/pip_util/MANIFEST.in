@@ -1,0 +1,12 @@
+recursive-include treelite *
+recursive-include treelite/cmake *
+recursive-include treelite/include *
+recursive-include treelite/runtime *
+recursive-include treelite/src *
+recursive-include treelite/lib *
+recursive-include treelite/dmlc-core *
+recursive-include treelite/3rdparty *
+global-exclude *.o
+global-exclude *.a
+global-exclude *.pyo
+global-exclude *.pyc

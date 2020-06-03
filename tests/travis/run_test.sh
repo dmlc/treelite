@@ -30,7 +30,8 @@ then
   python -m pip install ./python/dist/treelite-*-py3-none-${TAG}.whl
 
   # Run tests
-  python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn lightgbm coverage
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
+  python -m pip install xgboost lightgbm
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
 
@@ -44,4 +45,33 @@ then
     S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
   fi
   python -m awscli s3 cp python/dist/*.whl "${S3_DEST}" --acl public-read || true
+fi
+
+if [ ${TASK} == "python_sdist_test" ]; then
+  conda activate python3
+  python --version
+  conda install numpy scipy
+
+  # Build source distribution
+  make pippack
+
+  # Install Treelite into Python env
+  python -m pip install treelite-*.tar.gz -v
+
+  # Run tests
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
+  python -m pip install xgboost lightgbm
+  export GCC_PATH=gcc-7
+  python -m pytest -v --fulltrace tests/python
+
+  # Deploy source wheel to S3
+  python -m pip install awscli
+  if [ "${TRAVIS_BRANCH}" == "master" ]
+  then
+    S3_DEST="s3://treelite-wheels/"
+  elif [ -z "${TRAVIS_TAG}" ]
+  then
+    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
+  fi
+  python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
 fi

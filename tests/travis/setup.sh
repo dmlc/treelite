@@ -2,9 +2,13 @@
 
 set -eo pipefail
 
-if [ ${TASK} == "python_test" ]
+if [ ${TASK} == "python_test" ] || [ ${TASK} == "python_sdist_test" ]
 then
-  wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+  if [ ${TRAVIS_OS_NAME} == "osx" ]; then
+    wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+  else
+    wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  fi
   bash conda.sh -b -p $HOME/miniconda
   source $HOME/miniconda/bin/activate
   hash -r

@@ -7,10 +7,11 @@ import sys
 import tempfile
 from setuptools import setup, find_packages, Distribution
 
-class BinaryDistribution(Distribution):	
-  """Auxilliary class necessary to inform setuptools that this is a	
-  non-generic, platform-specific package."""	
-  def has_ext_modules(self):	
+# pylint: disable=missing-function-docstring, no-self-use
+class BinaryDistribution(Distribution):
+  """Auxilliary class necessary to inform setuptools that this is a
+  non-generic, platform-specific package."""
+  def has_ext_modules(self):
     return True
 
 if len(sys.argv) < 2 or sys.argv[1] != 'sdist':
@@ -21,24 +22,24 @@ if len(sys.argv) < 2 or sys.argv[1] != 'sdist':
   # pylint: disable=W0122
   exec(compile(open(LIBPATH_PY, "rb").read(), LIBPATH_PY, 'exec'),
        LIBPATH, LIBPATH)
-  
+
   # Paths for C/C++ libraries
   LIB_PATH = LIBPATH['find_lib_path'](basename='treelite')
   RT_PATH = LIBPATH['find_lib_path'](basename='treelite_runtime')
-  
+
   if (not LIB_PATH) or (not RT_PATH):
     raise RuntimeError('Please compile the C++ package first')
-  
+
   # ignore libraries already in python/treelite; only use ones in ../lib
   if os.path.abspath(os.path.dirname(LIB_PATH[0])) == os.path.abspath('./treelite'):
     del LIB_PATH[0]
     del RT_PATH[0]
-  
+
   LIB_BASENAME = os.path.basename(LIB_PATH[0])
   LIB_DEST = os.path.join('./treelite', LIB_BASENAME)
   RT_BASENAME = os.path.basename(RT_PATH[0])
   RT_DEST = os.path.join('./treelite', RT_BASENAME)
-  
+
   # remove stale copies of library
   if os.path.exists(LIB_DEST):
     os.remove(LIB_DEST)
@@ -46,7 +47,7 @@ if len(sys.argv) < 2 or sys.argv[1] != 'sdist':
     os.remove(RT_DEST)
   shutil.copy(LIB_PATH[0], LIB_DEST)
   shutil.copy(RT_PATH[0], RT_DEST)
-  
+
   # Create a zipped package containing glue code for deployment
   with tempfile.TemporaryDirectory() as tempdir:
     shutil.copytree('./treelite/runtime/native/', os.path.abspath(os.path.join(tempdir, 'runtime')))
@@ -60,7 +61,7 @@ if len(sys.argv) < 2 or sys.argv[1] != 'sdist':
                         format='zip',
                         root_dir=os.path.abspath(tempdir),
                         base_dir='runtime/')
-    
+
   # copy treelite.runtime
   PY_RT_SRC = './treelite/runtime/native/python/treelite_runtime'
   PY_RT_DEST = './treelite/runtime/treelite_runtime'

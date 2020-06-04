@@ -14,8 +14,8 @@ RUN \
     wget https://repo.continuum.io/miniconda/Miniconda3-4.5.12-Linux-x86_64.sh && \
     bash Miniconda3-4.5.12-Linux-x86_64.sh -b -p /opt/python && \
     # CMake
-    wget -nv -nc https://cmake.org/files/v3.2/cmake-3.2.0-Linux-x86_64.sh --no-check-certificate && \
-    bash cmake-3.2.0-Linux-x86_64.sh --skip-license --prefix=/usr
+    wget -nv -nc https://cmake.org/files/v3.11/cmake-3.11.0-Linux-x86_64.sh --no-check-certificate && \
+    bash cmake-3.11.0-Linux-x86_64.sh --skip-license --prefix=/usr
 
 ENV PATH=/opt/python/bin:$PATH
 ENV CC=/opt/rh/devtoolset-2/root/usr/bin/gcc

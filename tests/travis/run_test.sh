@@ -51,12 +51,15 @@ if [ ${TASK} == "python_sdist_test" ]; then
   conda activate python3
   python --version
   conda install numpy scipy
+  if [ ${USE_SYSTEM_PROTOBUF} == "yes" ]; then
+    conda install protobuf
+  fi
 
   # Build source distribution
   make pippack
 
   # Install Treelite into Python env
-  python -m pip install treelite-*.tar.gz -v
+  python -m pip install -v treelite-*.tar.gz
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
@@ -65,17 +68,19 @@ if [ ${TASK} == "python_sdist_test" ]; then
   python -m pytest -v --fulltrace tests/python
 
   # Deploy source wheel to S3
-  python -m pip install awscli
-  if [ "${TRAVIS_BRANCH}" == "master" ]
-  then
-    S3_DEST="s3://treelite-wheels/"
-  elif [ -z "${TRAVIS_TAG}" ]
-  then
-    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
+  if [ ${USE_SYSTEM_PROTOBUF} == "no" ]; then
+    python -m pip install awscli
+    if [ "${TRAVIS_BRANCH}" == "master" ]
+    then
+      S3_DEST="s3://treelite-wheels/"
+    elif [ -z "${TRAVIS_TAG}" ]
+    then
+      S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
+    fi
+    for file in ./treelite-*.tar.gz
+    do
+      mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
+    done
+    python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
   fi
-  for file in ./treelite-*.tar.gz
-  do
-    mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
-  done
-  python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
 fi

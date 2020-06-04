@@ -1,6 +1,5 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.11)
 project(treelite)
-include(cmake/Utils.cmake)
 
 # Use RPATH on Mac OS X as flexible mechanism for locating dependencies
 # See https://blog.kitware.com/upcoming-in-cmake-2-8-12-osx-rpath-support/
@@ -28,16 +27,35 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Protobuf
 if (ENABLE_PROTOBUF)
-  set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
-  set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
-  add_subdirectory(3rdparty/protobuf/cmake)
-  set(PROTOBUF_PROTOC_EXECUTABLE protoc)
-  set(PROTOBUF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/3rdparty/protobuf/src")
-  set(PROTOBUF_LIBRARIES libprotobuf)
+  # Attempt to locate Protobuf from a Conda environment
+  if(DEFINED ENV{CONDA_PREFIX})
+    set(CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX};${CMAKE_PREFIX_PATH}")
+    message(STATUS "Detected Conda environment, CMAKE_PREFIX_PATH set to: ${CMAKE_PREFIX_PATH}")
+    if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      message(STATUS "No CMAKE_INSTALL_PREFIX argument detected, setting to: $ENV{CONDA_PREFIX}")
+      set (CMAKE_INSTALL_PREFIX $ENV{CONDA_PREFIX})
+    endif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  else()
+    message(STATUS "No Conda environment detected")
+  endif()
+
+  set(Protobuf_USE_STATIC_LIBS ON)
+  find_package(Protobuf)
+  if (NOT Protobuf_FOUND)
+    message(STATUS "Did not found Protobuf in the system root. Using protobuf git submodule")
+    set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for protobuf" FORCE)
+    set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
+    add_subdirectory(3rdparty/protobuf/cmake)
+    set(Protobuf_PROTOC_EXECUTABLE protoc)
+    set(Protobuf_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/3rdparty/protobuf/src")
+    set(Protobuf_LIBRARIES libprotobuf)
+  endif()
   add_definitions(-DTREELITE_PROTOBUF_SUPPORT)
 else()
-  set(PROTOBUF_LIBRARIES "")
+  set(Protobuf_LIBRARIES "")
 endif()
+
+include(cmake/Utils.cmake)
 
 # check MSVC version
 if(MSVC)
@@ -102,7 +120,7 @@ file(GLOB_RECURSE SOURCES
 
 # Protobuf library
 if (ENABLE_PROTOBUF)
-  include_directories(${PROTOBUF_INCLUDE_DIRS})
+  include_directories(${Protobuf_INCLUDE_DIRS})
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   PROTOBUF_GENERATE_CPP(TREE_PROTO_SRCS TREE_PROTO_HDRS src/tree.proto)
   PROTOBUF_GENERATE_JAVA(tree_proto_java src/tree.proto)
@@ -122,7 +140,7 @@ endif()
 set(LINK_LIBRARIES dmlc)
 
 # Protobuf library
-list(APPEND LINK_LIBRARIES ${PROTOBUF_LIBRARIES})
+list(APPEND LINK_LIBRARIES ${Protobuf_LIBRARIES})
 
 add_library(objtreelite OBJECT ${SOURCES})
 

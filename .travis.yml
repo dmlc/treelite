@@ -10,7 +10,8 @@ env:
     # python package test
     - TASK=python_test
     # test installation of Python source distribution
-    - TASK=python_sdist_test
+    - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
+    - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no
 
   global:
     - secure: "iznY8XDjq03cQRqtz735oPBm5Tb8WsRkiuLUUNzJQysKzYvp7vLxbtPdeol93+XPFScKlPZqOSalAWlzUEcvZoZghlHBGlLBvVJfCkG2gaTOInGfNV8inAsUikd/rIS0bkQAGPIfaHVN/YinuKMrmtv3GcFYY9Rdg2EP1PU96BAf9tYzNUpkWWfjbobpK/ZfIvK7/e+DZtbdyJEKyWrMJ1hr6RJ7C0+9FWFP3Mh8Xc0c07cmKSLwGIlX/1pMqGg22Sq/c9Au8rht4PDW6BEicvBBT0eORyazg3LVWyyXxLGzQIMtZraNhJIIyX5Jyo7tuqNjAw5WRRGPa4DX5ZaxgdTjRWEmyqusm8bUDUiLmi7A6mJJLUeFtmiWSoy6zXilJzukPUwmn1KRHClzv+EosH8n/vCSVjLAAzAJcQp21Bc7RFF9lJow+GwyrNeG4B5MCrbQnC0ViYshDdp6m4CaHLVOgeTdqoCSTqVv8EKx2aIjRkvw1+S5BbxSRLcdfR4KCIRWyvhFHs9GZvk0WfywPHZ84niFgZx0p7meC5og8NeUp8tlJMsgTOZYV2O4e2a2Sk17V2PeagwEKA3nBbMIv7BseEmbk5LIubWpoW3teGXnUtLMLj4RIKp3GYRxUDomk4bMvBXApQAwzmXjO0Gb061PwmGSTgAzgI+fXUFxst8="
@@ -21,7 +22,9 @@ matrix:
     - os: linux
       env: TASK=python_test
     - os: osx
-      env: TASK=python_sdist_test
+      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
+    - os: osx
+      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no
 
 # dependent brew packages
 addons:

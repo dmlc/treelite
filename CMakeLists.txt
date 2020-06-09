@@ -12,6 +12,7 @@ option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
 option(TEST_COVERAGE "C++ test coverage" OFF)
 option(USE_OPENMP "Use OpenMP" ON)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
+option(BUILD_JVM_RUNTIME "Build Treelite runtime for JVM" OFF)
 
 # When installing dependencies, use Conda environment if available
 if(DETECT_CONDA_ENV)
@@ -32,33 +33,18 @@ include(cmake/Utils.cmake)
 include(cmake/Version.cmake)
 
 add_subdirectory(src)
-
-if(USE_OPENMP)
-  find_package(OpenMP REQUIRED)
-  target_link_libraries(objtreelite PUBLIC OpenMP::OpenMP_CXX)
-  target_link_libraries(objtreelite_runtime PUBLIC OpenMP::OpenMP_CXX)
-  target_compile_definitions(objtreelite PRIVATE -DTREELITE_OPENMP_SUPPORT)
-  target_compile_definitions(objtreelite_runtime PRIVATE -DTREELITE_OPENMP_SUPPORT)
-else()
-  message(STATUS "Disabling OpenMP")
-endif()
-
-if(TEST_COVERAGE)
-  if(MSVC)
-    message(FATAL_ERROR "Test coverage not available on Windows")
-  endif()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
+if(BUILD_JVM_RUNTIME)
+  add_subdirectory(runtime/java)
 endif()
 
 add_library(treelite SHARED)
-target_link_libraries(treelite PUBLIC objtreelite)
 add_library(treelite_static STATIC)
-target_link_libraries(treelite_static PUBLIC objtreelite)
-
 add_library(treelite_runtime SHARED)
-target_link_libraries(treelite_runtime PUBLIC objtreelite_runtime)
 add_library(treelite_runtime_static STATIC)
-target_link_libraries(treelite_runtime_static PUBLIC objtreelite_runtime)
+target_link_libraries(treelite PRIVATE objtreelite INTERFACE dmlc)
+target_link_libraries(treelite_static PRIVATE objtreelite INTERFACE dmlc)
+target_link_libraries(treelite_runtime PRIVATE objtreelite_runtime INTERFACE dmlc)
+target_link_libraries(treelite_runtime_static PRIVATE objtreelite_runtime INTERFACE dmlc)
 
 write_version()
 

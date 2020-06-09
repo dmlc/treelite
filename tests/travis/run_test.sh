@@ -68,6 +68,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Install Treelite into Python env
   python -m pip install -v treelite-*.tar.gz
+  python -m pip install -v treelite_runtime-*.tar.gz
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
@@ -85,10 +86,11 @@ if [ ${TASK} == "python_sdist_test" ]; then
     then
       S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
     fi
-    for file in ./treelite-*.tar.gz
+    for file in ./treelite-*.tar.gz ./treelite_runtime-*.tar.gz
     do
       mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
     done
     python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
+    python -m awscli s3 cp treelite_runtime-*.tar.gz "${S3_DEST}" --acl public-read || true
   fi
 fi

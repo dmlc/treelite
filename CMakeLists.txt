@@ -45,6 +45,10 @@ target_link_libraries(treelite PRIVATE objtreelite INTERFACE dmlc)
 target_link_libraries(treelite_static PRIVATE objtreelite INTERFACE dmlc)
 target_link_libraries(treelite_runtime PRIVATE objtreelite_runtime INTERFACE dmlc)
 target_link_libraries(treelite_runtime_static PRIVATE objtreelite_runtime INTERFACE dmlc)
+set_output_directory(treelite ${PROJECT_BINARY_DIR})
+set_output_directory(treelite_static ${PROJECT_BINARY_DIR})
+set_output_directory(treelite_runtime ${PROJECT_BINARY_DIR})
+set_output_directory(treelite_runtime_static ${PROJECT_BINARY_DIR})
 
 write_version()
 

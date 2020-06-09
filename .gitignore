@@ -83,3 +83,4 @@ __pycache__
 /python/.idea/
 /tests/python/.idea/
 /.idea/
+/lint.py

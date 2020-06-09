@@ -1,15 +1,15 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file annotator.cc
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Branch annotation tools
  */
 
 #include <limits>
 #include <cstdint>
 #include <treelite/annotator.h>
-#include <treelite/common.h>
 #include <treelite/omp.h>
+#include <dmlc/json.h>
 
 namespace {
 
@@ -35,7 +35,7 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
         const treelite::Operator op = node.comparison_op();
         const treelite::tl_float fvalue
           = static_cast<treelite::tl_float>(data[split_index].fvalue);
-        result = treelite::common::CompareWithOp(fvalue, op, threshold);
+        result = treelite::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
         const uint32_t fvalue2 = static_cast<uint32_t>(fvalue);
@@ -137,14 +137,14 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
 void
 BranchAnnotator::Load(dmlc::Stream* fi) {
   dmlc::istream is(fi);
-  auto reader = common::make_unique<dmlc::JSONReader>(&is);
+  std::unique_ptr<dmlc::JSONReader> reader(new dmlc::JSONReader(&is));
   reader->Read(&counts);
 }
 
 void
 BranchAnnotator::Save(dmlc::Stream* fo) const {
   dmlc::ostream os(fo);
-  auto writer = common::make_unique<dmlc::JSONWriter>(&os);
+  std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&os));
   writer->Write(counts);
 }
 

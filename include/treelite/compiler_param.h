@@ -1,8 +1,8 @@
 /*!
- * Copyright 2017 by Contributors
- * \file param.h
+ * Copyright (c) 2020 by Contributors
+ * \file compiler_param.h
  * \brief Parameters for tree compiler
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_COMPILER_PARAM_H_
 #define TREELITE_COMPILER_PARAM_H_

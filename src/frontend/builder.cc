@@ -99,7 +99,7 @@ struct ModelBuilderImpl {
 };
 
 TreeBuilder::TreeBuilder()
-  : pimpl(common::make_unique<TreeBuilderImpl>()), ensemble_id(nullptr) {}
+  : pimpl(new TreeBuilderImpl()), ensemble_id(nullptr) {}
 TreeBuilder::~TreeBuilder() {}
 
 bool
@@ -107,7 +107,7 @@ TreeBuilder::CreateNode(int node_key) {
   auto& nodes = pimpl->tree.nodes;
   CHECK_EARLY_RETURN(nodes.count(node_key) == 0,
                      "CreateNode: nodes with duplicate keys are not allowed");
-  nodes[node_key] = common::make_unique<_Node>();
+  nodes[node_key].reset(new _Node());
   return true;
 }
 
@@ -252,9 +252,9 @@ TreeBuilder::SetLeafVectorNode(int node_key,
 
 ModelBuilder::ModelBuilder(int num_feature, int num_output_group,
                            bool random_forest_flag)
-  : pimpl(common::make_unique<ModelBuilderImpl>(num_feature,
-                                                num_output_group,
-                                                random_forest_flag)) {}
+  : pimpl(new ModelBuilderImpl(num_feature,
+                               num_output_group,
+                               random_forest_flag)) {}
 ModelBuilder::~ModelBuilder() {}
 
 void

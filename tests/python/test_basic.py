@@ -10,7 +10,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.datasets import load_svmlight_file
 import treelite
-import treelite.runtime
+import treelite_runtime
 import pytest
 from util import load_txt, os_compatible_toolchains, os_platform, libname, \
                  run_pipeline_test, make_annotation, assert_almost_equal
@@ -103,7 +103,7 @@ class TestBasic(unittest.TestCase):
       zip_ref.extractall('.')
     subprocess.call(['make', '-C', 'mushroom'])
 
-    predictor = treelite.runtime.Predictor(libpath='./mushroom', verbose=True)
+    predictor = treelite_runtime.Predictor(libpath='./mushroom', verbose=True)
     assert predictor.num_feature == 127
     assert predictor.num_output_group == 1
     assert predictor.pred_transform == 'sigmoid'
@@ -112,7 +112,7 @@ class TestBasic(unittest.TestCase):
 
     X, _ = load_svmlight_file(dmat_path, zero_based=True)
     dmat = treelite.DMatrix(X)
-    batch = treelite.runtime.Batch.from_csr(dmat)
+    batch = treelite_runtime.Batch.from_csr(dmat)
 
     expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
     expected_prob = load_txt(expected_prob_path)
@@ -132,8 +132,8 @@ class TestBasic(unittest.TestCase):
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      params={'quantize': 1}, verbose=True)
     X = csr_matrix(([], ([], [])), shape=(3, 3))
-    batch = treelite.runtime.Batch.from_csr(X)
-    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+    batch = treelite_runtime.Batch.from_csr(X)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     predictor.predict(batch)  # should not crash
 
   def test_too_wide_matrix(self):
@@ -149,10 +149,9 @@ class TestBasic(unittest.TestCase):
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      params={'quantize': 1}, verbose=True)
     X = csr_matrix(([], ([], [])), shape=(3, 1000))
-    batch = treelite.runtime.Batch.from_csr(X)
-    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
-    import treelite_runtime
-    err = treelite_runtime.common.util.TreeliteError
+    batch = treelite_runtime.Batch.from_csr(X)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    err = treelite_runtime.util.TreeliteRuntimeError
     pytest.raises(err, predictor.predict, batch)  # should crash
 
   def test_tree_limit_setting(self):

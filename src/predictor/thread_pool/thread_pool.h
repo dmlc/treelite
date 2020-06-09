@@ -7,7 +7,6 @@
 #ifndef TREELITE_THREAD_POOL_THREAD_POOL_H_
 #define TREELITE_THREAD_POOL_THREAD_POOL_H_
 
-#include <treelite/common.h>
 #include <vector>
 #include <cstdlib>
 #ifdef _WIN32
@@ -32,8 +31,8 @@ class ThreadPool {
     << "Number of worker threads must be between 0 and "
     << (std::thread::hardware_concurrency() - 1);
     for (int i = 0; i < num_worker_; ++i) {
-      incoming_queue_.emplace_back(common::make_unique<SpscQueue<InputToken>>());
-      outgoing_queue_.emplace_back(common::make_unique<SpscQueue<OutputToken>>());
+      incoming_queue_.emplace_back(new SpscQueue<InputToken>());
+      outgoing_queue_.emplace_back(new SpscQueue<OutputToken>());
     }
     thread_.resize(num_worker_);
     for (int i = 0; i < num_worker_; ++i) {

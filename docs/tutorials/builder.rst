@@ -491,9 +491,9 @@ Let's test it out:
   model = process_model(clf)
   model.export_lib(libpath='./libtest.dylib', toolchain='gcc', verbose=True)
 
-  import treelite.runtime
-  predictor = treelite.runtime.Predictor(libpath='./libtest.dylib')
-  predictor.predict(treelite.runtime.Batch.from_npy2d(X))
+  import treelite_runtime
+  predictor = treelite_runtime.Predictor(libpath='./libtest.dylib')
+  predictor.predict(treelite_runtime.Batch.from_npy2d(X))
 
 Regression with GradientBoostingRegressor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -547,8 +547,8 @@ Let's test it:
   # Generate shared library
   model.export_lib(libpath='./libtest2.dylib', toolchain='gcc', verbose=True)
   # Make prediction with predictor
-  predictor = treelite.runtime.Predictor(libpath='./libtest2.dylib')
-  predictor.predict(treelite.runtime.Batch.from_npy2d(X))
+  predictor = treelite_runtime.Predictor(libpath='./libtest2.dylib')
+  predictor.predict(treelite_runtime.Batch.from_npy2d(X))
 
 Binary Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

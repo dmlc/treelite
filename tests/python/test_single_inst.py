@@ -6,7 +6,7 @@ import unittest
 from sklearn.datasets import load_svmlight_file
 import numpy as np
 import treelite
-import treelite.runtime
+import treelite_runtime
 from util import load_txt, os_compatible_toolchains, libname, make_annotation,\
                  assert_almost_equal
 
@@ -38,7 +38,7 @@ class TestSingleInst(unittest.TestCase):
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params=params, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
       for i in range(X_test.shape[0]):
         x = X_test[i,:]
         # Scipy CSR matrix

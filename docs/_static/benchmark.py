@@ -1,5 +1,5 @@
 import treelite
-import treelite.runtime
+import treelite_runtime
 from fast_svmlight_loader import load_svmlight
 import sys
 import os
@@ -16,12 +16,12 @@ dmat = load_svmlight(filename=datafile, verbose=False)
 end = time.time()
 print('Done loading data file {} in {} sec'.format(datafile, end-start))
 X = dmat['data']
-predictor = treelite.runtime.Predictor(libfile, verbose=True, include_master_thread=True)
+predictor = treelite_runtime.Predictor(libfile, verbose=True, include_master_thread=True)
 nrow = X.shape[0]
 for batchsize in np.logspace(np.log10(100), 5, 10).astype(np.int):
   print('*** batchsize = {}'.format(batchsize))
   for i in range(300):
     rbegin = np.random.randint(0, nrow - batchsize + 1)
     rend = rbegin + batchsize
-    batch = treelite.runtime.Batch.from_csr(X, rbegin, rend)
+    batch = treelite_runtime.Batch.from_csr(X, rbegin, rend)
     predictor.predict(batch, pred_margin=True)

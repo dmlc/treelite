@@ -6,7 +6,7 @@
  */
 
 #include <treelite/predictor.h>
-#include <treelite/common.h>
+#include <treelite/math.h>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
 #include <dmlc/timer.h>
@@ -17,8 +17,6 @@
 #include <limits>
 #include <functional>
 #include <type_traits>
-#include "common/math.h"
-#include "common/filesystem.h"
 #include "thread_pool/thread_pool.h"
 
 #ifdef _WIN32
@@ -53,17 +51,7 @@ struct OutputToken {
   size_t query_result_size;
 };
 
-inline std::string GetProtocol(const char* name) {
-  const char *p = std::strstr(name, "://");
-  if (p == NULL) {
-    return "";
-  } else {
-    return std::string(name, p - name + 3);
-  }
-}
-
-using PredThreadPool
-  = treelite::ThreadPool<InputToken, OutputToken, treelite::Predictor>;
+using PredThreadPool = treelite::ThreadPool<InputToken, OutputToken, treelite::Predictor>;
 
 inline treelite::Predictor::LibraryHandle OpenLibrary(const char* name) {
 #ifdef _WIN32
@@ -129,8 +117,7 @@ template <typename PredFunc>
 inline size_t PredLoop(const treelite::DenseBatch* batch, size_t num_feature,
                        size_t rbegin, size_t rend,
                        float* out_pred, PredFunc func) {
-  const bool nan_missing
-                      = treelite::common::math::CheckNAN(batch->missing_value);
+  const bool nan_missing = treelite::math::CheckNAN(batch->missing_value);
   CHECK_LE(batch->num_col, num_feature);
   std::vector<TreelitePredictorEntry> inst(
     std::max(batch->num_col, num_feature), {-1});
@@ -148,7 +135,7 @@ inline size_t PredLoop(const treelite::DenseBatch* batch, size_t num_feature,
   for (int64_t rid = rbegin_; rid < rend_; ++rid) {
     row = &data[rid * num_col];
     for (size_t j = 0; j < num_col; ++j) {
-      if (treelite::common::math::CheckNAN(row[j])) {
+      if (treelite::math::CheckNAN(row[j])) {
         CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any "
           << "NaN in the matrix.";
@@ -233,30 +220,14 @@ Predictor::Predictor(int num_worker_thread)
                          num_feature_query_func_handle_(nullptr),
                          pred_func_handle_(nullptr),
                          thread_pool_handle_(nullptr),
-                         num_worker_thread_(num_worker_thread),
-                         tempdir_(nullptr) {}
+                         num_worker_thread_(num_worker_thread) {}
 Predictor::~Predictor() {
   Free();
 }
 
 void
 Predictor::Load(const char* name) {
-  const std::string protocol = GetProtocol(name);
-  if (protocol == "file://" || protocol.empty()) {
-    // local file
-    lib_handle_ = OpenLibrary(name);
-  } else {
-    // remote file
-    tempdir_.reset(new common::filesystem::TemporaryDirectory());
-    temp_libfile_ = tempdir_->AddFile(common::filesystem::GetBasename(name));
-    {
-      std::unique_ptr<dmlc::Stream> strm(dmlc::Stream::Create(name, "r"));
-      dmlc::istream is(strm.get());
-      std::ofstream of(temp_libfile_);
-      of << is.rdbuf();
-    }
-    lib_handle_ = OpenLibrary(temp_libfile_.c_str());
-  }
+  lib_handle_ = OpenLibrary(name);
   if (lib_handle_ == nullptr) {
     LOG(FATAL) << "Failed to load dynamic shared library `" << name << "'";
   }

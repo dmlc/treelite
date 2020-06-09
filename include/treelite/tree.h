@@ -14,8 +14,9 @@
 #include <string>
 #include <limits>
 #include <treelite/base.h>
-#include <treelite/common.h>
 #include <dmlc/logging.h>
+#include <dmlc/optional.h>
+#include <dmlc/parameter.h>
 
 namespace treelite {
 

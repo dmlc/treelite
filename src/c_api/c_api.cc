@@ -11,14 +11,14 @@
 #include <treelite/annotator.h>
 #include <treelite/c_api.h>
 #include <treelite/compiler.h>
+#include <treelite/compiler_param.h>
 #include <treelite/data.h>
+#include <treelite/filesystem.h>
 #include <treelite/frontend.h>
+#include <treelite/math.h>
 #include <dmlc/json.h>
 #include <dmlc/thread_local.h>
 #include "./c_api_error.h"
-#include "../compiler/param.h"
-#include "../common/filesystem.h"
-#include "../common/math.h"
 
 using namespace treelite;
 
@@ -75,7 +75,7 @@ int TreeliteDMatrixCreateFromCSR(const float* data,
     const size_t jbegin = row_ptr[i];
     const size_t jend = row_ptr[i + 1];
     for (size_t j = jbegin; j < jend; ++j) {
-      if (!common::math::CheckNAN(data[j])) {  // skip NaN
+      if (!math::CheckNAN(data[j])) {  // skip NaN
         data_.push_back(data[j]);
         CHECK_LT(col_ind[j], std::numeric_limits<uint32_t>::max())
           << "feature index too big to fit into uint32_t";
@@ -99,7 +99,7 @@ int TreeliteDMatrixCreateFromMat(const float* data,
                                  size_t num_col,
                                  float missing_value,
                                  DMatrixHandle* out) {
-  const bool nan_missing = common::math::CheckNAN(missing_value);
+  const bool nan_missing = math::CheckNAN(missing_value);
   API_BEGIN();
   CHECK_LT(num_col, std::numeric_limits<uint32_t>::max())
     << "num_col argument is too big";
@@ -119,7 +119,7 @@ int TreeliteDMatrixCreateFromMat(const float* data,
   const float* row = &data[0];  // points to beginning of each row
   for (size_t i = 0; i < num_row; ++i, row += num_col) {
     for (size_t j = 0; j < num_col; ++j) {
-      if (common::math::CheckNAN(row[j])) {
+      if (math::CheckNAN(row[j])) {
         CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any "
           << "NaN in the matrix.";
@@ -274,7 +274,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
 
   // create directory named dirpath
   const std::string& dirpath_(dirpath);
-  common::filesystem::CreateDirectoryIfNotExist(dirpath);
+  filesystem::CreateDirectoryIfNotExist(dirpath);
 
   compiler::CompilerParam cparam;
   cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
@@ -292,9 +292,9 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
     }
     const std::string filename_full = dirpath_ + "/" + it.first;
     if (it.second.is_binary) {
-      common::WriteToFile(filename_full, it.second.content_binary);
+      filesystem::WriteToFile(filename_full, it.second.content_binary);
     } else {
-      common::WriteToFile(filename_full, it.second.content);
+      filesystem::WriteToFile(filename_full, it.second.content);
     }
   }
 

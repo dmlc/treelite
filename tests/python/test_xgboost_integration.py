@@ -6,7 +6,7 @@ import math
 import numpy as np
 import pytest
 import treelite
-import treelite.runtime
+import treelite_runtime
 from sklearn.datasets import load_boston, load_iris
 from sklearn.model_selection import train_test_split
 from util import os_compatible_toolchains, libname, assert_almost_equal
@@ -33,11 +33,11 @@ class TestXGBoostIntegration(unittest.TestCase):
 
     model = treelite.Model.from_xgboost(bst)
     libpath = libname('./boston{}')
-    batch = treelite.runtime.Batch.from_npy2d(X_test)
+    batch = treelite_runtime.Batch.from_npy2d(X_test)
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
       assert_almost_equal(out_pred, expected_pred)
       assert predictor.num_feature == 13
@@ -65,11 +65,11 @@ class TestXGBoostIntegration(unittest.TestCase):
     assert model.num_feature == dtrain.num_col()
 
     libpath = libname('./iris{}')
-    batch = treelite.runtime.Batch.from_npy2d(X_test)
+    batch = treelite_runtime.Batch.from_npy2d(X_test)
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
       assert_almost_equal(out_pred, expected_pred)
       assert predictor.num_feature == 4
@@ -94,11 +94,11 @@ class TestXGBoostIntegration(unittest.TestCase):
     expected_pred = booster.predict(dtrain)
     model = treelite.Model.from_xgboost(booster)
     libpath = libname('./'+objective+'{}')
-    batch = treelite.runtime.Batch.from_npy2d(X)
+    batch = treelite_runtime.Batch.from_npy2d(X)
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
       out_pred = predictor.predict(batch)
       assert_almost_equal(out_pred, expected_pred)
       assert predictor.num_feature == kCols

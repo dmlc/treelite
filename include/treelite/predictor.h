@@ -1,7 +1,7 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file predictor.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Load prediction function exported as a shared library
  */
 #ifndef TREELITE_PREDICTOR_H_
@@ -12,12 +12,6 @@
 #include <cstdint>
 
 namespace treelite {
-
-namespace common {
-namespace filesystem {
-class TemporaryDirectory;  // forward declaration
-}
-}
 
 /*! \brief sparse batch in Compressed Sparse Row (CSR) format */
 struct CSRBatch {
@@ -216,11 +210,6 @@ class Predictor {
   float sigmoid_alpha_;
   float global_bias_;
   int num_worker_thread_;
-
-  bool using_remote_lib_;  // load lib from remote location?
-  // information for temporary file to cache remote lib
-  std::unique_ptr<common::filesystem::TemporaryDirectory> tempdir_;
-  std::string temp_libfile_;
 
   template <typename BatchType>
   size_t PredictBatchBase_(const BatchType* batch, int verbose,

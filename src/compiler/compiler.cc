@@ -4,8 +4,8 @@
  * \brief Registry of compilers
  */
 #include <treelite/compiler.h>
+#include <treelite/compiler_param.h>
 #include <dmlc/registry.h>
-#include "./param.h"
 
 namespace dmlc {
 DMLC_REGISTRY_ENABLE(::treelite::CompilerReg);
@@ -29,5 +29,6 @@ DMLC_REGISTER_PARAMETER(CompilerParam);
 
 // List of files that will be force linked in static links.
 DMLC_REGISTRY_LINK_TAG(ast_native);
+DMLC_REGISTRY_LINK_TAG(failsafe);
 }  // namespace compiler
 }  // namespace treelite

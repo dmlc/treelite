@@ -1,12 +1,14 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright 2017-2020 by Contributors
  * \file protobuf.cc
- * \brief Frontend for protobuf model
- * \author Philip Cho
+ * \brief Frontend for Protobuf model
+ * \author Hyunsu Cho
  */
 
 #include <queue>
 #include <dmlc/logging.h>
+#include <dmlc/registry.h>
+#include <dmlc/io.h>
 #include <treelite/tree.h>
 
 #ifdef TREELITE_PROTOBUF_SUPPORT

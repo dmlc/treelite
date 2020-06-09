@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Find the path to treelite dynamic library files."""
+"""Find the path to Treelite dynamic library files."""
 
 import os
 import platform
@@ -42,14 +42,12 @@ def find_lib_path(basename, libformat=True):
 
   curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
   # List possible locations for the library file
-  dll_path = [curr_path,
-              os.path.join(curr_path, '../../lib/'),
-              os.path.join(curr_path, '../../build/lib/'),
-              os.path.join(curr_path, '../../runtime/native/lib/'),
-              os.path.join(curr_path, './lib/'),
-              os.path.join(curr_path, './build/lib/'),
-              os.path.join(sys.prefix, 'treelite'),
-              os.path.join(site.USER_BASE, 'treelite')]
+  dll_path = [
+      # normal, after installation `lib` is copied into Python package tree.
+      os.path.join(curr_path, 'lib'),
+      # editable installation, no copying is performed.
+      os.path.join(curr_path, os.path.pardir, os.path.pardir, 'build')
+  ]
   # Windows hack: additional candidate locations
   if sys.platform == 'win32':
     if platform.architecture()[0] == '64bit':

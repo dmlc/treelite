@@ -9,7 +9,7 @@
 #define TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 
 #include <string>
-#include <treelite/common.h>
+#include <dmlc/logging.h>
 #include <fmt/format.h>
 
 using namespace fmt::literals;

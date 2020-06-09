@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pytest
 import treelite
-import treelite.runtime
+import treelite_runtime
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from util import os_compatible_toolchains, libname, assert_almost_equal,\
@@ -42,11 +42,11 @@ class TestLightGBMIntegration(unittest.TestCase):
 
       model = treelite.Model.load('./iris_lightgbm.txt', model_format='lightgbm')
       libpath = libname('./iris_{}{{}}'.format(objective))
-      batch = treelite.runtime.Batch.from_npy2d(X_test)
+      batch = treelite_runtime.Batch.from_npy2d(X_test)
       for toolchain in os_compatible_toolchains():
         model.export_lib(toolchain=toolchain, libpath=libpath,
                          params={}, verbose=True)
-        predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+        predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
         out_pred = predictor.predict(batch)
         assert_almost_equal(out_pred, expected_pred)
 
@@ -72,11 +72,11 @@ class TestLightGBMIntegration(unittest.TestCase):
       model = treelite.Model.load('./mushroom_lightgbm.txt',
                                   model_format='lightgbm')
       libpath = libname('./agaricus_{}{{}}'.format(objective))
-      batch = treelite.runtime.Batch.from_csr(treelite.DMatrix(dtest_path))
+      batch = treelite_runtime.Batch.from_csr(treelite.DMatrix(dtest_path))
       for toolchain in os_compatible_toolchains():
         model.export_lib(toolchain=toolchain, libpath=libpath,
                          params={}, verbose=True)
-        predictor = treelite.runtime.Predictor(libpath, verbose=True)
+        predictor = treelite_runtime.Predictor(libpath, verbose=True)
         out_prob = predictor.predict(batch)
         assert_almost_equal(out_prob, expected_prob)
         out_margin = predictor.predict(batch, pred_margin=True)

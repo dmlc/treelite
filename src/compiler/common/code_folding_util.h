@@ -13,9 +13,9 @@
 #include <vector>
 #include <unordered_map>
 #include <dmlc/logging.h>
-#include <treelite/common.h>
 #include <fmt/format.h>
 #include "../ast/ast.h"
+#include "./format_util.h"
 #include "./categorical_bitmap.h"
 
 using namespace fmt::literals;
@@ -83,7 +83,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   // 2. Render node_treeXX_nodeXX[] by traversing the subtree once again.
   // Now we can use the re-assigned node ID's.
   {
-    common::ArrayFormatter formatter(80, 2);
+    ArrayFormatter formatter(80, 2);
 
     bool default_left;
     std::string threshold;
@@ -109,7 +109,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
           split_index = t2->split_index;
           threshold
            = quantize ? std::to_string(t2->threshold.int_val)
-                      : common::ToStringHighPrecision(t2->threshold.float_val);
+                      : ToStringHighPrecision(t2->threshold.float_val);
         } else {
           CHECK((t3 = dynamic_cast<CategoricalConditionNode*>(e)));
           default_left = t3->default_left;
@@ -149,14 +149,14 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
     *array_cat_begin = "";
   } else {
     {
-      common::ArrayFormatter formatter(80, 2);
+      ArrayFormatter formatter(80, 2);
       for (uint64_t e : cat_bitmap) {
         formatter << fmt::format("{:#X}", e);
       }
       *array_cat_bitmap = formatter.str();
     }
     {
-      common::ArrayFormatter formatter(80, 2);
+      ArrayFormatter formatter(80, 2);
       for (size_t e : cat_begin) {
         formatter << e;
       }
@@ -172,8 +172,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
                       "{output_statement}"
                       "  break;\n",
             "node_id"_a = node_id,
-            "output_statement"_a
-              = common::IndentMultiLineString(RenderOutputStatement(e), 2));
+            "output_statement"_a = IndentMultiLineString(RenderOutputStatement(e), 2));
   }
   *output_switch_statements += "}\n";
 }

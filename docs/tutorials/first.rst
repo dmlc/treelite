@@ -125,26 +125,26 @@ Use the shared library to make predictions
 ------------------------------------------
 
 Once the shared library has been generated, we feed it into a separate
-module (:py:mod:`treelite.runtime`) known as the runtime. The
+module (:py:mod:`treelite_runtime`) known as the runtime. The
 optimized prediction subroutine is exposed through the
-:py:class:`~treelite.runtime.Predictor` class:
+:py:class:`~treelite_runtime.Predictor` class:
 
 .. code-block:: python
 
-    import treelite.runtime     # runtime module
-    predictor = treelite.runtime.Predictor('./mymodel.dylib', verbose=True)
+    import treelite_runtime     # runtime module
+    predictor = treelite_runtime.Predictor('./mymodel.dylib', verbose=True)
 
 We decide on which of the houses in ``X`` we should make predictions
 for. Say, from 10th house to 20th:
 
 .. code-block:: python
 
-    batch = treelite.runtime.Batch.from_npy2d(X, rbegin=10, rend=20)
+    batch = treelite_runtime.Batch.from_npy2d(X, rbegin=10, rend=20)
 
-We used the method :py:meth:`~treelite.runtime.Batch.from_npy2d`
+We used the method :py:meth:`~treelite_runtime.Batch.from_npy2d`
 because the matrix ``X`` was a dense NumPy array (:py:class:`numpy.ndarray`).
 If ``X`` were a sparse matrix (:py:class:`scipy.sparse.csr_matrix`), we would
-have used the method :py:meth:`~treelite.runtime.Batch.from_csr` instead.
+have used the method :py:meth:`~treelite_runtime.Batch.from_csr` instead.
 
 .. code-block:: python
 

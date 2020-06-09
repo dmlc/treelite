@@ -14,7 +14,6 @@
 #include <vector>
 #include <utility>
 #include <dmlc/registry.h>
-#include <treelite/common.h>
 
 namespace treelite {
 

@@ -1,11 +1,12 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright 2017-2020 by Contributors
  * \file lightgbm.cc
- * \brief Frontend for lightgbm model
- * \author Philip Cho
+ * \brief Frontend for LightGBM model
+ * \author Hyunsu Cho
  */
 
 #include <unordered_map>
+#include <limits>
 #include <queue>
 #include <dmlc/data.h>
 #include <treelite/frontend.h>
@@ -32,6 +33,135 @@ Model LoadLightGBMModel(const char* filename) {
 
 /* auxiliary data structures to interpret lightgbm model file */
 namespace {
+
+template <typename T>
+inline T TextToNumber(const std::string& str) {
+  static_assert(std::is_same<T, float>::value
+                || std::is_same<T, double>::value
+                || std::is_same<T, int>::value
+                || std::is_same<T, int8_t>::value
+                || std::is_same<T, uint32_t>::value
+                || std::is_same<T, uint64_t>::value,
+                "unsupported data type for TextToNumber; use float, double, "
+                "int, int8_t, uint32_t, or uint64_t");
+}
+
+template <>
+inline float TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  float val = std::strtof(str.c_str(), &endptr);
+  if (errno == ERANGE) {
+    LOG(FATAL) << "Range error while converting string to double";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid floating-point number";
+  }
+  return val;
+}
+
+template <>
+inline double TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  double val = std::strtod(str.c_str(), &endptr);
+  if (errno == ERANGE) {
+    LOG(FATAL) << "Range error while converting string to double";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid floating-point number";
+  }
+  return val;
+}
+
+template <>
+inline int TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  auto val = std::strtol(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val < std::numeric_limits<int>::min()
+      || val > std::numeric_limits<int>::max()) {
+    LOG(FATAL) << "Range error while converting string to int";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<int>(val);
+}
+
+template <>
+inline int8_t TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  auto val = std::strtol(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val < std::numeric_limits<int8_t>::min()
+      || val > std::numeric_limits<int8_t>::max()) {
+    LOG(FATAL) << "Range error while converting string to int8_t";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<int8_t>(val);
+}
+
+template <>
+inline uint32_t TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  auto val = std::strtoul(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val > std::numeric_limits<uint32_t>::max()) {
+    LOG(FATAL) << "Range error while converting string to uint32_t";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<uint32_t>(val);
+}
+
+template <>
+inline uint64_t TextToNumber(const std::string& str) {
+  errno = 0;
+  char *endptr;
+  auto val = std::strtoull(str.c_str(), &endptr, 10);
+  if (errno == ERANGE || val > std::numeric_limits<uint64_t>::max()) {
+    LOG(FATAL) << "Range error while converting string to uint64_t";
+  } else if (errno != 0) {
+    LOG(FATAL) << "Unknown error";
+  } else if (*endptr != '\0') {
+    LOG(FATAL) << "String does not represent a valid integer";
+  }
+  return static_cast<uint64_t>(val);
+}
+
+inline std::vector<std::string> Split(const std::string& text, char delim) {
+  std::vector<std::string> array;
+  std::istringstream ss(text);
+  std::string token;
+  while (std::getline(ss, token, delim)) {
+    array.push_back(token);
+  }
+  return array;
+}
+
+template <typename T>
+inline std::vector<T> TextToArray(const std::string& text, int num_entry) {
+  if (text.empty() && num_entry > 0) {
+    LOG(FATAL) << "Cannot convert empty text into array";
+  }
+  std::vector<T> array;
+  std::istringstream ss(text);
+  std::string token;
+  for (int i = 0; i < num_entry; ++i) {
+    std::getline(ss, token, ' ');
+    array.push_back(TextToNumber<T>(token));
+  }
+  return array;
+}
 
 enum Masks : uint8_t {
   kCategoricalMask = 1,
@@ -160,18 +290,18 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     auto it = global_dict.find("objective");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need objective";
-    auto obj_strs = treelite::common::Split(it->second, ' ');
+    auto obj_strs = Split(it->second, ' ');
     obj_name_ = obj_strs[0];
     obj_param_ = std::vector<std::string>(obj_strs.begin() + 1, obj_strs.end());
 
     it = global_dict.find("max_feature_idx");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need max_feature_idx";
-    max_feature_idx_ = treelite::common::TextToNumber<int>(it->second);
+    max_feature_idx_ = TextToNumber<int>(it->second);
     it = global_dict.find("num_tree_per_iteration");
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need num_tree_per_iteration";
-    num_tree_per_iteration_ = treelite::common::TextToNumber<int>(it->second);
+    num_tree_per_iteration_ = TextToNumber<int>(it->second);
 
     it = global_dict.find("average_output");
     average_output_ = (it != global_dict.end());
@@ -184,17 +314,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     auto it = dict.find("num_leaves");
     CHECK(it != dict.end())
       << "Ill-formed LightGBM model file: need num_leaves";
-    tree.num_leaves = treelite::common::TextToNumber<int>(it->second);
+    tree.num_leaves = TextToNumber<int>(it->second);
 
     it = dict.find("num_cat");
     CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need num_cat";
-    tree.num_cat = treelite::common::TextToNumber<int>(it->second);
+    tree.num_cat = TextToNumber<int>(it->second);
 
     it = dict.find("leaf_value");
     CHECK(it != dict.end() && !it->second.empty())
       << "Ill-formed LightGBM model file: need leaf_value";
     tree.leaf_value
-      = treelite::common::TextToArray<double>(it->second, tree.num_leaves);
+      = TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
     if (it == dict.end()) {
@@ -203,7 +333,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
         << "Ill-formed LightGBM model file: decision_type cannot be empty string";
       tree.decision_type
-        = treelite::common::TextToArray<int8_t>(it->second,
+        = TextToArray<int8_t>(it->second,
                                                 tree.num_leaves - 1);
     }
 
@@ -212,12 +342,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries
-        = treelite::common::TextToArray<uint64_t>(it->second, tree.num_cat + 1);
+        = TextToArray<uint64_t>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";
       tree.cat_threshold
-        = treelite::common::TextToArray<uint32_t>(it->second,
+        = TextToArray<uint32_t>(it->second,
                                                   tree.cat_boundaries.back());
     }
 
@@ -225,20 +355,20 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need split_feature";
     tree.split_feature
-      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
+      = TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("threshold");
     CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need threshold";
     tree.threshold
-      = treelite::common::TextToArray<double>(it->second, tree.num_leaves - 1);
+      = TextToArray<double>(it->second, tree.num_leaves - 1);
 
     it = dict.find("split_gain");
     if (it != dict.end()) {
       CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
         << "Ill-formed LightGBM model file: split_gain cannot be empty string";
       tree.split_gain
-        = treelite::common::TextToArray<float>(it->second, tree.num_leaves - 1);
+        = TextToArray<float>(it->second, tree.num_leaves - 1);
     } else {
       tree.split_gain.resize(tree.num_leaves - 1);
     }
@@ -248,7 +378,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
         << "Ill-formed LightGBM model file: internal_count cannot be empty string";
       tree.internal_count
-        = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
+        = TextToArray<int>(it->second, tree.num_leaves - 1);
     } else {
       tree.internal_count.resize(tree.num_leaves - 1);
     }
@@ -258,7 +388,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       CHECK(!it->second.empty())
         << "Ill-formed LightGBM model file: leaf_count cannot be empty string";
       tree.leaf_count
-        = treelite::common::TextToArray<int>(it->second, tree.num_leaves);
+        = TextToArray<int>(it->second, tree.num_leaves);
     } else {
       tree.leaf_count.resize(tree.num_leaves);
     }
@@ -267,13 +397,13 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need left_child";
     tree.left_child
-      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
+      = TextToArray<int>(it->second, tree.num_leaves - 1);
 
     it = dict.find("right_child");
     CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
       << "Ill-formed LightGBM model file: need right_child";
     tree.right_child
-      = treelite::common::TextToArray<int>(it->second, tree.num_leaves - 1);
+      = TextToArray<int>(it->second, tree.num_leaves - 1);
   }
 
   /* 2. Export model */
@@ -296,9 +426,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     int num_class = -1;
     int tmp;
     for (const auto& str : obj_param_) {
-      auto tokens = treelite::common::Split(str, ':');
+      auto tokens = Split(str, ':');
       if (tokens.size() == 2 && tokens[0] == "num_class"
-        && (tmp = treelite::common::TextToNumber<int>(tokens[1])) >= 0) {
+        && (tmp = TextToNumber<int>(tokens[1])) >= 0) {
         num_class = tmp;
         break;
       }
@@ -314,13 +444,13 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     int tmp;
     float tmp2;
     for (const auto& str : obj_param_) {
-      auto tokens = treelite::common::Split(str, ':');
+      auto tokens = Split(str, ':');
       if (tokens.size() == 2) {
         if (tokens[0] == "num_class"
-          && (tmp = treelite::common::TextToNumber<int>(tokens[1])) >= 0) {
+          && (tmp = TextToNumber<int>(tokens[1])) >= 0) {
           num_class = tmp;
         } else if (tokens[0] == "sigmoid"
-         && (tmp2 = treelite::common::TextToNumber<float>(tokens[1])) > 0.0f) {
+         && (tmp2 = TextToNumber<float>(tokens[1])) > 0.0f) {
           alpha = tmp2;
         }
       }
@@ -336,9 +466,9 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     float alpha = -1.0f;
     float tmp;
     for (const auto& str : obj_param_) {
-      auto tokens = treelite::common::Split(str, ':');
+      auto tokens = Split(str, ':');
       if (tokens.size() == 2 && tokens[0] == "sigmoid"
-        && (tmp = treelite::common::TextToNumber<float>(tokens[1])) > 0.0f) {
+        && (tmp = TextToNumber<float>(tokens[1])) > 0.0f) {
         alpha = tmp;
         break;
       }

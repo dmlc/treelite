@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Setup Treelite package."""
+"""Setup Treelite runtime package."""
 import os
 import shutil
 import subprocess
@@ -27,11 +27,11 @@ BUILD_TEMP_DIR = None
 def lib_name():
     """Return platform dependent shared object name."""
     if system() == 'Linux' or system().upper().endswith('BSD'):
-        name = 'libtreelite.so'
+        name = 'libtreelite_runtime.so'
     elif system() == 'Darwin':
-        name = 'libtreelite.dylib'
+        name = 'libtreelite_runtime.dylib'
     elif system() == 'Windows':
-        name = 'treelite.dll'
+        name = 'treelite_runtime.dll'
     else:
         raise RuntimeError('Unsupported operating system')
     return name
@@ -39,7 +39,7 @@ def lib_name():
 
 def copy_tree(src_dir, target_dir):
     """Copy source tree into build directory."""
-    logger = logging.getLogger('Treelite copy_tree')
+    logger = logging.getLogger('Treelite runtime copy_tree')
     def clean_copy_tree(src, dst):
         logger.info(f'Copy tree {src} -> {dst}')
         distutils.dir_util.copy_tree(src, dst)
@@ -79,52 +79,52 @@ class CMakeExtension(Extension):  # pylint: disable=too-few-public-methods
 
 
 class SDist(sdist.sdist):       # pylint: disable=too-many-ancestors
-    logger = logging.getLogger('Treelite sdist')
+    logger = logging.getLogger('Treelite runtime sdist')
 
     def run(self):
-        copy_tree(os.path.join(CURRENT_DIR, os.path.pardir),
-                  os.path.join(CURRENT_DIR, 'treelite'))
+        copy_tree(os.path.join(CURRENT_DIR, os.path.pardir, os.path.pardir),
+                  os.path.join(CURRENT_DIR, 'treelite_runtime'))
         super().run()
 
 
 class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
     """Custom build_ext command using CMake."""
 
-    logger = logging.getLogger('Treelite build_ext')
+    logger = logging.getLogger('Treelite runtime build_ext')
 
     # pylint: disable=too-many-arguments,no-self-use
     def build(self, src_dir, build_dir, generator, build_tool=None, use_omp=1):
-        """Build the core library with CMake."""
+        """Build the runtime with CMake."""
         cmake_cmd = ['cmake', src_dir, generator]
-        cmake_cmd.append('-DENABLE_PROTOBUF=ON')
 
         self.logger.info('Run CMake command: %s', str(cmake_cmd))
         subprocess.check_call(cmake_cmd, cwd=build_dir)
 
         if system() != 'Windows':
             nproc = os.cpu_count()
-            build_cmd = [build_tool, 'treelite', '-j' + str(nproc)]
+            build_cmd = [build_tool, 'treelite_runtime', '-j' + str(nproc)]
             subprocess.check_call(build_cmd, cwd=build_dir)
         else:
             subprocess.check_call(['cmake', '--build', '.', '--config', 'Release',
-                                   '--target', 'treelite'], cwd=build_dir)
+                                   '--target', 'treelite_runtime'], cwd=build_dir)
 
     def build_cmake_extension(self):
         """Configure and build using CMake"""
-        src_dir = 'treelite'
+        src_dir = 'treelite_runtime'
         try:
-            copy_tree(os.path.join(CURRENT_DIR, os.path.pardir),
+            copy_tree(os.path.join(CURRENT_DIR, os.path.pardir, os.path.pardir),
                       os.path.join(self.build_temp, src_dir))
         except Exception:  # pylint: disable=broad-except
             copy_tree(src_dir, os.path.join(self.build_temp, src_dir))
         build_dir = self.build_temp
         global BUILD_TEMP_DIR  # pylint: disable=global-statement
         BUILD_TEMP_DIR = build_dir
-        libtreelite = os.path.abspath(
-            os.path.join(CURRENT_DIR, os.path.pardir, USER_OPTIONS['cmake-build-dir'].value,
-                         lib_name()))
+        libruntime = os.path.abspath(
+            os.path.join(
+                CURRENT_DIR, os.path.pardir, os.path.pardir, USER_OPTIONS['cmake-build-dir'].value,
+                lib_name()))
 
-        if os.path.exists(libtreelite):
+        if os.path.exists(libruntime):
             self.logger.info('Found shared library, skipping build.')
             return
 
@@ -161,53 +161,54 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
     def copy_extensions_to_source(self):
         """Dummy override.  Invoked during editable installation."""
         if not os.path.exists(
-                os.path.join(CURRENT_DIR, os.path.pardir, USER_OPTIONS['cmake-build-dir'].value,
-                             lib_name())):
+                os.path.join(CURRENT_DIR, os.path.pardir, os.path.pardir,
+                             USER_OPTIONS['cmake-build-dir'].value, lib_name())):
             raise ValueError('For using editable installation, please ' +
                              'build the shared object first with CMake.')
 
 
 class InstallLib(install_lib.install_lib):
-    logger = logging.getLogger('Treelite install_lib')
+    logger = logging.getLogger('Treelite runtime install_lib')
 
     def install(self):
 
         outfiles = super().install()
 
-        global BUILD_TEMP_DIR   # pylint: disable=global-statement
+        global BUILD_TEMP_DIR  # pylint: disable=global-statement
 
         # Copy shared library
-        libtreelite_name = lib_name()
-        dst_dir = os.path.join(self.install_dir, 'treelite', 'lib')
+        libruntime_name = lib_name()
+        dst_dir = os.path.join(self.install_dir, 'treelite_runtime', 'lib')
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        dst = os.path.join(dst_dir, libtreelite_name)
+        dst = os.path.join(dst_dir, libruntime_name)
         # CMake build dir is specified relative to the project root directory
-        src_dir = os.path.join(CURRENT_DIR, os.path.pardir, USER_OPTIONS['cmake-build-dir'].value)
+        src_dir = os.path.join(
+            CURRENT_DIR, os.path.pardir, os.path.pardir, USER_OPTIONS['cmake-build-dir'].value)
         if os.path.isdir(src_dir):
             # The library was built by CMake
-            src = os.path.join(src_dir, libtreelite_name)
+            src = os.path.join(src_dir, libruntime_name)
             if not os.path.exists(src):
                 raise Exception(
-                    f'Did not find {libtreelite_name} from directory {os.path.normpath(src_dir)}. ' +
-                    f'Run CMake first to build shared lib {libtreelite_name}.'
+                    f'Did not find {libruntime_name} from directory {os.path.normpath(src_dir)}. ' +
+                    f'Run CMake first to build shared lib {libruntime_name}.'
                 )
-            self.logger.info(f'Using {libtreelite_name} built by CMake')
+            self.logger.info(f'Using {libruntime_name} built by CMake')
         else:
             # The library was built by setup.py
             build_dir = BUILD_TEMP_DIR
-            src = os.path.join(build_dir, libtreelite_name)
+            src = os.path.join(build_dir, libruntime_name)
             assert os.path.exists(src)
-            self.logger.info(f'Using {libtreelite_name} built by setup.py')
+            self.logger.info(f'Using {libruntime_name} built by setup.py')
         self.logger.info(f'Installing shared library: {src} -> {dst}')
         dst, _ = self.copy_file(src, dst)
         outfiles.append(dst)
 
         # Copy VERSION
-        dst_dir = os.path.join(self.install_dir, 'treelite')
+        dst_dir = os.path.join(self.install_dir, 'treelite_runtime')
         assert os.path.isdir(dst_dir)
         dst = os.path.join(dst_dir, 'VERSION')
-        src = os.path.join(CURRENT_DIR, 'treelite', 'VERSION')
+        src = os.path.join(CURRENT_DIR, 'treelite_runtime', 'VERSION')
         assert os.path.exists(src)
         self.logger.info(f'Installing VERSION: {src} -> {dst}')
         dst, _ = self.copy_file(src, dst)
@@ -217,7 +218,7 @@ class InstallLib(install_lib.install_lib):
 
 
 class Install(install.install):  # pylint: disable=too-many-instance-attributes
-    logger = logging.getLogger('Treelite install')
+    logger = logging.getLogger('Treelite runtime install')
     user_options = install.install.user_options + list(
         (k + ('' if v.is_boolean else '='), None, v.description) for k, v in USER_OPTIONS.items())
 
@@ -238,24 +239,21 @@ class Install(install.install):  # pylint: disable=too-many-instance-attributes
 if __name__ == '__main__':
     # Supported commands:
     # From PyPI:
-    # - pip install treelite
-    # From source tree `treelite/python`:
+    # - pip install treelite_runtime
+    # From source tree `treelite/runtime/python`:
     # - python setup.py install
     # - python setup.py bdist_wheel && pip install <wheel-name>
     logging.basicConfig(level=logging.INFO)
-    setup(name='treelite',
-          version=open(os.path.join(CURRENT_DIR, 'treelite/VERSION')).read().strip(),
-          description='Treelite: model compiler for decision trees',
+    setup(name='treelite_runtime',
+          version=open(os.path.join(CURRENT_DIR, 'treelite_runtime/VERSION')).read().strip(),
+          description='Treelite runtime',
           install_requires=['numpy', 'scipy'],
-          ext_modules=[CMakeExtension('libtreelite')],
+          ext_modules=[CMakeExtension('libtreelite_runtime')],
           cmdclass={
               'build_ext': BuildExt,
               'sdist': SDist,
               'install_lib': InstallLib,
               'install': Install
-          },
-          extras_require={
-              'scikit-learn': ['scikit-learn']
           },
           author='DMLC',
           maintainer='Hyunsu Cho',

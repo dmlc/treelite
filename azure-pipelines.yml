@@ -2,20 +2,20 @@ trigger:
 - master
 
 jobs:
-- job: formatting_check
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      addToPath: true
-  - checkout: self
-    submodules: recursive
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
-    displayName: 'Installing pylint and cpplint...'
-  - script: make lint
-    displayName: 'Running pylint and cpplint...'
+#- job: formatting_check
+#  pool:
+#    vmImage: 'ubuntu-latest'
+#  steps:
+#  - task: UsePythonVersion@0
+#    inputs:
+#      versionSpec: '3.7'
+#      addToPath: true
+#  - checkout: self
+#    submodules: recursive
+#  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
+#    displayName: 'Installing pylint and cpplint...'
+#  - script: make lint
+#    displayName: 'Running pylint and cpplint...'
 - job: linux_build
   pool:
     vmImage: 'ubuntu-latest'
@@ -25,13 +25,19 @@ jobs:
   - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
     displayName: 'Building Treelite...'
   - script: |
-      rm -rfv python/dist python/build
       tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
     displayName: 'Packaging Python wheel for Treelite...'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'python_linux_whl'
       targetPath: 'python/dist/'
+  - script: |
+      tests/ci_build/ci_build.sh cpu bash -c "cd runtime/python/ && python setup.py bdist_wheel --universal"
+    displayName: 'Packaging Python wheel for Treelite runtime...'
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'runtime_python_linux_whl'
+      targetPath: 'runtime/python/dist/'
 - job: win_build
   pool:
     vmImage: 'vs2017-win2016'
@@ -49,7 +55,6 @@ jobs:
       python -m pip install wheel setuptools
     displayName: 'Setting up Python environment...'
   - script: |
-      rmdir build /s /q
       mkdir build
       cd build
       cmake .. -G"Visual Studio 15 2017 Win64" -DENABLE_PROTOBUF=ON
@@ -69,6 +74,15 @@ jobs:
     inputs:
       artifactName: 'python_win_whl'
       targetPath: 'python/dist/'
+  - script: |
+      call $(Agent.BuildDirectory)\CONDA\Scripts\activate
+      cd runtime\python
+      python setup.py bdist_wheel --universal
+    displayName: 'Packaging Python wheel for Treelite runtime...'
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'runtime_python_win_whl'
+      targetPath: 'runtime/python/dist/'
 - job: cpp_coverage
   pool:
     vmImage: 'ubuntu-latest'
@@ -82,16 +96,15 @@ jobs:
   - script: sudo apt-get install lcov
     displayName: 'Installing lcov...'
   - script: |
-      rm -rfv build/
       mkdir build/
       cd build/
       cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug
-      make -j
+      make -j$(nproc)
     displayName: 'Building Treelite...'
   - script: python -m pip install numpy scipy pandas pytest scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
-      PYTHONPATH=./python python -m pytest -v --fulltrace tests/python
+      PYTHONPATH=./python:./runtime/python python -m pytest -v --fulltrace tests/python
       lcov --directory . --capture --output-file coverage.info
       lcov --remove coverage.info '/usr/*' --output-file coverage.info
       lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
@@ -137,6 +150,11 @@ jobs:
       artifactName: 'python_linux_whl'
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Linux...'
+  - task: DownloadPipelineArtifact@1
+    inputs:
+      artifactName: 'runtime_python_linux_whl'
+      targetPath: $(System.DefaultWorkingDirectory)
+    displayName: 'Downloading Treelite runtime Python wheel for Linux...'
   - script: |
       python -m pip install *.whl
     displayName: 'Installing Treelite into Python environment...'
@@ -160,6 +178,11 @@ jobs:
       artifactName: 'python_win_whl'
       targetPath: $(System.DefaultWorkingDirectory)
     displayName: 'Downloading Treelite Python wheel for Windows...'
+  - task: DownloadPipelineArtifact@1
+    inputs:
+      artifactName: 'runtime_python_win_whl'
+      targetPath: $(System.DefaultWorkingDirectory)
+    displayName: 'Downloading Treelite runtime Python wheel for Windows...'
   - script: |
       call activate
       for /R %%i in (*.whl) DO python -m pip install "%%i"

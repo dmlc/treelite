@@ -1,18 +1,3 @@
-# Automatically set source group based on folder
-function(auto_source_group SOURCES)
-
-  foreach(FILE ${SOURCES})
-    get_filename_component(PARENT_DIR "${FILE}" PATH)
-
-    # skip src or include and changes /'s to \\'s
-    string(REPLACE "${CMAKE_CURRENT_LIST_DIR}" "" GROUP "${PARENT_DIR}")
-    string(REPLACE "/" "\\\\" GROUP "${GROUP}")
-    string(REGEX REPLACE "^\\\\" "" GROUP "${GROUP}")
-
-    source_group("${GROUP}" FILES "${FILE}")
-  endforeach()
-endfunction(auto_source_group)
-
 # Force static runtime for MSVC
 function(msvc_use_static_runtime)
   if(MSVC)
@@ -55,13 +40,6 @@ function(set_default_configuration_release)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE )
   endif()
 endfunction(set_default_configuration_release)
-
-function(format_gencode_flags flags out)
-  foreach(ver ${flags})
-    set(${out} "${${out}}-gencode arch=compute_${ver},code=sm_${ver};")
-  endforeach()
-  set(${out} "${${out}}" PARENT_SCOPE)
-endfunction(format_gencode_flags flags)
 
 #=============================================================================
 # Copyright 2009 Kitware, Inc.

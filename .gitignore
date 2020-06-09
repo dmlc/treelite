@@ -24,13 +24,13 @@
 
 # Compiled Java classes
 *.class
-runtime/java/treelite4j/target/
+/runtime/java/treelite4j/target/
 
 # Auxiliary Java files
-runtime/java/treelite4j/.classpath
-runtime/java/treelite4j/.project
-runtime/java/treelite4j/.settings/
-runtime/java/treelite4j/coverage.info
+/runtime/java/treelite4j/.classpath
+/runtime/java/treelite4j/.project
+/runtime/java/treelite4j/.settings/
+/runtime/java/treelite4j/coverage.info
 
 # Compiled Dynamic libraries
 *.so
@@ -48,27 +48,25 @@ runtime/java/treelite4j/coverage.info
 *.lib
 
 # build folder
-build/*
-runtime/native/build/*
-runtime/java/build/*
+/build/
+/python/dist/
+/python/build/
+/python/treelite.egg-info/
+/runtime/python/dist/
+/runtime/python/build/
+/runtime/python/treelite_runtime.egg-info/
 
 # Executables
 *.exe
 *.out
 *.app
 /treelite
-/treelite-python
-
-# Project files
-*.pyproj
-.vscode/
-.idea/
 
 # Mac system file
 .DS_Store
 
 # Python wheel binaries
-python/dist/
+/python/dist/
 
 # Python cache
 __pycache__
@@ -76,6 +74,9 @@ __pycache__
 # symbol directories
 *.dSYM/
 
-# 3rd party libraries
-3rdparty/inja.hpp
-3rdparty/json.hpp
+# Project files
+/runtime/python/.idea/
+/python/.idea/
+/tests/python/.idea/
+/.idea/
+/lint.py

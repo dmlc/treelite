@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 import treelite
-import treelite.runtime
+import treelite_runtime
 from util import run_pipeline_test, make_annotation, os_platform, \
                  libname, os_compatible_toolchains, assert_almost_equal
 
@@ -1420,13 +1420,13 @@ class TestModelBuilder(unittest.TestCase):
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={'annotate_in': './annotation.json'}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
       assert predictor.num_feature == 4
       assert predictor.num_output_group == 3
       assert predictor.pred_transform == 'identity_multiclass'
       assert predictor.global_bias == 0.0
       assert predictor.sigmoid_alpha == 1.0
-      batch = treelite.runtime.Batch.from_npy2d(X)
+      batch = treelite_runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
       del predictor
@@ -1437,8 +1437,8 @@ class TestModelBuilder(unittest.TestCase):
     for toolchain in os_compatible_toolchains():
       model.export_lib(toolchain=toolchain, libpath=libpath,
                        params={'annotate_in': './annotation.json'}, verbose=True)
-      predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
-      batch = treelite.runtime.Batch.from_npy2d(X)
+      predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+      batch = treelite_runtime.Batch.from_npy2d(X)
       out_prob = predictor.predict(batch)
       assert_almost_equal(out_prob, expected_prob)
       del predictor
@@ -1469,7 +1469,7 @@ class TestModelBuilder(unittest.TestCase):
     libpath = libname('./libtest{}')
     toolchain = 'msvc' if os_platform() == 'windows' else 'gcc'
     model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
-    predictor = treelite.runtime.Predictor(libpath=libpath)
+    predictor = treelite_runtime.Predictor(libpath=libpath)
     assert predictor.num_feature == 3
     assert predictor.num_output_group == 1
     assert predictor.pred_transform == 'identity'

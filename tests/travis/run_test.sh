@@ -24,10 +24,17 @@ then
   TAG=macosx_10_13_x86_64.macosx_10_14_x86_64.macosx_10_15_x86_64
   python ../tests/ci_build/rename_whl.py dist/*.whl ${TRAVIS_COMMIT} ${TAG}
   cd ..
+  rm -rfv runtime/python/dist runtime/python/build
+  cd runtime/python/
+  python setup.py bdist_wheel --universal
+  python ../../tests/ci_build/rename_whl.py dist/*.whl ${TRAVIS_COMMIT} ${TAG}
+  cd ../..
 
   # Install Treelite into Python env
   ls -l ./python/dist/*.whl
+  ls -l ./runtime/python/dist/*.whl
   python -m pip install ./python/dist/treelite-*-py3-none-${TAG}.whl
+  python -m pip install ./runtime/python/dist/treelite_runtime-*-py3-none-${TAG}.whl
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
@@ -44,7 +51,8 @@ then
   then
     S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
   fi
-  python -m awscli s3 cp python/dist/*.whl "${S3_DEST}" --acl public-read || true
+  python -m awscli s3 cp python/dist/treelite-*.whl "${S3_DEST}" --acl public-read || true
+  python -m awscli s3 cp runtime/python/dist/treelite_runtime*.whl "${S3_DEST}" --acl public-read || true
 fi
 
 if [ ${TASK} == "python_sdist_test" ]; then
@@ -60,6 +68,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Install Treelite into Python env
   python -m pip install -v treelite-*.tar.gz
+  python -m pip install -v treelite_runtime-*.tar.gz
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
@@ -77,10 +86,11 @@ if [ ${TASK} == "python_sdist_test" ]; then
     then
       S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
     fi
-    for file in ./treelite-*.tar.gz
+    for file in ./treelite-*.tar.gz ./treelite_runtime-*.tar.gz
     do
       mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
     done
     python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
+    python -m awscli s3 cp treelite_runtime-*.tar.gz "${S3_DEST}" --acl public-read || true
   fi
 fi

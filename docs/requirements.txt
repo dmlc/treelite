@@ -5,3 +5,6 @@ breathe==4.14.1
 javasphinx==0.9.15
 guzzle_sphinx_theme
 sh>=1.12.14
+pandas
+numpy
+scipy

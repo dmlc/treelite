@@ -7,7 +7,11 @@ target_compile_definitions(objtreelite PRIVATE -DDMLC_LOG_CUSTOMIZE)
 
 add_library(objtreelite_runtime OBJECT)
 target_include_directories(objtreelite_runtime PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(objtreelite_runtime PUBLIC dmlc PRIVATE dl)  # -ldl for dlopen()
+target_link_libraries(objtreelite_runtime PUBLIC dmlc)
+# -ldl for UNIX-like systems
+if (UNIX)	
+  target_link_libraries(objtreelite_runtime PUBLIC dl)
+endif (UNIX)
 target_compile_definitions(objtreelite_runtime PRIVATE -DDMLC_LOG_CUSTOMIZE)
 
 if(MSVC)

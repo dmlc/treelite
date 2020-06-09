@@ -74,10 +74,6 @@ __pycache__
 # symbol directories
 *.dSYM/
 
-# Version file copied into Python
-/python/treelite/VERSION
-/runtime/python/treelite_runtime/VERSION
-
 # Project files
 /runtime/python/.idea/
 /python/.idea/

@@ -10,7 +10,6 @@
 #include <fstream>
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")

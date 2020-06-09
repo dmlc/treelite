@@ -20,7 +20,6 @@
 #include "thread_pool/thread_pool.h"
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 #else
 #include <dlfcn.h>

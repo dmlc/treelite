@@ -2,20 +2,20 @@ trigger:
 - master
 
 jobs:
-- job: formatting_check
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      addToPath: true
-  - checkout: self
-    submodules: recursive
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
-    displayName: 'Installing pylint and cpplint...'
-  - script: make lint
-    displayName: 'Running pylint and cpplint...'
+#- job: formatting_check
+#  pool:
+#    vmImage: 'ubuntu-latest'
+#  steps:
+#  - task: UsePythonVersion@0
+#    inputs:
+#      versionSpec: '3.7'
+#      addToPath: true
+#  - checkout: self
+#    submodules: recursive
+#  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
+#    displayName: 'Installing pylint and cpplint...'
+#  - script: make lint
+#    displayName: 'Running pylint and cpplint...'
 - job: linux_build
   pool:
     vmImage: 'ubuntu-latest'

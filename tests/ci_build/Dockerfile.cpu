@@ -11,11 +11,11 @@ RUN \
     wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo && \
     yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++ && \
     # Python
-    wget https://repo.continuum.io/miniconda/Miniconda3-4.5.12-Linux-x86_64.sh && \
-    bash Miniconda3-4.5.12-Linux-x86_64.sh -b -p /opt/python && \
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/python && \
     # CMake
-    wget -nv -nc https://cmake.org/files/v3.11/cmake-3.11.0-Linux-x86_64.sh --no-check-certificate && \
-    bash cmake-3.11.0-Linux-x86_64.sh --skip-license --prefix=/usr
+    wget -nv -nc https://cmake.org/files/v3.16/cmake-3.16.0-Linux-x86_64.sh --no-check-certificate && \
+    bash cmake-3.16.0-Linux-x86_64.sh --skip-license --prefix=/usr
 
 ENV PATH=/opt/python/bin:$PATH
 ENV CC=/opt/rh/devtoolset-2/root/usr/bin/gcc

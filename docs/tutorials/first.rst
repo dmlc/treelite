@@ -24,8 +24,8 @@ with 13 distinct features:
 
     from sklearn.datasets import load_boston
     X, y = load_boston(return_X_y=True)
-    print('dimensions of X = {}'.format(X.shape))
-    print('dimensions of y = {}'.format(y.shape))
+    print(f'dimensions of X = {X.shape}')
+    print(f'dimensions of y = {y.shape}')
 
 Train a tree ensemble model using XGBoost
 -----------------------------------------
@@ -40,14 +40,13 @@ XGBoost was used here only to provide a working example.
 
     import xgboost
     dtrain = xgboost.DMatrix(X, label=y)
-    params = {'max_depth':3, 'eta':1, 'silent':1, 'objective':'reg:linear',
-              'eval_metric':'rmse'}
+    params = {'max_depth':3, 'eta':1, 'objective':'reg:squarederror', 'eval_metric':'rmse'}
     bst = xgboost.train(params, dtrain, 20, [(dtrain, 'train')])
 
-Pass XGBoost model into treelite
+Pass XGBoost model into Treelite
 --------------------------------
 
-Next, we feed the trained model into treelite. If you used XGBoost to
+Next, we feed the trained model into Treelite. If you used XGBoost to
 train the model, it takes only one line of code:
 
 .. code-block:: python
@@ -62,7 +61,7 @@ train the model, it takes only one line of code:
 Generate shared library
 -----------------------
 
-Given a tree ensemble model, treelite will produce a **prediction subroutine**
+Given a tree ensemble model, Treelite will produce a **prediction subroutine**
 (internally represented as a C program). To use
 the subroutine for prediction task, we package it as a `dynamic shared
 library <https://en.wikipedia.org/wiki/Library_(computing)#Shared_libraries>`_,
@@ -78,7 +77,7 @@ appropriately:
 
 .. code-block:: python
 
-    toolchain = 'clang'   # change this value as necessary
+    toolchain = 'gcc'   # change this value as necessary
 
 The choice of toolchain will be used to compile the prediction
 subroutine into native code.
@@ -87,8 +86,8 @@ Now we are ready to generate the library.
 
 .. code-block:: python
 
-    model.export_lib(toolchain=toolchain, libpath='./mymodel.dylib', verbose=True)
-                                #                            ^^^^^
+    model.export_lib(toolchain=toolchain, libpath='./mymodel.so', verbose=True)
+                                #                            ^^
                                 # set correct file extension here; see the following paragraph
 
 .. note:: File extension for shared library
@@ -103,8 +102,8 @@ Now we are ready to generate the library.
 .. note:: Want to deploy the model to another machine?
 
   This tutorial assumes that predictions will be made on the same machine that
-  is running treelite. If you'd like to deploy your model to another machine
-  (that may not have treelite installed), see the page :doc:`deploy`.
+  is running Treelite. If you'd like to deploy your model to another machine
+  (that may not have Treelite installed), see the page :doc:`deploy`.
 
 .. note:: Reducing compilation time for large models
 
@@ -114,7 +113,7 @@ Now we are ready to generate the library.
 
   .. code-block:: python
 
-    model.export_lib(toolchain=toolchain, libpath='./mymodel.dylib',
+    model.export_lib(toolchain=toolchain, libpath='./mymodel.so',
                      params={'parallel_comp': 32}, verbose=True)
 
   which splits the prediction subroutine into 32 source files that gets compiled
@@ -132,7 +131,7 @@ optimized prediction subroutine is exposed through the
 .. code-block:: python
 
     import treelite_runtime     # runtime module
-    predictor = treelite_runtime.Predictor('./mymodel.dylib', verbose=True)
+    predictor = treelite_runtime.Predictor('./mymodel.so', verbose=True)
 
 We decide on which of the houses in ``X`` we should make predictions
 for. Say, from 10th house to 20th:

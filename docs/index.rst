@@ -63,7 +63,7 @@ Install treelite from PyPI:
 
 .. code-block:: console
 
-  pip3 install --user treelite
+  python3 -m pip install --user treelite treelite_runtime
 
 Import your tree ensemble model into treelite:
 

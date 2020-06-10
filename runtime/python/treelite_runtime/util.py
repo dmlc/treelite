@@ -5,7 +5,6 @@ Miscellaneous utilities
 import inspect
 import ctypes
 import time
-import sys
 from sys import platform as _platform
 
 
@@ -45,25 +44,3 @@ def lib_extension_current_platform():
     if _platform in ('win32', 'cygwin'):
         return '.dll'
     return '.so'
-
-
-def expand_windows_path(dirpath):
-    """
-    Expand a short path to full path (only applicable for Windows)
-    Parameters
-    ----------
-    dirpath : :py:class:`str <python:str>`
-        Path to expand
-    Returns
-    -------
-    fullpath : :py:class:`str <python:str>`
-        Expanded path
-    """
-    if sys.platform == 'win32':
-        BUFFER_SIZE = 500
-        buffer = ctypes.create_unicode_buffer(BUFFER_SIZE)
-        get_long_path_name = ctypes.windll.kernel32.GetLongPathNameW
-        get_long_path_name.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint]
-        get_long_path_name(dirpath, buffer, BUFFER_SIZE)
-        return buffer.value
-    return dirpath

@@ -89,8 +89,8 @@ class Model():
         Parameters
         ----------
         toolchain : :py:class:`str <python:str>`
-          which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
-          You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
+            which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+            You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
         libpath : :py:class:`str <python:str>`
             location to save the generated dynamic shared library
         params : :py:class:`dict <python:dict>`, optional
@@ -145,12 +145,12 @@ class Model():
         Parameters
         ----------
         platform : :py:class:`str <python:str>`
-          name of the operating system on which the headers and sources shall be
-          compiled. Must be one of the following: 'windows' (Microsoft Windows),
-          'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
+            name of the operating system on which the headers and sources shall be
+            compiled. Must be one of the following: 'windows' (Microsoft Windows),
+            'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
         toolchain : :py:class:`str <python:str>`
-          which toolchain to use. You may choose one of 'msvc', 'clang', 'gcc', and 'cmake'.
-          You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
+            which toolchain to use. You may choose one of 'msvc', 'clang', 'gcc', and 'cmake'.
+            You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
         pkgpath : :py:class:`str <python:str>`
             location to save the zipped source package
         libname : :py:class:`str <python:str>`

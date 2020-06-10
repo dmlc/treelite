@@ -5,9 +5,11 @@ import ctypes
 import sys
 import os
 import re
+import pathlib
 import numpy as np
 import scipy.sparse
-from .util import c_str, py_str, _log_callback, TreeliteRuntimeError, lineno, log_info
+from .util import c_str, py_str, _log_callback, TreeliteRuntimeError, lineno, log_info, \
+    lib_extension_current_platform
 from .libpath import TreeliteRuntimeLibraryNotFound, find_lib_path
 
 
@@ -244,13 +246,16 @@ class Predictor(object):
     def __init__(self, libpath, nthread=None, verbose=False):
         if os.path.isdir(libpath):  # libpath is a directory
             # directory is given; locate shared library inside it
-            basename = os.path.basename(libpath.rstrip('/\\'))
             lib_found = False
-            for ext in ['.so', '.dll', '.dylib']:
-                path = os.path.join(libpath, basename + ext)
-                if os.path.exists(path):
+            dir = pathlib.Path(libpath)
+            ext = lib_extension_current_platform()
+            for candidate in dir.glob(f'*{ext}'):
+                try:
+                    path = str(candidate.resolve(strict=True))
                     lib_found = True
                     break
+                except FileNotFoundError:
+                    continue
             if not lib_found:
                 raise TreeliteRuntimeError(f'Directory {libpath} doesn\'t appear ' +
                                            'to have any dynamic shared library (.so/.dll/.dylib).')

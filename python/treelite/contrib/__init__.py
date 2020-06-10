@@ -133,7 +133,7 @@ def generate_cmakelists(dirpath, options=None):
         Additional options to pass to toolchain
     """
     if not os.path.isdir(dirpath):
-        raise TreeliteError('Directory {} does not exist'.format(dirpath))
+        raise TreeliteError(f'Directory {dirpath} does not exist')
     try:
         with open(os.path.join(dirpath, 'recipe.json')) as f:
             recipe = json.load(f)
@@ -151,25 +151,32 @@ def generate_cmakelists(dirpath, options=None):
     else:
         options = []
 
+    target = recipe['target']
+    sources = ' '.join([x['name'] + '.c' for x in recipe['sources']])
+    options = ' '.join(options)
     with open(os.path.join(dirpath, 'CMakeLists.txt'), 'w') as f:
-        f.write("cmake_minimum_required(VERSION 3.13)\n\n")
-        f.write("# Set flags\n")
-        f.write('list(APPEND COMPILE_FEATURES "c_std_99")\n')
-        for option in options:
-            f.write('list(APPEND COMPILE_FLAGS "{}")\n'.format(option))
-
-        f.write('set(TARGET_NAME {})\n'.format(recipe['target']))
-        for source in recipe['sources']:
-            f.write('list(APPEND SOURCES ${{CMAKE_CURRENT_SOURCE_DIR}}/{})\n' \
-                    .format(source['name'] + '.c'))
-        f.write('\n')
-
-        f.write('add_library(${TARGET_NAME} SHARED ${SOURCES})\n')
-        f.write('target_compile_features(${TARGET_NAME} PUBLIC ${COMPILE_FEATURES})\n')
-        f.write('target_compile_options(${TARGET_NAME} PRIVATE ${COMPILE_FLAGS})\n')
-        f.write('target_include_directories(${TARGET_NAME} \n\
-      PUBLIC \n\
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)\n')
+        print('cmake_minimum_required(VERSION 3.13)', file=f)
+        print('project(mushroom LANGUAGES C)\n', file=f)
+        print(f'add_library({target} SHARED)', file=f)
+        print(f'target_sources({target} PRIVATE header.h {sources})', file=f)
+        print(f'target_compile_options({target} PRIVATE {options})', file=f)
+        print(f'target_include_directories({target} PRIVATE "${{PROJECT_BINARY_DIR}}")', file=f)
+        print(f'set_target_properties({target} PROPERTIES', file=f)
+        print('''POSITION_INDEPENDENT_CODE ON
+            C_STANDARD 99
+            C_STANDARD_REQUIRED ON
+            PREFIX ""
+            RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_BINARY_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_BINARY_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${PROJECT_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_DEBUG "${PROJECT_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PROJECT_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${PROJECT_BINARY_DIR}")
+        ''', file=f)
 
 
 def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):

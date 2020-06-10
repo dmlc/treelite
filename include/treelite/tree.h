@@ -7,16 +7,16 @@
 #ifndef TREELITE_TREE_H_
 #define TREELITE_TREE_H_
 
+#include <treelite/base.h>
+#include <dmlc/logging.h>
+#include <dmlc/optional.h>
+#include <dmlc/parameter.h>
 #include <algorithm>
 #include <vector>
 #include <utility>
 #include <unordered_map>
 #include <string>
 #include <limits>
-#include <treelite/base.h>
-#include <dmlc/logging.h>
-#include <dmlc/optional.h>
-#include <dmlc/parameter.h>
 
 namespace treelite {
 

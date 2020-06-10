@@ -5,11 +5,11 @@
  * \author Philip Cho
  */
 
-#include <memory>
-#include <queue>
 #include <dmlc/registry.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
+#include <memory>
+#include <queue>
 #include "../c_api/c_api_error.h"
 
 #define CHECK_EARLY_RETURN(x, msg)                           \

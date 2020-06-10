@@ -1,4 +1,4 @@
-# treelite
+# Treelite
 
 [![Build Status](https://dev.azure.com/hcho3/treelite/_apis/build/status/dmlc.treelite?branchName=master)](https://dev.azure.com/hcho3/treelite/_build/latest?definitionId=1&branchName=master)
 [![Build Status](https://img.shields.io/travis/dmlc/treelite.svg?label=build&logo=travis&branch=master)](https://travis-ci.org/dmlc/treelite)

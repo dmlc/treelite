@@ -41,12 +41,12 @@ def copy_tree(src_dir, target_dir):
     """Copy source tree into build directory."""
     logger = logging.getLogger('Treelite copy_tree')
     def clean_copy_tree(src, dst):
-        logger.info(f'Copy tree {src} -> {dst}')
+        logger.info('Copy tree %s -> %s', src, dst)
         distutils.dir_util.copy_tree(src, dst)
         NEED_CLEAN_TREE.add(os.path.abspath(dst))
 
     def clean_copy_file(src, dst):
-        logger.info(f'Copy file {src} -> {dst}')
+        logger.info('Copy tree %s -> %s', src, dst)
         distutils.file_util.copy_file(src, dst)
         NEED_CLEAN_FILE.add(os.path.abspath(dst))
 
@@ -79,6 +79,7 @@ class CMakeExtension(Extension):  # pylint: disable=too-few-public-methods
 
 
 class SDist(sdist.sdist):       # pylint: disable=too-many-ancestors
+    """Pack C++ sources into the Python package"""
     logger = logging.getLogger('Treelite sdist')
 
     def run(self):
@@ -93,7 +94,7 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
     logger = logging.getLogger('Treelite build_ext')
 
     # pylint: disable=too-many-arguments,no-self-use
-    def build(self, src_dir, build_dir, generator, build_tool=None, use_omp=1):
+    def build(self, src_dir, build_dir, generator, build_tool=None):
         """Build the core library with CMake."""
         cmake_cmd = ['cmake', src_dir, generator]
         cmake_cmd.append('-DENABLE_PROTOBUF=ON')
@@ -149,7 +150,7 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
                     continue
         else:
             gen = '-GNinja' if build_tool == 'ninja' else '-GUnix Makefiles'
-            self.build(src_dir, build_dir, gen, build_tool, use_omp=1)
+            self.build(src_dir, build_dir, gen, build_tool)
 
     def build_extension(self, ext):
         """Override the method for dispatching."""
@@ -168,6 +169,7 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
 
 
 class InstallLib(install_lib.install_lib):
+    """Install native library into Python package"""
     logger = logging.getLogger('Treelite install_lib')
 
     def install(self):
@@ -189,17 +191,17 @@ class InstallLib(install_lib.install_lib):
             src = os.path.join(src_dir, libtreelite_name)
             if not os.path.exists(src):
                 raise Exception(
-                    f'Did not find {libtreelite_name} from directory {os.path.normpath(src_dir)}. ' +
-                    f'Run CMake first to build shared lib {libtreelite_name}.'
+                    f'Did not find {libtreelite_name} from directory {os.path.normpath(src_dir)}.' +
+                    f' Run CMake first to build shared lib {libtreelite_name}.'
                 )
-            self.logger.info(f'Using {libtreelite_name} built by CMake')
+            self.logger.info('Using %s built by CMake', libtreelite_name)
         else:
             # The library was built by setup.py
             build_dir = BUILD_TEMP_DIR
             src = os.path.join(build_dir, libtreelite_name)
             assert os.path.exists(src)
-            self.logger.info(f'Using {libtreelite_name} built by setup.py')
-        self.logger.info(f'Installing shared library: {src} -> {dst}')
+            self.logger.info('Using %s built by setup.py', libtreelite_name)
+        self.logger.info('Installing shared library: %s -> %s', src, dst)
         dst, _ = self.copy_file(src, dst)
         outfiles.append(dst)
 
@@ -209,7 +211,7 @@ class InstallLib(install_lib.install_lib):
         dst = os.path.join(dst_dir, 'VERSION')
         src = os.path.join(CURRENT_DIR, 'treelite', 'VERSION')
         assert os.path.exists(src)
-        self.logger.info(f'Installing VERSION: {src} -> {dst}')
+        self.logger.info('Installing VERSION: %s -> %s', src, dst)
         dst, _ = self.copy_file(src, dst)
         outfiles.append(dst)
 
@@ -217,6 +219,7 @@ class InstallLib(install_lib.install_lib):
 
 
 class Install(install.install):  # pylint: disable=too-many-instance-attributes
+    """Parse user options"""
     logger = logging.getLogger('Treelite install')
     user_options = install.install.user_options + list(
         (k + ('' if v.is_boolean else '='), None, v.description) for k, v in USER_OPTIONS.items())
@@ -228,7 +231,7 @@ class Install(install.install):  # pylint: disable=too-many-instance-attributes
             setattr(self, arg, v.value)
 
     def run(self):
-        for k, v in USER_OPTIONS.items():
+        for k, _ in USER_OPTIONS.items():
             arg = k.replace('-', '_')
             if hasattr(self, arg):
                 USER_OPTIONS[k] = USER_OPTIONS[k]._replace(value=getattr(self, arg))

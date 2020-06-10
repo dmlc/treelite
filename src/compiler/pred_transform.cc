@@ -5,10 +5,9 @@
 * \author Philip Cho
 */
 
+#include "pred_transform.h"
 #include <string>
 #include <unordered_map>
-#include <treelite/tree.h>
-#include "pred_transform.h"
 
 #include "./native/pred_transform.h"
 

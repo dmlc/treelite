@@ -59,7 +59,7 @@ class TestBasic(unittest.TestCase):
                           use_compiler='failsafe')
       if not is_linux:
         # Expect to see an exception when using ELF in non-Linux OS
-        with pytest.raises(treelite.common.util.TreeliteError):
+        with pytest.raises(treelite.util.TreeliteError):
           run_pipeline_test(model=model, dtest_path=dtest_path,
                             libname_fmt=libname_fmt,
                             expected_prob_path=expected_prob_path,

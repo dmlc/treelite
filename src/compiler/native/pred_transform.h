@@ -8,9 +8,9 @@
 #ifndef TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 #define TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 
-#include <string>
 #include <dmlc/logging.h>
 #include <fmt/format.h>
+#include <string>
 
 using namespace fmt::literals;
 

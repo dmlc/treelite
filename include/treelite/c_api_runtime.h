@@ -193,7 +193,7 @@ TREELITE_DLL int TreelitePredictorQueryNumFeature(PredictorHandle handle,
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorQueryPredTransform(PredictorHandle handle,
-                                                     char** out);
+                                                     const char** out);
 /*!
  * \brief Get alpha value of sigmoid transformation used to train
  *        the loaded model

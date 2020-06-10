@@ -7,6 +7,7 @@
 #ifndef TREELITE_COMPILER_PRED_TRANSFORM_H_
 #define TREELITE_COMPILER_PRED_TRANSFORM_H_
 
+#include <treelite/tree.h>
 #include <vector>
 #include <string>
 

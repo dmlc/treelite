@@ -5,11 +5,11 @@
  * \brief Input data structure of treelite
  */
 
+#include <treelite/data.h>
+#include <treelite/omp.h>
 #include <memory>
 #include <limits>
 #include <cstdint>
-#include <treelite/data.h>
-#include <treelite/omp.h>
 
 namespace treelite {
 

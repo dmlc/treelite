@@ -5,9 +5,7 @@
  * \brief C API of treelite, used for interfacing with other languages
  */
 
-#include <memory>
-#include <unordered_map>
-#include <algorithm>
+
 #include <treelite/annotator.h>
 #include <treelite/c_api.h>
 #include <treelite/compiler.h>
@@ -18,6 +16,8 @@
 #include <treelite/math.h>
 #include <dmlc/json.h>
 #include <dmlc/thread_local.h>
+#include <memory>
+#include <algorithm>
 #include "./c_api_error.h"
 
 using namespace treelite;

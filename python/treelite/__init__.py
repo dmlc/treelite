@@ -2,20 +2,16 @@
 """
 Treelite: a model compiler for decision tree ensembles
 """
+import os
 
-from __future__ import absolute_import as _abs
-from importlib import import_module
-from .common.compat import assert_python_min_ver
-assert_python_min_ver('2.7', '3.1', 'importlib')
+from .core import DMatrix
+from .frontend import Model, ModelBuilder
+from .annotator import Annotator
+from .contrib import create_shared, generate_makefile
 
-# package will re-export public members of the following scripts/subpackages:
-CORE_PACKAGES = ['.core', '.frontend', '.annotator', '.contrib']
+VERSION_FILE = os.path.join(os.path.dirname(__file__), 'VERSION')
+with open(VERSION_FILE, 'r') as _f:
+    __version__ = _f.read().strip()
 
-__all__ = []
-for package in CORE_PACKAGES:
-  module = import_module(package, __name__)
-  for public_member in module.__all__:
-    globals()[public_member] = vars(module).get(public_member)
-  __all__ += module.__all__
-
-# runtime is not exposed here -- user should import it separately
+__all__ = ['DMatrix', 'Model', 'ModelBuilder', 'Annotator', 'create_shared', 'generate_makefile',
+           'gallery']

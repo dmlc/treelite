@@ -6,8 +6,8 @@
 #ifndef TREELITE_COMPILER_AST_BUILDER_H_
 #define TREELITE_COMPILER_AST_BUILDER_H_
 
-#include <treelite/common.h>
 #include <treelite/tree.h>
+#include <dmlc/registry.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -74,8 +74,7 @@ class ASTBuilder {
 
   template <typename NodeType, typename ...Args>
   NodeType* AddNode(ASTNode* parent, Args&& ...args) {
-    std::unique_ptr<NodeType> node
-                  = common::make_unique<NodeType>(std::forward<Args>(args)...);
+    std::unique_ptr<NodeType> node(new NodeType(std::forward<Args>(args)...));
     NodeType* ref = node.get();
     ref->parent = parent;
     nodes.push_back(std::move(node));

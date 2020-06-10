@@ -8,7 +8,7 @@
 #ifndef TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 #define TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 
-#include <treelite/common.h>
+#include <dmlc/logging.h>
 #include <fmt/format.h>
 #include <string>
 

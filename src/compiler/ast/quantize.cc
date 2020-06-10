@@ -3,6 +3,7 @@
  * \file quantize.cc
  * \brief Quantize thresholds in condition nodes
  */
+#include <treelite/math.h>
 #include <cmath>
 #include "./builder.h"
 
@@ -37,7 +38,7 @@ rewrite_thresholds(ASTNode* node,
     const tl_float threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       const auto& v = cut_pts[num_cond->split_index];
-      auto loc = common::binary_search(v.begin(), v.end(), threshold);
+      auto loc = math::binary_search(v.begin(), v.end(), threshold);
       CHECK(loc != v.end());
       num_cond->threshold.int_val = static_cast<size_t>(loc - v.begin()) * 2;
       num_cond->quantized = true;

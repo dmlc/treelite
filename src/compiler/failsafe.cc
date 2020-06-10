@@ -1,22 +1,22 @@
 /*!
- * Copyright (c) 2019 by Contributors
+ * Copyright (c) 2019-2020 by Contributors
  * \file failsafe.cc
- * \author Philip Cho
- * \brief C code generator (fail-safe). The generated code will mimic prediction
- * logic found in XGBoost
+ * \author Hyunsu Cho
+ * \brief C code generator (fail-safe). The generated code will mimic prediction logic found in
+ *        XGBoost
  */
 
 #include <treelite/tree.h>
 #include <treelite/compiler.h>
-#include <treelite/common.h>
+#include <treelite/compiler_param.h>
 #include <fmt/format.h>
-#include <cmath>
 #include <unordered_map>
 #include <set>
 #include <tuple>
 #include <utility>
-#include "./param.h"
+#include <cmath>
 #include "./pred_transform.h"
+#include "./common/format_util.h"
 #include "./elf/elf_formatter.h"
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -137,8 +137,8 @@ const char* arrays_template = R"TREELITETEMPLATE(
 // nodes_row_ptr[]: marks bounaries between decision trees. The nodes belonging to Tree [i] are
 //                  found in nodes[nodes_row_ptr[i]:nodes_row_ptr[i+1]]
 inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Model& model) {
-  treelite::common::ArrayFormatter nodes(100, 2);
-  treelite::common::ArrayFormatter nodes_row_ptr(100, 2);
+  treelite::compiler::common_util::ArrayFormatter nodes(100, 2);
+  treelite::compiler::common_util::ArrayFormatter nodes_row_ptr(100, 2);
   int node_count = 0;
   nodes_row_ptr << "0";
   for (const auto& tree : model.trees) {
@@ -149,7 +149,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = 0,
-          "info"_a = treelite::common::ToStringHighPrecision(node.leaf_value()),
+          "info"_a = treelite::compiler::common_util::ToStringHighPrecision(node.leaf_value()),
           "cleft"_a = -1,
           "cright"_a = -1);
       } else {
@@ -158,7 +158,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = (node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
-          "info"_a = treelite::common::ToStringHighPrecision(node.threshold()),
+          "info"_a = treelite::compiler::common_util::ToStringHighPrecision(node.threshold()),
           "cleft"_a = node.cleft(),
           "cright"_a = node.cright());
       }
@@ -176,7 +176,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
   std::vector<char> nodes_elf;
   treelite::compiler::AllocateELFHeader(&nodes_elf);
 
-  treelite::common::ArrayFormatter nodes_row_ptr(100, 2);
+  treelite::compiler::common_util::ArrayFormatter nodes_row_ptr(100, 2);
   NodeStructValue val;
   int node_count = 0;
   nodes_row_ptr << "0";
@@ -298,9 +298,11 @@ class FailSafeCompiler : public Compiler {
       = (num_output_group_ > 1
          ? fmt::format(return_multiclass_template,
              "num_output_group"_a = num_output_group_,
-             "global_bias"_a = common::ToStringHighPrecision(model.param.global_bias))
+             "global_bias"_a
+                = compiler::common_util::ToStringHighPrecision(model.param.global_bias))
          : fmt::format(return_template,
-             "global_bias"_a = common::ToStringHighPrecision(model.param.global_bias)));
+             "global_bias"_a
+                = compiler::common_util::ToStringHighPrecision(model.param.global_bias)));
 
     std::string nodes, nodes_row_ptr;
     std::vector<char> nodes_elf;
@@ -354,7 +356,7 @@ class FailSafeCompiler : public Compiler {
         }
       }
       std::ostringstream oss;
-      auto writer = common::make_unique<dmlc::JSONWriter>(&oss);
+      std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&oss));
       writer->BeginObject();
       writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);

@@ -14,7 +14,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <scala.version>2.11.12</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
-        <spark.version>2.3.0</spark.version>
+        <spark.version>2.3.4</spark.version>
+        <JNI.args></JNI.args>
     </properties>
     <dependencies>
         <dependency>
@@ -205,6 +206,7 @@
                             <executable>python</executable>
                             <arguments>
                                 <argument>create_jni.py</argument>
+                                <argument>${JNI.args}</argument>
                             </arguments>
                             <workingDirectory>${project.basedir}</workingDirectory>
                         </configuration>

@@ -8,7 +8,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = TREELITE_DLL= TREELITE_EXTERN_C=
-INPUT            = ../include/ ../src/ ../runtime/native/include/ ../runtime/native/src/
+INPUT            = ../include/ ../src/
 EXAMPLE_PATH     = ../
 RECURSIVE        = YES
 QUIET            = YES

@@ -1,0 +1,10 @@
+include treelite/VERSION
+include treelite/CMakeLists.txt
+
+recursive-include treelite *
+recursive-include treelite/cmake *
+recursive-include treelite/include *
+recursive-include treelite/src *
+recursive-include treelite/lib *
+
+global-exclude *.py[oc]

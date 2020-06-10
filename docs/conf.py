@@ -24,6 +24,7 @@ import shutil
 import guzzle_sphinx_theme
 from sh.contrib import git
 from contextlib import contextmanager
+sys.path.insert(0, os.path.abspath('../runtime/python'))
 sys.path.insert(0, os.path.abspath('../python'))
 
 def setup(app):
@@ -46,18 +47,6 @@ def cd(path):
     yield path
   finally:
     os.chdir(cwd)
-
-# Copy files to runtime directory
-with cd('../runtime/native'):
-  with open('FILELIST', 'r') as f:
-    for l in f:
-      if not l.startswith('#'):
-        args = [x.strip(' ') for x in l.rstrip('\n\r').split('->')]
-        try:
-          os.mkdir(args[1])
-        except FileExistsError:
-          pass
-        shutil.copy(args[0], args[1])
 
 # Run Doxygen first
 call('doxygen; if [ -d tmp/dev ]; then rm -rf tmp; fi; mkdir tmp; mv html tmp/dev',
@@ -116,7 +105,7 @@ copyright = '2017, DMLC. All rights reserved.'  # pylint: disable=W0622
 author = 'DMLC developers'
 
 # Read version info
-with open('../VERSION', 'r') as f:
+with open('../python/treelite/VERSION', 'r') as f:
   VERSION = f.readlines()[0]
 version = VERSION
 release = VERSION

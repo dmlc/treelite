@@ -6,7 +6,8 @@ ifndef NPROC
 	NPROC=1
 endif
 lint:
-	python3 dmlc-core/scripts/lint.py treelite $(LINT_LANG) include src python \
+	wget -nc https://raw.githubusercontent.com/dmlc/dmlc-core/9db4b20c868341abe2a9fe52b652f7d9447ed406/scripts/lint.py
+	python lint.py treelite $(LINT_LANG) include src python \
 	--exclude_path python/treelite/gallery/sklearn --pylint-rc $(PWD)/python/.pylintrc
 
 doxygen:
@@ -17,3 +18,6 @@ cpp-coverage:
 
 all:
 	rm -rf build; mkdir build; cd build; cmake .. -DENABLE_PROTOBUF=ON && make -j$(NPROC)
+
+pippack:
+	cd python && python setup.py sdist && mv dist/*.tar.gz .. && cd ../runtime/python && python setup.py sdist && mv dist/*.tar.gz ../..

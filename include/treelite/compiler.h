@@ -8,7 +8,6 @@
 #define TREELITE_COMPILER_H_
 
 #include <dmlc/registry.h>
-#include <treelite/common.h>
 #include <unordered_map>
 #include <functional>
 #include <memory>

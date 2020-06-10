@@ -5,7 +5,7 @@ import unittest
 import os
 import numpy as np
 import treelite
-import treelite.runtime
+import treelite_runtime
 from util import run_pipeline_test, make_annotation
 
 dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))

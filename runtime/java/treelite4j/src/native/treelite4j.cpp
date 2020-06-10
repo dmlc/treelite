@@ -316,7 +316,7 @@ JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryPredTransform(
   JNIEnv* jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
 
-  char* pred_transform;
+  const char* pred_transform;
   const jint ret = (jint)TreelitePredictorQueryPredTransform(
       (PredictorHandle)jhandle, &pred_transform);
   // store data

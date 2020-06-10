@@ -5,7 +5,7 @@
  * \brief C code generator
  */
 #include <treelite/compiler.h>
-#include <treelite/common.h>
+#include <treelite/compiler_param.h>
 #include <treelite/annotator.h>
 #include <fmt/format.h>
 #include <algorithm>
@@ -13,13 +13,13 @@
 #include <unordered_map>
 #include <queue>
 #include <cmath>
-#include "./param.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
 #include "./native/main_template.h"
 #include "./native/header_template.h"
 #include "./native/qnode_template.h"
 #include "./native/code_folder_template.h"
+#include "./common/format_util.h"
 #include "./common/code_folding_util.h"
 #include "./common/categorical_bitmap.h"
 
@@ -110,7 +110,7 @@ class ASTNativeCompiler : public Compiler {
         }
       }
       std::ostringstream oss;
-      auto writer = common::make_unique<dmlc::JSONWriter>(&oss);
+      std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&oss));
       writer->BeginObject();
       writer->WriteObjectKeyValue("target", param.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
@@ -165,14 +165,15 @@ class ASTNativeCompiler : public Compiler {
   inline void AppendToBuffer(const std::string& dest,
                              const std::string& content,
                              size_t indent) {
-    files_[dest].content += common::IndentMultiLineString(content, indent);
+    files_[dest].content += common_util::IndentMultiLineString(content, indent);
   }
 
   // prepend content to a given buffer, with given level of indentation
   inline void PrependToBuffer(const std::string& dest,
                               const std::string& content,
                               size_t indent) {
-    files_[dest].content = common::IndentMultiLineString(content, indent) + files_[dest].content;
+    files_[dest].content
+      = common_util::IndentMultiLineString(content, indent) + files_[dest].content;
   }
 
   void HandleMainNode(const MainNode* node,
@@ -249,13 +250,13 @@ class ASTNativeCompiler : public Compiler {
         fmt::format(native::main_end_multiclass_template,
           "num_output_group"_a = num_output_group_,
           "optional_average_field"_a = optional_average_field,
-          "global_bias"_a = common::ToStringHighPrecision(node->global_bias)),
+          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias)),
         indent);
     } else {
       AppendToBuffer(dest,
         fmt::format(native::main_end_template,
           "optional_average_field"_a = optional_average_field,
-          "global_bias"_a = common::ToStringHighPrecision(node->global_bias)),
+          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias)),
         indent);
     }
   }
@@ -381,7 +382,7 @@ class ASTNativeCompiler : public Compiler {
     size_t total_num_threshold;
       // to hold total number of (distinct) thresholds
     {
-      common::ArrayFormatter formatter(80, 2);
+      common_util::ArrayFormatter formatter(80, 2);
       for (const auto& e : node->cut_pts) {
         // cut_pts had been generated in ASTBuilder::QuantizeThresholds
         // cut_pts[i][k] stores the k-th threshold of feature i.
@@ -392,7 +393,7 @@ class ASTNativeCompiler : public Compiler {
       array_threshold = formatter.str();
     }
     {
-      common::ArrayFormatter formatter(80, 2);
+      common_util::ArrayFormatter formatter(80, 2);
       size_t accum = 0;  // used to compute cumulative sum over threshold counts
       for (const auto& e : node->cut_pts) {
         formatter << accum;
@@ -402,7 +403,7 @@ class ASTNativeCompiler : public Compiler {
       array_th_begin = formatter.str();
     }
     {
-      common::ArrayFormatter formatter(80, 2);
+      common_util::ArrayFormatter formatter(80, 2);
       for (const auto& e : node->cut_pts) {
         formatter << e.size();
       }
@@ -543,14 +544,13 @@ class ASTNativeCompiler : public Compiler {
     } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
       // According to IEEE 754, the result of comparison [lhs] < infinity
       // must be identical for all finite [lhs]. Same goes for operator >.
-      result = (common::CompareWithOp(0.0, node->op, node->threshold.float_val)
+      result = (CompareWithOp(0.0, node->op, node->threshold.float_val)
                 ? "1" : "0");
     } else {  // finite threshold
       result = fmt::format("data[{split_index}].fvalue {opname} {threshold}",
                  "split_index"_a = node->split_index,
                  "opname"_a = OpName(node->op),
-                 "threshold"_a
-                   = common::ToStringHighPrecision(node->threshold.float_val));
+                 "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));
     }
     return result;
   }
@@ -601,7 +601,7 @@ class ASTNativeCompiler : public Compiler {
 
   inline std::string
   RenderIsCategoricalArray(const std::vector<bool>& is_categorical) {
-    common::ArrayFormatter formatter(80, 2);
+    common_util::ArrayFormatter formatter(80, 2);
     for (int fid = 0; fid < num_feature_; ++fid) {
       formatter << (is_categorical[fid] ? 1 : 0);
     }
@@ -619,20 +619,19 @@ class ASTNativeCompiler : public Compiler {
           output_statement
             += fmt::format("sum[{group_id}] += (float){output};\n",
                  "group_id"_a = group_id,
-                 "output"_a
-                   = common::ToStringHighPrecision(node->vector[group_id]));
+                 "output"_a = common_util::ToStringHighPrecision(node->vector[group_id]));
         }
       } else {
         // multi-class classification with gradient boosted trees
         output_statement
           = fmt::format("sum[{group_id}] += (float){output};\n",
               "group_id"_a = node->tree_id % num_output_group_,
-              "output"_a = common::ToStringHighPrecision(node->scalar));
+              "output"_a = common_util::ToStringHighPrecision(node->scalar));
       }
     } else {
       output_statement
         = fmt::format("sum += (float){output};\n",
-            "output"_a = common::ToStringHighPrecision(node->scalar));
+            "output"_a = common_util::ToStringHighPrecision(node->scalar));
     }
     return output_statement;
   }

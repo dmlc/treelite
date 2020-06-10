@@ -1,0 +1,58 @@
+os:
+  - linux
+  - osx
+
+osx_image: xcode10.1
+dist: bionic
+
+env:
+  matrix:
+    # python package test
+    - TASK=python_test
+    # test installation of Python source distribution
+    - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
+    - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no
+
+  global:
+    - secure: "iznY8XDjq03cQRqtz735oPBm5Tb8WsRkiuLUUNzJQysKzYvp7vLxbtPdeol93+XPFScKlPZqOSalAWlzUEcvZoZghlHBGlLBvVJfCkG2gaTOInGfNV8inAsUikd/rIS0bkQAGPIfaHVN/YinuKMrmtv3GcFYY9Rdg2EP1PU96BAf9tYzNUpkWWfjbobpK/ZfIvK7/e+DZtbdyJEKyWrMJ1hr6RJ7C0+9FWFP3Mh8Xc0c07cmKSLwGIlX/1pMqGg22Sq/c9Au8rht4PDW6BEicvBBT0eORyazg3LVWyyXxLGzQIMtZraNhJIIyX5Jyo7tuqNjAw5WRRGPa4DX5ZaxgdTjRWEmyqusm8bUDUiLmi7A6mJJLUeFtmiWSoy6zXilJzukPUwmn1KRHClzv+EosH8n/vCSVjLAAzAJcQp21Bc7RFF9lJow+GwyrNeG4B5MCrbQnC0ViYshDdp6m4CaHLVOgeTdqoCSTqVv8EKx2aIjRkvw1+S5BbxSRLcdfR4KCIRWyvhFHs9GZvk0WfywPHZ84niFgZx0p7meC5og8NeUp8tlJMsgTOZYV2O4e2a2Sk17V2PeagwEKA3nBbMIv7BseEmbk5LIubWpoW3teGXnUtLMLj4RIKp3GYRxUDomk4bMvBXApQAwzmXjO0Gb061PwmGSTgAzgI+fXUFxst8="
+    - secure: "S8WL6xkezLXYpBPTFgmLsu5/6UQdRX2CSCZSbP1dSIH9rbwPhimBiMyuJp4XwEijUUgcFT00jVdXE7k3rXSBg3rwFkdeUSSndnt0Rq4Is32TJtGjgF1h8xwkIIhQAeEDij22RomEzRVm4SGbs+LLsHNDUYo6F0DIbvK8mzGtzEEQ7Xfogbf477d18GclHfg3ys4Gg0ExJoNdyegnMpoXHaALWAA5JL+22c2JiL7RsNV7IE/yLJ9yDHle7mur2CBvz4R0gcZ5HGf+oTmwKE2qLZOQ+T1vFXXHcZUPmOpzdcaRE2w1wMTo47DwjZHeDBdVkJBtSUEFruukVliRMiZ4PTJ9eiSujj2LXrNufflWPQ/pTSBghxphsvQZTA6ciGI9skg5KfLqR8eRljSZUCKs8eVqGIFB4ecBxnnyWxEICNLkMv7XoxYb+8BbaD+/H30HKcYeLXAZOTH/VIzfNfB3KZxabunpb1JVPZwZxQ4ThhoiznGVHEXsYhHcxL79YbcawlkzwpzgyYDR11P701np2RGcQNLVrphdEo968Ex2pD5Vi8TaqrsHnKXX/6BUxL6/1k2689yQphshMAH9JryX9A2H6Fn8zU8qUVM0OzT3uL0yqVxqZjqQ24mC4gO8fGZ1H2Y8DqwJVUaJyzZrovKA6gzJ+gXAGBEJoVNzU8n3Vo8="
+
+matrix:
+  exclude:
+    - os: linux
+      env: TASK=python_test
+    - os: osx
+      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
+    - os: osx
+      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no
+
+# dependent brew packages
+addons:
+  homebrew:
+    packages:
+      - cmake
+      - gcc@7
+      - libomp
+      - wget
+      - ninja
+    update: true
+  apt:
+    sources:
+      - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+        key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+    packages:
+      - cmake
+      - build-essential
+      - wget
+      - ninja-build
+
+install:
+  - source tests/travis/setup.sh
+
+script:
+  - tests/travis/run_test.sh
+
+cache:
+  directories:
+    - ${HOME}/.cache/usr
+    - ${HOME}/.cache/pip

@@ -5,7 +5,7 @@ from sklearn.datasets import load_iris
 import numpy as np
 import xgboost
 import treelite
-import treelite.runtime
+import treelite_runtime
 import importlib.util
 import os
 import time
@@ -29,7 +29,7 @@ def test_iris_single_inst():
   libpath = util.libname('./iris{}')
   toolchain = util.os_compatible_toolchains()[0]
   model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1})
-  predictor = treelite.runtime.Predictor(libpath=libpath)
+  predictor = treelite_runtime.Predictor(libpath=libpath)
 
   print('1. Using data matrix slices')
   record = []

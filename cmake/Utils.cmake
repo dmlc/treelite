@@ -1,18 +1,3 @@
-# Automatically set source group based on folder
-function(auto_source_group SOURCES)
-
-  foreach(FILE ${SOURCES})
-    get_filename_component(PARENT_DIR "${FILE}" PATH)
-
-    # skip src or include and changes /'s to \\'s
-    string(REPLACE "${CMAKE_CURRENT_LIST_DIR}" "" GROUP "${PARENT_DIR}")
-    string(REPLACE "/" "\\\\" GROUP "${GROUP}")
-    string(REGEX REPLACE "^\\\\" "" GROUP "${GROUP}")
-
-    source_group("${GROUP}" FILES "${FILE}")
-  endforeach()
-endfunction(auto_source_group)
-
 # Force static runtime for MSVC
 function(msvc_use_static_runtime)
   if(MSVC)
@@ -56,13 +41,6 @@ function(set_default_configuration_release)
   endif()
 endfunction(set_default_configuration_release)
 
-function(format_gencode_flags flags out)
-  foreach(ver ${flags})
-    set(${out} "${${out}}-gencode arch=compute_${ver},code=sm_${ver};")
-  endforeach()
-  set(${out} "${${out}}" PARENT_SCOPE)
-endfunction(format_gencode_flags flags)
-
 #=============================================================================
 # Copyright 2009 Kitware, Inc.
 # Copyright 2009-2011 Philip Lowman <philip@yhbt.com>
@@ -93,8 +71,8 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
     endif()
   endforeach()
 
-  if(DEFINED PROTOBUF_IMPORT_DIRS)
-    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+  if(DEFINED Protobuf_IMPORT_DIRS)
+    foreach(DIR ${Protobuf_IMPORT_DIRS})
       get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
       list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
       if(${_contains_already} EQUAL -1)
@@ -103,7 +81,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
     endforeach()
   endif()
 
-  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+  set(PROTOC_DEPENDENCY ${Protobuf_PROTOC_EXECUTABLE})
 
   set(${SRCS})
   set(${HDRS})
@@ -117,7 +95,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS)
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.cc"
            "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-      COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+      COMMAND ${Protobuf_PROTOC_EXECUTABLE}
       ARGS --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
       COMMENT "Running C++ protocol buffer compiler on ${FIL}"
@@ -139,8 +117,8 @@ function(PROTOBUF_GENERATE_JAVA TARGET_NAME PROTO_FILE)
     list(APPEND _protobuf_include_path -I ${ABS_PATH})
   endif()
 
-  if(DEFINED PROTOBUF_IMPORT_DIRS)
-    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+  if(DEFINED Protobuf_IMPORT_DIRS)
+    foreach(DIR ${Protobuf_IMPORT_DIRS})
       get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
       list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
       if(${_contains_already} EQUAL -1)
@@ -149,10 +127,10 @@ function(PROTOBUF_GENERATE_JAVA TARGET_NAME PROTO_FILE)
     endforeach()
   endif()
 
-  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+  set(PROTOC_DEPENDENCY ${Protobuf_PROTOC_EXECUTABLE})
 
   add_custom_target(${TARGET_NAME} ALL
-    ${PROTOBUF_PROTOC_EXECUTABLE} --java_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
+    ${Protobuf_PROTOC_EXECUTABLE} --java_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
     DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
     COMMENT "Running Java protocol buffer compiler on ${PROTO_FILE}"
     VERBATIM
@@ -168,8 +146,8 @@ function(PROTOBUF_GENERATE_PYTHON TARGET_NAME PROTO_FILE)
     list(APPEND _protobuf_include_path -I ${ABS_PATH})
   endif()
 
-  if(DEFINED PROTOBUF_IMPORT_DIRS)
-    foreach(DIR ${PROTOBUF_IMPORT_DIRS})
+  if(DEFINED Protobuf_IMPORT_DIRS)
+    foreach(DIR ${Protobuf_IMPORT_DIRS})
       get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
       list(FIND _protobuf_include_path ${ABS_PATH} _contains_already)
       if(${_contains_already} EQUAL -1)
@@ -178,10 +156,10 @@ function(PROTOBUF_GENERATE_PYTHON TARGET_NAME PROTO_FILE)
     endforeach()
   endif()
 
-  set(PROTOC_DEPENDENCY ${PROTOBUF_PROTOC_EXECUTABLE})
+  set(PROTOC_DEPENDENCY ${Protobuf_PROTOC_EXECUTABLE})
 
   add_custom_target(${TARGET_NAME} ALL
-    ${PROTOBUF_PROTOC_EXECUTABLE} --python_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
+    ${Protobuf_PROTOC_EXECUTABLE} --python_out ${CMAKE_CURRENT_BINARY_DIR} ${_protobuf_include_path} ${ABS_FIL}
     DEPENDS ${ABS_FIL} ${PROTOC_DEPENDENCY}
     COMMENT "Running Python protocol buffer compiler on ${PROTO_FILE}"
     VERBATIM

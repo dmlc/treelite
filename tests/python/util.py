@@ -3,7 +3,7 @@ import os
 from sys import platform as _platform
 import numpy as np
 import treelite
-import treelite.runtime
+import treelite_runtime
 from treelite.contrib import _libext
 
 def load_txt(filename):
@@ -94,7 +94,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
   dtest_path = os.path.join(dpath, dtest_path)
   libpath = libname(libname_fmt)
   dtest = treelite.DMatrix(dtest_path)
-  batch = treelite.runtime.Batch.from_csr(dtest)
+  batch = treelite_runtime.Batch.from_csr(dtest)
 
   expected_prob_path = os.path.join(dpath, expected_prob_path) \
                        if expected_prob_path is not None else None
@@ -130,7 +130,7 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
   for toolchain in toolchains:
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      compiler=use_compiler, params=params, verbose=True)
-    predictor = treelite.runtime.Predictor(libpath=libpath, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     out_prob = predictor.predict(batch)
     if expected_prob is not None:
       assert_almost_equal(out_prob, expected_prob)

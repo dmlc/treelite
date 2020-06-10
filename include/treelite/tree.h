@@ -8,8 +8,9 @@
 #define TREELITE_TREE_H_
 
 #include <treelite/base.h>
-#include <treelite/common.h>
 #include <dmlc/logging.h>
+#include <dmlc/optional.h>
+#include <dmlc/parameter.h>
 #include <algorithm>
 #include <vector>
 #include <utility>

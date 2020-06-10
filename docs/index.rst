@@ -63,7 +63,7 @@ Install treelite from PyPI:
 
 .. code-block:: console
 
-  pip3 install --user treelite
+  python3 -m pip install --user treelite treelite_runtime
 
 Import your tree ensemble model into treelite:
 
@@ -94,9 +94,9 @@ Make predictions on the target machine:
 
 .. code-block:: python
 
-  import treelite.runtime
-  predictor = treelite.runtime.Predictor('./mymodel.so', verbose=True)
-  batch = treelite.runtime.Batch.from_npy2d(X)
+  import treelite_runtime
+  predictor = treelite_runtime.Predictor('./mymodel.so', verbose=True)
+  batch = treelite_runtime.Batch.from_npy2d(X)
   out_pred = predictor.predict(batch)
 
 Read :doc:`tutorials/first` for a more detailed example. See

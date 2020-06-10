@@ -105,7 +105,7 @@ copyright = '2017, DMLC. All rights reserved.'  # pylint: disable=W0622
 author = 'DMLC developers'
 
 # Read version info
-with open('../VERSION', 'r') as f:
+with open('../python/treelite/VERSION', 'r') as f:
   VERSION = f.readlines()[0]
 version = VERSION
 release = VERSION

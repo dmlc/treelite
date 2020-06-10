@@ -195,15 +195,15 @@ inline size_t PredictInst_(TreelitePredictorEntry* inst,
                            size_t expected_query_result_size, float* out_pred) {
   CHECK(pred_func_handle != nullptr)
     << "A shared library needs to be loaded first using Load()";
-  size_t query_result_size; // Dimention of output vector
+  size_t query_result_size;  // Dimention of output vector
   if (num_output_group > 1) {  // multi-class classification task
     using PredFunc = size_t (*)(TreelitePredictorEntry*, int, float*);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
-    query_result_size = pred_func(inst, (int)pred_margin, out_pred);
+    query_result_size = pred_func(inst, static_cast<int>(pred_margin), out_pred);
   } else {  // every other task
     using PredFunc = float (*)(TreelitePredictorEntry*, int);
     PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
-    out_pred[0] = pred_func(inst, (int)pred_margin);
+    out_pred[0] = pred_func(inst, static_cast<int>(pred_margin));
     query_result_size = 1;
   }
   return query_result_size;

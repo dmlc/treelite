@@ -6,15 +6,15 @@
  *        XGBoost
  */
 
+#include <treelite/tree.h>
+#include <treelite/compiler.h>
+#include <treelite/compiler_param.h>
+#include <fmt/format.h>
 #include <unordered_map>
 #include <set>
 #include <tuple>
 #include <utility>
 #include <cmath>
-#include <treelite/tree.h>
-#include <treelite/compiler.h>
-#include <treelite/compiler_param.h>
-#include <fmt/format.h>
 #include "./pred_transform.h"
 #include "./common/format_util.h"
 #include "./elf/elf_formatter.h"

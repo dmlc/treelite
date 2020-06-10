@@ -7,9 +7,9 @@
 #ifndef TREELITE_COMPILER_PARAM_H_
 #define TREELITE_COMPILER_PARAM_H_
 
+#include <dmlc/parameter.h>
 #include <string>
 #include <limits>
-#include <dmlc/parameter.h>
 
 namespace treelite {
 namespace compiler {

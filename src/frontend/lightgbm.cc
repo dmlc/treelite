@@ -5,12 +5,12 @@
  * \author Hyunsu Cho
  */
 
-#include <unordered_map>
-#include <limits>
-#include <queue>
 #include <dmlc/data.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
+#include <unordered_map>
+#include <limits>
+#include <queue>
 
 namespace {
 

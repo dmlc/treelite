@@ -7,13 +7,13 @@
 #ifndef TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 #define TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 
+#include <dmlc/logging.h>
+#include <fmt/format.h>
+#include <unordered_map>
 #include <queue>
 #include <set>
 #include <string>
 #include <vector>
-#include <unordered_map>
-#include <dmlc/logging.h>
-#include <fmt/format.h>
 #include "../ast/ast.h"
 #include "./format_util.h"
 #include "./categorical_bitmap.h"

@@ -9,6 +9,7 @@
 
 #include <dmlc/logging.h>
 #include <treelite/entry.h>
+#include <string>
 #include <cstdint>
 
 namespace treelite {
@@ -48,7 +49,7 @@ class Predictor {
   typedef void* LibraryHandle;
   typedef void* ThreadPoolHandle;
 
-  Predictor(int num_worker_thread = -1);
+  explicit Predictor(int num_worker_thread = -1);
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.

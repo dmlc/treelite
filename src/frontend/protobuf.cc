@@ -5,11 +5,11 @@
  * \author Hyunsu Cho
  */
 
-#include <queue>
 #include <dmlc/logging.h>
 #include <dmlc/registry.h>
 #include <dmlc/io.h>
 #include <treelite/tree.h>
+#include <queue>
 
 #ifdef TREELITE_PROTOBUF_SUPPORT
 

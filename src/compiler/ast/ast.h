@@ -7,13 +7,13 @@
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
 
+#include <dmlc/optional.h>
+#include <treelite/base.h>
+#include <fmt/format.h>
 #include <limits>
 #include <string>
 #include <vector>
 #include <utility>
-#include <dmlc/optional.h>
-#include <treelite/base.h>
-#include <fmt/format.h>
 
 // forward declaration
 namespace treelite_ast_protobuf {

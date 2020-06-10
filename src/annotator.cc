@@ -5,11 +5,11 @@
  * \brief Branch annotation tools
  */
 
-#include <limits>
-#include <cstdint>
 #include <treelite/annotator.h>
 #include <treelite/omp.h>
 #include <dmlc/json.h>
+#include <limits>
+#include <cstdint>
 
 namespace {
 

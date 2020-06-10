@@ -4,13 +4,14 @@
  * \brief Formatting utilities
  * \author Hyunsu Cho
  */
-#ifndef TREELITE_COMMON_FORMAT_UTIL_H_
-#define TREELITE_COMMON_FORMAT_UTIL_H_
+#ifndef TREELITE_COMPILER_COMMON_FORMAT_UTIL_H_
+#define TREELITE_COMPILER_COMMON_FORMAT_UTIL_H_
 
+#include <fmt/format.h>
+#include <limits>
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include <fmt/format.h>
 
 namespace treelite {
 namespace compiler {
@@ -127,4 +128,4 @@ inline int ArrayFormatter::GetPrecision<double>() {
 }  // namespace compiler
 }  // namespace treelite
 
-#endif  // TREELITE_COMMON_FORMAT_UTIL_H_
+#endif  // TREELITE_COMPILER_COMMON_FORMAT_UTIL_H_

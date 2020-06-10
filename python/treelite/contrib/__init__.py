@@ -115,19 +115,6 @@ def generate_makefile(dirpath, platform, toolchain, options=None):
                                        toolchain=toolchain,
                                        options=options)))
 
-def save_runtime_package(destdir):
-  """
-  Save a copy of the (zipped) runtime package, containing all glue code
-  necessary to deploy compiled models into the wild
-
-  Parameters
-  ----------
-  destdir : :py:class:`str <python:str>`
-      directory to save the zipped package
-  """
-  pkg_path = find_lib_path(basename='treelite_runtime.zip',
-                           libformat=False)
-  shutil.copy(pkg_path[0], os.path.join(destdir, 'treelite_runtime.zip'))
 
 def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
   """Create shared library.
@@ -230,4 +217,4 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
              '{0:.2f} seconds'.format(time.time() - tstart))
   return libpath
 
-__all__ = ['create_shared', 'save_runtime_package', 'generate_makefile']
+__all__ = ['create_shared', 'generate_makefile']

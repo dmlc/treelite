@@ -9,7 +9,7 @@ import pathlib
 import numpy as np
 import scipy.sparse
 from .util import c_str, py_str, _log_callback, TreeliteRuntimeError, lineno, log_info, \
-    lib_extension_current_platform
+    lib_extension_current_platform, expand_windows_path
 from .libpath import TreeliteRuntimeLibraryNotFound, find_lib_path
 
 
@@ -270,6 +270,7 @@ class Predictor(object):
         self.handle = ctypes.c_void_p()
         if not re.match(r'^[a-zA-Z]+://', path):
             path = os.path.abspath(path)
+        path = expand_windows_path(path)
         _check_call(_LIB.TreelitePredictorLoad(
             c_str(path),
             ctypes.c_int(nthread if nthread is not None else -1),

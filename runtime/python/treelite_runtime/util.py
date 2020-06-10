@@ -5,6 +5,7 @@ Miscellaneous utilities
 import inspect
 import ctypes
 import time
+from sys import platform as _platform
 
 
 class TreeliteRuntimeError(Exception):
@@ -35,3 +36,11 @@ def lineno():
 def log_info(filename, linenum, msg):
     """Mimics behavior of the logging macro LOG(INFO) in dmlc-core"""
     print(f'[{time.strftime("%X")}] {filename}:{linenum}: {msg}')
+
+
+def lib_extension_current_platform():
+    if _platform == 'darwin':
+        return '.dylib'
+    if _platform in ('win32', 'cygwin'):
+        return '.dll'
+    return '.so'

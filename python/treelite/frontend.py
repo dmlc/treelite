@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 
 from .util import c_str, TreeliteError
 from .core import _LIB, c_array, _check_call
-from .contrib import create_shared, generate_makefile, _toolchain_exist_check
+from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
 
 
 def _isascii(string):
@@ -89,8 +89,8 @@ class Model():
         Parameters
         ----------
         toolchain : :py:class:`str <python:str>`
-          which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
-          You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
+            which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
+            You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
         libpath : :py:class:`str <python:str>`
             location to save the generated dynamic shared library
         params : :py:class:`dict <python:dict>`, optional
@@ -145,12 +145,12 @@ class Model():
         Parameters
         ----------
         platform : :py:class:`str <python:str>`
-          name of the operating system on which the headers and sources shall be
-          compiled. Must be one of the following: 'windows' (Microsoft Windows),
-          'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
+            name of the operating system on which the headers and sources shall be
+            compiled. Must be one of the following: 'windows' (Microsoft Windows),
+            'osx' (Mac OS X), 'unix' (Linux and other UNIX-like systems)
         toolchain : :py:class:`str <python:str>`
-          which toolchain to use. You may choose one of 'msvc', 'clang', and 'gcc'.
-          You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
+            which toolchain to use. You may choose one of 'msvc', 'clang', 'gcc', and 'cmake'.
+            You may also specify a specific variation of clang or gcc (e.g. 'gcc-7')
         pkgpath : :py:class:`str <python:str>`
             location to save the zipped source package
         libname : :py:class:`str <python:str>`
@@ -198,7 +198,8 @@ class Model():
         if fileext != '.zip':
             raise ValueError('Source package file should have .zip extension')
         libname = os.path.basename(libname)
-        _toolchain_exist_check(toolchain)
+        if toolchain != 'cmake':
+            _toolchain_exist_check(toolchain)
 
         with TemporaryDirectory() as temp_dir:
             target = os.path.splitext(libname)[0]
@@ -209,7 +210,10 @@ class Model():
                 params = {}
             params['native_lib_name'] = target
             self.compile(dirpath, params, compiler, verbose)
-            generate_makefile(dirpath, platform, toolchain, options)
+            if toolchain == 'cmake':
+                generate_cmakelists(dirpath, options)
+            else:
+                generate_makefile(dirpath, platform, toolchain, options)
             shutil.make_archive(base_name=os.path.splitext(pkgpath)[0],
                                 format='zip',
                                 root_dir=temp_dir,

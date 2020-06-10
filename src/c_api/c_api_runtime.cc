@@ -7,11 +7,26 @@
 
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
+#include <dmlc/thread_local.h>
 #include <string>
 #include <cstring>
 #include "./c_api_error.h"
 
 using namespace treelite;
+
+namespace {
+
+/*! \brief entry to to easily hold returning information */
+struct TreeliteRuntimeAPIThreadLocalEntry {
+  /*! \brief result holder for returning string */
+  std::string ret_str;
+};
+
+// thread-local store for returning strings
+using TreeliteRuntimeAPIThreadLocalStore
+  = dmlc::ThreadLocalStore<TreeliteRuntimeAPIThreadLocalEntry>;
+
+}  // anonymous namespace
 
 int TreeliteAssembleSparseBatch(const float* data,
                                 const uint32_t* col_ind,
@@ -158,12 +173,13 @@ int TreelitePredictorQueryNumFeature(PredictorHandle handle, size_t* out) {
   API_END();
 }
 
-int TreelitePredictorQueryPredTransform(PredictorHandle handle, char** out) {
+int TreelitePredictorQueryPredTransform(PredictorHandle handle, const char** out) {
   API_BEGIN()
   const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  auto predTransform = predictor_->QueryPredTransform();
-  *out = new char[predTransform.length() + 1];
-  strcpy(*out, predTransform.c_str());
+  auto pred_transform = predictor_->QueryPredTransform();
+  std::string& ret_str = TreeliteRuntimeAPIThreadLocalStore::Get()->ret_str;
+  ret_str = pred_transform;
+  *out = ret_str.c_str();
   API_END();
 }
 

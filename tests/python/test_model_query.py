@@ -27,7 +27,9 @@ _model_facts = {
 def test_model_query(tmpdir, dataset):
     """Test all query functions for every example model"""
     if dataset == 'sparse_categorical' and os_platform() == 'windows':
-        pytest.skip('MSVC cannot handle long if conditional')
+        pytest.xfail('MSVC cannot handle long if conditional')
+    if dataset == 'letor' and os_platform() == 'windows':
+        pytest.xfail('export_lib() is too slow for letor on MSVC')
 
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

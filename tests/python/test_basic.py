@@ -24,6 +24,10 @@ from .util import os_platform, os_compatible_toolchains, does_not_raise, check_p
 def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_comp, toolchain):
     # pylint: disable=too-many-arguments
     """Test 'ast_native' compiler"""
+
+    if dataset == 'letor' and os_platform() == 'windows':
+        pytest.xfail('export_lib() is too slow for letor on MSVC')
+
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     annotation_path = os.path.join(tmpdir, 'annotation.json')
@@ -88,8 +92,6 @@ def test_srcpkg(tmpdir, dataset, toolchain):
     check_predictor(predictor, dataset)
 
 
-@pytest.mark.xfail(os_platform() == 'windows',
-                   reason='Somehow this test works locally but fails on Azure Pipelines')
 @pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 def test_srcpkg_cmake(tmpdir, dataset):  # pylint: disable=R0914
     """Test feature to export a source tarball"""

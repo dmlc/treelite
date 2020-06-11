@@ -136,7 +136,8 @@ jobs:
     displayName: 'Building Treelite...'
   - script: |
       call activate
-      python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests\python
+      mkdir temp
+      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" --cov=treelite --cov=treelite_runtime -v --fulltrace tests\python
     displayName: 'Running Python tests...'
     env:
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
@@ -219,5 +220,6 @@ jobs:
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call activate
-      python -m pytest -v --fulltrace tests\python\test_basic.py
+      mkdir temp
+      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" -v --fulltrace tests\python\test_basic.py
     displayName: 'Running Python tests...'

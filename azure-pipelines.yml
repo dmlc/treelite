@@ -141,7 +141,9 @@ jobs:
     displayName: 'Running Python tests...'
     env:
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - script: |
+      choco install codecov
+      codecov
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
@@ -192,7 +194,7 @@ jobs:
 - job: win_python_wheel_test
   dependsOn: win_build
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'windows-latest'
   steps:
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'

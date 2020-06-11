@@ -1,96 +1,60 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=R0201
 """Tests for single-instance prediction"""
-from __future__ import print_function
 import os
-import unittest
+
+import pytest
 import numpy as np
 from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite_runtime
-from .util import load_txt, os_compatible_toolchains, libname, make_annotation, \
-    assert_almost_equal
+from treelite.contrib import _libext
+from .metadata import dataset_db
+from .util import os_compatible_toolchains, check_predictor_output
 
-dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'toy_categorical'])
+def test_single_inst(tmpdir, annotation, dataset, toolchain):
+    """Run end-to-end test"""
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
+    annotation_path = os.path.join(tmpdir, 'annotation.json')
 
-class TestSingleInst(unittest.TestCase):
-    """Test suite for single-instance prediction"""
-    def run_pipeline_test(self, model, dtest_path, libname_fmt,
-                          expected_prob_path, expected_margin_path,
-                          multiclass, use_annotation, use_quantize):
-        # pylint: disable=R0913, R0914
-        """Utility function to run end-to-end test"""
-        dtest_path = os.path.join(dpath, dtest_path)
-        libpath = libname(libname_fmt)
-        X_test, _ = load_svmlight_file(dtest_path, zero_based=True)
+    if annotation[dataset] is None:
+        annotation_path = None
+    else:
+        with open(annotation_path, 'wb') as f:
+            f.write(annotation[dataset])
 
-        expected_prob_path = os.path.join(dpath, expected_prob_path)
-        expected_margin_path = os.path.join(dpath, expected_margin_path)
-        expected_prob = load_txt(expected_prob_path)
-        expected_margin = load_txt(expected_margin_path)
-        if multiclass:
-            nrow = X_test.shape[0]
-            expected_prob = expected_prob.reshape((nrow, -1))
-            expected_margin = expected_margin.reshape((nrow, -1))
-        params = {}
-        if use_annotation is not None:
-            params['annotate_in'] = use_annotation
-        if use_quantize:
-            params['quantize'] = 1
+    params = {
+        'annotate_in': (annotation_path if annotation_path else 'NULL'),
+        'quantize': 1, 'parallel_comp': model.num_tree
+    }
+    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
 
-        for toolchain in os_compatible_toolchains():
-            model.export_lib(toolchain=toolchain, libpath=libpath,
-                             params=params, verbose=True)
-            predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-            for i in range(X_test.shape[0]):
-                x = X_test[i, :]
-                # Scipy CSR matrix
-                out_prob = predictor.predict_instance(x)
-                out_margin = predictor.predict_instance(x, pred_margin=True)
-                assert_almost_equal(out_prob, expected_prob[i])
-                assert_almost_equal(out_margin, expected_margin[i])
-                # NumPy 1D array with 0 as missing value
-                x = x.toarray().flatten()
-                out_prob = predictor.predict_instance(x, missing=0.0)
-                out_margin = predictor.predict_instance(x, missing=0.0, pred_margin=True)
-                assert_almost_equal(out_prob, expected_prob[i])
-                assert_almost_equal(out_margin, expected_margin[i])
-                # NumPy 1D array with np.nan as missing value
-                np.place(x, x == 0.0, [np.nan])
-                out_prob = predictor.predict_instance(x, missing=np.nan)
-                out_margin = predictor.predict_instance(x, missing=np.nan, pred_margin=True)
-                assert_almost_equal(out_prob, expected_prob[i])
-                assert_almost_equal(out_margin, expected_margin[i])
-                # NumPy 1D array with np.nan as missing value
-                # (default when `missing` parameter is unspecified)
-                out_prob = predictor.predict_instance(x)
-                out_margin = predictor.predict_instance(x, pred_margin=True)
-                assert_almost_equal(out_prob, expected_prob[i])
-                assert_almost_equal(out_margin, expected_margin[i])
+    X_test, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
+    out_prob = [[] for _ in range(4)]
+    out_margin = [[] for _ in range(4)]
+    for i in range(X_test.shape[0]):
+        x = X_test[i, :]
+        # Scipy CSR matrix
+        out_prob[0].append(predictor.predict_instance(x))
+        out_margin[0].append(predictor.predict_instance(x, pred_margin=True))
+        # NumPy 1D array with 0 as missing value
+        x = x.toarray().flatten()
+        out_prob[1].append(predictor.predict_instance(x, missing=0.0))
+        out_margin[1].append(predictor.predict_instance(x, missing=0.0, pred_margin=True))
+        # NumPy 1D array with np.nan as missing value
+        np.place(x, x == 0.0, [np.nan])
+        out_prob[2].append(predictor.predict_instance(x, missing=np.nan))
+        out_margin[2].append(predictor.predict_instance(x, missing=np.nan, pred_margin=True))
+        # NumPy 1D array with np.nan as missing value
+        # (default when `missing` parameter is unspecified)
+        out_prob[3].append(predictor.predict_instance(x))
+        out_margin[3].append(predictor.predict_instance(x, pred_margin=True))
 
-    def test_single_inst(self):
-        """Run end-to-end test"""
-        for model_path, dtrain_path, dtest_path, libname_fmt, \
-            expected_prob_path, expected_margin_path, multiclass in \
-                [('mushroom/mushroom.model', 'mushroom/agaricus.train',
-                  'mushroom/agaricus.test', './agaricus{}',
-                  'mushroom/agaricus.test.prob',
-                  'mushroom/agaricus.test.margin', False),
-                 ('dermatology/dermatology.model', 'dermatology/dermatology.train',
-                  'dermatology/dermatology.test', './dermatology{}',
-                  'dermatology/dermatology.test.prob',
-                  'dermatology/dermatology.test.margin', True)]:
-            model_path = os.path.join(dpath, model_path)
-            model = treelite.Model.load(model_path, model_format='xgboost')
-            make_annotation(model=model, dtrain_path=dtrain_path,
-                            annotation_path='./annotation.json')
-            for use_annotation in ['./annotation.json', None]:
-                for use_quantize in [True, False]:
-                    self.run_pipeline_test(model=model, dtest_path=dtest_path,
-                                           libname_fmt=libname_fmt,
-                                           expected_prob_path=expected_prob_path,
-                                           expected_margin_path=expected_margin_path,
-                                           multiclass=multiclass,
-                                           use_annotation=use_annotation,
-                                           use_quantize=use_quantize)
+    for i in range(4):
+        check_predictor_output(dataset, X_test.shape,
+                               out_margin=np.squeeze(np.array(out_margin[i])),
+                               out_prob=np.squeeze(np.array(out_prob[i])))

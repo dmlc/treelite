@@ -159,16 +159,19 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
 def check_predictor(predictor, dataset):
     dtest = treelite.DMatrix(dataset_db[dataset].dtest)
     batch = treelite_runtime.Batch.from_csr(dtest)
+    out_margin = predictor.predict(batch, pred_margin=True)
+    out_prob = predictor.predict(batch)
+    check_predictor_output(dataset, dtest.shape, out_margin, out_prob)
 
+
+def check_predictor_output(dataset, shape, out_margin, out_prob):
     expected_margin = load_txt(dataset_db[dataset].expected_margin)
     if dataset_db[dataset].is_multiclass:
-        expected_margin = expected_margin.reshape((dtest.shape[0], -1))
-    out_margin = predictor.predict(batch, pred_margin=True)
+        expected_margin = expected_margin.reshape((shape[0], -1))
     np.testing.assert_almost_equal(out_margin, expected_margin, decimal=5)
 
     if dataset_db[dataset].expected_prob is not None:
         expected_prob = load_txt(dataset_db[dataset].expected_prob)
         if dataset_db[dataset].is_multiclass:
-            expected_prob = expected_prob.reshape((dtest.shape[0], -1))
-        out_prob = predictor.predict(batch)
+            expected_prob = expected_prob.reshape((shape[0], -1))
         np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)

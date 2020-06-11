@@ -20,7 +20,7 @@ then
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
   python -m pip install xgboost lightgbm codecov
-  python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
+  PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
   codecov
 fi
 

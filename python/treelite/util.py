@@ -42,3 +42,11 @@ def lineno():
 def log_info(filename, linenum, msg):
     """Mimics behavior of the logging macro LOG(INFO) in dmlc-core"""
     print(f'[{time.strftime("%X")}] {filename}:{linenum}: {msg}')
+
+
+def has_sklearn():
+    try:
+        import sklearn
+        return True
+    except ImportError:
+        return False

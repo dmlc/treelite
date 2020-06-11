@@ -6,9 +6,8 @@ import numpy as np
 import pytest
 import treelite
 import treelite_runtime
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 from treelite.contrib import _libext
+from treelite.util import has_sklearn
 from .metadata import dataset_db
 from .util import os_compatible_toolchains, os_platform, check_predictor
 
@@ -19,11 +18,15 @@ except ImportError:
     pytest.skip('LightGBM not installed; skipping', allow_module_level=True)
 
 
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
 def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
     """Test a multi-class classifier"""
     model_path = os.path.join(tmpdir, 'iris_lightgbm.txt')
+
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
 
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)

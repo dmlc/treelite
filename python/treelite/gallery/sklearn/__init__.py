@@ -3,6 +3,7 @@
 from __future__ import absolute_import as _abs
 import os
 import treelite
+from ...util import has_sklearn
 
 def import_model(sklearn_model):
   """
@@ -37,6 +38,8 @@ def import_model(sklearn_model):
     import treelite.gallery.sklearn
     model = treelite.gallery.sklearn.import_model(clf)
   """
+  if not has_sklearn():
+    raise RuntimeError('Install scikit-learn to use this feature')
   class_name = sklearn_model.__class__.__name__
   module_name = sklearn_model.__module__.split('.')[0]
 

@@ -8,9 +8,8 @@ import numpy as np
 import pytest
 import treelite
 import treelite_runtime
+from treelite.util import has_sklearn
 from treelite.contrib import _libext
-from sklearn.datasets import load_boston, load_iris
-from sklearn.model_selection import train_test_split
 from .util import os_compatible_toolchains
 
 try:
@@ -20,9 +19,13 @@ except ImportError:
     pytest.skip('XGBoost not installed; skipping', allow_module_level=True)
 
 
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_boston(tmpdir, toolchain):
     """Test Boston data (regression)"""
+    from sklearn.datasets import load_boston
+    from sklearn.model_selection import train_test_split
+
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
@@ -52,9 +55,13 @@ def test_xgb_boston(tmpdir, toolchain):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_iris(tmpdir, toolchain):
     """Test Iris data (multi-class classification)"""
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)

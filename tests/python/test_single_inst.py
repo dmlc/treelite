@@ -4,14 +4,15 @@ import os
 
 import pytest
 import numpy as np
-from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite_runtime
+from treelite.util import has_sklearn
 from treelite.contrib import _libext
 from .metadata import dataset_db
 from .util import os_compatible_toolchains, check_predictor_output
 
 
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'toy_categorical'])
 def test_single_inst(tmpdir, annotation, dataset, toolchain):
@@ -32,6 +33,8 @@ def test_single_inst(tmpdir, annotation, dataset, toolchain):
     }
     model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+
+    from sklearn.datasets import load_svmlight_file
 
     X_test, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
     out_prob = [[] for _ in range(4)]

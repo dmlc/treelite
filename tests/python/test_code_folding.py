@@ -1,43 +1,39 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=R0201
 """Tests for reading/writing Protocol Buffers"""
-import unittest
 import os
+
+import pytest
 import treelite
-from .util import run_pipeline_test, make_annotation
+import treelite_runtime
+from treelite.contrib import _libext
+from .metadata import dataset_db
+from .util import os_compatible_toolchains, check_predictor, does_not_raise
 
-dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
-
-class TestCodeFolding(unittest.TestCase):
+@pytest.mark.parametrize('code_folding_factor', [0.0, 1.0, 2.0, 3.0])
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('quantize', [True, False])
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'toy_categorical'])
+def test_code_folding(tmpdir, dataset, quantize, toolchain, code_folding_factor):
     """Test suite for testing code folding feature"""
-    def test_code_folding(self):
-        """A basic unit test"""
-        for model_format, model_path, dtrain_path, dtest_path, libname_fmt, \
-            expected_prob_path, expected_margin_path, multiclass, \
-            use_parallel_comp in \
-                [('xgboost', 'mushroom/mushroom.model', 'mushroom/agaricus.train',
-                  'mushroom/agaricus.test', './agaricus{}', 'mushroom/agaricus.test.prob',
-                  'mushroom/agaricus.test.margin', False, 2),
-                 ('xgboost', 'dermatology/dermatology.model',
-                  'dermatology/dermatology.train', 'dermatology/dermatology.test',
-                  './dermatology{}', 'dermatology/dermatology.test.prob',
-                  'dermatology/dermatology.test.margin', True, None)]:
-            model_path = os.path.join(dpath, model_path)
-            model = treelite.Model.load(model_path, model_format=model_format)
-            if dtrain_path is not None:
-                make_annotation(model=model, dtrain_path=dtrain_path,
-                                annotation_path='./annotation.json')
-                use_annotation = './annotation.json'
-            else:
-                use_annotation = None
-            for use_quantize in [False, True]:
-                for use_code_folding in [0.0, 1.0, 2.0, 3.0]:
-                    run_pipeline_test(model=model, dtest_path=dtest_path,
-                                      libname_fmt=libname_fmt,
-                                      expected_prob_path=expected_prob_path,
-                                      expected_margin_path=expected_margin_path,
-                                      multiclass=multiclass, use_annotation=use_annotation,
-                                      use_quantize=use_quantize,
-                                      use_parallel_comp=use_parallel_comp,
-                                      use_code_folding=use_code_folding)
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
+
+    params = {
+        'quantize': (1 if quantize else 0),
+        'parallel_comp': 4,
+        'code_folding_req': code_folding_factor
+    }
+    # For the LightGBM model, we expect this error:
+    # !t3->convert_missing_to_zero: Code folding not supported, because a categorical split is
+    # supposed to convert missing values into zeros, and this is not possible with current code
+    # folding implementation.
+    if dataset == 'toy_categorical' and code_folding_factor < 2.0:
+        expect_raises = pytest.raises(treelite.TreeliteError)
+    else:
+        expect_raises = does_not_raise()
+
+    with expect_raises:
+        model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
+        predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+        check_predictor(predictor, dataset)

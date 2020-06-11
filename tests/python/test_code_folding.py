@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for reading/writing Protocol Buffers"""
 import os
+import itertools
 
 import pytest
 import treelite
@@ -11,8 +12,10 @@ from .util import os_compatible_toolchains, check_predictor, does_not_raise
 
 
 @pytest.mark.parametrize('code_folding_factor', [0.0, 1.0, 2.0, 3.0])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('dataset', ['dermatology', 'letor', 'toy_categorical'])
+@pytest.mark.parametrize('dataset,toolchain',
+                         list(itertools.product(['dermatology', 'toy_categorical'],
+                                                os_compatible_toolchains())) +
+                         [('letor', 'gcc')])
 def test_code_folding(tmpdir, annotation, dataset, toolchain, code_folding_factor):
     """Test suite for testing code folding feature"""
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())

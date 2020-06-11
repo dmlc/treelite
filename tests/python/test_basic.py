@@ -2,6 +2,7 @@
 """Suite of basic tests"""
 import sys
 import os
+import itertools
 import subprocess
 from zipfile import ZipFile
 
@@ -14,14 +15,12 @@ from .metadata import dataset_db
 from .util import os_platform, os_compatible_toolchains, does_not_raise, check_predictor
 
 
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('quantize', [True, False])
-@pytest.mark.parametrize('dataset,use_annotation,parallel_comp',
-                         [('mushroom', True, None), ('mushroom', True, 4),
-                          ('mushroom', False, None), ('mushroom', False, 4),
-                          ('dermatology', True, None), ('dermatology', True, 4),
-                          ('dermatology', False, None), ('dermatology', False, 4),
-                          ('letor', False, 700), ('toy_categorical', False, 30)])
+@pytest.mark.parametrize('dataset,use_annotation,parallel_comp,quantize,toolchain',
+                         list(itertools.product(
+                             ['mushroom', 'dermatology'], [True, False], [None, 4], [True, False],
+                             os_compatible_toolchains())) +
+                         [('letor', False, 713, True, 'gcc'),
+                          ('toy_categorical', False, 30, True, 'gcc')])
 def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_comp, toolchain):
     # pylint: disable=too-many-arguments
     """Test 'ast_native' compiler"""

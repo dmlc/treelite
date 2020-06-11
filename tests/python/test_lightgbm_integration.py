@@ -118,7 +118,6 @@ def test_categorical_data(tmpdir, quantize, parallel_comp, toolchain):
     check_predictor(predictor, dataset)
 
 
-@pytest.mark.xfail(os_platform() == 'windows', reason='MSVC cannot handle long if conditional')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('quantize', [True, False])
 def test_sparse_categorical_model(tmpdir, quantize, toolchain):
@@ -133,6 +132,8 @@ def test_sparse_categorical_model(tmpdir, quantize, toolchain):
     """
     if toolchain == 'clang':
         pytest.xfail(reason='Clang cannot handle long if conditional')
+    if os_platform() == 'windows':
+        pytest.xfail(reason='MSVC cannot handle long if conditional')
     dataset = 'sparse_categorical'
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

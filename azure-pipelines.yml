@@ -11,7 +11,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy
+  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
     displayName: 'Installing pylint and cpplint...'
   - script: make lint
     displayName: 'Running pylint and cpplint...'

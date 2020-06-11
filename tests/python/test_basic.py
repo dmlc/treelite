@@ -19,8 +19,8 @@ from .util import os_platform, os_compatible_toolchains, does_not_raise, check_p
                          list(itertools.product(
                              ['mushroom', 'dermatology'], [True, False], [None, 4], [True, False],
                              os_compatible_toolchains())) +
-                         [('letor', False, 713, True, 'gcc'),
-                          ('toy_categorical', False, 30, True, 'gcc')])
+                         [('letor', False, 713, True, os_compatible_toolchains()[0]),
+                          ('toy_categorical', False, 30, True, os_compatible_toolchains()[0])])
 def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_comp, toolchain):
     # pylint: disable=too-many-arguments
     """Test 'ast_native' compiler"""

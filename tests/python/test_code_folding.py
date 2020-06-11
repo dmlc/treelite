@@ -15,7 +15,7 @@ from .util import os_compatible_toolchains, check_predictor, does_not_raise
 @pytest.mark.parametrize('dataset,toolchain',
                          list(itertools.product(['dermatology', 'toy_categorical'],
                                                 os_compatible_toolchains())) +
-                         [('letor', 'gcc')])
+                         [('letor', os_compatible_toolchains()[0])])
 def test_code_folding(tmpdir, annotation, dataset, toolchain, code_folding_factor):
     """Test suite for testing code folding feature"""
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())

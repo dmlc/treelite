@@ -21,18 +21,17 @@ from .metadata import dataset_db
                           ('mushroom', False, None), ('mushroom', False, 4),
                           ('dermatology', True, None), ('dermatology', True, 4),
                           ('dermatology', False, None), ('dermatology', False, 4),
-                          ('letor', True, 700), ('letor', False, 700),
-                          ('toy_categorical', False, 30)])
-def test_basic(tmpdir, dataset, use_annotation, quantize, parallel_comp, toolchain):
+                          ('letor', False, 700), ('toy_categorical', False, 30)])
+def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_comp, toolchain):
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     annotation_path = os.path.join(tmpdir, 'annotation.json')
 
     if use_annotation:
-        dtrain = treelite.DMatrix(dataset_db[dataset].dtrain)
-        annotator = treelite.Annotator()
-        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-        annotator.save(path=annotation_path)
+        if annotation[dataset] is None:
+            pytest.skip('No training data available. Skipping annotation')
+        with open(annotation_path, 'wb') as f:
+            f.write(annotation[dataset])
 
     params = {
         'annotate_in': (annotation_path if use_annotation else 'NULL'),

@@ -4,6 +4,26 @@ set -eo pipefail
 
 source $HOME/miniconda/bin/activate
 
+if [ ${TASK} == "python_coverage_test" ]
+then
+  conda activate python3
+  conda --version
+  python --version
+
+  # Run coverage test
+  set -x
+  rm -rf build/
+  mkdir build
+  cd build
+  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON
+  make -j$(nproc)
+  cd ..
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
+  python -m pip install xgboost lightgbm codecov
+  python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
+  codecov
+fi
+
 if [ ${TASK} == "python_test" ]
 then
   conda activate python3

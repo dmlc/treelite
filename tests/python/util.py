@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions for tests"""
+import os
 from sys import platform as _platform
 from contextlib import contextmanager
 
@@ -24,7 +25,8 @@ def load_txt(filename):
 def os_compatible_toolchains():
     """Get the list of C compilers to test with the current OS"""
     if _platform == 'darwin':
-        toolchains = ['gcc']
+        gcc = os.environ.get('GCC_PATH', 'gcc')
+        toolchains = [gcc]
     elif _platform == 'win32':
         toolchains = ['msvc']
     else:

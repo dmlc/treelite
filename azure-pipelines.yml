@@ -143,7 +143,7 @@ jobs:
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
   - script: |
       choco install codecov
-      codecov
+      codecov -f .coverage
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

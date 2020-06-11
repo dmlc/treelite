@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 """Utility functions for tests"""
 import os
 from sys import platform as _platform
+from contextlib import contextmanager
+
 import numpy as np
 import treelite
 import treelite_runtime
@@ -41,6 +44,11 @@ def os_platform():
 def libname(fmt):
     """Format name for a shared library, using appropriate file extension"""
     return fmt.format(_libext())
+
+
+@contextmanager
+def does_not_raise():
+    yield
 
 
 def make_annotation(model, dtrain_path, annotation_path):

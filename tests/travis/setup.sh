@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-if [ ${TASK} == "python_test" ] || [ ${TASK} == "python_sdist_test" ]
+if [ ${TASK} == "python_test" ] || [ ${TASK} == "python_sdist_test" ] || [ ${TASK} == "python_coverage_test" ]
 then
   if [ ${TRAVIS_OS_NAME} == "osx" ]; then
     wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh

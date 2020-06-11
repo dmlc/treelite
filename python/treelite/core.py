@@ -118,9 +118,8 @@ class DMatrix():
     def __init__(self, data, data_format=None, missing=None,
                  feature_names=None, feature_types=None,
                  verbose=False, nthread=None):
-        if data is None:  # empty DMatrix
-            self.handle = None
-            return
+        if data is None:
+            raise TreeliteError('\'data\' argument cannot be None')
 
         data, feature_names, feature_types = _maybe_pandas_data(data,
                                                                 feature_names,

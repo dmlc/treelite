@@ -1,214 +1,162 @@
 # -*- coding: utf-8 -*-
 """Suite of basic tests"""
-from __future__ import print_function
-import unittest
 import sys
 import os
+import itertools
 import subprocess
 from zipfile import ZipFile
-import tempfile
-import numpy as np
+
+import pytest
 from scipy.sparse import csr_matrix
-from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite_runtime
-import pytest
-from util import load_txt, os_compatible_toolchains, os_platform, libname, \
-                 run_pipeline_test, make_annotation, assert_almost_equal
+from treelite.contrib import _libext
+from .metadata import dataset_db
+from .util import os_platform, os_compatible_toolchains, does_not_raise, check_predictor
 
-dpath = os.path.abspath(os.path.join(os.getcwd(), 'tests/examples/'))
 
-class TestBasic(unittest.TestCase):
-  def test_basic(self):
-    """
-    Test a basic workflow: load a model, compile and export as shared lib,
-    and make predictions
-    """
+@pytest.mark.parametrize('dataset,use_annotation,parallel_comp,quantize,toolchain',
+                         list(itertools.product(
+                             ['mushroom', 'dermatology'], [True, False], [None, 4], [True, False],
+                             os_compatible_toolchains())) +
+                         [('letor', False, 713, True, os_compatible_toolchains()[0]),
+                          ('toy_categorical', False, 30, True, os_compatible_toolchains()[0])])
+def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_comp, toolchain):
+    # pylint: disable=too-many-arguments
+    """Test 'ast_native' compiler"""
+
+    if dataset == 'letor' and os_platform() == 'windows':
+        pytest.xfail('export_lib() is too slow for letor on MSVC')
+
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
+    annotation_path = os.path.join(tmpdir, 'annotation.json')
+
+    if use_annotation:
+        if annotation[dataset] is None:
+            pytest.skip('No training data available. Skipping annotation')
+        with open(annotation_path, 'w') as f:
+            f.write(annotation[dataset])
+
+    params = {
+        'annotate_in': (annotation_path if use_annotation else 'NULL'),
+        'quantize': (1 if quantize else 0),
+        'parallel_comp': (parallel_comp if parallel_comp else 0)
+    }
+    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    check_predictor(predictor, dataset)
+
+
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('use_elf', [True, False])
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
+def test_failsafe_compiler(tmpdir, dataset, use_elf, toolchain):
+    """Test 'failsafe' compiler"""
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
+
+    params = {'dump_array_as_elf': (1 if use_elf else 0)}
 
     is_linux = sys.platform.startswith('linux')
+    # Expect Treelite to throw error if we try to use dump_array_as_elf on non-Linux OS
+    # Also, failsafe compiler is only available for XGBoost models
+    if ((not is_linux) and use_elf) or dataset_db[dataset].format != 'xgboost':
+        expect_raises = pytest.raises(treelite.TreeliteError)
+    else:
+        expect_raises = does_not_raise()
+    with expect_raises:
+        model.export_lib(compiler='failsafe', toolchain=toolchain, libpath=libpath, params=params,
+                         verbose=True)
+        predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+        check_predictor(predictor, dataset)
 
-    for model_path, dtrain_path, dtest_path, libname_fmt, \
-        expected_prob_path, expected_margin_path, multiclass in \
-        [('mushroom/mushroom.model', 'mushroom/agaricus.train',
-          'mushroom/agaricus.test', './agaricus{}',
-          'mushroom/agaricus.test.prob',
-          'mushroom/agaricus.test.margin', False),
-         ('dermatology/dermatology.model', 'dermatology/dermatology.train',
-          'dermatology/dermatology.test', './dermatology{}',
-          'dermatology/dermatology.test.prob',
-          'dermatology/dermatology.test.margin', True)]:
-      model_path = os.path.join(dpath, model_path)
-      model = treelite.Model.load(model_path, model_format='xgboost')
-      make_annotation(model=model, dtrain_path=dtrain_path,
-                      annotation_path='./annotation.json')
-      for use_annotation in ['./annotation.json', None]:
-        for use_quantize in [True, False]:
-          for use_parallel_comp in [None, 2]:
-            run_pipeline_test(model=model, dtest_path=dtest_path,
-                              libname_fmt=libname_fmt,
-                              expected_prob_path=expected_prob_path,
-                              expected_margin_path=expected_margin_path,
-                              multiclass=multiclass, use_annotation=use_annotation,
-                              use_quantize=use_quantize,
-                              use_parallel_comp=use_parallel_comp)
-      for use_elf in [True, False] if is_linux else [False]:
-        run_pipeline_test(model=model, dtest_path=dtest_path,
-                          libname_fmt=libname_fmt,
-                          expected_prob_path=expected_prob_path,
-                          expected_margin_path=expected_margin_path,
-                          multiclass=multiclass, use_elf=use_elf,
-                          use_compiler='failsafe')
-      if not is_linux:
-        # Expect to see an exception when using ELF in non-Linux OS
-        with pytest.raises(treelite.util.TreeliteError):
-          run_pipeline_test(model=model, dtest_path=dtest_path,
-                            libname_fmt=libname_fmt,
-                            expected_prob_path=expected_prob_path,
-                            expected_margin_path=expected_margin_path,
-                            multiclass=multiclass, use_elf=True,
-                            use_compiler='failsafe')
 
-    # LETOR
-    model_path = os.path.join(dpath, 'letor/mq2008.model')
-    model = treelite.Model.load(model_path, model_format='xgboost')
-    make_annotation(model=model, dtrain_path='letor/mq2008.train',
-                    annotation_path='./annotation.json')
-    if os_platform() != 'windows':
-      run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
-                        libname_fmt='./mq2008{}',
-                        expected_prob_path=None,
-                        expected_margin_path='letor/mq2008.test.pred',
-                        multiclass=False, use_annotation='./annotation.json',
-                        use_quantize=1, use_parallel_comp=700,
-                        use_toolchains=['msvc' if os_platform() == 'windows' else 'gcc'])
-    run_pipeline_test(model=model, dtest_path='letor/mq2008.test',
-                      libname_fmt='./mq2008{}',
-                      expected_prob_path=None,
-                      expected_margin_path='letor/mq2008.test.pred',
-                      multiclass=False, use_elf=is_linux,
-                      use_compiler='failsafe')
-
-  @pytest.mark.skipif(os_platform() == 'windows', reason='Make unavailable on Windows')
-  def test_srcpkg(self):
+@pytest.mark.skipif(os_platform() == 'windows', reason='Make unavailable on Windows')
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
+def test_srcpkg(tmpdir, dataset, toolchain):
     """Test feature to export a source tarball"""
-    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    dmat_path = os.path.join(dpath, 'mushroom/agaricus.test')
-    libpath = libname('./mushroom/mushroom{}')
-    model = treelite.Model.load(model_path, model_format='xgboost')
-
-    toolchain = os_compatible_toolchains()[0]
+    pkgpath = os.path.join(tmpdir, 'srcpkg.zip')
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     model.export_srcpkg(platform=os_platform(), toolchain=toolchain,
-                        pkgpath='./srcpkg.zip', libname=libpath,
-                        params={}, verbose=True)
-    with ZipFile('./srcpkg.zip', 'r') as zip_ref:
-      zip_ref.extractall('.')
-    subprocess.call(['make', '-C', 'mushroom'])
+                        pkgpath=pkgpath, libname=dataset_db[dataset].libname,
+                        params={'parallel_comp': 700 if dataset == 'letor' else 4}, verbose=True)
+    with ZipFile(pkgpath, 'r') as zip_ref:
+        zip_ref.extractall(tmpdir)
+    nproc = os.cpu_count()
+    subprocess.check_call(['make', '-C', dataset_db[dataset].libname, f'-j{nproc}'], cwd=tmpdir)
 
-    predictor = treelite_runtime.Predictor(libpath='./mushroom', verbose=True)
-    assert predictor.num_feature == 127
-    assert predictor.num_output_group == 1
-    assert predictor.pred_transform == 'sigmoid'
-    assert predictor.global_bias == 0.0
-    assert predictor.sigmoid_alpha == 1.0
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    check_predictor(predictor, dataset)
 
-    X, _ = load_svmlight_file(dmat_path, zero_based=True)
-    dmat = treelite.DMatrix(X)
-    batch = treelite_runtime.Batch.from_csr(dmat)
 
-    expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
-    expected_prob = load_txt(expected_prob_path)
-    out_prob = predictor.predict(batch)
-    assert_almost_equal(out_prob, expected_prob)
-
-  @pytest.mark.xfail(os_platform() == 'windows',
-                     reason='Somehow this test works locally but fails on Azure Pipelines')
-  def test_srcpkg_cmake(self):
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
+def test_srcpkg_cmake(tmpdir, dataset):  # pylint: disable=R0914
     """Test feature to export a source tarball"""
-    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    dmat_path = os.path.join(dpath, 'mushroom/agaricus.test')
-    libpath = libname('./mushroom/mushroom{}')
-    model = treelite.Model.load(model_path, model_format='xgboost')
+    pkgpath = os.path.join(tmpdir, 'srcpkg.zip')
+    model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
+    model.export_srcpkg(platform=os_platform(), toolchain='cmake',
+                        pkgpath=pkgpath, libname=dataset_db[dataset].libname,
+                        params={'parallel_comp': 700 if dataset == 'letor' else 4}, verbose=True)
+    with ZipFile(pkgpath, 'r') as zip_ref:
+        zip_ref.extractall(tmpdir)
+    build_dir = os.path.join(tmpdir, dataset_db[dataset].libname, 'build')
+    os.mkdir(build_dir)
+    nproc = os.cpu_count()
+    subprocess.check_call(['cmake', '..'], cwd=build_dir)
+    subprocess.check_call(['cmake', '--build', '.', '--config', 'Release',
+                           '--parallel', str(nproc)], cwd=build_dir)
 
-    toolchain = 'cmake'
-    model.export_srcpkg(platform=os_platform(), toolchain=toolchain,
-                        pkgpath='./srcpkg.zip', libname=libpath,
-                        params={}, verbose=True)
-    with tempfile.TemporaryDirectory(dir='.') as temp_dir:
-      with ZipFile('./srcpkg.zip', 'r') as zip_ref:
-        zip_ref.extractall(temp_dir)
-      build_dir = os.path.join(temp_dir, 'mushroom', 'build')
-      os.mkdir(build_dir)
-      subprocess.check_call(['cmake', '..'], cwd=build_dir)
-      subprocess.check_call(['cmake', '--build', '.', '--config', 'Release'], cwd=build_dir)
+    predictor = treelite_runtime.Predictor(libpath=build_dir, verbose=True)
+    check_predictor(predictor, dataset)
 
-      predictor = treelite_runtime.Predictor(libpath=build_dir, verbose=True)
-      assert predictor.num_feature == 127
-      assert predictor.num_output_group == 1
-      assert predictor.pred_transform == 'sigmoid'
-      assert predictor.global_bias == 0.0
-      assert predictor.sigmoid_alpha == 1.0
 
-      X, _ = load_svmlight_file(dmat_path, zero_based=True)
-      dmat = treelite.DMatrix(X)
-      batch = treelite_runtime.Batch.from_csr(dmat)
-
-      expected_prob_path = os.path.join(dpath, 'mushroom/agaricus.test.prob')
-      expected_prob = load_txt(expected_prob_path)
-      out_prob = predictor.predict(batch)
-      assert_almost_equal(out_prob, expected_prob)
-      del predictor
-
-  def test_deficient_matrix(self):
-    """
-    Test if Treelite correctly handles sparse matrix with fewer columns
-    than the training data used for the model. In this case, the matrix
-    should be padded with zeros.
-    """
-    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    libpath = libname('./mushroom{}')
-    model = treelite.Model.load(model_path, model_format='xgboost')
+def test_deficient_matrix(tmpdir):
+    """Test if Treelite correctly handles sparse matrix with fewer columns than the training data
+    used for the model. In this case, the matrix should be padded with zeros."""
+    libpath = os.path.join(tmpdir, dataset_db['mushroom'].libname + _libext())
+    model = treelite.Model.load(dataset_db['mushroom'].model, model_format='xgboost')
     toolchain = os_compatible_toolchains()[0]
-    model.export_lib(toolchain=toolchain, libpath=libpath,
-                     params={'quantize': 1}, verbose=True)
+    model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
+
     X = csr_matrix(([], ([], [])), shape=(3, 3))
     batch = treelite_runtime.Batch.from_csr(X)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    assert predictor.num_feature == 127
     predictor.predict(batch)  # should not crash
 
-  def test_too_wide_matrix(self):
-    """
-    Test if Treelite correctly handles sparse matrix with more columns
-    than the training data used for the model. In this case, an exception
-    should be thrown
-    """
-    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    libpath = libname('./mushroom{}')
-    model = treelite.Model.load(model_path, model_format='xgboost')
+
+def test_too_wide_matrix(tmpdir):
+    """Test if Treelite correctly handles sparse matrix with more columns than the training data
+    used for the model. In this case, an exception should be thrown"""
+    libpath = os.path.join(tmpdir, dataset_db['mushroom'].libname + _libext())
+    model = treelite.Model.load(dataset_db['mushroom'].model, model_format='xgboost')
     toolchain = os_compatible_toolchains()[0]
-    model.export_lib(toolchain=toolchain, libpath=libpath,
-                     params={'quantize': 1}, verbose=True)
+    model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
+
     X = csr_matrix(([], ([], [])), shape=(3, 1000))
     batch = treelite_runtime.Batch.from_csr(X)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    err = treelite_runtime.util.TreeliteRuntimeError
-    pytest.raises(err, predictor.predict, batch)  # should crash
+    assert predictor.num_feature == 127
+    pytest.raises(treelite_runtime.TreeliteRuntimeError, predictor.predict, batch)
 
-  def test_tree_limit_setting(self):
-    """
-    Test Model.set_tree_limit
-    """
-    model_path = os.path.join(dpath, 'mushroom/mushroom.model')
-    model = treelite.Model.load(model_path, model_format='xgboost')
-    assert(model.num_tree == 2)
-    pytest.raises(Exception, model.set_tree_limit, 0)
-    pytest.raises(Exception, model.set_tree_limit, 3)
+
+def test_set_tree_limit():
+    """Test Model.set_tree_limit"""
+    model = treelite.Model.load(dataset_db['mushroom'].model, model_format='xgboost')
+    assert model.num_tree == 2
+    pytest.raises(treelite.TreeliteError, model.set_tree_limit, 0)
+    pytest.raises(treelite.TreeliteError, model.set_tree_limit, 3)
     model.set_tree_limit(1)
-    assert(model.num_tree == 1)
+    assert model.num_tree == 1
 
-    model_path = os.path.join(dpath, 'dermatology/dermatology.model')
-    model = treelite.Model.load(model_path, model_format='xgboost')
-    assert(model.num_tree == 60)
+    model = treelite.Model.load(dataset_db['dermatology'].model, model_format='xgboost')
+    pytest.raises(treelite.TreeliteError, model.set_tree_limit, 0)
+    pytest.raises(treelite.TreeliteError, model.set_tree_limit, 200)
+    assert model.num_tree == 60
     model.set_tree_limit(30)
-    assert(model.num_tree == 30)
+    assert model.num_tree == 30
     model.set_tree_limit(10)
-    assert(model.num_tree == 10)
+    assert model.num_tree == 10

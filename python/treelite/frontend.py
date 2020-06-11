@@ -810,7 +810,7 @@ class ModelBuilder():
         value: optional
             value of the specified parameter, when params is a single string
         """
-        if isinstance(params, collections.Mapping):
+        if isinstance(params, collections.abc.Mapping):
             params = params.items()
         elif isinstance(params, (str,)) and value is not None:
             params = [(params, value)]

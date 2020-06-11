@@ -11,7 +11,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
+  - script: python -m pip install -v --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
     displayName: 'Installing pylint and cpplint...'
   - script: make lint
     displayName: 'Running pylint and cpplint...'
@@ -96,7 +96,7 @@ jobs:
       cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug
       make -j$(nproc)
     displayName: 'Building Treelite...'
-  - script: python -m pip install numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
+  - script: python -m pip install -v --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
@@ -123,8 +123,8 @@ jobs:
     displayName: 'Installing Miniconda...'
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
-      conda install --yes --quiet numpy scipy scikit-learn pandas scikit-learn
-      python -m pip install wheel setuptools xgboost lightgbm pytest pytest-cov coverage
+      conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov
+      python -m pip install -v xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -174,7 +174,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install numpy scipy pandas pytest scikit-learn xgboost lightgbm
+  - script: python -m pip install -v --upgrade pip numpy scipy pandas pytest scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -204,8 +204,8 @@ jobs:
     displayName: 'Installing Miniconda...'
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
-      conda install --yes --quiet numpy scipy scikit-learn pandas scikit-learn
-      python -m pip install wheel setuptools xgboost lightgbm pytest
+      conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest
+      python -m pip install -v xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

@@ -35,7 +35,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=OFF
+  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON
   make -j$(nproc)
   cd ..
   rm -rfv python/dist python/build

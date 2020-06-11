@@ -13,7 +13,7 @@ import org.apache.commons.logging.LogFactory;
  * :java:ref:`createTempFileFromResource` may be useful to some users, who
  * would like to bundle other files into the JAR file as well.
  *
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class NativeLibLoader {
   private static final Log logger = LogFactory.getLog(NativeLibLoader.class);

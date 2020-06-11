@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file compiler.h
  * \brief Interface of compiler that compiles a tree ensemble model
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_COMPILER_H_
 #define TREELITE_COMPILER_H_

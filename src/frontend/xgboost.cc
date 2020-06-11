@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file xgboost.cc
  * \brief Frontend for xgboost model
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 
 #include <dmlc/data.h>

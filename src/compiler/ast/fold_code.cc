@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file fold_code.h
  * \brief AST manipulation logic for code folding
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #include <cmath>
 #include <limits>

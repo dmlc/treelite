@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file ast.h
  * \brief Definition for AST classes
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_

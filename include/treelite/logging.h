@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file logging.h
  * \brief logging facility for treelite
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_LOGGING_H_
 #define TREELITE_LOGGING_H_

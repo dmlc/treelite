@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file data.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Input data structure of treelite
  */
 

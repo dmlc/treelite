@@ -2,7 +2,7 @@ package ml.dmlc.treelite4j.java;
 
 /**
  * 2D dense batch, laid out in row-major layout
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class DenseBatch {
   private float[] data;

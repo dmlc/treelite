@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018 by Contributors
  * \file code_folder_template.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief template for evaluation logic for folded code
  */
 

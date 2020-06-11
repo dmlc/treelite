@@ -2,7 +2,7 @@
 * Copyright by 2018 Contributors
 * \file thread_pool.h
 * \brief a simple thread pool implementation
-* \author Philip Cho
+* \author Hyunsu Cho
 */
 #ifndef TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_
 #define TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_

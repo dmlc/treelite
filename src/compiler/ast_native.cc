@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file ast_native.cc
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief C code generator
  */
 #include <treelite/compiler.h>

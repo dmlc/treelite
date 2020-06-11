@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 
 /**
  * Treelite Predictor
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class Predictor implements Serializable {
   private static final Log logger = LogFactory.getLog(Predictor.class);

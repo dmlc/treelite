@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file c_api_common.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief C API of treelite, used for interfacing with other languages
  *        This header is used by both the runtime and the main package
  */

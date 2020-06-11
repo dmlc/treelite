@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file model.cc
  * \brief Placeholder to register ModelParam with the DMLC parameter registry.
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 
 #include <treelite/tree.h>

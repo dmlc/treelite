@@ -5,7 +5,7 @@ import org.apache.commons.logging.LogFactory;
 
 /**
  * Treelite prediction runtime JNI functions
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 class TreeliteJNI {
   private static final Log logger = LogFactory.getLog(TreeliteJNI.class);

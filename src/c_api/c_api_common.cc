@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file c_api_common.cc
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief C API of treelite (this file is used by both runtime and main package)
  */
 

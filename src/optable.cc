@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file optable.cc
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Conversion table from string to Operator
  */
 

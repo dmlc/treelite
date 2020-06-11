@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file load_data_counts.cc
  * \brief AST manipulation logic to load data counts
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #include <cmath>
 #include "./builder.h"

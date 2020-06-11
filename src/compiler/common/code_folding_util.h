@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018 by Contributors
  * \file code_folding_util.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Utilities for code folding
  */
 #ifndef TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_

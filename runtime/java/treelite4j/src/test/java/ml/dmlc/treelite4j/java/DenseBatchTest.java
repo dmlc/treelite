@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Test cases for dense batch
  *
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class DenseBatchTest {
   @Test

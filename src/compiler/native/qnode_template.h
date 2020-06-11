@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018 by Contributors
  * \file qnode_template.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief code template for QuantizerNode
  */
 

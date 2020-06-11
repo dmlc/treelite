@@ -8,7 +8,7 @@ import javolution.io.Union;
  * A reference implementation for the :java:ref:`Data` interface. This class is used to
  * specify a single data entry. This implementation uses a C-style union so
  * as to save memory space.
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class Entry extends Union implements Data {
   /**

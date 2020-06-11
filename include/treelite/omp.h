@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file omp.h
  * \brief compatiblity wrapper for systems that don't support OpenMP
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_OMP_H_
 #define TREELITE_OMP_H_

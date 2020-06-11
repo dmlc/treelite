@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018 by Contributors
  * \file main_template.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief template for main function
  */
 

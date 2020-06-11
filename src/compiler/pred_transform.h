@@ -2,7 +2,7 @@
 * Copyright by 2017 Contributors
 * \file pred_transform.h
 * \brief tools to define prediction transform function
-* \author Philip Cho
+* \author Hyunsu Cho
 */
 #ifndef TREELITE_COMPILER_PRED_TRANSFORM_H_
 #define TREELITE_COMPILER_PRED_TRANSFORM_H_

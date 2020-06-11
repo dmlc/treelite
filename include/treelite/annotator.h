@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2017 by Contributors
  * \file annotator.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Branch annotation tools
  */
 #ifndef TREELITE_ANNOTATOR_H_

@@ -2,7 +2,7 @@
  * Copyright 2017 by Contributors
  * \file builder.cc
  * \brief model builder frontend
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 
 #include <dmlc/registry.h>

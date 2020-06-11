@@ -28,7 +28,7 @@ _dataset_db = {
     'sparse_categorical': Dataset(model='sparse_categorical_model.txt', format='lightgbm',
                                   dtrain=None, dtest='sparse_categorical.test', libname='sparsecat',
                                   expected_prob=None,
-                                  expected_margin='sparse_categorical.test.pred',
+                                  expected_margin='sparse_categorical.test.margin',
                                   is_multiclass=False)
 }
 

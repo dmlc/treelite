@@ -1,5 +1,5 @@
 /*!
- *  Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file c_api_error.h
  * \author Hyunsu Cho
  * \brief Error handling for C API.

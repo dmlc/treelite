@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017-2020 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file lightgbm.cc
  * \brief Frontend for LightGBM model
  * \author Hyunsu Cho

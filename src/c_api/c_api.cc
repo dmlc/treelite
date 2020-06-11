@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file c_api.cc
  * \author Hyunsu Cho
  * \brief C API of treelite, used for interfacing with other languages

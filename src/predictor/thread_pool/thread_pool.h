@@ -1,5 +1,5 @@
 /*!
-* Copyright by 2018 Contributors
+* Copyright (c) 2018-2020 by Contributors
 * \file thread_pool.h
 * \brief a simple thread pool implementation
 * \author Hyunsu Cho

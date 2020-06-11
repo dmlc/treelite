@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file predictor.cc
  * \author Hyunsu Cho
  * \brief Load prediction function exported as a shared library

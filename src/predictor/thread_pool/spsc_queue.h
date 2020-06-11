@@ -1,5 +1,5 @@
 /*!
-* Copyright by 2018 Contributors
+* Copyright (c) 2018-2020 by Contributors
 * \file spsc_queue.h
 * \brief Lock-free single-producer-single-consumer queue
 * \author Yida Wang, Hyunsu Cho

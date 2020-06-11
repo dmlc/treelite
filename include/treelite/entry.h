@@ -1,5 +1,5 @@
 /*!
- *  Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file entry.h
  * \author Hyunsu Cho
  * \brief Entry type for Treelite predictor

@@ -1,5 +1,5 @@
 /*!
- * Copyright 2019 by Contributors
+ * Copyright (c) 2019-2020 by Contributors
  * \file dump.cc
  * \brief Generate text representation of AST
  */

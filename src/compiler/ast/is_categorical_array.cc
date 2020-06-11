@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file is_categorical_array.cc
  * \brief AST manipulation logic to determine whether each feature is categorical or not
  * \author Hyunsu Cho

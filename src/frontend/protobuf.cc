@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017-2020 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file protobuf.cc
  * \brief Frontend for Protobuf model
  * \author Hyunsu Cho

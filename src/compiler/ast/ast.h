@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file ast.h
  * \brief Definition for AST classes
  * \author Hyunsu Cho

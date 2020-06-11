@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file optable.cc
  * \author Hyunsu Cho
  * \brief Conversion table from string to Operator

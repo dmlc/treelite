@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file base.h
  * \brief defines configuration macros of Treelite
  * \author Hyunsu Cho

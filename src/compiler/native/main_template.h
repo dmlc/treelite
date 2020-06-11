@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018 by Contributors
+ * Copyright (c) 2018-2020 by Contributors
  * \file main_template.h
  * \author Hyunsu Cho
  * \brief template for main function

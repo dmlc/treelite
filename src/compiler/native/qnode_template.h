@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018 by Contributors
+ * Copyright (c) 2018-2020 by Contributors
  * \file qnode_template.h
  * \author Hyunsu Cho
  * \brief code template for QuantizerNode

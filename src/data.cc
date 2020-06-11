@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file data.h
  * \author Hyunsu Cho
  * \brief Input data structure of treelite

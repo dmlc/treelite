@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file compiler.h
  * \brief Interface of compiler that compiles a tree ensemble model
  * \author Hyunsu Cho

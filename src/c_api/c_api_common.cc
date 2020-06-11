@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file c_api_common.cc
  * \author Hyunsu Cho
  * \brief C API of treelite (this file is used by both runtime and main package)

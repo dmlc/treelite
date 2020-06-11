@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file load_data_counts.cc
  * \brief AST manipulation logic to load data counts
  * \author Hyunsu Cho

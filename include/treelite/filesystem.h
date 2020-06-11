@@ -1,5 +1,5 @@
 /*!
- *  Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020 by Contributors
  * \file filesystem.h
  * \author Hyunsu Cho
  * \brief Cross-platform wrapper for common filesystem functions

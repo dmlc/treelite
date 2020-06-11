@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018 by Contributors
+ * Copyright (c) 2018-2020 by Contributors
  * \file code_folding_util.h
  * \author Hyunsu Cho
  * \brief Utilities for code folding

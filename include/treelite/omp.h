@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file omp.h
  * \brief compatiblity wrapper for systems that don't support OpenMP
  * \author Hyunsu Cho

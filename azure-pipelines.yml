@@ -121,7 +121,7 @@ jobs:
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
-      python -m pip install xgboost lightgbm
+      python -m pip install xgboost lightgbm codecov
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -137,13 +137,13 @@ jobs:
   - script: |
       call activate
       mkdir temp
-      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" --cov=treelite --cov=treelite_runtime -v --fulltrace tests\python
+      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" --cov=treelite --cov=treelite_runtime --cov-report xml -v --fulltrace tests\python
     displayName: 'Running Python tests...'
     env:
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
   - script: |
-      choco install codecov
-      codecov -f .coverage
+      call activate
+      python -m codecov -f coverage.xml
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

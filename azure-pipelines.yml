@@ -11,7 +11,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install -v --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
+  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
     displayName: 'Installing pylint and cpplint...'
   - script: make lint
     displayName: 'Running pylint and cpplint...'
@@ -45,7 +45,7 @@ jobs:
     displayName: 'Add conda to PATH'
   - script: |
       call activate
-      conda install numpy scipy scikit-learn pandas
+      conda install --yes --quiet numpy scipy scikit-learn pandas
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -93,7 +93,7 @@ jobs:
       cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug
       make -j$(nproc)
     displayName: 'Building Treelite...'
-  - script: python -m pip install -v --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
+  - script: python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
@@ -117,11 +117,11 @@ jobs:
     displayName: 'Add conda to PATH'
   - script: |
       call activate
-      conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov
+      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
-      python -m pip install -v xgboost lightgbm
+      python -m pip install xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -171,7 +171,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install -v --upgrade pip numpy scipy pandas pytest scikit-learn xgboost lightgbm
+  - script: python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -197,11 +197,11 @@ jobs:
     displayName: 'Add conda to PATH'
   - script: |
       call activate
-      conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest
+      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
-      python -m pip install -v xgboost lightgbm
+      python -m pip install xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

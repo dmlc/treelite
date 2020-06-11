@@ -129,7 +129,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 2019" -A x64 -DENABLE_PROTOBUF=ON
+      cmake .. -G"Visual Studio 16 2019" -A x64 -DENABLE_PROTOBUF=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:

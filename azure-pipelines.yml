@@ -124,6 +124,9 @@ jobs:
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
       conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov
+    displayName: 'Setting up Python environment...'
+  - script: |
+      call $(Agent.BuildDirectory)\CONDA\Scripts\activate
       python -m pip install -v xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
@@ -205,6 +208,9 @@ jobs:
   - script: |
       call $(Agent.BuildDirectory)\CONDA\Scripts\activate
       conda install --yes -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest
+    displayName: 'Setting up Python environment...'
+  - script: |
+      call $(Agent.BuildDirectory)\CONDA\Scripts\activate
       python -m pip install -v xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0

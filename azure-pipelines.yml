@@ -145,7 +145,7 @@ jobs:
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests\python
     displayName: 'Running Python tests...'
     env:
-      PYTHONPATH: .\python:.\runtime\python
+      PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:

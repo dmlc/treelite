@@ -8,8 +8,9 @@ from .metadata import dataset_db
 
 
 @pytest.fixture(scope='session')
-def annotation():
+def annotation(tmp_path_factory):
     """Pre-computed branch annotation information for example datasets"""
+    tmpdir = tmp_path_factory.mktemp('annotation')
     def compute_annotation(dataset):
         model = treelite.Model.load(dataset_db[dataset].model,
                                     model_format=dataset_db[dataset].format)
@@ -18,9 +19,9 @@ def annotation():
         dtrain = treelite.DMatrix(dataset_db[dataset].dtrain)
         annotator = treelite.Annotator()
         annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-        with tempfile.NamedTemporaryFile() as tmpfile:
-            annotator.save(tmpfile.name)
-            tmpfile.seek(0)
-            return tmpfile.read()
+        annotation_path = str(tmpdir / f'{dataset}.json')
+        annotator.save(annotation_path)
+        with open(annotation_path, 'r') as f:
+            return f.read()
     annotation_db = {k: compute_annotation(k) for k in dataset_db}
     return annotation_db

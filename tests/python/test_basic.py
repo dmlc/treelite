@@ -31,7 +31,7 @@ def test_basic(tmpdir, annotation, dataset, use_annotation, quantize, parallel_c
     if use_annotation:
         if annotation[dataset] is None:
             pytest.skip('No training data available. Skipping annotation')
-        with open(annotation_path, 'wb') as f:
+        with open(annotation_path, 'w') as f:
             f.write(annotation[dataset])
 
     params = {

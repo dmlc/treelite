@@ -25,7 +25,7 @@ def test_code_folding(tmpdir, annotation, dataset, toolchain, code_folding_facto
     if annotation[dataset] is None:
         annotation_path = None
     else:
-        with open(annotation_path, 'wb') as f:
+        with open(annotation_path, 'w') as f:
             f.write(annotation[dataset])
 
     params = {

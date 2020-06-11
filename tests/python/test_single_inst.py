@@ -25,7 +25,7 @@ def test_single_inst(tmpdir, annotation, dataset, toolchain):
     if annotation[dataset] is None:
         annotation_path = None
     else:
-        with open(annotation_path, 'wb') as f:
+        with open(annotation_path, 'w') as f:
             f.write(annotation[dataset])
 
     params = {

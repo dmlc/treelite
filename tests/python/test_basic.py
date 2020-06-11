@@ -4,45 +4,25 @@ import sys
 import os
 import subprocess
 from zipfile import ZipFile
-import tempfile
 
 import pytest
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.datasets import load_svmlight_file
 import treelite
 import treelite_runtime
 from treelite.contrib import _libext
-from .util import os_platform, os_compatible_toolchains, load_txt, does_not_raise
+from .util import os_platform, os_compatible_toolchains, does_not_raise, check_predictor
 from .metadata import dataset_db
 
 
-def check_predictor(predictor, dataset):
-    dtest = treelite.DMatrix(dataset_db[dataset].dtest)
-    batch = treelite_runtime.Batch.from_csr(dtest)
-
-    expected_margin = load_txt(dataset_db[dataset].expected_margin)
-    if dataset_db[dataset].is_multiclass:
-        expected_margin = expected_margin.reshape((dtest.shape[0], -1))
-    out_margin = predictor.predict(batch, pred_margin=True)
-    np.testing.assert_almost_equal(out_margin, expected_margin, decimal=5)
-
-    if dataset_db[dataset].expected_prob is not None:
-        expected_prob = load_txt(dataset_db[dataset].expected_prob)
-        if dataset_db[dataset].is_multiclass:
-            expected_prob = expected_prob.reshape((dtest.shape[0], -1))
-        out_prob = predictor.predict(batch)
-        np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
-
-
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('quantize', [True, False])
 @pytest.mark.parametrize('dataset,use_annotation,parallel_comp',
                          [('mushroom', True, None), ('mushroom', True, 4),
                           ('mushroom', False, None), ('mushroom', False, 4),
                           ('dermatology', True, None), ('dermatology', True, 4),
                           ('dermatology', False, None), ('dermatology', False, 4),
                           ('letor', False, 700)])
-@pytest.mark.parametrize('quantize', [True, False])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_basic(tmpdir, dataset, use_annotation, quantize, parallel_comp, toolchain):
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format='xgboost')
@@ -64,9 +44,9 @@ def test_basic(tmpdir, dataset, use_annotation, quantize, parallel_comp, toolcha
     check_predictor(predictor, dataset)
 
 
-@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
-@pytest.mark.parametrize('use_elf', [True, False])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('use_elf', [True, False])
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 def test_failsafe_compiler(tmpdir, dataset, use_elf, toolchain):
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
@@ -88,8 +68,8 @@ def test_failsafe_compiler(tmpdir, dataset, use_elf, toolchain):
 
 
 @pytest.mark.skipif(os_platform() == 'windows', reason='Make unavailable on Windows')
-@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 def test_srcpkg(tmpdir, dataset, toolchain):
     """Test feature to export a source tarball"""
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

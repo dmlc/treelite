@@ -8,6 +8,7 @@ import numpy as np
 import treelite
 import treelite_runtime
 from treelite.contrib import _libext
+from .metadata import dataset_db
 
 
 def load_txt(filename):
@@ -153,3 +154,21 @@ def run_pipeline_test(model, dtest_path, libname_fmt,
             assert_almost_equal(out_prob, expected_prob)
         out_margin = predictor.predict(batch, pred_margin=True)
         assert_almost_equal(out_margin, expected_margin)
+
+
+def check_predictor(predictor, dataset):
+    dtest = treelite.DMatrix(dataset_db[dataset].dtest)
+    batch = treelite_runtime.Batch.from_csr(dtest)
+
+    expected_margin = load_txt(dataset_db[dataset].expected_margin)
+    if dataset_db[dataset].is_multiclass:
+        expected_margin = expected_margin.reshape((dtest.shape[0], -1))
+    out_margin = predictor.predict(batch, pred_margin=True)
+    np.testing.assert_almost_equal(out_margin, expected_margin, decimal=5)
+
+    if dataset_db[dataset].expected_prob is not None:
+        expected_prob = load_txt(dataset_db[dataset].expected_prob)
+        if dataset_db[dataset].is_multiclass:
+            expected_prob = expected_prob.reshape((dtest.shape[0], -1))
+        out_prob = predictor.predict(batch)
+        np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)

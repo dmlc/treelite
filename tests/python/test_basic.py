@@ -74,11 +74,12 @@ def test_failsafe_compiler(tmpdir, dataset, use_elf, toolchain):
 @pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 def test_srcpkg(tmpdir, dataset, toolchain):
     """Test feature to export a source tarball"""
+    pkgpath = os.path.join(tmpdir, 'srcpkg.zip')
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     model.export_srcpkg(platform=os_platform(), toolchain=toolchain,
-                        pkgpath='./srcpkg.zip', libname=dataset_db[dataset].libname,
+                        pkgpath=pkgpath, libname=dataset_db[dataset].libname,
                         params={'parallel_comp': 700 if dataset == 'letor' else 4}, verbose=True)
-    with ZipFile('./srcpkg.zip', 'r') as zip_ref:
+    with ZipFile(pkgpath, 'r') as zip_ref:
         zip_ref.extractall(tmpdir)
     nproc = os.cpu_count()
     subprocess.check_call(['make', '-C', dataset_db[dataset].libname, f'-j{nproc}'], cwd=tmpdir)
@@ -93,11 +94,12 @@ def test_srcpkg(tmpdir, dataset, toolchain):
 @pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical'])
 def test_srcpkg_cmake(tmpdir, dataset):  # pylint: disable=R0914
     """Test feature to export a source tarball"""
+    pkgpath = os.path.join(tmpdir, 'srcpkg.zip')
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     model.export_srcpkg(platform=os_platform(), toolchain='cmake',
-                        pkgpath='./srcpkg.zip', libname=dataset_db[dataset].libname,
+                        pkgpath=pkgpath, libname=dataset_db[dataset].libname,
                         params={'parallel_comp': 700 if dataset == 'letor' else 4}, verbose=True)
-    with ZipFile('./srcpkg.zip', 'r') as zip_ref:
+    with ZipFile(pkgpath, 'r') as zip_ref:
         zip_ref.extractall(tmpdir)
     build_dir = os.path.join(tmpdir, dataset_db[dataset].libname, 'build')
     os.mkdir(build_dir)

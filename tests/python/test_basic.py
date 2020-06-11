@@ -10,8 +10,8 @@ from scipy.sparse import csr_matrix
 import treelite
 import treelite_runtime
 from treelite.contrib import _libext
-from .util import os_platform, os_compatible_toolchains, does_not_raise, check_predictor
 from .metadata import dataset_db
+from .util import os_platform, os_compatible_toolchains, does_not_raise, check_predictor
 
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())

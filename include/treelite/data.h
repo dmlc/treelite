@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file data.h
  * \author Hyunsu Cho
- * \brief Input data structure of treelite
+ * \brief Input data structure of Treelite
  */
 #ifndef TREELITE_DATA_H_
 #define TREELITE_DATA_H_

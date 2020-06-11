@@ -2,12 +2,9 @@
  * Copyright (c) 2017 by Contributors
  * \file c_api_common.h
  * \author Hyunsu Cho
- * \brief C API of treelite, used for interfacing with other languages
+ * \brief C API of Treelite, used for interfacing with other languages
  *        This header is used by both the runtime and the main package
  */
-
-/* Note: Make sure to use slash-asterisk form of comments in this file
- * (like this one). Do not use double-slash (//). */
 
 #ifndef TREELITE_C_API_COMMON_H_
 #define TREELITE_C_API_COMMON_H_

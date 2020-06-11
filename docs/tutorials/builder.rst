@@ -1,7 +1,7 @@
 Specifying models using model builder
 =====================================
 
-Since the scope of treelite is limited to **prediction** only, one must use
+Since the scope of Treelite is limited to **prediction** only, one must use
 other machine learning packages to **train** decision tree ensemble models. In
 this document, we will show how to import an ensemble model that had been
 trained elsewhere.
@@ -289,7 +289,7 @@ a :py:class:`~treelite.Model` object:
 .. note:: Difference between :py:class:`~treelite.ModelBuilder` and
   :py:class:`~treelite.Model` objects
 
-  Why does treelite require one last step of "committing"? All
+  Why does Treelite require one last step of "committing"? All
   :py:class:`~treelite.Model` objects are **immutable**; once constructed,
   they cannot be modified at all. So you won't be able to add a tree or a node
   to an existing :py:class:`~treelite.Model` object, for instance. On the other
@@ -472,12 +472,12 @@ Explanations:
 
 .. note:: Scikit-learn and missing data
 
-  Scikit-learn handles missing data differently than XGBoost and treelite.
+  Scikit-learn handles missing data differently than XGBoost and Treelite.
   Before training an ensemble model, you'll have to `impute
   <http://scikit-learn.org/stable/modules/preprocessing.html#imputation>`_
   missing values. For this reason, test nodes in scikit-learn tree models will
   contain no "default direction." We will assign ``default_left=True``
-  arbitrarily for test nodes to keep treelite happy.
+  arbitrarily for test nodes to keep Treelite happy.
 
 **The function process_leaf_node()** defines a leaf node:
 
@@ -507,12 +507,12 @@ gradient boosted trees by the value of ``random_forest`` flag in the
 
 .. note:: Set ``init='zero'`` to ensure compatibility
 
-  To make sure that the gradient boosted model is compatible with treelite,
+  To make sure that the gradient boosted model is compatible with Treelite,
   make sure to set ``init='zero'`` in the
   :py:class:`~sklearn.ensemble.GradientBoostingRegressor` constructor. This
   ensures that the compiled prediction subroutine will produce the correct
   prediction output. **Gradient boosting models trained without specifying**
-  ``init='zero'`` **in the constructor are NOT supported by treelite!**
+  ``init='zero'`` **in the constructor are NOT supported by Treelite!**
 
 .. code-block:: python
 
@@ -542,7 +542,7 @@ Let's test it:
 
 .. code-block:: python
 
-  # Convert to treelite model
+  # Convert to Treelite model
   model = process_model(clf)
   # Generate shared library
   model.export_lib(libpath='./libtest2.dylib', toolchain='gcc', verbose=True)
@@ -641,7 +641,7 @@ This fraction then becomes the leaf output. This way, leaf nodes now produce
 single numbers rather than frequency count arrays.
 
 Why did we have to compute a fraction? **For binary classification,
-treelite expects each tree to produce a single number output.** At prediction
+Treelite expects each tree to produce a single number output.** At prediction
 time, the outputs from the member trees will get **averaged** to produce the
 final prediction, which is also a single number. By setting the positive
 fraction as the leaf output, we ensure that the final prediction is a proper
@@ -748,12 +748,12 @@ and 1's as the positive.
 
 .. note:: Set ``init='zero'`` to ensure compatibility
 
-  To make sure that the gradient boosted model is compatible with treelite,
+  To make sure that the gradient boosted model is compatible with Treelite,
   make sure to set ``init='zero'`` in the
   :py:class:`~sklearn.ensemble.GradientBoostingClassifier` constructor. This
   ensures that the compiled prediction subroutine will produce the correct
   prediction output. **Gradient boosting models trained without specifying**
-  ``init='zero'`` **in the constructor are NOT supported by treelite!**
+  ``init='zero'`` **in the constructor are NOT supported by Treelite!**
 
 Here are the functions ``process_model()`` and ``process_leaf_node()`` for this
 scenario:
@@ -835,12 +835,12 @@ again, this time with 4 classes (i.e. 0's, 1's, 2's, and 3's).
 
 .. note:: Set ``init='zero'`` to ensure compatibility
 
-  To make sure that the gradient boosted model is compatible with treelite,
+  To make sure that the gradient boosted model is compatible with Treelite,
   make sure to set ``init='zero'`` in the
   :py:class:`~sklearn.ensemble.GradientBoostingClassifier` constructor. This
   ensures that the compiled prediction subroutine will produce the correct
   prediction output. **Gradient boosting models trained without specifying**
-  ``init='zero'`` **in the constructor are NOT supported by treelite!**
+  ``init='zero'`` **in the constructor are NOT supported by Treelite!**
 
 Here are the functions ``process_model()`` and ``process_leaf_node()`` for this
 scenario:

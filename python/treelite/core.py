@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Core treelite library."""
+"""Core Treelite library."""
 from __future__ import absolute_import as _abs
 
 import sys
@@ -14,7 +14,7 @@ from .libpath import find_lib_path, TreeliteLibraryNotFound
 
 
 def _load_lib():
-    """Load treelite Library."""
+    """Load Treelite Library."""
     lib_path = find_lib_path()
     lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
@@ -24,7 +24,7 @@ def _load_lib():
     return lib
 
 
-# load the treelite library globally
+# load the Treelite library globally
 # (do not load if called by sphinx)
 if 'sphinx' in sys.modules:
     try:
@@ -89,7 +89,7 @@ def _maybe_pandas_data(data, feature_names, feature_types):
 
 
 class DMatrix():
-    """Data matrix used in treelite.
+    """Data matrix used in Treelite.
 
     Parameters
     ----------

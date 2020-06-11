@@ -1,5 +1,5 @@
 # coding: utf-8
-"""Frontend collection for treelite"""
+"""Frontend collection for Treelite"""
 from __future__ import absolute_import as _abs
 import ctypes
 import collections

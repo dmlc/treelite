@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-treelite documentation build configuration file, created by
+Treelite documentation build configuration file, created by
 sphinx-quickstart on Wed Sep  6 14:38:46 2017.
 
 This file is execfile()d with the current directory set to its
@@ -114,11 +114,11 @@ git_tag = str(git.tag('-l', '--points-at', 'HEAD')).rstrip('\n')
 git_commit = str(git('rev-parse', '--short', 'HEAD')).rstrip('\n')
 if git_tag:   # tag exists
   intro_landing_release = 'You are currently browsing the documentation of ' +\
-                          'a stable version of treelite: **{}**.'.format(git_tag)
+                          'a stable version of Treelite: **{}**.'.format(git_tag)
   nav_ver = git_tag
 else:         # tag does not exist; part of "latest"
   intro_landing_release = 'You are currently browsing the documentation of ' +\
-                          'a development version of treelite: '+\
+                          'a development version of Treelite: '+\
                           'commit **{}**.'.format(git_commit)
   nav_ver = 'dev, commit {}'.format(git_commit)
 
@@ -237,7 +237,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'treelite.tex', 'treelite Documentation',
+    (master_doc, 'treelite.tex', 'Treelite Documentation',
      'Hyunsu Cho, Mu Li', 'manual'),
 ]
 
@@ -247,7 +247,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'treelite', 'treelite Documentation',
+    (master_doc, 'treelite', 'Treelite Documentation',
      [author], 1)
 ]
 
@@ -258,7 +258,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'treelite', 'treelite Documentation',
+    (master_doc, 'treelite', 'Treelite Documentation',
      author, 'treelite', 'One line description of project.',
      'Miscellaneous'),
 ]

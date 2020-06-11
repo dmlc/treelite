@@ -4,7 +4,7 @@
 Benchmark
 =========
 
-The following figure shows the prediction throughput of treelite and XGBoost,
+The following figure shows the prediction throughput of Treelite and XGBoost,
 measured with various batch sizes.
 
 .. plot:: _static/benchmark_plot.py
@@ -41,7 +41,7 @@ consists of the following components:
 
 **Methods**. For each datasets, we trained a 1600-tree ensemble using XGBoost.
 Then we made predictions on batches of various sizes that were sampled randomly
-from the training data. After running predictions using treelite and XGBoost
+from the training data. After running predictions using Treelite and XGBoost
 (latter with :py:meth:`xgboost.Booster.predict`), we measured throughput as
 the number of lines predicted per second.
 

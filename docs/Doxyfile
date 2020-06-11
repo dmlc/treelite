@@ -1,4 +1,4 @@
-PROJECT_NAME     = "treelite"
+PROJECT_NAME     = "Treelite"
 XML_OUTPUT       = doxyxml
 GENERATE_LATEX   = NO
 GENERATE_MAN     = NO

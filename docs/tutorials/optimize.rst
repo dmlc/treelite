@@ -315,7 +315,7 @@ integer comparisons outweights the overhead costs.
 
 Mechanism for mapping features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When ``quantize`` option is enabled, treelite will collect all thresholds
+When ``quantize`` option is enabled, Treelite will collect all thresholds
 occuring in the tree ensemble model. For each feature, one list will be
 generated that lists the thresholds in ascending order:
 

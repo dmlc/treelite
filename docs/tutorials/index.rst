@@ -2,7 +2,7 @@
 Tutorials
 =========
 
-This page lists tutorials about treelite.
+This page lists tutorials about Treelite.
 
 .. toctree::
  :maxdepth: 1

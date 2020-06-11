@@ -1,5 +1,5 @@
 def process_model(sklearn_model):
-  # Initialize treelite model builder
+  # Initialize Treelite model builder
   # Set random_forest=True for random forests
   builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
                                   random_forest=True)

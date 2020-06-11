@@ -2,7 +2,7 @@
  * Copyright (c) 2017 by Contributors
  * \file c_api.h
  * \author Hyunsu Cho
- * \brief C API of treelite, used for interfacing with other languages
+ * \brief C API of Treelite, used for interfacing with other languages
  *        This header is excluded from the runtime
  */
 

@@ -10,18 +10,18 @@ import treelite_runtime
 from treelite.util import has_sklearn
 from treelite.contrib import _libext
 from .metadata import dataset_db
-from .util import os_platform, os_compatible_toolchains, check_predictor
+from .util import os_compatible_toolchains, check_predictor
 
 if has_sklearn():
     from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
         RandomForestRegressor, GradientBoostingRegressor
     from sklearn.datasets import load_iris, load_breast_cancer, load_boston
 else:
-    class RandomForestClassifier:
+    class RandomForestClassifier:  # pylint: disable=missing-class-docstring, R0903
         pass
 
 
-    class GradientBoostingClassifier:
+    class GradientBoostingClassifier:  # pylint: disable=missing-class-docstring, R0903
         pass
 
 
@@ -117,6 +117,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, GradientBoostingClassifier])
 def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
+    # pylint: disable=too-many-locals
     """Convert scikit-learn multi-class classifier"""
     X, y = load_iris(return_X_y=True)
     kwargs = {}
@@ -157,6 +158,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, GradientBoostingClassifier])
 def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
+    # pylint: disable=too-many-locals
     """Convert scikit-learn binary classifier"""
     X, y = load_breast_cancer(return_X_y=True)
     kwargs = {}
@@ -195,7 +197,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestRegressor, GradientBoostingRegressor])
-def test_skl_converter_regressor(tmpdir, clazz, toolchain):
+def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
     X, y = load_boston(return_X_y=True)
     kwargs = {}

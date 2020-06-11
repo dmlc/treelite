@@ -7,7 +7,7 @@ import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from .metadata import dataset_db
-from .util import os_compatible_toolchains, os_platform, check_predictor
+from .util import os_compatible_toolchains, check_predictor
 
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())

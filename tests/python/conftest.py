@@ -9,6 +9,7 @@ from .metadata import dataset_db
 
 @pytest.fixture(scope='session')
 def annotation():
+    """Pre-computed branch annotation information for example datasets"""
     def compute_annotation(dataset):
         model = treelite.Model.load(dataset_db[dataset].model,
                                     model_format=dataset_db[dataset].format)

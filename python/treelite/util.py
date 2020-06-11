@@ -28,6 +28,7 @@ def py_str(string):
     """Convert C string back to Python string"""
     return string.decode('utf-8')
 
+
 @ctypes.CFUNCTYPE(None, ctypes.c_char_p)
 def _log_callback(msg: bytes) -> None:
     """Redirect logs from native library into Python console"""
@@ -45,8 +46,9 @@ def log_info(filename, linenum, msg):
 
 
 def has_sklearn():
+    """Check whether scikit-learn is available"""
     try:
-        import sklearn
+        import sklearn  # pylint: disable=unused-import
         return True
     except ImportError:
         return False

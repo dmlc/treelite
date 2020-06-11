@@ -21,7 +21,7 @@ except ImportError:
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_boston(tmpdir, toolchain):
+def test_xgb_boston(tmpdir, toolchain):  # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     from sklearn.datasets import load_boston
     from sklearn.model_selection import train_test_split
@@ -39,7 +39,7 @@ def test_xgb_boston(tmpdir, toolchain):
     assert model.num_feature == dtrain.num_col()
     assert model.num_output_group == 1
     assert model.num_tree == num_round
-    libpath = os.path.join(tmpdir, f'boston' + _libext())
+    libpath = os.path.join(tmpdir, 'boston' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'parallel_comp': model.num_tree},
                      verbose=True)
 
@@ -57,7 +57,7 @@ def test_xgb_boston(tmpdir, toolchain):
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_iris(tmpdir, toolchain):
+def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
     """Test Iris data (multi-class classification)"""
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
@@ -77,7 +77,7 @@ def test_xgb_iris(tmpdir, toolchain):
     assert model.num_feature == dtrain.num_col()
     assert model.num_output_group == num_class
     assert model.num_tree == num_round * num_class
-    libpath = os.path.join(tmpdir, f'boston' + _libext())
+    libpath = os.path.join(tmpdir, 'iris' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
@@ -97,6 +97,7 @@ def test_xgb_iris(tmpdir, toolchain):
                          [('binary:logistic', 2, 0), ('count:poisson', 4, math.log(0.5))],
                          ids=['binary:logistic', 'count:poisson'])
 def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchain):
+    # pylint: disable=too-many-locals
     """Test non-linear objectives with dummy data"""
     np.random.seed(0)
     nrow = 16

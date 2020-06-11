@@ -16,6 +16,7 @@ from .util import os_compatible_toolchains, check_predictor_output
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('dataset', ['mushroom', 'dermatology', 'toy_categorical'])
 def test_single_inst(tmpdir, annotation, dataset, toolchain):
+    # pylint: disable=too-many-locals
     """Run end-to-end test"""
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

@@ -22,6 +22,7 @@ except ImportError:
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
 def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
+    # pylint: disable=too-many-locals
     """Test a multi-class classifier"""
     model_path = os.path.join(tmpdir, 'iris_lightgbm.txt')
 
@@ -52,6 +53,7 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('objective', ['binary', 'xentlambda', 'xentropy'])
 def test_lightgbm_binary_classification(tmpdir, objective, toolchain):
+    # pylint: disable=too-many-locals
     """Test a binary classifier"""
     dataset = 'mushroom'
     model_path = os.path.join(tmpdir, 'mushroom_lightgbm.txt')

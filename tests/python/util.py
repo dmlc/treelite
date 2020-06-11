@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Utility functions for tests"""
-import os
 from sys import platform as _platform
 from contextlib import contextmanager
 
@@ -49,10 +48,12 @@ def libname(fmt):
 
 @contextmanager
 def does_not_raise():
+    """Placeholder to indicate that a section of code is not expected to raise any exception"""
     yield
 
 
 def check_predictor(predictor, dataset):
+    """Check whether a predictor produces correct predictions for a given dataset"""
     dtest = treelite.DMatrix(dataset_db[dataset].dtest)
     batch = treelite_runtime.Batch.from_csr(dtest)
     out_margin = predictor.predict(batch, pred_margin=True)
@@ -61,6 +62,7 @@ def check_predictor(predictor, dataset):
 
 
 def check_predictor_output(dataset, shape, out_margin, out_prob):
+    """Check whether a predictor produces correct predictions"""
     expected_margin = load_txt(dataset_db[dataset].expected_margin)
     if dataset_db[dataset].is_multiclass:
         expected_margin = expected_margin.reshape((shape[0], -1))

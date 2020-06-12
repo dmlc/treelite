@@ -9,5 +9,5 @@ API of Treelite Python package.
 
 ------------
 
-.. automodule:: treelite.gallery.sklearn
+.. automodule:: treelite.sklearn
    :members:

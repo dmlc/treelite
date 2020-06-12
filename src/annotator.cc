@@ -20,33 +20,30 @@ union Entry {
 
 void Traverse_(const treelite::Tree& tree, const Entry* data,
                int nid, size_t* out_counts) {
-  const treelite::Tree::Node& node = tree[nid];
-
   ++out_counts[nid];
-  if (!node.is_leaf()) {
-    const unsigned split_index = node.split_index();
+  if (!tree.IsLeaf(nid)) {
+    const unsigned split_index = tree.SplitIndex(nid);
 
     if (data[split_index].missing == -1) {
-      Traverse_(tree, data, node.cdefault(), out_counts);
+      Traverse_(tree, data, tree.DefaultChild(nid), out_counts);
     } else {
       bool result = true;
-      if (node.split_type() == treelite::SplitFeatureType::kNumerical) {
-        const treelite::tl_float threshold = node.threshold();
-        const treelite::Operator op = node.comparison_op();
-        const treelite::tl_float fvalue
-          = static_cast<treelite::tl_float>(data[split_index].fvalue);
+      if (tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical) {
+        const treelite::tl_float threshold = tree.Threshold(nid);
+        const treelite::Operator op = tree.ComparisonOp(nid);
+        const auto fvalue = static_cast<treelite::tl_float>(data[split_index].fvalue);
         result = treelite::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
-        const uint32_t fvalue2 = static_cast<uint32_t>(fvalue);
-        const auto left_categories = node.left_categories();
+        const auto left_categories = tree.LeftCategories(nid);
         result = (std::binary_search(left_categories.begin(),
-                                     left_categories.end(), fvalue));
+                                     left_categories.end(),
+                                     static_cast<uint32_t>(fvalue)));
       }
       if (result) {  // left child
-        Traverse_(tree, data, node.cleft(), out_counts);
+        Traverse_(tree, data, tree.LeftChild(nid), out_counts);
       } else {  // right child
-        Traverse_(tree, data, node.cright(), out_counts);
+        Traverse_(tree, data, tree.RightChild(nid), out_counts);
       }
     }
   }
@@ -65,8 +62,8 @@ inline void ComputeBranchLoop(const treelite::Model& model,
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
-  const int64_t rbegin_i = static_cast<int64_t>(rbegin);
-  const int64_t rend_i = static_cast<int64_t>(rend);
+  const auto rbegin_i = static_cast<int64_t>(rbegin);
+  const auto rend_i = static_cast<int64_t>(rend);
   #pragma omp parallel for schedule(static) num_threads(nthread)
   for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
     const int tid = omp_get_thread_num();
@@ -94,7 +91,7 @@ namespace treelite {
 void
 BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
                           int nthread, int verbose) {
-  std::vector<size_t> counts;
+  std::vector<size_t> new_counts;
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
   count_row_ptr = {0};
@@ -104,7 +101,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   for (const Tree& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);
   }
-  counts.resize(count_row_ptr[ntree], 0);
+  new_counts.resize(count_row_ptr[ntree], 0);
   counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
 
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
@@ -123,14 +120,14 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   for (int tid = 0; tid < nthread; ++tid) {
     const size_t off = count_row_ptr[ntree] * tid;
     for (size_t i = 0; i < count_row_ptr[ntree]; ++i) {
-      counts[i] += counts_tloc[off + i];
+      new_counts[i] += counts_tloc[off + i];
     }
   }
 
   // change layout of counts
   for (size_t i = 0; i < ntree; ++i) {
-    this->counts.emplace_back(&counts[count_row_ptr[i]],
-                              &counts[count_row_ptr[i + 1]]);
+    this->counts.emplace_back(&new_counts[count_row_ptr[i]],
+                              &new_counts[count_row_ptr[i + 1]]);
   }
 }
 

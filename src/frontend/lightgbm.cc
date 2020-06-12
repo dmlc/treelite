@@ -436,7 +436,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK(num_class >= 0 && num_class == model.num_output_group)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
-    model.param.pred_transform = "softmax";
+    std::strncpy(model.param.pred_transform, "softmax", sizeof(model.param.pred_transform));
   } else if (obj_name_ == "multiclassova") {
     // validate num_class and alpha parameters
     int num_class = -1;
@@ -459,7 +459,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
           && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
-    model.param.pred_transform = "multiclass_ova";
+    std::strncpy(model.param.pred_transform, "multiclass_ova", sizeof(model.param.pred_transform));
     model.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "binary") {
     // validate alpha parameter
@@ -476,15 +476,16 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK_GT(alpha, 0.0f)
       << "Ill-formed LightGBM model file: not a valid binary objective";
 
-    model.param.pred_transform = "sigmoid";
+    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
     model.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "xentropy" || obj_name_ == "cross_entropy") {
-    model.param.pred_transform = "sigmoid";
+    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
     model.param.sigmoid_alpha = 1.0f;
   } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
-    model.param.pred_transform = "logarithm_one_plus_exp";
+    std::strncpy(model.param.pred_transform, "logarithm_one_plus_exp",
+                 sizeof(model.param.pred_transform));
   } else {
-    model.param.pred_transform = "identity";
+    std::strncpy(model.param.pred_transform, "identity", sizeof(model.param.pred_transform));
   }
 
   // traverse trees
@@ -503,12 +504,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       if (old_id < 0) {  // leaf
         const double leaf_value = lgb_tree.leaf_value[~old_id];
         const int data_count = lgb_tree.leaf_count[~old_id];
-        tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+        tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
         CHECK_GE(data_count, 0);
-        tree[new_id].set_data_count(static_cast<size_t>(data_count));
+        tree.SetDataCount(new_id, static_cast<size_t>(data_count));
       } else {  // non-leaf
         const int data_count = lgb_tree.internal_count[old_id];
-        const unsigned split_index =
+        const auto split_index =
           static_cast<unsigned>(lgb_tree.split_feature[old_id]);
 
         tree.AddChilds(new_id);
@@ -522,24 +523,21 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
                              - lgb_tree.cat_boundaries[cat_idx]);
           const auto missing_type
             = GetMissingType(lgb_tree.decision_type[old_id]);
-          tree[new_id].set_categorical_split(split_index, false,
-                                             (missing_type != MissingType::kNaN),
-                                             left_categories);
+          tree.SetCategoricalSplit(new_id, split_index, false, (missing_type != MissingType::kNaN),
+                                   left_categories);
         } else {
           // numerical
-          const treelite::tl_float threshold =
-            static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
+          const auto threshold = static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
           const bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;
-          tree[new_id].set_numerical_split(split_index, threshold,
-                                           default_left, cmp_op);
+          tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
         }
         CHECK_GE(data_count, 0);
-        tree[new_id].set_data_count(static_cast<size_t>(data_count));
-        tree[new_id].set_gain(static_cast<double>(lgb_tree.split_gain[old_id]));
-        Q.push({lgb_tree.left_child[old_id], tree[new_id].cleft()});
-        Q.push({lgb_tree.right_child[old_id], tree[new_id].cright()});
+        tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+        tree.SetGain(new_id, static_cast<double>(lgb_tree.split_gain[old_id]));
+        Q.push({lgb_tree.left_child[old_id], tree.LeftChild(new_id)});
+        Q.push({lgb_tree.right_child[old_id], tree.RightChild(new_id)});
       }
     }
   }

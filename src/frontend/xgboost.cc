@@ -413,17 +413,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {
-    model.param.pred_transform = "max_index";
+    std::strncpy(model.param.pred_transform, "max_index", sizeof(model.param.pred_transform));
   } else if (name_obj_ == "multi:softprob") {
-    model.param.pred_transform = "softmax";
+    std::strncpy(model.param.pred_transform, "softmax", sizeof(model.param.pred_transform));
   } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-    model.param.pred_transform = "sigmoid";
+    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
     model.param.sigmoid_alpha = 1.0f;
   } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
              != exponential_family.cend()) {
-    model.param.pred_transform = "exponential";
+    std::strncpy(model.param.pred_transform, "exponential", sizeof(model.param.pred_transform));
   } else {
-    model.param.pred_transform = "identity";
+    std::strncpy(model.param.pred_transform, "identity", sizeof(model.param.pred_transform));
   }
 
   // traverse trees
@@ -444,19 +444,18 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
         const bst_float leaf_value = node.leaf_value();
-        tree[new_id].set_leaf(static_cast<treelite::tl_float>(leaf_value));
+        tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
-        tree[new_id].set_numerical_split(node.split_index(),
-                                   static_cast<treelite::tl_float>(split_cond),
-                                   node.default_left(),
-                                   treelite::Operator::kLT);
-        tree[new_id].set_gain(stat.loss_chg);
-        Q.push({node.cleft(), tree[new_id].cleft()});
-        Q.push({node.cright(), tree[new_id].cright()});
+        tree.SetNumericalSplit(new_id, node.split_index(),
+            static_cast<treelite::tl_float>(split_cond), node.default_left(),
+            treelite::Operator::kLT);
+        tree.SetGain(new_id, stat.loss_chg);
+        Q.push({node.cleft(), tree.LeftChild(new_id)});
+        Q.push({node.cright(), tree.RightChild(new_id)});
       }
-      tree[new_id].set_sum_hess(stat.sum_hess);
+      tree.SetSumHess(new_id, stat.sum_hess);
     }
   }
   return model;

@@ -4,6 +4,7 @@
  * \brief AST manipulation logic to load data counts
  * \author Hyunsu Cho
  */
+#include <dmlc/registry.h>
 #include <cmath>
 #include "./builder.h"
 

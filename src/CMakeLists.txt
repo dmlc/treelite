@@ -9,7 +9,7 @@ add_library(objtreelite_runtime OBJECT)
 target_include_directories(objtreelite_runtime PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(objtreelite_runtime PUBLIC dmlc)
 # -ldl for UNIX-like systems
-if (UNIX)	
+if (UNIX)
   target_link_libraries(objtreelite_runtime PUBLIC dl)
 endif (UNIX)
 target_compile_definitions(objtreelite_runtime PRIVATE -DDMLC_LOG_CUSTOMIZE)
@@ -101,7 +101,7 @@ target_sources(objtreelite
             filesystem.cc
             logging.cc
             optable.cc
-            model.cc
+            reference_serializer.cc
             ${TREE_PROTO_SRCS}
             ${TREE_PROTO_HDRS}
   PUBLIC    ${PROJECT_SOURCE_DIR}/include/treelite/annotator.h
@@ -117,6 +117,7 @@ target_sources(objtreelite
             ${PROJECT_SOURCE_DIR}/include/treelite/math.h
             ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
             ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
+            ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h
 )
 
 target_sources(objtreelite_runtime

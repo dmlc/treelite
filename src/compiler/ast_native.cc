@@ -544,8 +544,7 @@ class ASTNativeCompiler : public Compiler {
     } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
       // According to IEEE 754, the result of comparison [lhs] < infinity
       // must be identical for all finite [lhs]. Same goes for operator >.
-      result = (CompareWithOp(0.0, node->op, node->threshold.float_val)
-                ? "1" : "0");
+      result = (CompareWithOp(0.0, node->op, node->threshold.float_val) ? "1" : "0");
     } else {  // finite threshold
       result = fmt::format("data[{split_index}].fvalue {opname} (float){threshold}",
                  "split_index"_a = node->split_index,

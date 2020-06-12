@@ -3,6 +3,7 @@
  * \file dump.cc
  * \brief Generate text representation of AST
  */
+#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace {

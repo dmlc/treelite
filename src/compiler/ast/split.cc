@@ -3,6 +3,7 @@
  * \file split.cc
  * \brief Split prediction subroutine into multiple translation units (files)
  */
+#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace treelite {

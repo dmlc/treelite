@@ -7,7 +7,6 @@
 #define TREELITE_COMPILER_AST_BUILDER_H_
 
 #include <treelite/tree.h>
-#include <dmlc/registry.h>
 #include <map>
 #include <string>
 #include <vector>

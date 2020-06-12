@@ -377,10 +377,10 @@ ModelBuilder::CommitModel(Model* out_model) {
         CHECK_EARLY_RETURN(node->right_child->parent == node,
                            "CommitModel: right child has wrong parent");
         tree.AddChilds(nid);
-        tree[nid].set_numerical_split(node->feature_id, node->info.threshold,
-                                      node->default_left, node->op);
-        Q.push({node->left_child, tree[nid].cleft()});
-        Q.push({node->right_child, tree[nid].cright()});
+        tree.SetNumericalSplit(nid, node->feature_id, node->info.threshold,
+                               node->default_left, node->op);
+        Q.push({node->left_child, tree.LeftChild(nid)});
+        Q.push({node->right_child, tree.RightChild(nid)});
       } else if (node->status == _Node::_Status::kCategoricalTest) {
         CHECK_EARLY_RETURN(node->left_child != nullptr,
                            "CommitModel: a test node lacks a left child");
@@ -391,10 +391,10 @@ ModelBuilder::CommitModel(Model* out_model) {
         CHECK_EARLY_RETURN(node->right_child->parent == node,
                            "CommitModel: right child has wrong parent");
         tree.AddChilds(nid);
-        tree[nid].set_categorical_split(node->feature_id, node->default_left,
-                                        false, node->left_categories);
-        Q.push({node->left_child, tree[nid].cleft()});
-        Q.push({node->right_child, tree[nid].cright()});
+        tree.SetCategoricalSplit(nid, node->feature_id, node->default_left,
+                                 false, node->left_categories);
+        Q.push({node->left_child, tree.LeftChild(nid)});
+        Q.push({node->right_child, tree.RightChild(nid)});
       } else {  // leaf node
         CHECK_EARLY_RETURN(node->left_child == nullptr
                            && node->right_child == nullptr,
@@ -408,14 +408,14 @@ ModelBuilder::CommitModel(Model* out_model) {
           CHECK_EARLY_RETURN(node->leaf_vector.size() == model.num_output_group,
                               "CommitModel: The length of leaf vector must be "
                               "identical to the number of output groups");
-          tree[nid].set_leaf_vector(node->leaf_vector);
+          tree.SetLeafVector(nid, node->leaf_vector);
         } else {  // ordinary leaf
           CHECK_EARLY_RETURN(flag_leaf_vector != 1,
                              "CommitModel: Inconsistent use of leaf vector: "
                              "if one leaf node does not use a leaf vector, "
                              "*no other* leaf node can use a leaf vector");
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          tree[nid].set_leaf(node->info.leaf_value);
+          tree.SetLeaf(nid, node->info.leaf_value);
         }
       }
     }

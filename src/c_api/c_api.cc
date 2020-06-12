@@ -62,7 +62,7 @@ int TreeliteDMatrixCreateFromCSR(const float* data,
                                  size_t num_col,
                                  DMatrixHandle* out) {
   API_BEGIN();
-  DMatrix* dmat = new DMatrix();
+  std::unique_ptr<DMatrix> dmat{new DMatrix()};
   dmat->Clear();
   auto& data_ = dmat->data;
   auto& col_ind_ = dmat->col_ind;
@@ -89,7 +89,7 @@ int TreeliteDMatrixCreateFromCSR(const float* data,
   dmat->num_col = num_col;
   dmat->nelem = data_.size();  // some nonzeros may have been deleted as NAN
 
-  *out = static_cast<DMatrixHandle>(dmat);
+  *out = static_cast<DMatrixHandle>(dmat.release());
   API_END();
 }
 
@@ -102,7 +102,7 @@ int TreeliteDMatrixCreateFromMat(const float* data,
   API_BEGIN();
   CHECK_LT(num_col, std::numeric_limits<uint32_t>::max())
     << "num_col argument is too big";
-  DMatrix* dmat = new DMatrix();
+  std::unique_ptr<DMatrix> dmat{new DMatrix()};
   dmat->Clear();
   auto& data_ = dmat->data;
   auto& col_ind_ = dmat->col_ind;
@@ -136,7 +136,7 @@ int TreeliteDMatrixCreateFromMat(const float* data,
   dmat->num_col = num_col;
   dmat->nelem = data_.size();  // some nonzeros may have been deleted as NaN
 
-  *out = static_cast<DMatrixHandle>(dmat);
+  *out = static_cast<DMatrixHandle>(dmat.release());
   API_END();
 }
 
@@ -205,11 +205,11 @@ int TreeliteAnnotateBranch(ModelHandle model,
                            int verbose,
                            AnnotationHandle* out) {
   API_BEGIN();
-  BranchAnnotator* annotator = new BranchAnnotator();
+  std::unique_ptr<BranchAnnotator> annotator{new BranchAnnotator()};
   const Model* model_ = static_cast<Model*>(model);
   const DMatrix* dmat_ = static_cast<DMatrix*>(dmat);
   annotator->Annotate(*model_, dmat_, nthread, verbose);
-  *out = static_cast<AnnotationHandle>(annotator);
+  *out = static_cast<AnnotationHandle>(annotator.release());
   API_END();
 }
 
@@ -231,7 +231,8 @@ int TreeliteAnnotationFree(AnnotationHandle handle) {
 int TreeliteCompilerCreate(const char* name,
                            CompilerHandle* out) {
   API_BEGIN();
-  *out = static_cast<CompilerHandle>(new CompilerHandleImpl(name));
+  std::unique_ptr<CompilerHandleImpl> compiler{new CompilerHandleImpl(name)};
+  *out = static_cast<CompilerHandle>(compiler.release());
   API_END();
 }
 
@@ -309,43 +310,43 @@ int TreeliteCompilerFree(CompilerHandle handle) {
 int TreeliteLoadLightGBMModel(const char* filename,
                               ModelHandle* out) {
   API_BEGIN();
-  Model* model = new Model();
-  frontend::LoadLightGBMModel(filename, model);
-  *out = static_cast<ModelHandle>(model);
+  std::unique_ptr<Model> model{new Model()};
+  frontend::LoadLightGBMModel(filename, model.get());
+  *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadXGBoostModel(const char* filename,
                              ModelHandle* out) {
   API_BEGIN();
-  Model* model = new Model();
-  frontend::LoadXGBoostModel(filename, model);
-  *out = static_cast<ModelHandle>(model);
+  std::unique_ptr<Model> model{new Model()};
+  frontend::LoadXGBoostModel(filename, model.get());
+  *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len,
                                              ModelHandle* out) {
   API_BEGIN();
-  Model* model = new Model();
-  frontend::LoadXGBoostModel(buf, len, model);
-  *out = static_cast<ModelHandle>(model);
+  std::unique_ptr<Model> model{new Model()};
+  frontend::LoadXGBoostModel(buf, len, model.get());
+  *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadProtobufModel(const char* filename,
                               ModelHandle* out) {
   API_BEGIN();
-  Model* model = new Model();
-  frontend::LoadProtobufModel(filename, model);
-  *out = static_cast<ModelHandle>(model);
+  std::unique_ptr<Model> model{new Model()};
+  frontend::LoadProtobufModel(filename, model.get());
+  *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteExportProtobufModel(const char* filename,
                                 ModelHandle model) {
   API_BEGIN();
-  Model* model_ = static_cast<Model*>(model);
+  auto model_ = static_cast<Model*>(model);
   frontend::ExportProtobufModel(filename, *model_);
   API_END();
 }
@@ -358,21 +359,21 @@ int TreeliteFreeModel(ModelHandle handle) {
 
 int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const Model* model_ = static_cast<Model*>(handle);
+  auto model_ = static_cast<const Model*>(handle);
   *out = model_->trees.size();
   API_END();
 }
 
 int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const Model* model_ = static_cast<Model*>(handle);
+  auto model_ = static_cast<const Model*>(handle);
   *out = static_cast<size_t>(model_->num_feature);
   API_END();
 }
 
 int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const Model* model_ = static_cast<Model*>(handle);
+  auto model_ = static_cast<const Model*>(handle);
   *out = static_cast<size_t>(model_->num_output_group);
   API_END();
 }
@@ -380,7 +381,7 @@ int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
 int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
   API_BEGIN();
   CHECK_GT(limit, 0) << "limit should be greater than 0!";
-  auto* model_ = static_cast<Model*>(handle);
+  auto model_ = static_cast<Model*>(handle);
   CHECK_GE(model_->trees.size(), limit)
     << "Model contains less trees(" << model_->trees.size() << ") than limit";
   model_->trees.resize(limit);
@@ -389,8 +390,8 @@ int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
 
 int TreeliteCreateTreeBuilder(TreeBuilderHandle* out) {
   API_BEGIN();
-  auto builder = new frontend::TreeBuilder();
-  *out = static_cast<TreeBuilderHandle>(builder);
+  std::unique_ptr<frontend::TreeBuilder> builder{new frontend::TreeBuilder()};
+  *out = static_cast<TreeBuilderHandle>(builder.release());
   API_END();
 }
 
@@ -487,9 +488,11 @@ int TreeliteCreateModelBuilder(int num_feature,
                                int random_forest_flag,
                                ModelBuilderHandle* out) {
   API_BEGIN();
-  auto builder = new frontend::ModelBuilder(num_feature, num_output_group,
-                                            (random_forest_flag != 0));
-  *out = static_cast<ModelBuilderHandle>(builder);
+  std::unique_ptr<frontend::ModelBuilder> builder{new frontend::ModelBuilder(
+      num_feature,
+      num_output_group,
+      (random_forest_flag != 0))};
+  *out = static_cast<ModelBuilderHandle>(builder.release());
   API_END();
 }
 
@@ -545,8 +548,8 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
   API_BEGIN();
   auto builder = static_cast<frontend::ModelBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
-  Model* model = new Model();
-  builder->CommitModel(model);
-  *out = static_cast<ModelHandle>(model);
+  std::unique_ptr<Model> model{new Model()};
+  builder->CommitModel(model.get());
+  *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

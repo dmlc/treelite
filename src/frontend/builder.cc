@@ -130,7 +130,6 @@ TreeBuilder::SetRootNode(int node_key) {
   auto& nodes = tree.nodes;
   CHECK_GT(nodes.count(node_key), 0) << "SetRootNode: no node found with node_key";
   _Node* node = nodes[node_key].get();
-  CHECK(node->status != _Node::_Status::kEmpty) << "SetRootNode: cannot set an empty node as root";
   CHECK(!node->parent) << "SetRootNode: a root node cannot have a parent";
   tree.root = node;
 }
@@ -329,6 +328,8 @@ ModelBuilder::CommitModel(Model* out_model) {
   for (const auto& _tree_builder : pimpl->trees) {
     const auto& _tree = _tree_builder.pimpl->tree;
     CHECK(_tree.root) << "CommitModel: a tree has no root node";
+    CHECK(_tree.root->status != _Node::_Status::kEmpty)
+      << "SetRootNode: cannot set an empty node as root";
     model.trees.emplace_back();
     Tree& tree = model.trees.back();
     tree.Init();

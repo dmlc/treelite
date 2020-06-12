@@ -69,7 +69,7 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(protobuf);
 
-Model LoadProtobufModel(const char* filename) {
+void LoadProtobufModel(const char* filename, Model* out) {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
@@ -216,7 +216,7 @@ Model LoadProtobufModel(const char* filename) {
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
-  return model;
+  *out = std::move(model);
 }
 
 void ExportProtobufModel(const char* filename, const Model& model) {

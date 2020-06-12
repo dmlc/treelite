@@ -23,9 +23,9 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(lightgbm);
 
-Model LoadLightGBMModel(const char* filename) {
+void LoadLightGBMModel(const char *filename, Model* out) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  return ParseStream(fi.get());
+  *out = std::move(ParseStream(fi.get()));
 }
 
 }  // namespace frontend

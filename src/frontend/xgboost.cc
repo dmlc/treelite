@@ -25,14 +25,14 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(xgboost);
 
-Model LoadXGBoostModel(const char* filename) {
+void LoadXGBoostModel(const char* filename, Model* out) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  return ParseStream(fi.get());
+  *out = std::move(ParseStream(fi.get()));
 }
 
-Model LoadXGBoostModel(const void* buf, size_t len) {
+void LoadXGBoostModel(const void* buf, size_t len, Model* out) {
   dmlc::MemoryFixedSizeStream fs(const_cast<void*>(buf), len);
-  return ParseStream(&fs);
+  *out = std::move(ParseStream(&fs));
 }
 
 }  // namespace frontend

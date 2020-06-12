@@ -20,7 +20,7 @@ def _load_lib():
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
     lib.callback = _log_callback
     if lib.TreeliteRegisterLogCallback(lib.callback) != 0:
-        raise TreeliteError(lib.TreeliteGetLastError())
+        raise TreeliteError(py_str(lib.TreeliteGetLastError()))
     return lib
 
 

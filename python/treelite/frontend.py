@@ -480,13 +480,13 @@ class ModelBuilder():
                     _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
                         self.tree.handle,
                         ctypes.c_int(self.node_key),
-                        c_array(ctypes.c_double, leaf_value),
+                        c_array(ctypes.c_float, leaf_value),
                         ctypes.c_size_t(len(leaf_value))))
                 else:
                     _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
                         self.tree.handle,
                         ctypes.c_int(self.node_key),
-                        ctypes.c_double(leaf_value)))
+                        ctypes.c_float(leaf_value)))
                 self.empty = False
             except AttributeError:
                 raise TreeliteError('This node has never been inserted into a tree; ' \
@@ -536,7 +536,7 @@ class ModelBuilder():
                     self.tree.handle,
                     ctypes.c_int(self.node_key),
                     ctypes.c_uint(feature_id), c_str(opname),
-                    ctypes.c_double(threshold),
+                    ctypes.c_float(threshold),
                     ctypes.c_int(1 if default_left else 0),
                     ctypes.c_int(left_child_key),
                     ctypes.c_int(right_child_key)))

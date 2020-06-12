@@ -38,6 +38,7 @@ addons:
       - gcc@7
       - libomp
       - wget
+      - lcov
       - ninja
     update: true
   apt:

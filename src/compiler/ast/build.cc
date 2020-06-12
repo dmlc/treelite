@@ -3,6 +3,7 @@
  * \file build.cc
  * \brief Build AST from a given model
  */
+#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace treelite {
@@ -37,44 +38,42 @@ ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id,
 
 ASTNode* ASTBuilder::BuildASTFromTree(const Tree& tree, int tree_id, int nid,
                                       ASTNode* parent) {
-  const Tree::Node& node = tree[nid];
   ASTNode* ast_node = nullptr;
-  if (node.is_leaf()) {
+  if (tree.IsLeaf(nid)) {
     if (this->output_vector_flag) {
-      ast_node = AddNode<OutputNode>(parent, node.leaf_vector());
+      ast_node = AddNode<OutputNode>(parent, tree.LeafVector(nid));
     } else {
-      ast_node = AddNode<OutputNode>(parent, node.leaf_value());
+      ast_node = AddNode<OutputNode>(parent, tree.LeafValue(nid));
     }
   } else {
-    if (node.split_type() == SplitFeatureType::kNumerical) {
+    if (tree.SplitType(nid) == SplitFeatureType::kNumerical) {
       ast_node = AddNode<NumericalConditionNode>(parent,
-                                                 node.split_index(),
-                                                 node.default_left(),
+                                                 tree.SplitIndex(nid),
+                                                 tree.DefaultLeft(nid),
                                                  false,
-                                                 node.comparison_op(),
-                    ThresholdVariant(static_cast<tl_float>(node.threshold())));
+                                                 tree.ComparisonOp(nid),
+                                                 ThresholdVariant(static_cast<tl_float>(
+                                                                      tree.Threshold(nid))));
     } else {
       ast_node = AddNode<CategoricalConditionNode>(parent,
-                                                   node.split_index(),
-                                                   node.default_left(),
-                                                   node.left_categories(),
-                                                   node.missing_category_to_zero());
+                                                   tree.SplitIndex(nid),
+                                                   tree.DefaultLeft(nid),
+                                                   tree.LeftCategories(nid),
+                                                   tree.MissingCategoryToZero(nid));
     }
-    if (node.has_gain()) {
-      dynamic_cast<ConditionNode*>(ast_node)->gain = node.gain();
+    if (tree.HasGain(nid)) {
+      dynamic_cast<ConditionNode*>(ast_node)->gain = tree.Gain(nid);
     }
-    ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
-                                                  node.cleft(), ast_node));
-    ast_node->children.push_back(BuildASTFromTree(tree, tree_id,
-                                                  node.cright(), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, tree_id, tree.LeftChild(nid), ast_node));
+    ast_node->children.push_back(BuildASTFromTree(tree, tree_id, tree.RightChild(nid), ast_node));
   }
   ast_node->node_id = nid;
   ast_node->tree_id = tree_id;
-  if (node.has_data_count()) {
-    ast_node->data_count = node.data_count();
+  if (tree.HasDataCount(nid)) {
+    ast_node->data_count = tree.DataCount(nid);
   }
-  if (node.has_sum_hess()) {
-    ast_node->sum_hess = node.sum_hess();
+  if (tree.HasSumHess(nid)) {
+    ast_node->sum_hess = tree.SumHess(nid);
   }
 
   return ast_node;

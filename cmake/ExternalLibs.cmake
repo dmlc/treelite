@@ -16,10 +16,10 @@ FetchContent_MakeAvailable(fmtlib)
 set_target_properties(fmt PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Protobuf
-if (ENABLE_PROTOBUF)
+if(ENABLE_PROTOBUF)
   set(Protobuf_USE_STATIC_LIBS ON)
   find_package(Protobuf)
-  if (NOT Protobuf_FOUND)
+  if(NOT Protobuf_FOUND)
     message(STATUS "Did not found Protobuf in the system root. Fetching Protobuf now...")
     set(protobuf_BUILD_TESTS OFF CACHE BOOL "Build tests for protobuf" FORCE)
     set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "enable shared libs for protobuf" FORCE)
@@ -36,4 +36,19 @@ if (ENABLE_PROTOBUF)
   endif()
 else()
   set(Protobuf_LIBRARIES "")
+endif()
+
+# Google C++ tests
+if(BUILD_CPP_TEST)
+  find_package(GTest)
+  if(NOT GTEST_FOUND)
+    message(STATUS "Did not found Google Test in the system root. Fetching Google Test now...")
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG        release-1.10.0
+    )
+    FetchContent_MakeAvailable(googletest)
+    add_library(GTest::GTest ALIAS gtest)
+  endif()
 endif()

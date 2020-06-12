@@ -51,7 +51,7 @@ inline std::string IndentMultiLineString(const std::string& str,
  */
 template <typename T>
 inline std::string ToStringHighPrecision(T value) {
-  return fmt::format("{:.{}g}", value, std::numeric_limits<T>::digits10 + 2);
+  return fmt::format("{:.{}g}", value, std::numeric_limits<T>::max_digits10 + 2);
 }
 
 /*! \brief format array as text, wrapped to a given maximum text width. Uses high precision to

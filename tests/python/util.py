@@ -19,7 +19,7 @@ def load_txt(filename):
     with open(filename, 'r') as f:
         for line in f:
             content.append(float(line))
-    return np.array(content)
+    return np.array(content, dtype=np.float32)
 
 
 def os_compatible_toolchains():

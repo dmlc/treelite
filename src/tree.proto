@@ -37,16 +37,16 @@ message Node {
                                      // expression evaluates to true; the right
                                      // child is taken otherwise.
                                      // missing if leaf or categorical split
-   optional double threshold = 7;    // Decision threshold
+   optional float threshold = 7;     // Decision threshold
                                      // missing if leaf or categorical split
    repeated uint32 left_categories = 8;
                                      // List of all categories belonging to
                                      // the left child. All other categories
                                      // will belong to the right child.
                                      // missing if leaf or numerical split
-   optional double leaf_value = 9;   // Leaf value; missing if non-leaf
+   optional float leaf_value = 9;    // Leaf value; missing if non-leaf
                                      // also missing if leaf_vector field exists
-   repeated double leaf_vector = 10; // Usually missing; only used for random
+   repeated float leaf_vector = 10;  // Usually missing; only used for random
                                      // forests with multi-class classification
    optional uint64 data_count = 11;  // number of data points whose traversal
                                      // paths include this node. May be

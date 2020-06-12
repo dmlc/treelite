@@ -50,7 +50,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 15 2017 Win64" -DENABLE_PROTOBUF=ON
+      cmake .. -G"Visual Studio 15 2017 Win64" -DENABLE_PROTOBUF=ON -DBUILD_CPP_TEST=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:
@@ -58,6 +58,9 @@ jobs:
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
+  - script: |
+      .\build\treelite_cpp_test.exe
+    displayName: 'Running C++ tests...'
   - script: |
       call activate
       cd python
@@ -85,22 +88,24 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: sudo apt-get install lcov
-    displayName: 'Installing lcov...'
+  - script: sudo apt-get install lcov ninja-build
+    displayName: 'Installing lcov and Ninja...'
   - script: |
       mkdir build/
       cd build/
-      cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug
-      make -j$(nproc)
+      cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
+      ninja
     displayName: 'Building Treelite...'
   - script: python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
     displayName: 'Setting up Python environment...'
   - script: |
+      ./build/treelite_cpp_test
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
       lcov --directory . --capture --output-file coverage.info
-      lcov --remove coverage.info '/usr/*' --output-file coverage.info
-      lcov --remove coverage.info '*3rdparty*' --output-file coverage.info
-      lcov --remove coverage.info '*dmlc-core*' --output-file coverage.info
+      lcov --remove coverage.info '*dmlccore*' --output-file coverage.info
+      lcov --remove coverage.info '*fmtlib*' --output-file coverage.info
+      lcov --remove coverage.info '*/usr/*' --output-file coverage.info
+      lcov --remove coverage.info '*googletest*' --output-file coverage.info
     displayName: 'Running integration tests...'
     env:
       PYTHONPATH: ./python:./runtime/python

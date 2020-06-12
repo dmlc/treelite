@@ -69,7 +69,7 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(protobuf);
 
-Model LoadProtobufModel(const char* filename) {
+void LoadProtobufModel(const char* filename, Model* out) {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
@@ -123,7 +123,7 @@ Model LoadProtobufModel(const char* filename) {
     while (!Q.empty()) {
       auto elem = Q.front(); Q.pop();
       const treelite_protobuf::Node& node = elem.first;
-      int id = elem.second;
+      int nid = elem.second;
       const NodeType node_type = GetNodeType(node);
       if (node_type == NodeType::kLeaf) {  // leaf node with a scalar output
         CHECK(flag_leaf_vector != 1)
@@ -131,7 +131,7 @@ Model LoadProtobufModel(const char* filename) {
           << "a leaf vector, *no other* leaf node can use a leaf vector";
         flag_leaf_vector = 0;  // now no leaf can use leaf vector
 
-        tree[id].set_leaf(static_cast<tl_float>(node.leaf_value()));
+        tree.SetLeaf(nid, static_cast<tl_float>(node.leaf_value()));
       } else if (node_type == NodeType::kLeafVector) {
         // leaf node with vector output
         CHECK(flag_leaf_vector != 0)
@@ -144,25 +144,26 @@ Model LoadProtobufModel(const char* filename) {
           << "The length of leaf vector must be identical to the "
           << "number of output groups";
         std::vector<tl_float> leaf_vector(len);
-        for (int i = 0; i < len; ++i) {
-          leaf_vector[i] = static_cast<tl_float>(node.leaf_vector(i));
+        for (int k = 0; k < len; ++k) {
+          leaf_vector[k] = static_cast<tl_float>(node.leaf_vector(k));
         }
-        tree[id].set_leaf_vector(leaf_vector);
+        tree.SetLeafVector(nid, leaf_vector);
       } else if (node_type == NodeType::kNumericalSplit) {  // numerical split
         const auto split_index = node.split_index();
-        const std::string opname = node.op();
+        const std::string& opname = node.op();
         CHECK_LT(split_index, model.num_feature)
           << "split_index must be between 0 and [num_feature] - 1.";
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         CHECK_GT(optable.count(opname), 0) << "No operator `"
                                            << opname << "\" exists";
-        tree.AddChilds(id);
-        tree[id].set_numerical_split(static_cast<unsigned>(split_index),
-                             static_cast<tl_float>(node.threshold()),
-                             node.default_left(),
-                             optable.at(opname.c_str()));
-        Q.push({node.left_child(), tree[id].cleft()});
-        Q.push({node.right_child(), tree[id].cright()});
+        tree.AddChilds(nid);
+        tree.SetNumericalSplit(nid,
+                               static_cast<unsigned>(split_index),
+                               static_cast<tl_float>(node.threshold()),
+                               node.default_left(),
+                               optable.at(opname));
+        Q.push({node.left_child(), tree.LeftChild(nid)});
+        Q.push({node.right_child(), tree.RightChild(nid)});
       } else {  // categorical split
         const auto split_index = node.split_index();
         CHECK_LT(split_index, model.num_feature)
@@ -170,34 +171,35 @@ Model LoadProtobufModel(const char* filename) {
         CHECK_GE(split_index, 0) << "split_index must be positive.";
         const int left_categories_size = node.left_categories_size();
         std::vector<uint32_t> left_categories;
-        for (int i = 0; i < left_categories_size; ++i) {
-          const auto cat = node.left_categories(i);
+        for (int k = 0; k < left_categories_size; ++k) {
+          const auto cat = node.left_categories(k);
           CHECK(cat <= std::numeric_limits<uint32_t>::max());
           left_categories.push_back(static_cast<uint32_t>(cat));
         }
-        tree.AddChilds(id);
-        tree[id].set_categorical_split(static_cast<unsigned>(split_index),
-                                       node.default_left(),
-                                       node.missing_category_to_zero(),
-                                       left_categories);
-        Q.push({node.left_child(), tree[id].cleft()});
-        Q.push({node.right_child(), tree[id].cright()});
+        tree.AddChilds(nid);
+        tree.SetCategoricalSplit(nid,
+                                 static_cast<unsigned>(split_index),
+                                 node.default_left(),
+                                 node.missing_category_to_zero(),
+                                 left_categories);
+        Q.push({node.left_child(), tree.LeftChild(nid)});
+        Q.push({node.right_child(), tree.RightChild(nid)});
       }
       /* set node statistics */
       if (node.has_data_count()) {
-        tree[id].set_data_count(static_cast<size_t>(node.data_count()));
+        tree.SetDataCount(nid, static_cast<size_t>(node.data_count()));
       }
       if (node.has_sum_hess()) {
-        tree[id].set_sum_hess(node.sum_hess());
+        tree.SetSumHess(nid, node.sum_hess());
       }
       if (node.has_gain()) {
-        tree[id].set_gain(node.gain());
+        tree.SetGain(nid, node.gain());
       }
     }
   }
   if (flag_leaf_vector == 0) {
     if (model.num_output_group > 1) {
-      // multiclass classification with gradient boosted trees
+      // multi-class classification with gradient boosted trees
       CHECK(!model.random_forest_flag)
         << "To use a random forest for multi-class classification, each leaf "
         << "node must output a leaf vector specifying a probability "
@@ -214,7 +216,7 @@ Model LoadProtobufModel(const char* filename) {
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
-  return model;
+  *out = std::move(model);
 }
 
 void ExportProtobufModel(const char* filename, const Model& model) {
@@ -254,19 +256,19 @@ void ExportProtobufModel(const char* filename, const Model& model) {
       auto elem = Q.front(); Q.pop();
       const int nid = elem.first;
       treelite_protobuf::Node* proto_node = elem.second;
-      if (tree[nid].is_leaf()) {  // leaf node
-        if (tree[nid].has_leaf_vector()) {  // leaf node with vector output
+      if (tree.IsLeaf(nid)) {  // leaf node
+        if (tree.HasLeafVector(nid)) {  // leaf node with vector output
           CHECK(flag_leaf_vector != 0)
             << "Inconsistent use of leaf vector: if one leaf node uses "
             << "a leaf vector, *every* leaf node must use a leaf vector as well";
           flag_leaf_vector = 1;  // now every leaf must use leaf vector
 
-          const auto& leaf_vector = tree[nid].leaf_vector();
+          const auto& leaf_vector = tree.LeafVector(nid);
           CHECK_EQ(leaf_vector.size(), model.num_output_group)
             << "The length of leaf vector must be identical to the "
             << "number of output groups";
           for (tl_float e : leaf_vector) {
-            proto_node->add_leaf_vector(static_cast<double>(e));
+            proto_node->add_leaf_vector(static_cast<float>(e));
           }
           CHECK_EQ(proto_node->leaf_vector_size(), leaf_vector.size());
         } else {  // leaf node with scalar output
@@ -275,27 +277,27 @@ void ExportProtobufModel(const char* filename, const Model& model) {
             << "a leaf vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
 
-          proto_node->set_leaf_value(static_cast<double>(tree[nid].leaf_value()));
+          proto_node->set_leaf_value(static_cast<float>(tree.LeafValue(nid)));
         }
-      } else if (tree[nid].split_type() == SplitFeatureType::kNumerical) {
+      } else if (tree.SplitType(nid) == SplitFeatureType::kNumerical) {
         // numerical split
-        const unsigned split_index = tree[nid].split_index();
-        const tl_float threshold = tree[nid].threshold();
-        const bool default_left = tree[nid].default_left();
-        const Operator op = tree[nid].comparison_op();
+        const unsigned split_index = tree.SplitIndex(nid);
+        const tl_float threshold = tree.Threshold(nid);
+        const bool default_left = tree.DefaultLeft(nid);
+        const Operator op = tree.ComparisonOp(nid);
 
         proto_node->set_default_left(default_left);
         proto_node->set_split_index(static_cast<google::protobuf::int32>(split_index));
         proto_node->set_split_type(treelite_protobuf::Node_SplitFeatureType_NUMERICAL);
         proto_node->set_op(OpName(op));
-        proto_node->set_threshold(static_cast<double>(threshold));
-        Q.push({tree[nid].cleft(), proto_node->mutable_left_child()});
-        Q.push({tree[nid].cright(), proto_node->mutable_right_child()});
+        proto_node->set_threshold(static_cast<float>(threshold));
+        Q.push({tree.LeftChild(nid), proto_node->mutable_left_child()});
+        Q.push({tree.RightChild(nid), proto_node->mutable_right_child()});
       } else {  // categorical split
-        const unsigned split_index = tree[nid].split_index();
-        const auto& left_categories = tree[nid].left_categories();
-        const bool default_left = tree[nid].default_left();
-        const bool missing_category_to_zero = tree[nid].missing_category_to_zero();
+        const unsigned split_index = tree.SplitIndex(nid);
+        const auto& left_categories = tree.LeftCategories(nid);
+        const bool default_left = tree.DefaultLeft(nid);
+        const bool missing_category_to_zero = tree.MissingCategoryToZero(nid);
 
         proto_node->set_default_left(default_left);
         proto_node->set_split_index(static_cast<google::protobuf::int32>(split_index));
@@ -304,19 +306,19 @@ void ExportProtobufModel(const char* filename, const Model& model) {
         for (auto e : left_categories) {
           proto_node->add_left_categories(static_cast<google::protobuf::uint32>(e));
         }
-        Q.push({tree[nid].cleft(), proto_node->mutable_left_child()});
-        Q.push({tree[nid].cright(), proto_node->mutable_right_child()});
+        Q.push({tree.LeftChild(nid), proto_node->mutable_left_child()});
+        Q.push({tree.RightChild(nid), proto_node->mutable_right_child()});
       }
       /* set node statistics */
-      if (tree[nid].has_data_count()) {
+      if (tree.HasDataCount(nid)) {
         proto_node->set_data_count(
-          static_cast<google::protobuf::uint64>(tree[nid].data_count()));
+          static_cast<google::protobuf::uint64>(tree.DataCount(nid)));
       }
-      if (tree[nid].has_sum_hess()) {
-        proto_node->set_sum_hess(tree[nid].sum_hess());
+      if (tree.HasSumHess(nid)) {
+        proto_node->set_sum_hess(tree.SumHess(nid));
       }
-      if (tree[nid].has_gain()) {
-        proto_node->set_gain(tree[nid].gain());
+      if (tree.HasGain(nid)) {
+        proto_node->set_gain(tree.Gain(nid));
       }
     }
   }

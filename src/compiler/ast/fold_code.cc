@@ -4,6 +4,7 @@
  * \brief AST manipulation logic for code folding
  * \author Hyunsu Cho
  */
+#include <dmlc/registry.h>
 #include <cmath>
 #include <limits>
 #include "./builder.h"

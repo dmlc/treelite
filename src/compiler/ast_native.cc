@@ -236,7 +236,7 @@ class ASTNativeCompiler : public Compiler {
         "get_global_bias_function_signature"_a
           = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
-        "threshold_type"_a = (param.quantize > 0 ? "int" : "double")),
+        "threshold_type"_a = (param.quantize > 0 ? "int" : "float")),
       indent);
 
     CHECK_EQ(node->children.size(), 1);
@@ -419,7 +419,7 @@ class ASTNativeCompiler : public Compiler {
     }
     if (!array_threshold.empty()) {
       PrependToBuffer(dest,
-        fmt::format("static const double threshold[] = {{\n"
+        fmt::format("static const float threshold[] = {{\n"
                     "{array_threshold}\n"
                     "}};\n", "array_threshold"_a = array_threshold), 0);
     }
@@ -544,10 +544,9 @@ class ASTNativeCompiler : public Compiler {
     } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
       // According to IEEE 754, the result of comparison [lhs] < infinity
       // must be identical for all finite [lhs]. Same goes for operator >.
-      result = (CompareWithOp(0.0, node->op, node->threshold.float_val)
-                ? "1" : "0");
+      result = (CompareWithOp(0.0, node->op, node->threshold.float_val) ? "1" : "0");
     } else {  // finite threshold
-      result = fmt::format("data[{split_index}].fvalue {opname} {threshold}",
+      result = fmt::format("data[{split_index}].fvalue {opname} (float){threshold}",
                  "split_index"_a = node->split_index,
                  "opname"_a = OpName(node->op),
                  "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));

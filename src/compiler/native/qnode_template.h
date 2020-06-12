@@ -24,12 +24,12 @@ R"TREELITETEMPLATE(
  */
 static inline int quantize(float val, unsigned fid) {{
   const size_t offset = th_begin[fid];
-  const double* array = &threshold[offset];
+  const float* array = &threshold[offset];
   int len = th_len[fid];
   int low = 0;
   int high = len;
   int mid;
-  double mval;
+  float mval;
   // It is possible th_begin[i] == [total_num_threshold]. This means that
   // all features i, (i+1), ... are not used for any of the splits in the model.
   // So in this case, just return something

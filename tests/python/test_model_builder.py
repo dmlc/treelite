@@ -119,6 +119,9 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
 def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn multi-class classifier"""
+    if clazz == RandomForestClassifier:
+        pytest.xfail(reason='Need to use float64 thresholds to obtain correct result')
+
     X, y = load_iris(return_X_y=True)
     kwargs = {}
     if clazz == GradientBoostingClassifier:

@@ -4,6 +4,7 @@
  * \brief AST manipulation logic to determine whether each feature is categorical or not
  * \author Hyunsu Cho
  */
+#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace treelite {

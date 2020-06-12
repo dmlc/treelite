@@ -4,6 +4,7 @@
  * \brief Quantize thresholds in condition nodes
  */
 #include <treelite/math.h>
+#include <dmlc/registry.h>
 #include <cmath>
 #include "./builder.h"
 
@@ -40,7 +41,7 @@ rewrite_thresholds(ASTNode* node,
       const auto& v = cut_pts[num_cond->split_index];
       auto loc = math::binary_search(v.begin(), v.end(), threshold);
       CHECK(loc != v.end());
-      num_cond->threshold.int_val = static_cast<size_t>(loc - v.begin()) * 2;
+      num_cond->threshold.int_val = static_cast<int>(loc - v.begin()) * 2;
       num_cond->quantized = true;
     }  // splits with infinite thresholds will not be quantized
   }

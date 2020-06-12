@@ -15,13 +15,19 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON
-  make -j$(nproc)
+  cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
+  ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
   python -m pip install xgboost lightgbm codecov
+  ./build/treelite_cpp_test
   export GCC_PATH=gcc-7
   PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
+  lcov --directory . --capture --output-file coverage.info
+  lcov --remove coverage.info '*dmlccore*' --output-file coverage.info
+  lcov --remove coverage.info '*fmtlib*' --output-file coverage.info
+  lcov --remove coverage.info '*/usr/*' --output-file coverage.info
+  lcov --remove coverage.info '*googletest*' --output-file coverage.info
   codecov
 fi
 
@@ -36,8 +42,8 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON
-  make -j$(nproc)
+  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -GNinja
+  ninja
   cd ..
   rm -rfv python/dist python/build
   cd python/

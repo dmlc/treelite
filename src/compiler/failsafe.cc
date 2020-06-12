@@ -143,24 +143,24 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
   nodes_row_ptr << "0";
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
-      const auto& node = tree[nid];
-      if (node.is_leaf()) {
-        CHECK(!node.has_leaf_vector())
+      if (tree.IsLeaf(nid)) {
+        CHECK(!tree.HasLeafVector(nid))
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = 0,
-          "info"_a = treelite::compiler::common_util::ToStringHighPrecision(node.leaf_value()),
+          "info"_a = treelite::compiler::common_util::ToStringHighPrecision(tree.LeafValue(nid)),
           "cleft"_a = -1,
           "cright"_a = -1);
       } else {
-        CHECK(node.split_type() == treelite::SplitFeatureType::kNumerical
-              && node.left_categories().empty())
+        CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
+              && tree.LeftCategories(nid).empty())
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
-          "sindex"_a = (node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
-          "info"_a = treelite::compiler::common_util::ToStringHighPrecision(node.threshold()),
-          "cleft"_a = node.cleft(),
-          "cright"_a = node.cright());
+            "sindex"_a
+              = (tree.SplitIndex(nid) |(static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31U)),
+            "info"_a = treelite::compiler::common_util::ToStringHighPrecision(tree.Threshold(nid)),
+            "cleft"_a = tree.LeftChild(nid),
+            "cright"_a = tree.RightChild(nid));
       }
     }
     node_count += tree.num_nodes;
@@ -182,17 +182,16 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
   nodes_row_ptr << "0";
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
-      const auto& node = tree[nid];
-      if (node.is_leaf()) {
-        CHECK(!node.has_leaf_vector())
+      if (tree.IsLeaf(nid)) {
+        CHECK(!tree.HasLeafVector(nid))
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
-        val = {0, static_cast<float>(node.leaf_value()), -1, -1};
+        val = {0, static_cast<float>(tree.LeafValue(nid)), -1, -1};
       } else {
-        CHECK(node.split_type() == treelite::SplitFeatureType::kNumerical
-              && node.left_categories().empty())
+        CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
+              && tree.LeftCategories(nid).empty())
           << "categorical splits are not supported in FailSafeCompiler";
-        val = {(node.split_index() | (static_cast<uint32_t>(node.default_left()) << 31)),
-               static_cast<float>(node.threshold()), node.cleft(), node.cright()};
+        val = {(tree.SplitIndex(nid) | (static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31)),
+               static_cast<float>(tree.Threshold(nid)), tree.LeftChild(nid), tree.RightChild(nid)};
       }
       const size_t beg = nodes_elf.size();
       nodes_elf.resize(beg + sizeof(NodeStructValue));
@@ -213,9 +212,8 @@ inline std::string GetCommonOp(const treelite::Model& model) {
   std::set<treelite::Operator> ops;
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
-      const auto& node = tree[nid];
-      if (!node.is_leaf()) {
-        ops.insert(node.comparison_op());
+      if (!tree.IsLeaf(nid)) {
+        ops.insert(tree.ComparisonOp(nid));
       }
     }
   }

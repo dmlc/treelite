@@ -1,8 +1,8 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file frontend.h
  * \brief Collection of front-end methods to load or construct ensemble model
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_FRONTEND_H_
 #define TREELITE_FRONTEND_H_

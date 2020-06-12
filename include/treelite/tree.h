@@ -1,8 +1,8 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file tree.h
  * \brief model structure for tree
- * \author Philip Cho
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_TREE_H_
 #define TREELITE_TREE_H_

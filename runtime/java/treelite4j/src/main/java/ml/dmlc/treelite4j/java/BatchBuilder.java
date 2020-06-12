@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Collection of utility functions to create batch objects
  *
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class BatchBuilder {
   /**

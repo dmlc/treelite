@@ -1,5 +1,5 @@
 /*!
- * Copyright by 2020 Contributors
+ * Copyright (c) 2020 by Contributors
  * \file math.h
  * \brief Some useful math utilities
  * \author Hyunsu Cho

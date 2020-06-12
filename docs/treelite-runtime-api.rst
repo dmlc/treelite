@@ -2,7 +2,7 @@
 Treelite runtime API
 ====================
 
-Runtime API of treelite Python package.
+Runtime API of Treelite Python package.
 
 .. automodule:: treelite_runtime
    :members:

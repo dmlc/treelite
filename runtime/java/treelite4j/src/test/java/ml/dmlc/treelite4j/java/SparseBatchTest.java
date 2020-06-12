@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Test cases for sparse batch
  *
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class SparseBatchTest {
   @Test

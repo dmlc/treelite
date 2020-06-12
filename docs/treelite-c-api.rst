@@ -8,14 +8,14 @@ languages. This page will be most useful for:
 * those writing a new
   `language binding <https://en.wikipedia.org/wiki/Language_binding>`_ (glue
   code).
-* those wanting to incorporate functions of treelite into their own native
+* those wanting to incorporate functions of Treelite into their own native
   libraries.
 
 **We recommend the Python API for everyday uses.**
 
-.. note:: Use of C and C++ in treelite
+.. note:: Use of C and C++ in Treelite
 
-  Core logic of treelite are written in C++ to take advantage of higher
+  Core logic of Treelite are written in C++ to take advantage of higher
   abstractions. We provide C only interface here, as many more programming
   languages bind with C than with C++. See
   `this page <https://softwareengineering.stackexchange.com/q/281882>`_ for

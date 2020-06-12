@@ -17,7 +17,7 @@ efficient deployment.
 |longrelease|
 
 *************
-Why treelite?
+Why Treelite?
 *************
 
 Compile and optimize your model for fast prediction
@@ -52,20 +52,20 @@ Deploy with minimal dependencies
 ================================
 It is a great hassle to install machine learning packages (e.g. XGBoost,
 LightGBM, scikit-learn, etc.) on every machine your tree model will run. This is
-the case no longer: treelite will export your model as a stand-alone
+the case no longer: Treelite will export your model as a stand-alone
 prediction library so that predictions will be made without any machine
 learning package installed.
 
 ***********
 Quick start
 ***********
-Install treelite from PyPI:
+Install Treelite from PyPI:
 
 .. code-block:: console
 
   python3 -m pip install --user treelite treelite_runtime
 
-Import your tree ensemble model into treelite:
+Import your tree ensemble model into Treelite:
 
 .. code-block:: python
 
@@ -104,7 +104,7 @@ Read :doc:`tutorials/first` for a more detailed example. See
 
 .. note:: A note on API compatibility
 
-  Since treelite is in early development, its API may change substantially
+  Since Treelite is in early development, its API may change substantially
   in the future.
 
 *********
@@ -122,7 +122,7 @@ Benchmark
 See the page :py:doc:`benchmark` for details.
 
 ******************
-How treelite works
+How Treelite works
 ******************
 
 .. raw:: html
@@ -140,7 +140,7 @@ The workflow involves two distinct machines: **the host machine** that generates
 prediction subroutine from a given tree model, and **the target machine** that
 runs the subroutine. The two machines exchange a single C file that contains
 all relevant information about the tree model. Only the host machine needs to
-have treelite installed; the target machine requires only a working C compiler.
+have Treelite installed; the target machine requires only a working C compiler.
 
 ********
 Contents

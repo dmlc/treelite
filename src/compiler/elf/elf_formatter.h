@@ -1,7 +1,7 @@
 /*!
- * Copyright (c) 2019 by Contributors
+ * Copyright (c) 2019-2020 by Contributors
  * \file elf_formatter.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
 #ifndef TREELITE_COMPILER_ELF_ELF_FORMATTER_H_

@@ -1,6 +1,6 @@
 Specifying models using Protocol Buffers
 ========================================
-Since the scope of treelite is limited to **prediction** only, one must use
+Since the scope of Treelite is limited to **prediction** only, one must use
 other machine learning packages to **train** decision tree ensemble models. In
 this document, we will show how to import an ensemble model that had been
 trained elsewhere.

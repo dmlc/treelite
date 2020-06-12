@@ -1,7 +1,7 @@
 /*!
- * Copyright (c) 2018 by Contributors
+ * Copyright (c) 2018-2020 by Contributors
  * \file header_template.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief template for header
  */
 

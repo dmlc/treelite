@@ -1,5 +1,5 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file split.cc
  * \brief Split prediction subroutine into multiple translation units (files)
  */

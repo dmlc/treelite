@@ -7,11 +7,11 @@ import sys
 
 
 class TreeliteLibraryNotFound(Exception):
-    """Error thrown by when treelite is not found"""
+    """Error thrown by when Treelite is not found"""
 
 
 def find_lib_path():
-    """Find the path to treelite dynamic library files.
+    """Find the path to Treelite dynamic library files.
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def find_lib_path():
     Returns
     -------
     lib_path: :py:class:`list <python:list>` of :py:class:`str <python:str>`
-       List of all found library path to treelite
+       List of all found library path to Treelite
     """
     if sys.platform == 'win32':
         lib_name = 'treelite.dll'

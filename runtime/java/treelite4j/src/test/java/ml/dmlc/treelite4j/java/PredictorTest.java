@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Test cases for Treelite Predictor
  *
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public class PredictorTest {
   private final String mushroomLibLocation;

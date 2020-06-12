@@ -1,7 +1,7 @@
 /*!
- * Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file c_api_runtime.cc
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief C API of treelite (runtime portion)
  */
 

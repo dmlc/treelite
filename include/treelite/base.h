@@ -1,8 +1,8 @@
 /*!
- * Copyright 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file base.h
- * \brief defines configuration macros of treelite
- * \author Philip Cho
+ * \brief defines configuration macros of Treelite
+ * \author Hyunsu Cho
  */
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_

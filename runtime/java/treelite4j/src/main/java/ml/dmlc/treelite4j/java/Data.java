@@ -5,7 +5,7 @@ import java.io.OutputStream;
 
 /**
  * Interface to specify a single data entry.
- * @author Philip Cho
+ * @author Hyunsu Cho
  */
 public interface Data {
   /**

@@ -1,7 +1,7 @@
 Importing tree ensemble models
 ==============================
 
-Since the scope of treelite is limited to **prediction** only, one must use
+Since the scope of Treelite is limited to **prediction** only, one must use
 other machine learning packages to **train** decision tree ensemble models. In
 this document, we will show how to import an ensemble model that had been
 trained elsewhere.
@@ -14,7 +14,7 @@ Importing XGBoost models
 ------------------------
 
 **XGBoost** (`dmlc/xgboost <https://github.com/dmlc/xgboost/>`_) is a fast,
-scalable package for gradient boosting. Both treelite and XGBoost are hosted
+scalable package for gradient boosting. Both Treelite and XGBoost are hosted
 by the DMLC (Distributed Machine Learning Community) group.
 
 Treelite plays well with XGBoost --- if you used XGBoost to train your ensemble
@@ -56,7 +56,7 @@ Importing scikit-learn models
 <https://github.com/scikit-learn/scikit-learn>`_) is a Python machine learning
 package known for its versatility and ease of use. It supports a wide variety
 of models and algorithms. The following kinds of models can be imported into
-treelite.
+Treelite.
 
 * :py:class:`sklearn.ensemble.RandomForestRegressor`
 * :py:class:`sklearn.ensemble.RandomForestClassifier`

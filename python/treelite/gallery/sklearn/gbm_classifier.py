@@ -6,7 +6,7 @@ def process_model(sklearn_model):
   if sklearn_model.init != 'zero':
     raise Exception("Gradient boosted trees must be trained with "
                     "the option init='zero'")
-  # Initialize treelite model builder
+  # Initialize Treelite model builder
   # Set random_forest=False for gradient boosted trees
   # Set pred_transform='sigmoid' to obtain probability predictions
   builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,

@@ -1,7 +1,7 @@
 /*!
- *  Copyright (c) 2017 by Contributors
+ * Copyright (c) 2017-2020 by Contributors
  * \file c_api_error.h
- * \author Philip Cho
+ * \author Hyunsu Cho
  * \brief Error handling for C API.
  */
 #ifndef TREELITE_C_API_C_API_ERROR_H_

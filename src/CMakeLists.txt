@@ -133,3 +133,5 @@ target_sources(objtreelite_common
             ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
             ${PROJECT_SOURCE_DIR}/include/treelite/math.h
 )
+
+msvc_use_static_runtime()

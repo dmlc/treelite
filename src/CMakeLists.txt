@@ -12,6 +12,11 @@ endif(UNIX)
 add_library(objtreelite_common OBJECT)  # Component shared by both main package and runtime
 
 if(USE_OPENMP)
+  if (APPLE)
+    # Require CMake 3.16+ on Mac OSX, as previous versions of CMake had trouble locating
+    # OpenMP on Mac. See https://github.com/dmlc/xgboost/pull/5146#issuecomment-568312706
+    cmake_minimum_required(VERSION 3.16)
+  endif (APPLE)
   find_package(OpenMP REQUIRED)
 else()
   message(STATUS "Disabling OpenMP")
@@ -128,3 +133,5 @@ target_sources(objtreelite_common
             ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
             ${PROJECT_SOURCE_DIR}/include/treelite/math.h
 )
+
+msvc_use_static_runtime()

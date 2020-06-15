@@ -31,6 +31,31 @@ then
   codecov
 fi
 
+if [ ${TASK} == "cmake_import_test" ]
+then
+  conda activate python3
+  conda --version
+  python --version
+
+  # Install Treelite C++ library into the Conda env
+  set -x
+  conda install protobuf
+  rm -rf build/
+  mkdir build
+  cd build
+  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -GNinja
+  ninja install
+
+  # Try compiling a sample application
+  cd ../tests/example_app/
+  rm -rf build/
+  mkdir build
+  cd build
+  cmake .. -GNinja
+  ninja
+  ./example
+fi
+
 if [ ${TASK} == "python_test" ]
 then
   conda activate python3

@@ -11,6 +11,8 @@ env:
     - TASK=python_test
     # python coverage test
     - TASK=python_coverage_test
+    # Test if CMake can be imported as a library via CMake
+    - TASK=cmake_import_test
     # test installation of Python source distribution
     - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
     - TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no

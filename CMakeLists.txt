@@ -1,3 +1,4 @@
+set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.14)
 project(treelite LANGUAGES CXX C VERSION 0.92)
 
@@ -54,6 +55,34 @@ foreach(lib treelite treelite_static treelite_runtime treelite_runtime_static)
   set_output_directory(${lib} ${PROJECT_BINARY_DIR})
   target_link_libraries(${lib} INTERFACE dmlc)
 endforeach()
+
+# Export install targets
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+install(TARGETS treelite treelite_static treelite_runtime treelite_runtime_static
+                objtreelite objtreelite_common objtreelite_runtime dmlc fmt-header-only
+    EXPORT TreeliteTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION include)
+install(DIRECTORY include/treelite DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT TreeliteTargets
+    FILE TreeliteTargets.cmake
+    NAMESPACE treelite::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
+configure_package_config_file(
+    cmake/TreeliteConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
+write_basic_package_version_file(
+    ${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+install(FILES
+    ${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake
+    ${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
 
 write_version()
 

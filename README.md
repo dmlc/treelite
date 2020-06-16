@@ -6,6 +6,7 @@
 [![codecov](https://codecov.io/gh/dmlc/treelite/branch/master/graph/badge.svg)](https://codecov.io/gh/dmlc/treelite)
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 [![PyPI version](https://badge.fury.io/py/treelite.svg)](https://pypi.python.org/pypi/treelite/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/treelite.svg)](https://anaconda.org/conda-forge/treelite)
 
 [Documentation](http://treelite.io) |
 [Installation](http://treelite.readthedocs.io/en/latest/install.html) |

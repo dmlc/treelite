@@ -56,6 +56,21 @@ then
   ./example
 fi
 
+if [ ${TASK} == "build_without_protobuf"]
+then
+  conda activate python3
+  conda --version
+  python --version
+
+  set -x
+  rm -rf build/
+  mkdir build
+  cd build
+  cmake .. -DENABLE_PROTOBUF=OFF -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
+  ninja
+  ./treelite_cpp_test
+fi
+
 if [ ${TASK} == "python_test" ]
 then
   conda activate python3

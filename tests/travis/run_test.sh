@@ -56,7 +56,7 @@ then
   ./example
 fi
 
-if [ ${TASK} == "build_without_protobuf"]
+if [ ${TASK} == "build_without_protobuf" ]
 then
   conda activate python3
   conda --version

@@ -337,9 +337,8 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(protobuf);
 
-Model LoadProtobufModel(const char* filename) {
+void LoadProtobufModel(const char* filename, Model* out) {
   LOG(FATAL) << "Treelite was not compiled with Protobuf!";
-  return Model();  // should not reach here
 }
 
 void ExportProtobufModel(const char* filename, const Model& model) {

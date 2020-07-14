@@ -1,6 +1,6 @@
 set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.14)
-project(treelite LANGUAGES CXX C VERSION 0.92)
+project(treelite LANGUAGES CXX C VERSION 0.93)
 
 # check MSVC version
 if(MSVC)

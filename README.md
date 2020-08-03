@@ -1,9 +1,9 @@
 # Treelite
 
-[![Build Status](https://dev.azure.com/hcho3/treelite/_apis/build/status/dmlc.treelite?branchName=master)](https://dev.azure.com/hcho3/treelite/_build)
-[![Build Status](https://img.shields.io/travis/dmlc/treelite.svg?label=build&logo=travis&branch=master)](https://travis-ci.org/dmlc/treelite)
+[![Build Status](https://dev.azure.com/hcho3/treelite/_apis/build/status/dmlc.treelite?branchName=mainline)](https://dev.azure.com/hcho3/treelite/_build)
+[![Build Status](https://img.shields.io/travis/dmlc/treelite.svg?label=build&logo=travis&branch=mainline)](https://travis-ci.org/dmlc/treelite)
 [![Documentation Status](https://readthedocs.org/projects/treelite/badge/?version=latest)](http://treelite.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/dmlc/treelite/branch/master/graph/badge.svg)](https://codecov.io/gh/dmlc/treelite)
+[![codecov](https://codecov.io/gh/dmlc/treelite/branch/mainline/graph/badge.svg)](https://codecov.io/gh/dmlc/treelite)
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 [![PyPI version](https://badge.fury.io/py/treelite.svg)](https://pypi.python.org/pypi/treelite/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/treelite.svg)](https://anaconda.org/conda-forge/treelite)

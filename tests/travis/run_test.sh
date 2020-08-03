@@ -111,7 +111,7 @@ then
 
   # Deploy binary wheel to S3
   python -m pip install awscli
-  if [ "${TRAVIS_BRANCH}" == "master" ]
+  if [ "${TRAVIS_BRANCH}" == "mainline" ]
   then
     S3_DEST="s3://treelite-wheels/"
   elif [ -z "${TRAVIS_TAG}" ]
@@ -146,7 +146,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
   # Deploy source wheel to S3
   if [ ${USE_SYSTEM_PROTOBUF} == "no" ]; then
     python -m pip install awscli
-    if [ "${TRAVIS_BRANCH}" == "master" ]
+    if [ "${TRAVIS_BRANCH}" == "mainline" ]
     then
       S3_DEST="s3://treelite-wheels/"
     elif [ -z "${TRAVIS_TAG}" ]

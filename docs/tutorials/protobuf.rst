@@ -17,7 +17,7 @@ What is Protocol Buffers?
 **Protocol Buffers** (`google/protobuf <https://github.com/google/protobuf>`_)
 is a widely used mechanism to serialize structured data. You may specify your
 ensemble model according to the specification `src/tree.proto
-<https://github.com/dmlc/treelite/blob/master/src/tree.proto>`_. Depending on
+<https://github.com/dmlc/treelite/blob/mainline/src/tree.proto>`_. Depending on
 the package you used to train the model, it may take some effort to express
 the model in terms of the given spec. See `this helpful guide
 <https://developers.google.com/protocol-buffers/docs/tutorials>`_ on reading

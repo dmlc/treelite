@@ -1,5 +1,5 @@
 trigger:
-- master
+- mainline
 
 jobs:
 - job: formatting_check

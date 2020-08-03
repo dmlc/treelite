@@ -1,5 +1,9 @@
 package ml.dmlc.treelite4j.java;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.KryoSerializable;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,7 +19,7 @@ import java.nio.file.Paths;
  * Treelite Predictor
  * @author Hyunsu Cho
  */
-public class Predictor implements Serializable {
+public class Predictor implements Serializable, KryoSerializable {
   private static final Log logger = LogFactory.getLog(Predictor.class);
   private transient long handle = 0;
   private transient int num_output_group;
@@ -330,5 +334,44 @@ public class Predictor implements Serializable {
     byte[] lib_data = Files.readAllBytes(Paths.get(libpath));
     out.writeInt(lib_data.length);
     out.write(lib_data);
+  }
+
+  @Override
+  public void write(Kryo kryo, Output out) {
+      out.writeInt(this.num_thread);
+      out.writeBoolean(this.verbose);
+      byte[] libext = this.libext.getBytes();
+      out.writeShort(libext.length);
+      out.write(libext);
+      try {
+          byte[] lib_data = Files.readAllBytes(Paths.get(libpath));
+          out.writeInt(lib_data.length);
+          out.write(lib_data);
+      } catch (IOException e) {
+          logger.error("Error while loading TreeLite dynamic shared library!");
+      }
+  }
+
+  @Override
+  public void read(Kryo kryo, Input in) {
+      this.num_thread = in.readInt();
+      this.verbose = in.readBoolean();
+      byte[] libext = new byte[in.readShort()];
+      in.read(libext);
+      File libpath = null;
+      try {
+          libpath = File.createTempFile("TreeLite_", new String(libext));
+          byte[] lib_data = new byte[in.readInt()];
+          in.read(lib_data);
+          FileUtils.writeByteArrayToFile(libpath, lib_data);
+          initNativeLibrary(libpath.getAbsolutePath());
+      } catch (Exception ex) {
+          ex.printStackTrace();
+          logger.error("Error while loading TreeLite dynamic shared library!");
+      } finally {
+          if (libpath != null) {
+              libpath.delete();
+          }
+      }
   }
 }

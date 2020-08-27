@@ -20,7 +20,7 @@ jobs:
     vmImage: 'ubuntu-latest'
   steps:
   - checkout: self
-  - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh -DENABLE_PROTOBUF=ON
+  - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh
     displayName: 'Building Treelite...'
   - script: |
       tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
@@ -50,7 +50,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 15 2017 Win64" -DENABLE_PROTOBUF=ON -DBUILD_CPP_TEST=ON
+      cmake .. -G"Visual Studio 15 2017 Win64" -DBUILD_CPP_TEST=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:
@@ -93,7 +93,7 @@ jobs:
   - script: |
       mkdir build/
       cd build/
-      cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
+      cmake .. -DTEST_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
       ninja
     displayName: 'Building Treelite...'
   - script: python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
@@ -131,7 +131,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 16 2019" -A x64 -DENABLE_PROTOBUF=ON
+      cmake .. -G"Visual Studio 16 2019" -A x64
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:

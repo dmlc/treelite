@@ -53,19 +53,6 @@ set_target_properties(objtreelite objtreelite_runtime objtreelite_common
   CXX_STANDARD 11
   CXX_STANDARD_REQUIRED ON)
 
-# Use Protobuf optionally
-if(ENABLE_PROTOBUF)
-  target_include_directories(objtreelite PRIVATE ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
-  target_compile_definitions(objtreelite PRIVATE -DTREELITE_PROTOBUF_SUPPORT)
-  target_link_libraries(objtreelite PRIVATE ${Protobuf_LIBRARIES})
-  PROTOBUF_GENERATE_CPP(TREE_PROTO_SRCS TREE_PROTO_HDRS tree.proto)
-  PROTOBUF_GENERATE_JAVA(tree_proto_java tree.proto)
-  PROTOBUF_GENERATE_PYTHON(tree_proto_python tree.proto)
-else()
-  set(TREE_PROTO_SRCS "")
-  set(TREE_PROTO_HDRS "")
-endif()
-
 target_sources(objtreelite
     PRIVATE
     c_api/c_api.cc
@@ -96,14 +83,11 @@ target_sources(objtreelite
     frontend/builder.cc
     frontend/lightgbm.cc
     frontend/xgboost.cc
-    frontend/protobuf.cc
     annotator.cc
     data.cc
     filesystem.cc
     optable.cc
     reference_serializer.cc
-    ${TREE_PROTO_SRCS}
-    ${TREE_PROTO_HDRS}
     ${PROJECT_SOURCE_DIR}/include/treelite/annotator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/base.h
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h

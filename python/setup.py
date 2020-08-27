@@ -97,7 +97,6 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
     def build(self, src_dir, build_dir, generator, build_tool=None):
         """Build the core library with CMake."""
         cmake_cmd = ['cmake', src_dir, generator]
-        cmake_cmd.append('-DENABLE_PROTOBUF=ON')
 
         self.logger.info('Run CMake command: %s', str(cmake_cmd))
         subprocess.check_call(cmake_cmd, cwd=build_dir)

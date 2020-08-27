@@ -9,7 +9,6 @@ if(MSVC)
   endif()
 endif()
 
-option(ENABLE_PROTOBUF "Enable Protobuf" OFF)
 option(TEST_COVERAGE "C++ test coverage" OFF)
 option(USE_OPENMP "Use OpenMP" ON)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)

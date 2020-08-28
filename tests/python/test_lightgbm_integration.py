@@ -8,7 +8,7 @@ import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from treelite.util import has_sklearn
-from .metadata import dataset_db
+from .metadata import dataset_db, _qualify_path
 from .util import os_compatible_toolchains, os_platform, check_predictor
 
 try:
@@ -142,3 +142,11 @@ def test_sparse_categorical_model(tmpdir, quantize, toolchain):
                      options=['-O0'])
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     check_predictor(predictor, dataset)
+
+
+def test_constant_tree():
+    """Test whether Treelite can handle LightGBM models with a constant tree (which has a single
+    node)"""
+    model_path = _qualify_path('lightgbm_constant_tree', 'model_with_constant_tree.txt')
+    model = treelite.Model.load(model_path, model_format='lightgbm')
+    assert model.num_tree == 2

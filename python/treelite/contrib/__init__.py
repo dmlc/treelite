@@ -65,8 +65,8 @@ def generate_makefile(dirpath, platform, toolchain, options=None):  # pylint: di
     try:
         with open(os.path.join(dirpath, 'recipe.json')) as f:
             recipe = json.load(f)
-    except IOError:
-        raise TreeliteError('Failed to open recipe.json')
+    except IOError as e:
+        raise TreeliteError('Failed to open recipe.json') from e
 
     if 'sources' not in recipe or 'target' not in recipe:
         raise TreeliteError('Malformed recipe.json')
@@ -74,8 +74,8 @@ def generate_makefile(dirpath, platform, toolchain, options=None):  # pylint: di
         try:
             _ = iter(options)
             options = [str(x) for x in options]
-        except TypeError:
-            raise TreeliteError('options must be a list of string')
+        except TypeError as e:
+            raise TreeliteError('options must be a list of string') from e
     else:
         options = []
 
@@ -137,8 +137,8 @@ def generate_cmakelists(dirpath, options=None):
     try:
         with open(os.path.join(dirpath, 'recipe.json')) as f:
             recipe = json.load(f)
-    except IOError:
-        raise TreeliteError('Failed to open recipe.json')
+    except IOError as e:
+        raise TreeliteError('Failed to open recipe.json') from e
 
     if 'sources' not in recipe or 'target' not in recipe:
         raise TreeliteError('Malformed recipe.json')
@@ -146,8 +146,8 @@ def generate_cmakelists(dirpath, options=None):
         try:
             _ = iter(options)
             options = [str(x) for x in options]
-        except TypeError:
-            raise TreeliteError('options must be a list of string')
+        except TypeError as e:
+            raise TreeliteError('options must be a list of string') from e
     else:
         options = []
 
@@ -239,8 +239,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
     try:
         with open(os.path.join(dirpath, 'recipe.json')) as f:
             recipe = json.load(f)
-    except IOError:
-        raise TreeliteError('Failed to open recipe.json')
+    except IOError as e:
+        raise TreeliteError('Failed to open recipe.json') from e
 
     if 'sources' not in recipe or 'target' not in recipe:
         raise TreeliteError('Malformed recipe.json')
@@ -248,8 +248,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
         try:
             _ = iter(options)
             options = [str(x) for x in options]
-        except TypeError:
-            raise TreeliteError('options must be a list of string')
+        except TypeError as e:
+            raise TreeliteError('options must be a list of string') from e
     else:
         options = []
 

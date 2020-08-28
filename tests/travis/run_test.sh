@@ -15,7 +15,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DTEST_COVERAGE=ON -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
+  cmake .. -DTEST_COVERAGE=ON -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
   ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
@@ -39,11 +39,10 @@ then
 
   # Install Treelite C++ library into the Conda env
   set -x
-  conda install protobuf
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -GNinja
+  cmake .. -DUSE_OPENMP=ON -GNinja
   ninja install
 
   # Try compiling a sample application
@@ -54,21 +53,6 @@ then
   cmake .. -GNinja
   ninja
   ./example
-fi
-
-if [ ${TASK} == "build_without_protobuf" ]
-then
-  conda activate python3
-  conda --version
-  python --version
-
-  set -x
-  rm -rf build/
-  mkdir build
-  cd build
-  cmake .. -DENABLE_PROTOBUF=OFF -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
-  ninja
-  ./treelite_cpp_test
 fi
 
 if [ ${TASK} == "python_test" ]
@@ -82,7 +66,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DENABLE_PROTOBUF=ON -DUSE_OPENMP=ON -GNinja
+  cmake .. -DUSE_OPENMP=ON -GNinja
   ninja
   cd ..
   rm -rfv python/dist python/build
@@ -126,9 +110,6 @@ if [ ${TASK} == "python_sdist_test" ]; then
   conda activate python3
   python --version
   conda install numpy scipy
-  if [ ${USE_SYSTEM_PROTOBUF} == "yes" ]; then
-    conda install protobuf
-  fi
 
   # Build source distribution
   make pippack
@@ -144,20 +125,18 @@ if [ ${TASK} == "python_sdist_test" ]; then
   python -m pytest -v --fulltrace tests/python
 
   # Deploy source wheel to S3
-  if [ ${USE_SYSTEM_PROTOBUF} == "no" ]; then
-    python -m pip install awscli
-    if [ "${TRAVIS_BRANCH}" == "mainline" ]
-    then
-      S3_DEST="s3://treelite-wheels/"
-    elif [ -z "${TRAVIS_TAG}" ]
-    then
-      S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
-    fi
-    for file in ./treelite-*.tar.gz ./treelite_runtime-*.tar.gz
-    do
-      mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
-    done
-    python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
-    python -m awscli s3 cp treelite_runtime-*.tar.gz "${S3_DEST}" --acl public-read || true
+  python -m pip install awscli
+  if [ "${TRAVIS_BRANCH}" == "mainline" ]
+  then
+    S3_DEST="s3://treelite-wheels/"
+  elif [ -z "${TRAVIS_TAG}" ]
+  then
+    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
   fi
+  for file in ./treelite-*.tar.gz ./treelite_runtime-*.tar.gz
+  do
+    mv "${file}" "${file%.tar.gz}+${TRAVIS_COMMIT}.tar.gz"
+  done
+  python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
+  python -m awscli s3 cp treelite_runtime-*.tar.gz "${S3_DEST}" --acl public-read || true
 fi

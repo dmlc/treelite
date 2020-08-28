@@ -266,25 +266,6 @@ class Model():
             c_str(dirpath)))
         _check_call(_LIB.TreeliteCompilerFree(compiler_handle))
 
-    def export_protobuf(self, filename):
-        """
-        Export a tree ensemble model as a Protocol Buffers format. Protocol Buffers
-        (google/protobuf) is a language- and platform-neutral mechanism for
-        serializing structured data. See src/tree.proto for format spec.
-
-        Parameters
-        ----------
-        filename : :py:class:`str <python:str>`
-            path to save Protocol Buffers output
-
-        Example
-        -------
-        .. code-block:: python
-
-           model.export_protobuf('./my.buffer')
-        """
-        _check_call(_LIB.TreeliteExportProtobufModel(c_str(filename), self.handle))
-
     @staticmethod
     def _set_compiler_param(compiler_handle, params, value=None):
         """
@@ -360,7 +341,7 @@ class Model():
         filename : :py:class:`str <python:str>`
             path to model file
         model_format : :py:class:`str <python:str>`
-            model file format. Must be one or 'xgboost', 'lightgbm', 'protobuf'
+            model file format. Must be one or 'xgboost', 'lightgbm'
 
         Returns
         -------
@@ -384,12 +365,9 @@ class Model():
         elif model_format == 'xgboost':
             _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
                                                       ctypes.byref(handle)))
-        elif model_format == 'protobuf':
-            _check_call(_LIB.TreeliteLoadProtobufModel(c_str(filename),
-                                                       ctypes.byref(handle)))
         else:
             raise ValueError('Unknown model_format: must be one of ' \
-                             + '{lightgbm, xgboost, protobuf}')
+                             + '{lightgbm, xgboost}')
         return Model(handle)
 
 

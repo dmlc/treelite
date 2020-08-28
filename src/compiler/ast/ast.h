@@ -15,11 +15,6 @@
 #include <vector>
 #include <utility>
 
-// forward declaration
-namespace treelite_ast_protobuf {
-class ASTNode;
-}  // namespace treelite_ast_protobuf
-
 namespace treelite {
 namespace compiler {
 

@@ -42,22 +42,6 @@ void LoadXGBoostModel(const char* filename, Model* out);
  * \param out reference to loaded model
  */
 void LoadXGBoostModel(const void* buf, size_t len, Model* out);
-/*!
- * \brief load a model in Protocol Buffers format. Protocol Buffers
- *        (google/protobuf) is a language- and platform-neutral mechanism for
- *        serializing structured data. See tree.proto for format spec.
- * \param filename name of model file
- * \param out reference to loaded model
- */
-void LoadProtobufModel(const char* filename, Model* out);
-/*!
- * \brief export a model in Protocol Buffers format. Protocol Buffers
- *        (google/protobuf) is a language- and platform-neutral mechanism for
- *        serializing structured data. See src/tree.proto for format spec.
- * \param filename name of model file
- * \param model model to export
- */
-void ExportProtobufModel(const char* filename, const Model& model);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

@@ -15,12 +15,7 @@ jobs:
       env: TASK=cmake_import_test
     # Test installation of Python source distribution
     - os: linux
-      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=yes
-    - os: linux
-      env: TASK=python_sdist_test USE_SYSTEM_PROTOBUF=no
-    # Test build with Protobuf disabled
-    - os: linux
-      env: TASK=build_without_protobuf
+      env: TASK=python_sdist_test
     # Python package test
     - os: osx
       env: TASK=python_test

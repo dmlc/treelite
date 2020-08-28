@@ -149,3 +149,4 @@ def test_constant_tree():
     node)"""
     model_path = _qualify_path('lightgbm_constant_tree', 'model_with_constant_tree.txt')
     model = treelite.Model.load(model_path, model_format='lightgbm')
+    assert model.num_tree == 2

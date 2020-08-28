@@ -144,9 +144,8 @@ class DMatrix():
             try:
                 csr = scipy.sparse.csr_matrix(data)
                 self._init_from_csr(csr)
-            except:
-                raise TypeError('Cannot initialize DMatrix from {}'
-                                .format(type(data).__name__))
+            except Exception as e:
+                raise TypeError(f'Cannot initialize DMatrix from {type(data).__name__}') from e
         self.feature_names = feature_names
         self.feature_types = feature_types
         self._get_internals()  # save handles for internal arrays

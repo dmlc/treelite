@@ -336,9 +336,9 @@ class Model():
         # attempt to load xgboost
         try:
             import xgboost
-        except ImportError:
-            raise TreeliteError('xgboost module must be installed to read from ' + \
-                                '`xgboost.Booster` object')
+        except ImportError as e:
+            raise TreeliteError('xgboost module must be installed to read from ' +
+                                '`xgboost.Booster` object') from e
         if not isinstance(booster, xgboost.Booster):
             raise ValueError('booster must be of type `xgboost.Booster`')
         buffer = booster.save_raw()
@@ -431,9 +431,9 @@ class ModelBuilder():
                 _check_call(_LIB.TreeliteTreeBuilderSetRootNode(
                     self.tree.handle,
                     ctypes.c_int(self.node_key)))
-            except AttributeError:
-                raise TreeliteError('This node has never been inserted into a tree; ' \
-                                    + 'a node must be inserted before it can be a root')
+            except AttributeError as e:
+                raise TreeliteError('This node has never been inserted into a tree; ' +
+                                    'a node must be inserted before it can be a root') from e
 
         def set_leaf_node(self, leaf_value):
             """
@@ -471,9 +471,9 @@ class ModelBuilder():
                     leaf_value = [float(i) for i in leaf_value]
                 else:
                     leaf_value = float(leaf_value)
-            except TypeError:
-                raise TreeliteError('leaf_value parameter should be either a ' + \
-                                    'single float or a list of floats')
+            except TypeError as e:
+                raise TreeliteError('leaf_value parameter should be either a ' +
+                                    'single float or a list of floats') from e
 
             try:
                 if is_list:
@@ -488,9 +488,9 @@ class ModelBuilder():
                         ctypes.c_int(self.node_key),
                         ctypes.c_float(leaf_value)))
                 self.empty = False
-            except AttributeError:
-                raise TreeliteError('This node has never been inserted into a tree; ' \
-                                    + 'a node must be inserted before it can be a leaf node')
+            except AttributeError as e:
+                raise TreeliteError('This node has never been inserted into a tree; ' +
+                                    'a node must be inserted before it can be a leaf node') from e
 
         # pylint: disable=R0913
         def set_numerical_test_node(self, feature_id, opname, threshold,
@@ -541,9 +541,9 @@ class ModelBuilder():
                     ctypes.c_int(left_child_key),
                     ctypes.c_int(right_child_key)))
                 self.empty = False
-            except AttributeError:
-                raise TreeliteError('This node has never been inserted into a tree; ' \
-                                    + 'a node must be inserted before it can be a test node')
+            except AttributeError as e:
+                raise TreeliteError('This node has never been inserted into a tree; ' +
+                                    'a node must be inserted before it can be a test node') from e
 
         # pylint: disable=R0913
         def set_categorical_test_node(self, feature_id, left_categories,
@@ -596,9 +596,9 @@ class ModelBuilder():
                     ctypes.c_int(left_child_key),
                     ctypes.c_int(right_child_key)))
                 self.empty = False
-            except AttributeError:
-                raise TreeliteError('This node has never been inserted into a tree; ' \
-                                    + 'a node must be inserted before it can be a test node')
+            except AttributeError as e:
+                raise TreeliteError('This node has never been inserted into a tree; ' +
+                                    'a node must be inserted before it can be a test node') from e
 
     class Tree():
         """Handle to a decision tree in a tree ensemble Builder"""

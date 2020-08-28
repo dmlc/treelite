@@ -327,14 +327,17 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       = TextToArray<double>(it->second, tree.num_leaves);
 
     it = dict.find("decision_type");
-    if (it == dict.end()) {
-      tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
+    if (tree.num_leaves <= 1) {
+      tree.decision_type = std::vector<int8_t>();
     } else {
-      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
-        << "Ill-formed LightGBM model file: decision_type cannot be empty string";
-      tree.decision_type
-        = TextToArray<int8_t>(it->second,
-                                                tree.num_leaves - 1);
+      CHECK_GT(tree.num_leaves, 1);
+      if (it == dict.end()) {
+        tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
+      } else {
+        CHECK(!it->second.empty())
+          << "Ill-formed LightGBM model file: decision_type cannot be empty string";
+        tree.decision_type = TextToArray<int8_t>(it->second, tree.num_leaves - 1);
+      }
     }
 
     if (tree.num_cat > 0) {
@@ -352,58 +355,84 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     }
 
     it = dict.find("split_feature");
-    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
-      << "Ill-formed LightGBM model file: need split_feature";
-    tree.split_feature
-      = TextToArray<int>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.split_feature = std::vector<int>();
+    } else {
+      CHECK_GT(tree.num_leaves, 1);
+      CHECK(it != dict.end() && !it->second.empty())
+        << "Ill-formed LightGBM model file: need split_feature";
+      tree.split_feature = TextToArray<int>(it->second, tree.num_leaves - 1);
+    }
 
     it = dict.find("threshold");
-    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
-      << "Ill-formed LightGBM model file: need threshold";
-    tree.threshold
-      = TextToArray<double>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.threshold = std::vector<double>();
+    } else {
+      CHECK_GT(tree.num_leaves, 1);
+      CHECK(it != dict.end() && !it->second.empty())
+        << "Ill-formed LightGBM model file: need threshold";
+      tree.threshold = TextToArray<double>(it->second, tree.num_leaves - 1);
+    }
 
     it = dict.find("split_gain");
-    if (it != dict.end()) {
-      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
-        << "Ill-formed LightGBM model file: split_gain cannot be empty string";
-      tree.split_gain
-        = TextToArray<float>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.split_gain = std::vector<float>();
     } else {
-      tree.split_gain.resize(tree.num_leaves - 1);
+      CHECK_GT(tree.num_leaves, 1);
+      if (it != dict.end()) {
+        CHECK(!it->second.empty())
+          << "Ill-formed LightGBM model file: split_gain cannot be empty string";
+        tree.split_gain = TextToArray<float>(it->second, tree.num_leaves - 1);
+      } else {
+        tree.split_gain = std::vector<float>();
+      }
     }
 
     it = dict.find("internal_count");
-    if (it != dict.end()) {
-      CHECK(tree.num_leaves - 1 == 0 || !it->second.empty())
-        << "Ill-formed LightGBM model file: internal_count cannot be empty string";
-      tree.internal_count
-        = TextToArray<int>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.internal_count = std::vector<int>();
     } else {
-      tree.internal_count.resize(tree.num_leaves - 1);
+      CHECK_GT(tree.num_leaves, 1);
+      if (it != dict.end()) {
+        CHECK(!it->second.empty())
+          << "Ill-formed LightGBM model file: internal_count cannot be empty string";
+        tree.internal_count = TextToArray<int>(it->second, tree.num_leaves - 1);
+      } else {
+        tree.internal_count = std::vector<int>();
+      }
     }
 
     it = dict.find("leaf_count");
-    if (it != dict.end()) {
-      CHECK(!it->second.empty())
-        << "Ill-formed LightGBM model file: leaf_count cannot be empty string";
-      tree.leaf_count
-        = TextToArray<int>(it->second, tree.num_leaves);
+    if (tree.num_leaves == 0) {
+      tree.leaf_count = std::vector<int>();
     } else {
-      tree.leaf_count.resize(tree.num_leaves);
+      CHECK_GT(tree.num_leaves, 0);
+      if (it != dict.end() && !it->second.empty()) {
+        tree.leaf_count = TextToArray<int>(it->second, tree.num_leaves);
+      } else {
+        tree.leaf_count = std::vector<int>();
+      }
     }
 
     it = dict.find("left_child");
-    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
-      << "Ill-formed LightGBM model file: need left_child";
-    tree.left_child
-      = TextToArray<int>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.left_child = std::vector<int>();
+    } else {
+      CHECK_GT(tree.num_leaves, 1);
+      CHECK(it != dict.end() && !it->second.empty())
+        << "Ill-formed LightGBM model file: need left_child";
+      tree.left_child = TextToArray<int>(it->second, tree.num_leaves - 1);
+    }
 
     it = dict.find("right_child");
-    CHECK(it != dict.end() && (tree.num_leaves - 1 == 0 || !it->second.empty()))
-      << "Ill-formed LightGBM model file: need right_child";
-    tree.right_child
-      = TextToArray<int>(it->second, tree.num_leaves - 1);
+    if (tree.num_leaves <= 1) {
+      tree.right_child = std::vector<int>();
+    } else {
+      CHECK_GT(tree.num_leaves, 1);
+      CHECK(it != dict.end() && !it->second.empty())
+        << "Ill-formed LightGBM model file: need right_child";
+      tree.right_child = TextToArray<int>(it->second, tree.num_leaves - 1);
+    }
   }
 
   /* 2. Export model */
@@ -497,18 +526,26 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     // assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
     std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
-    Q.push({0, 0});
+    if (lgb_tree.num_leaves == 0) {
+      continue;
+    } else if (lgb_tree.num_leaves == 1) {
+      // A constant-value tree with a single root node that's also a leaf
+      Q.push({-1, 0});
+    } else {
+      Q.push({0, 0});
+    }
     while (!Q.empty()) {
       int old_id, new_id;
       std::tie(old_id, new_id) = Q.front(); Q.pop();
       if (old_id < 0) {  // leaf
         const double leaf_value = lgb_tree.leaf_value[~old_id];
-        const int data_count = lgb_tree.leaf_count[~old_id];
         tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
-        CHECK_GE(data_count, 0);
-        tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+        if (!lgb_tree.leaf_count.empty()) {
+          const int data_count = lgb_tree.leaf_count[~old_id];
+          CHECK_GE(data_count, 0);
+          tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+        }
       } else {  // non-leaf
-        const int data_count = lgb_tree.internal_count[old_id];
         const auto split_index =
           static_cast<unsigned>(lgb_tree.split_feature[old_id]);
 
@@ -533,9 +570,14 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
           const treelite::Operator cmp_op = treelite::Operator::kLE;
           tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
         }
-        CHECK_GE(data_count, 0);
-        tree.SetDataCount(new_id, static_cast<size_t>(data_count));
-        tree.SetGain(new_id, static_cast<double>(lgb_tree.split_gain[old_id]));
+        if (!lgb_tree.internal_count.empty()) {
+          const int data_count = lgb_tree.internal_count[old_id];
+          CHECK_GE(data_count, 0);
+          tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+        }
+        if (!lgb_tree.split_gain.empty()) {
+          tree.SetGain(new_id, static_cast<double>(lgb_tree.split_gain[old_id]));
+        }
         Q.push({lgb_tree.left_child[old_id], tree.LeftChild(new_id)});
         Q.push({lgb_tree.right_child[old_id], tree.RightChild(new_id)});
       }

@@ -60,13 +60,14 @@ class TranslationUnitNode : public ASTNode {
   }
 };
 
+template <typename ThresholdType>
 class QuantizerNode : public ASTNode {
  public:
-  explicit QuantizerNode(const std::vector<std::vector<tl_float>>& cut_pts)
+  explicit QuantizerNode(const std::vector<std::vector<ThresholdType>>& cut_pts)
     : cut_pts(cut_pts) {}
-  explicit QuantizerNode(std::vector<std::vector<tl_float>>&& cut_pts)
+  explicit QuantizerNode(std::vector<std::vector<ThresholdType>>&& cut_pts)
     : cut_pts(std::move(cut_pts)) {}
-  std::vector<std::vector<tl_float>> cut_pts;
+  std::vector<std::vector<ThresholdType>> cut_pts;
 
   std::string GetDump() const override {
     std::ostringstream oss;
@@ -118,29 +119,31 @@ class ConditionNode : public ASTNode {
   }
 };
 
+template <typename ThresholdType>
 union ThresholdVariant {
-  tl_float float_val;
+  ThresholdType float_val;
   int int_val;
-  ThresholdVariant(tl_float val) : float_val(val) {}
-  ThresholdVariant(int val) : int_val(val) {}
+  explicit ThresholdVariant(ThresholdType val) : float_val(val) {}
+  explicit ThresholdVariant(int val) : int_val(val) {}
 };
 
+template <typename ThresholdType>
 class NumericalConditionNode : public ConditionNode {
  public:
   NumericalConditionNode(unsigned split_index, bool default_left,
                          bool quantized, Operator op,
-                         ThresholdVariant threshold)
+                         ThresholdVariant<ThresholdType> threshold)
     : ConditionNode(split_index, default_left),
       quantized(quantized), op(op), threshold(threshold) {}
   bool quantized;
   Operator op;
-  ThresholdVariant threshold;
+  ThresholdVariant<ThresholdType> threshold;
 
   std::string GetDump() const override {
     return fmt::format("NumericalConditionNode {{ {}, quantized: {}, op: {}, threshold: {} }}",
                        ConditionNode::GetDump(), quantized, OpName(op),
-                       (quantized ? fmt::format("{:d}", threshold.int_val)
-                                  : fmt::format("{:f}", threshold.float_val)));
+                       (quantized ? fmt::format("{}", threshold.int_val)
+                                  : fmt::format("{}", threshold.float_val)));
   }
 };
 
@@ -168,15 +171,16 @@ class CategoricalConditionNode : public ConditionNode {
   }
 };
 
+template <typename LeafOutputType>
 class OutputNode : public ASTNode {
  public:
-  explicit OutputNode(tl_float scalar)
+  explicit OutputNode(LeafOutputType scalar)
     : is_vector(false), scalar(scalar) {}
-  explicit OutputNode(const std::vector<tl_float>& vector)
+  explicit OutputNode(const std::vector<LeafOutputType>& vector)
     : is_vector(true), vector(vector) {}
   bool is_vector;
-  tl_float scalar;
-  std::vector<tl_float> vector;
+  LeafOutputType scalar;
+  std::vector<LeafOutputType> vector;
 
   std::string GetDump() const override {
     if (is_vector) {

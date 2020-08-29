@@ -77,6 +77,7 @@ class ContiguousArray {
 };
 
 /*! \brief in-memory representation of a decision tree */
+template <typename ThresholdType, typename LeafOutputType>
 class Tree {
  public:
   /*! \brief tree node */
@@ -86,8 +87,8 @@ class Tree {
     inline void Init();
     /*! \brief store either leaf value or decision threshold */
     union Info {
-      tl_float leaf_value;  // for leaf nodes
-      tl_float threshold;   // for non-leaf nodes
+      LeafOutputType leaf_value;  // for leaf nodes
+      ThresholdType threshold;   // for non-leaf nodes
     };
     /*! \brief pointer to left and right children */
     int32_t cleft_, cright_;
@@ -138,14 +139,15 @@ class Tree {
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
-  static_assert(sizeof(Node) == 48, "Node must be 48 bytes");
+  // TODO(hcho3): Add back size check
+  //static_assert(sizeof(Node) == 48, "Node must be 48 bytes");
 
   Tree() = default;
   ~Tree() = default;
   Tree(const Tree&) = delete;
   Tree& operator=(const Tree&) = delete;
-  Tree(Tree&&) = default;
-  Tree& operator=(Tree&&) = default;
+  Tree(Tree&&) noexcept = default;
+  Tree& operator=(Tree&&) noexcept = default;
   inline Tree Clone() const;
 
   inline std::vector<PyBufferFrame> GetPyBuffer();
@@ -154,7 +156,7 @@ class Tree {
  private:
   // vector of nodes
   ContiguousArray<Node> nodes_;
-  ContiguousArray<tl_float> leaf_vector_;
+  ContiguousArray<LeafOutputType> leaf_vector_;
   ContiguousArray<size_t> leaf_vector_offset_;
   ContiguousArray<uint32_t> left_categories_;
   ContiguousArray<size_t> left_categories_offset_;
@@ -214,12 +216,12 @@ class Tree {
    * \brief get leaf value of the leaf node
    * \param nid ID of node being queried
    */
-  inline tl_float LeafValue(int nid) const;
+  inline LeafOutputType LeafValue(int nid) const;
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
    * \param nid ID of node being queried
    */
-  inline std::vector<tl_float> LeafVector(int nid) const;
+  inline std::vector<LeafOutputType> LeafVector(int nid) const;
   /*!
    * \brief tests whether the leaf node has a non-empty leaf vector
    * \param nid ID of node being queried
@@ -229,7 +231,7 @@ class Tree {
    * \brief get threshold of the node
    * \param nid ID of node being queried
    */
-  inline tl_float Threshold(int nid) const;
+  inline ThresholdType Threshold(int nid) const;
   /*!
    * \brief get comparison operator
    * \param nid ID of node being queried
@@ -295,7 +297,7 @@ class Tree {
    * \param cmp comparison operator to compare between feature value and
    *            threshold
    */
-  inline void SetNumericalSplit(int nid, unsigned split_index, tl_float threshold,
+  inline void SetNumericalSplit(int nid, unsigned split_index, ThresholdType threshold,
                                 bool default_left, Operator cmp);
   /*!
    * \brief create a categorical split
@@ -314,13 +316,13 @@ class Tree {
    * \param nid ID of node being updated
    * \param value leaf value
    */
-  inline void SetLeaf(int nid, tl_float value);
+  inline void SetLeaf(int nid, LeafOutputType value);
   /*!
    * \brief set the leaf vector of the node; useful for multi-class random forest classifier
    * \param nid ID of node being updated
    * \param leaf_vector leaf vector
    */
-  inline void SetLeafVector(int nid, const std::vector<tl_float>& leaf_vector);
+  inline void SetLeafVector(int nid, const std::vector<ThresholdType>& leaf_vector);
   /*!
    * \brief set the hessian sum of the node
    * \param nid ID of node being updated
@@ -406,9 +408,10 @@ inline void InitParamAndCheck(ModelParam* param,
                               const std::vector<std::pair<std::string, std::string>>& cfg);
 
 /*! \brief thin wrapper for tree ensemble model */
-struct Model {
+template <typename ThresholdType, typename LeafOutputType>
+struct ModelImpl {
   /*! \brief member trees */
-  std::vector<Tree> trees;
+  std::vector<Tree<ThresholdType, LeafOutputType>> trees;
   /*!
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
@@ -424,18 +427,54 @@ struct Model {
   ModelParam param;
 
   /*! \brief disable copy; use default move */
-  Model() = default;
-  ~Model() = default;
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
-  Model(Model&&) = default;
-  Model& operator=(Model&&) = default;
+  ModelImpl() = default;
+  ~ModelImpl() = default;
+  ModelImpl(const ModelImpl&) = delete;
+  ModelImpl& operator=(const ModelImpl&) = delete;
+  ModelImpl(ModelImpl&&) noexcept = default;
+  ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
   void ReferenceSerialize(dmlc::Stream* fo) const;
 
   inline std::vector<PyBufferFrame> GetPyBuffer();
   inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
-  inline Model Clone() const;
+  inline ModelImpl Clone() const;
+};
+
+enum class ModelType : uint16_t {
+  // Threshold type,
+  kInvalid = 0,
+  kFloat32ThresholdUInt32LeafOutput = 1,
+  kFloat32ThresholdFloat32LeafOutput = 2,
+  kFloat64ThresholdUint32LeafOutput = 3,
+  kFloat64ThresholdFloat64LeafOutput = 4
+};
+
+struct Model {
+ private:
+  std::shared_ptr<void> handle_;
+  ModelType type_;
+ public:
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static Model Create();
+  template <typename ThresholdType, typename LeafOutputType>
+  inline ModelImpl<ThresholdType, LeafOutputType>& GetImpl();
+  template <typename ThresholdType, typename LeafOutputType>
+  inline const ModelImpl<ThresholdType, LeafOutputType>& GetImpl() const;
+  inline ModelType GetModelType() const;
+  template <typename Func>
+  inline auto Dispatch(Func func) const;
+  template <typename Func>
+  inline auto Dispatch(Func func);
+  inline ModelParam GetParam() const;
+  inline int GetNumFeature() const;
+  inline int GetNumOutputGroup() const;
+  inline bool GetRandomForestFlag() const;
+  inline size_t GetNumTree() const;
+  inline void SetTreeLimit(size_t limit);
+  inline void ReferenceSerialize(dmlc::Stream* fo) const;
+  inline std::vector<PyBufferFrame> GetPyBuffer();
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
 };
 
 }  // namespace treelite

@@ -22,8 +22,9 @@ struct CodeFoldingContext {
   int num_tu;
 };
 
+template <typename ThresholdType, typename LeafOutputType>
 bool fold_code(ASTNode* node, CodeFoldingContext* context,
-               ASTBuilder* builder) {
+               ASTBuilder<ThresholdType, LeafOutputType>* builder) {
   if (node->node_id == 0) {
     if (node->data_count) {
       context->log_root_data_count = std::log(node->data_count.value());
@@ -48,14 +49,13 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
     ASTNode* folder_node = nullptr;
     ASTNode* tu_node = nullptr;
     if (context->create_new_translation_unit) {
-      tu_node
-        = builder->AddNode<TranslationUnitNode>(parent_node, context->num_tu++);
-      ASTNode* ac = builder->AddNode<AccumulatorContextNode>(tu_node);
-      folder_node = builder->AddNode<CodeFolderNode>(ac);
+      tu_node = builder->template AddNode<TranslationUnitNode>(parent_node, context->num_tu++);
+      ASTNode* ac = builder->template AddNode<AccumulatorContextNode>(tu_node);
+      folder_node = builder->template AddNode<CodeFolderNode>(ac);
       tu_node->children.push_back(ac);
       ac->children.push_back(folder_node);
     } else {
-      folder_node = builder->AddNode<CodeFolderNode>(parent_node);
+      folder_node = builder->template AddNode<CodeFolderNode>(parent_node);
     }
     size_t node_loc = -1;  // is current node 1st child or 2nd child or so forth
     for (size_t i = 0; i < parent_node->children.size(); ++i) {
@@ -81,8 +81,10 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
 
 int count_tu_nodes(ASTNode* node);
 
-bool ASTBuilder::FoldCode(double magnitude_req,
-                          bool create_new_translation_unit) {
+template <typename ThresholdType, typename LeafOutputType>
+bool
+ASTBuilder<ThresholdType, LeafOutputType>::FoldCode(
+    double magnitude_req, bool create_new_translation_unit) {
   CodeFoldingContext context{magnitude_req,
                              std::numeric_limits<double>::quiet_NaN(),
                              std::numeric_limits<double>::quiet_NaN(),
@@ -90,6 +92,11 @@ bool ASTBuilder::FoldCode(double magnitude_req,
                              count_tu_nodes(this->main_node)};
   return fold_code(this->main_node, &context, this);
 }
+
+template bool ASTBuilder<float, uint32_t>::FoldCode(double, bool);
+template bool ASTBuilder<float, float>::FoldCode(double, bool);
+template bool ASTBuilder<double, uint32_t>::FoldCode(double, bool);
+template bool ASTBuilder<double, double>::FoldCode(double, bool);
 
 }  // namespace compiler
 }  // namespace treelite

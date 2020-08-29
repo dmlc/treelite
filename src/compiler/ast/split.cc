@@ -19,7 +19,9 @@ int count_tu_nodes(ASTNode* node) {
   return accum;
 }
 
-void ASTBuilder::Split(int parallel_comp) {
+template <typename ThresholdType, typename LeafOutputType>
+void
+ASTBuilder<ThresholdType, LeafOutputType>::Split(int parallel_comp) {
   if (parallel_comp <= 0) {
     LOG(INFO) << "Parallel compilation disabled; all member trees will be "
               << "dumped to a single source file. This may increase "
@@ -35,7 +37,7 @@ void ASTBuilder::Split(int parallel_comp) {
   /* tree_head[i] stores reference to head of tree i */
   std::vector<ASTNode*> tree_head;
   for (ASTNode* node : top_ac_node->children) {
-    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode*>(node)
+    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode<LeafOutputType>*>(node)
           || dynamic_cast<CodeFolderNode*>(node));
     tree_head.push_back(node);
   }
@@ -65,6 +67,11 @@ void ASTBuilder::Split(int parallel_comp) {
   }
   top_ac_node->children = tu_list;
 }
+
+template void ASTBuilder<float, uint32_t>::Split(int);
+template void ASTBuilder<float, float>::Split(int);
+template void ASTBuilder<double, uint32_t>::Split(int);
+template void ASTBuilder<double, double>::Split(int);
 
 }  // namespace compiler
 }  // namespace treelite

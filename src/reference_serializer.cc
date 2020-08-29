@@ -36,7 +36,8 @@ struct Handler<treelite::ContiguousArray<T>> {
 
 namespace treelite {
 
-void Tree::ReferenceSerialize(dmlc::Stream* fo) const {
+template <typename ThresholdType, typename LeafOutputType>
+void Tree<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) const {
   fo->Write(num_nodes);
   fo->Write(leaf_vector_);
   fo->Write(leaf_vector_offset_);
@@ -54,14 +55,15 @@ void Tree::ReferenceSerialize(dmlc::Stream* fo) const {
   CHECK_EQ(left_categories_offset_.Back(), left_categories_.Size());
 }
 
-void Model::ReferenceSerialize(dmlc::Stream* fo) const {
+template <typename ThresholdType, typename LeafOutputType>
+void ModelImpl<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) const {
   fo->Write(num_feature);
   fo->Write(num_output_group);
   fo->Write(random_forest_flag);
   fo->Write(&param, sizeof(param));
   uint64_t sz = static_cast<uint64_t>(trees.size());
   fo->Write(sz);
-  for (const Tree& tree : trees) {
+  for (const Tree<ThresholdType, LeafOutputType>& tree : trees) {
     tree.ReferenceSerialize(fo);
   }
 }

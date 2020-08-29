@@ -392,44 +392,50 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   bool need_transform_to_margin = mparam_.major_version >= 1;
 
   /* 2. Export model */
-  treelite::Model model;
-  model.num_feature = mparam_.num_feature;
-  model.num_output_group = std::max(mparam_.num_class, 1);
-  model.random_forest_flag = false;
+  treelite::Model model_wrapper = treelite::Model::Create<float, float>();
+  treelite::ModelImpl<float, float>& model_handle = model_wrapper.GetImpl<float, float>();
+  model_handle.num_feature = static_cast<int>(mparam_.num_feature);
+  model_handle.num_output_group = std::max(mparam_.num_class, 1);
+  model_handle.random_forest_flag = false;
 
   // set global bias
-  model.param.global_bias = static_cast<float>(mparam_.base_score);
+  model_handle.param.global_bias = static_cast<float>(mparam_.base_score);
   std::vector<std::string> exponential_family {
     "count:poisson", "reg:gamma", "reg:tweedie"
   };
   if (need_transform_to_margin) {
     if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-      model.param.global_bias = ProbToMargin::Sigmoid(model.param.global_bias);
+      model_handle.param.global_bias = ProbToMargin::Sigmoid(model_handle.param.global_bias);
     } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
                != exponential_family.cend()) {
-      model.param.global_bias = ProbToMargin::Exponential(model.param.global_bias);
+      model_handle.param.global_bias = ProbToMargin::Exponential(model_handle.param.global_bias);
     }
   }
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {
-    std::strncpy(model.param.pred_transform, "max_index", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "max_index",
+                 sizeof(model_handle.param.pred_transform));
   } else if (name_obj_ == "multi:softprob") {
-    std::strncpy(model.param.pred_transform, "softmax", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "softmax",
+                 sizeof(model_handle.param.pred_transform));
   } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
-    model.param.sigmoid_alpha = 1.0f;
+    std::strncpy(model_handle.param.pred_transform, "sigmoid",
+                 sizeof(model_handle.param.pred_transform));
+    model_handle.param.sigmoid_alpha = 1.0f;
   } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
              != exponential_family.cend()) {
-    std::strncpy(model.param.pred_transform, "exponential", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "exponential",
+                 sizeof(model_handle.param.pred_transform));
   } else {
-    std::strncpy(model.param.pred_transform, "identity", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "identity",
+                 sizeof(model_handle.param.pred_transform));
   }
 
   // traverse trees
   for (const auto& xgb_tree : xgb_trees_) {
-    model.trees.emplace_back();
-    treelite::Tree& tree = model.trees.back();
+    model_handle.trees.emplace_back();
+    treelite::Tree<float, float>& tree = model_handle.trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -444,13 +450,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
         const bst_float leaf_value = node.leaf_value();
-        tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
+        tree.SetLeaf(new_id, static_cast<float>(leaf_value));
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
         tree.SetNumericalSplit(new_id, node.split_index(),
-            static_cast<treelite::tl_float>(split_cond), node.default_left(),
-            treelite::Operator::kLT);
+            static_cast<float>(split_cond), node.default_left(), treelite::Operator::kLT);
         tree.SetGain(new_id, stat.loss_chg);
         Q.push({node.cleft(), tree.LeftChild(new_id)});
         Q.push({node.cright(), tree.RightChild(new_id)});
@@ -458,7 +463,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       tree.SetSumHess(new_id, stat.sum_hess);
     }
   }
-  return model;
+  return model_wrapper;
 }
 
 }  // anonymous namespace

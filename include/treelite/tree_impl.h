@@ -362,8 +362,9 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
 
 constexpr size_t kNumFramePerTree = 6;
 
+template <typename ThresholdType, typename LeafOutputType>
 inline std::vector<PyBufferFrame>
-Tree::GetPyBuffer() {
+Tree<ThresholdType, LeafOutputType>::GetPyBuffer() {
   return {
       GetPyBufferFromScalar(&num_nodes),
       GetPyBufferFromArray(&nodes_, "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?=H}"),
@@ -374,8 +375,9 @@ Tree::GetPyBuffer() {
   };
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
+Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
   size_t frame_id = 0;
   InitScalarFromPyBuffer(&num_nodes, frames[frame_id++]);
   InitArrayFromPyBuffer(&nodes_, frames[frame_id++]);
@@ -391,8 +393,9 @@ Tree::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
   }
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline std::vector<PyBufferFrame>
-Model::GetPyBuffer() {
+ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer() {
   /* Header */
   std::vector<PyBufferFrame> frames{
       GetPyBufferFromScalar(&num_feature),
@@ -409,8 +412,9 @@ Model::GetPyBuffer() {
   return frames;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Model::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
+ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
   /* Header */
   size_t frame_id = 0;
   InitScalarFromPyBuffer(&num_feature, frames[frame_id++]);
@@ -431,11 +435,12 @@ Model::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
   }
 }
 
-inline void Tree::Node::Init() {
+template <typename ThresholdType, typename LeafOutputType>
+inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   cleft_ = cright_ = -1;
   sindex_ = 0;
-  info_.leaf_value = 0.0f;
-  info_.threshold = 0.0f;
+  info_.leaf_value = static_cast<LeafOutputType>(0);
+  info_.threshold = static_cast<ThresholdType>(0);
   data_count_ = 0;
   sum_hess_ = gain_ = 0.0;
   missing_category_to_zero_ = false;
@@ -445,8 +450,9 @@ inline void Tree::Node::Init() {
   pad_ = 0;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline int
-Tree::AllocNode() {
+Tree<ThresholdType, LeafOutputType>::AllocNode() {
   int nd = num_nodes++;
   if (nodes_.Size() != static_cast<size_t>(nd)) {
     throw std::runtime_error("Invariant violated: nodes_ contains incorrect number of nodes");
@@ -460,9 +466,10 @@ Tree::AllocNode() {
   return nd;
 }
 
-inline Tree
-Tree::Clone() const {
-  Tree tree;
+template <typename ThresholdType, typename LeafOutputType>
+inline Tree<ThresholdType, LeafOutputType>
+Tree<ThresholdType, LeafOutputType>::Clone() const {
+  Tree<ThresholdType, LeafOutputType> tree;
   tree.num_nodes = num_nodes;
   tree.nodes_ = nodes_.Clone();
   tree.leaf_vector_ = leaf_vector_.Clone();
@@ -472,8 +479,9 @@ Tree::Clone() const {
   return tree;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::Init() {
+Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   leaf_vector_.Clear();
   leaf_vector_offset_.Resize(2, 0);
@@ -484,16 +492,18 @@ Tree::Init() {
   SetLeaf(0, 0.0f);
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::AddChilds(int nid) {
+Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
   const int cleft = this->AllocNode();
   const int cright = this->AllocNode();
   nodes_[nid].cleft_ = cleft;
   nodes_[nid].cright_ = cright;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline std::vector<unsigned>
-Tree::GetCategoricalFeatures() const {
+Tree<ThresholdType, LeafOutputType>::GetCategoricalFeatures() const {
   std::unordered_map<unsigned, bool> tmp;
   for (int nid = 0; nid < num_nodes; ++nid) {
     const SplitFeatureType type = SplitType(nid);
@@ -520,70 +530,82 @@ Tree::GetCategoricalFeatures() const {
   return result;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline int
-Tree::LeftChild(int nid) const {
+Tree<ThresholdType, LeafOutputType>::LeftChild(int nid) const {
   return nodes_[nid].cleft_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline int
-Tree::RightChild(int nid) const {
+Tree<ThresholdType, LeafOutputType>::RightChild(int nid) const {
   return nodes_[nid].cright_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline int
-Tree::DefaultChild(int nid) const {
+Tree<ThresholdType, LeafOutputType>::DefaultChild(int nid) const {
   return DefaultLeft(nid) ? LeftChild(nid) : RightChild(nid);
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline uint32_t
-Tree::SplitIndex(int nid) const {
+Tree<ThresholdType, LeafOutputType>::SplitIndex(int nid) const {
   return (nodes_[nid].sindex_ & ((1U << 31U) - 1U));
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::DefaultLeft(int nid) const {
+Tree<ThresholdType, LeafOutputType>::DefaultLeft(int nid) const {
   return (nodes_[nid].sindex_ >> 31U) != 0;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::IsLeaf(int nid) const {
+Tree<ThresholdType, LeafOutputType>::IsLeaf(int nid) const {
   return nodes_[nid].cleft_ == -1;
 }
 
-inline tl_float
-Tree::LeafValue(int nid) const {
+template <typename ThresholdType, typename LeafOutputType>
+inline LeafOutputType
+Tree<ThresholdType, LeafOutputType>::LeafValue(int nid) const {
   return (nodes_[nid].info_).leaf_value;
 }
 
-inline std::vector<tl_float>
-Tree::LeafVector(int nid) const {
+template <typename ThresholdType, typename LeafOutputType>
+inline std::vector<LeafOutputType>
+Tree<ThresholdType, LeafOutputType>::LeafVector(int nid) const {
   if (nid > leaf_vector_offset_.Size()) {
     throw std::runtime_error("nid too large");
   }
-  return std::vector<tl_float>(&leaf_vector_[leaf_vector_offset_[nid]],
-                               &leaf_vector_[leaf_vector_offset_[nid + 1]]);
+  return std::vector<LeafOutputType>(&leaf_vector_[leaf_vector_offset_[nid]],
+                                     &leaf_vector_[leaf_vector_offset_[nid + 1]]);
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::HasLeafVector(int nid) const {
+Tree<ThresholdType, LeafOutputType>::HasLeafVector(int nid) const {
   if (nid > leaf_vector_offset_.Size()) {
     throw std::runtime_error("nid too large");
   }
   return leaf_vector_offset_[nid] != leaf_vector_offset_[nid + 1];
 }
 
-inline tl_float
-Tree::Threshold(int nid) const {
+template <typename ThresholdType, typename LeafOutputType>
+inline ThresholdType
+Tree<ThresholdType, LeafOutputType>::Threshold(int nid) const {
   return (nodes_[nid].info_).threshold;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline Operator
-Tree::ComparisonOp(int nid) const {
+Tree<ThresholdType, LeafOutputType>::ComparisonOp(int nid) const {
   return nodes_[nid].cmp_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline std::vector<uint32_t>
-Tree::LeftCategories(int nid) const {
+Tree<ThresholdType, LeafOutputType>::LeftCategories(int nid) const {
   if (nid > left_categories_offset_.Size()) {
     throw std::runtime_error("nid too large");
   }
@@ -591,49 +613,58 @@ Tree::LeftCategories(int nid) const {
                                &left_categories_[left_categories_offset_[nid + 1]]);
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline SplitFeatureType
-Tree::SplitType(int nid) const {
+Tree<ThresholdType, LeafOutputType>::SplitType(int nid) const {
   return nodes_[nid].split_type_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::HasDataCount(int nid) const {
+Tree<ThresholdType, LeafOutputType>::HasDataCount(int nid) const {
   return nodes_[nid].data_count_present_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline uint64_t
-Tree::DataCount(int nid) const {
+Tree<ThresholdType, LeafOutputType>::DataCount(int nid) const {
   return nodes_[nid].data_count_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::HasSumHess(int nid) const {
+Tree<ThresholdType, LeafOutputType>::HasSumHess(int nid) const {
   return nodes_[nid].sum_hess_present_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline double
-Tree::SumHess(int nid) const {
+Tree<ThresholdType, LeafOutputType>::SumHess(int nid) const {
   return nodes_[nid].sum_hess_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::HasGain(int nid) const {
+Tree<ThresholdType, LeafOutputType>::HasGain(int nid) const {
   return nodes_[nid].gain_present_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline double
-Tree::Gain(int nid) const {
+Tree<ThresholdType, LeafOutputType>::Gain(int nid) const {
   return nodes_[nid].gain_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline bool
-Tree::MissingCategoryToZero(int nid) const {
+Tree<ThresholdType, LeafOutputType>::MissingCategoryToZero(int nid) const {
   return nodes_[nid].missing_category_to_zero_;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetNumericalSplit(int nid, unsigned split_index, tl_float threshold,
-                        bool default_left, Operator cmp) {
+Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
+    int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   Node& node = nodes_[nid];
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
@@ -645,10 +676,11 @@ Tree::SetNumericalSplit(int nid, unsigned split_index, tl_float threshold,
   node.split_type_ = SplitFeatureType::kNumerical;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                          bool missing_category_to_zero,
-                          const std::vector<uint32_t>& node_left_categories) {
+Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
+    int nid, unsigned split_index, bool default_left, bool missing_category_to_zero,
+    const std::vector<uint32_t>& node_left_categories) {
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
   }
@@ -678,8 +710,9 @@ Tree::SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
   node.missing_category_to_zero_ = missing_category_to_zero;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetLeaf(int nid, tl_float value) {
+Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
   Node& node = nodes_[nid];
   (node.info_).leaf_value = value;
   node.cleft_ = -1;
@@ -687,8 +720,10 @@ Tree::SetLeaf(int nid, tl_float value) {
   node.split_type_ = SplitFeatureType::kNone;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetLeafVector(int nid, const std::vector<tl_float>& node_leaf_vector) {
+Tree<ThresholdType, LeafOutputType>::SetLeafVector(
+    int nid, const std::vector<ThresholdType>& node_leaf_vector) {
   const size_t end_oft = leaf_vector_offset_.Back();
   const size_t new_end_oft = end_oft + node_leaf_vector.size();
   if (end_oft != leaf_vector_.Size()) {
@@ -712,31 +747,35 @@ Tree::SetLeafVector(int nid, const std::vector<tl_float>& node_leaf_vector) {
   node.split_type_ = SplitFeatureType::kNone;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetSumHess(int nid, double sum_hess) {
+Tree<ThresholdType, LeafOutputType>::SetSumHess(int nid, double sum_hess) {
   Node& node = nodes_[nid];
   node.sum_hess_ = sum_hess;
   node.sum_hess_present_ = true;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetDataCount(int nid, uint64_t data_count) {
+Tree<ThresholdType, LeafOutputType>::SetDataCount(int nid, uint64_t data_count) {
   Node& node = nodes_[nid];
   node.data_count_ = data_count;
   node.data_count_present_ = true;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree::SetGain(int nid, double gain) {
+Tree<ThresholdType, LeafOutputType>::SetGain(int nid, double gain) {
   Node& node = nodes_[nid];
   node.gain_ = gain;
   node.gain_present_ = true;
 }
 
-inline Model
-Model::Clone() const {
-  Model model;
-  for (const Tree& t : trees) {
+template <typename ThresholdType, typename LeafOutputType>
+inline ModelImpl<ThresholdType, LeafOutputType>
+ModelImpl<ThresholdType, LeafOutputType>::Clone() const {
+  ModelImpl<ThresholdType, LeafOutputType> model;
+  for (const Tree<ThresholdType, LeafOutputType>& t : trees) {
     model.trees.push_back(t.Clone());
   }
   model.num_feature = num_feature;
@@ -744,6 +783,141 @@ Model::Clone() const {
   model.random_forest_flag = random_forest_flag;
   model.param = param;
   return model;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline ModelImpl<ThresholdType, LeafOutputType>&
+Model::GetImpl() {
+  return *static_cast<ModelImpl<ThresholdType, LeafOutputType>*>(handle_.get());
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline const ModelImpl<ThresholdType, LeafOutputType>&
+Model::GetImpl() const {
+  return *static_cast<const ModelImpl<ThresholdType, LeafOutputType>*>(handle_.get());
+}
+
+inline ModelType
+Model::GetModelType() const {
+  return type_;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline Model
+Model::Create() {
+  Model model;
+  model.handle_.reset(new ModelImpl<ThresholdType, LeafOutputType>());
+  model.type_ = ModelType::kInvalid;
+
+  const char* error_msg = "Unsupported combination of ThresholdType and LeafOutputType";
+  static_assert(std::is_same<ThresholdType, float>::value
+                || std::is_same<ThresholdType, double>::value,
+                "ThresholdType should be either float32 or float64");
+  static_assert(std::is_same<LeafOutputType, uint32_t>::value
+                || std::is_same<LeafOutputType, float>::value
+                || std::is_same<LeafOutputType, double>::value,
+                "LeafOutputType should be uint32, float32 or float64");
+  if (std::is_same<ThresholdType, float>::value) {
+    if (std::is_same<LeafOutputType, uint32_t>::value) {
+      model.type_ = ModelType::kFloat32ThresholdUInt32LeafOutput;
+    } else if (std::is_same<LeafOutputType, float>::value) {
+      model.type_ = ModelType::kFloat32ThresholdFloat32LeafOutput;
+    } else {
+      throw std::runtime_error(error_msg);
+    }
+  } else if (std::is_same<ThresholdType, double>::value) {
+    if (std::is_same<LeafOutputType, uint32_t>::value) {
+      model.type_ = ModelType::kFloat64ThresholdUint32LeafOutput;
+    } else if (std::is_same<LeafOutputType, double>::value) {
+      model.type_ = ModelType::kFloat64ThresholdFloat64LeafOutput;
+    } else {
+      throw std::runtime_error(error_msg);
+    }
+  } else {
+    throw std::runtime_error(error_msg);
+  }
+  return model;
+}
+
+template <typename Func>
+inline auto
+Model::Dispatch(Func func) const {
+  switch(type_) {
+  case ModelType::kFloat32ThresholdUInt32LeafOutput:
+    return func(GetImpl<float, uint32_t>());
+  case ModelType::kFloat32ThresholdFloat32LeafOutput:
+    return func(GetImpl<float, float>());
+  case ModelType::kFloat64ThresholdUint32LeafOutput:
+    return func(GetImpl<double, uint32_t>());
+  case ModelType::kFloat64ThresholdFloat64LeafOutput:
+    return func(GetImpl<double, double>());
+  default:
+    throw std::runtime_error("Unknown type name");
+    return func(GetImpl<double, double>());  // avoid "missing return" warning
+  }
+}
+
+template <typename Func>
+inline auto
+Model::Dispatch(Func func) {
+  switch(type_) {
+  case ModelType::kFloat32ThresholdUInt32LeafOutput:
+    return func(GetImpl<float, uint32_t>());
+  case ModelType::kFloat32ThresholdFloat32LeafOutput:
+    return func(GetImpl<float, float>());
+  case ModelType::kFloat64ThresholdUint32LeafOutput:
+    return func(GetImpl<double, uint32_t>());
+  case ModelType::kFloat64ThresholdFloat64LeafOutput:
+    return func(GetImpl<double, double>());
+  default:
+    throw std::runtime_error("Unknown type name");
+    return func(GetImpl<double, double>());  // avoid "missing return" warning
+  }
+}
+
+inline ModelParam
+Model::GetParam() const {
+  return Dispatch([](const auto& handle) { return handle.param; });
+}
+
+inline int
+Model::GetNumFeature() const {
+  return Dispatch([](const auto& handle) { return handle.num_feature; });
+}
+
+inline int
+Model::GetNumOutputGroup() const {
+  return Dispatch([](const auto& handle) { return handle.num_output_group; });
+}
+
+inline bool
+Model::GetRandomForestFlag() const {
+  return Dispatch([](const auto& handle) { return handle.random_forest_flag; });
+}
+
+inline size_t
+Model::GetNumTree() const {
+  return Dispatch([](const auto& handle) { return handle.trees.size(); });
+}
+
+inline void
+Model::SetTreeLimit(size_t limit) {
+  Dispatch([limit](auto& handle) { handle.trees.resize(limit); });
+}
+
+inline void
+Model::ReferenceSerialize(dmlc::Stream* fo) const {
+  Dispatch([fo](const auto& handle) { handle.ReferenceSerialize(fo); });
+}
+
+inline std::vector<PyBufferFrame>
+Model::GetPyBuffer() {
+  return Dispatch([](auto& handle) { return handle.GetPyBuffer(); });
+}
+
+inline void
+Model::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
+  Dispatch([&frames](auto& handle) { handle.InitFromPyBuffer(frames); });
 }
 
 inline void InitParamAndCheck(ModelParam* param,

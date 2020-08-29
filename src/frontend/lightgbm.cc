@@ -436,17 +436,18 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   }
 
   /* 2. Export model */
-  treelite::Model model;
-  model.num_feature = max_feature_idx_ + 1;
-  model.num_output_group = num_tree_per_iteration_;
-  if (model.num_output_group > 1) {
+  treelite::Model model_wrapper = treelite::Model::Create<double, double>();
+  treelite::ModelImpl<double, double>& model_handle = model_wrapper.GetImpl<double, double>();
+  model_handle.num_feature = max_feature_idx_ + 1;
+  model_handle.num_output_group = num_tree_per_iteration_;
+  if (model_handle.num_output_group > 1) {
     // multiclass classification with gradient boosted trees
     CHECK(!average_output_)
       << "Ill-formed LightGBM model file: cannot use random forest mode "
       << "for multi-class classification";
-    model.random_forest_flag = false;
+    model_handle.random_forest_flag = false;
   } else {
-    model.random_forest_flag = average_output_;
+    model_handle.random_forest_flag = average_output_;
   }
 
   // set correct prediction transform function, depending on objective function
@@ -462,10 +463,10 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         break;
       }
     }
-    CHECK(num_class >= 0 && num_class == model.num_output_group)
+    CHECK(num_class >= 0 && num_class == model_handle.num_output_group)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
-    std::strncpy(model.param.pred_transform, "softmax", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "softmax", sizeof(model_handle.param.pred_transform));
   } else if (obj_name_ == "multiclassova") {
     // validate num_class and alpha parameters
     int num_class = -1;
@@ -484,12 +485,12 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         }
       }
     }
-    CHECK(num_class >= 0 && num_class == model.num_output_group
+    CHECK(num_class >= 0 && num_class == model_handle.num_output_group
           && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
-    std::strncpy(model.param.pred_transform, "multiclass_ova", sizeof(model.param.pred_transform));
-    model.param.sigmoid_alpha = alpha;
+    std::strncpy(model_handle.param.pred_transform, "multiclass_ova", sizeof(model_handle.param.pred_transform));
+    model_handle.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "binary") {
     // validate alpha parameter
     float alpha = -1.0f;
@@ -505,22 +506,22 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK_GT(alpha, 0.0f)
       << "Ill-formed LightGBM model file: not a valid binary objective";
 
-    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
-    model.param.sigmoid_alpha = alpha;
+    std::strncpy(model_handle.param.pred_transform, "sigmoid", sizeof(model_handle.param.pred_transform));
+    model_handle.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "xentropy" || obj_name_ == "cross_entropy") {
-    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
-    model.param.sigmoid_alpha = 1.0f;
+    std::strncpy(model_handle.param.pred_transform, "sigmoid", sizeof(model_handle.param.pred_transform));
+    model_handle.param.sigmoid_alpha = 1.0f;
   } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
-    std::strncpy(model.param.pred_transform, "logarithm_one_plus_exp",
-                 sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "logarithm_one_plus_exp",
+                 sizeof(model_handle.param.pred_transform));
   } else {
-    std::strncpy(model.param.pred_transform, "identity", sizeof(model.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "identity", sizeof(model_handle.param.pred_transform));
   }
 
   // traverse trees
   for (const auto& lgb_tree : lgb_trees_) {
-    model.trees.emplace_back();
-    treelite::Tree& tree = model.trees.back();
+    model_handle.trees.emplace_back();
+    treelite::Tree<double, double>& tree = model_handle.trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -539,15 +540,14 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       std::tie(old_id, new_id) = Q.front(); Q.pop();
       if (old_id < 0) {  // leaf
         const double leaf_value = lgb_tree.leaf_value[~old_id];
-        tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
+        tree.SetLeaf(new_id, static_cast<double>(leaf_value));
         if (!lgb_tree.leaf_count.empty()) {
           const int data_count = lgb_tree.leaf_count[~old_id];
           CHECK_GE(data_count, 0);
           tree.SetDataCount(new_id, static_cast<size_t>(data_count));
         }
       } else {  // non-leaf
-        const auto split_index =
-          static_cast<unsigned>(lgb_tree.split_feature[old_id]);
+        const auto split_index = static_cast<unsigned>(lgb_tree.split_feature[old_id]);
 
         tree.AddChilds(new_id);
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
@@ -564,7 +564,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
                                    left_categories);
         } else {
           // numerical
-          const auto threshold = static_cast<treelite::tl_float>(lgb_tree.threshold[old_id]);
+          const auto threshold = static_cast<double>(lgb_tree.threshold[old_id]);
           const bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;
@@ -583,8 +583,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       }
     }
   }
-  LOG(INFO) << "model.num_tree = " << model.trees.size();
-  return model;
+  return model_wrapper;
 }
 
 }  // anonymous namespace

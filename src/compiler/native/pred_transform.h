@@ -27,7 +27,7 @@ R"TREELITETEMPLATE(static inline float pred_transform(float margin) {{
 }
 
 inline std::string sigmoid(const Model& model) {
-  const float alpha = model.param.sigmoid_alpha;
+  const float alpha = model.GetParam().sigmoid_alpha;
   CHECK_GT(alpha, 0.0f) << "sigmoid: alpha must be strictly positive";
   return fmt::format(
 R"TREELITETEMPLATE(static inline float pred_transform(float margin) {{
@@ -52,17 +52,17 @@ R"TREELITETEMPLATE(static inline float pred_transform(float margin) {{
 }
 
 inline std::string identity_multiclass(const Model& model) {
-  CHECK(model.num_output_group > 1)
+  CHECK(model.GetNumOutputGroup() > 1)
     << "identity_multiclass: model is not a proper multi-class classifier";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   return {num_class};
 }})TREELITETEMPLATE",
-  "num_class"_a = model.num_output_group);
+  "num_class"_a = model.GetNumOutputGroup());
 }
 
 inline std::string max_index(const Model& model) {
-  CHECK(model.num_output_group > 1)
+  CHECK(model.GetNumOutputGroup() > 1)
     << "max_index: model is not a proper multi-class classifier";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
@@ -78,11 +78,11 @@ R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   pred[0] = (float)max_index;
   return 1;
 }})TREELITETEMPLATE",
-    "num_class"_a = model.num_output_group);
+    "num_class"_a = model.GetNumOutputGroup());
 }
 
 inline std::string softmax(const Model& model) {
-  CHECK(model.num_output_group > 1)
+  CHECK(model.GetNumOutputGroup() > 1)
     << "softmax: model is not a proper multi-class classifier";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
@@ -105,14 +105,14 @@ R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   }}
   return (size_t)num_class;
 }})TREELITETEMPLATE",
-    "num_class"_a = model.num_output_group);
+    "num_class"_a = model.GetNumOutputGroup());
 }
 
 inline std::string multiclass_ova(const Model& model) {
-  CHECK(model.num_output_group > 1)
+  CHECK(model.GetNumOutputGroup() > 1)
     << "multiclass_ova: model is not a proper multi-class classifier";
-  const int num_class = model.num_output_group;
-  const float alpha = model.param.sigmoid_alpha;
+  const int num_class = model.GetNumOutputGroup();
+  const float alpha = model.GetParam().sigmoid_alpha;
   CHECK_GT(alpha, 0.0f) << "multiclass_ova: alpha must be strictly positive";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
@@ -123,7 +123,7 @@ R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   }}
   return (size_t)num_class;
 }})TREELITETEMPLATE",
-    "num_class"_a = model.num_output_group, "alpha"_a = alpha);
+    "num_class"_a = model.GetNumOutputGroup(), "alpha"_a = alpha);
 }
 
 }  // namespace pred_transform

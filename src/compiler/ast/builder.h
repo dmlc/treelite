@@ -18,19 +18,21 @@
 namespace treelite {
 namespace compiler {
 
-// forward declaration
+// forward declarations
+template <typename ThresholdType, typename LeafOutputType>
 class ASTBuilder;
 struct CodeFoldingContext;
-bool fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
-bool breakup(ASTNode*, int, int*, ASTBuilder*);
+template <typename ThresholdType, typename LeafOutputType>
+bool fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder<ThresholdType, LeafOutputType>*);
 
+template <typename ThresholdType, typename LeafOutputType>
 class ASTBuilder {
  public:
   ASTBuilder() : output_vector_flag(false), main_node(nullptr),
                  quantize_threshold_flag(false) {}
 
   /* \brief initially build AST from model */
-  void BuildAST(const Model& model);
+  void BuildAST(const ModelImpl<ThresholdType, LeafOutputType>& model);
   /* \brief generate is_categorical[] array, which tells whether each feature
             is categorical or numerical */
   std::vector<bool> GenerateIsCategoricalArray();
@@ -68,8 +70,7 @@ class ASTBuilder {
   }
 
  private:
-  friend bool treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*,
-                                            ASTBuilder*);
+  friend bool treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
 
   template <typename NodeType, typename ...Args>
   NodeType* AddNode(ASTNode* parent, Args&& ...args) {
@@ -79,8 +80,8 @@ class ASTBuilder {
     nodes.push_back(std::move(node));
     return ref;
   }
-  ASTNode* BuildASTFromTree(const Tree& tree, int tree_id, ASTNode* parent);
-  ASTNode* BuildASTFromTree(const Tree& tree, int tree_id, int nid,
+
+  ASTNode* BuildASTFromTree(const Tree<ThresholdType, LeafOutputType>& tree, int tree_id, int nid,
                             ASTNode* parent);
 
   // keep tract of all nodes built so far, to prevent memory leak

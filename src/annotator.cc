@@ -18,7 +18,8 @@ union Entry {
   float fvalue;
 };
 
-void Traverse_(const treelite::Tree& tree, const Entry* data,
+template <typename ThresholdType, typename LeafOutputType>
+void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const Entry* data,
                int nid, size_t* out_counts) {
   ++out_counts[nid];
   if (!tree.IsLeaf(nid)) {
@@ -29,9 +30,9 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
     } else {
       bool result = true;
       if (tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical) {
-        const treelite::tl_float threshold = tree.Threshold(nid);
+        const ThresholdType threshold = tree.Threshold(nid);
         const treelite::Operator op = tree.ComparisonOp(nid);
-        const auto fvalue = static_cast<treelite::tl_float>(data[split_index].fvalue);
+        const auto fvalue = static_cast<ThresholdType>(data[split_index].fvalue);
         result = treelite::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
@@ -49,16 +50,17 @@ void Traverse_(const treelite::Tree& tree, const Entry* data,
   }
 }
 
-void Traverse(const treelite::Tree& tree, const Entry* data,
+template <typename ThresholdType, typename LeafOutputType>
+void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const Entry* data,
               size_t* out_counts) {
   Traverse_(tree, data, 0, out_counts);
 }
 
-inline void ComputeBranchLoop(const treelite::Model& model,
-                              const treelite::DMatrix* dmat,
-                              size_t rbegin, size_t rend, int nthread,
-                              const size_t* count_row_ptr,
-                              size_t* counts_tloc, Entry* inst) {
+template <typename ThresholdType, typename LeafOutputType>
+inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+                              const treelite::DMatrix* dmat, size_t rbegin, size_t rend,
+                              int nthread, const size_t* count_row_ptr, size_t* counts_tloc,
+                              Entry* inst) {
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
@@ -75,8 +77,7 @@ inline void ComputeBranchLoop(const treelite::Model& model,
       inst[off + dmat->col_ind[i]].fvalue = dmat->data[i];
     }
     for (size_t tree_id = 0; tree_id < ntree; ++tree_id) {
-      Traverse(model.trees[tree_id], &inst[off],
-               &counts_tloc[off2 + count_row_ptr[tree_id]]);
+      Traverse(model.trees[tree_id], &inst[off], &counts_tloc[off2 + count_row_ptr[tree_id]]);
     }
     for (size_t i = ibegin; i < iend; ++i) {
       inst[off + dmat->col_ind[i]].missing = -1;
@@ -88,9 +89,10 @@ inline void ComputeBranchLoop(const treelite::Model& model,
 
 namespace treelite {
 
+template <typename ThresholdType, typename LeafOutputType>
 void
-BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
-                          int nthread, int verbose) {
+BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+                              const treelite::DMatrix* dmat, int nthread, int verbose) {
   std::vector<size_t> new_counts;
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
@@ -98,7 +100,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
   const size_t ntree = model.trees.size();
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
-  for (const Tree& tree : model.trees) {
+  for (const treelite::Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);
   }
   new_counts.resize(count_row_ptr[ntree], 0);
@@ -106,7 +108,7 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
 
   std::vector<Entry> inst(nthread * dmat->num_col, {-1});
   const size_t pstep = (dmat->num_row + 19) / 20;
-      // interval to display progress
+  // interval to display progress
   for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, dmat->num_row);
     ComputeBranchLoop(model, dmat, rbegin, rend, nthread,
@@ -126,9 +128,15 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
 
   // change layout of counts
   for (size_t i = 0; i < ntree; ++i) {
-    this->counts.emplace_back(&new_counts[count_row_ptr[i]],
-                              &new_counts[count_row_ptr[i + 1]]);
+    this->counts.emplace_back(&new_counts[count_row_ptr[i]], &new_counts[count_row_ptr[i + 1]]);
   }
+}
+
+void
+BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose) {
+  model.Dispatch([this, dmat, nthread, verbose](auto& handle) {
+    AnnotateImpl(handle, dmat, nthread, verbose);
+  });
 }
 
 void

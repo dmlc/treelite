@@ -25,11 +25,18 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(dump);
 
-std::string ASTBuilder::GetDump() const {
+template <typename ThresholdType, typename LeafOutputType>
+std::string
+ASTBuilder<ThresholdType, LeafOutputType>::GetDump() const {
   std::ostringstream oss;
   get_dump_from_node(&oss, this->main_node, 0);
   return oss.str();
 }
+
+template std::string ASTBuilder<float, uint32_t>::GetDump() const;
+template std::string ASTBuilder<float, float>::GetDump() const;
+template std::string ASTBuilder<double, uint32_t>::GetDump() const;
+template std::string ASTBuilder<double, double>::GetDump() const;
 
 }  // namespace compiler
 }  // namespace treelite

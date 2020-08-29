@@ -16,6 +16,9 @@ namespace treelite {
 /*! \brief branch annotator class */
 class BranchAnnotator {
  public:
+  template <typename ThresholdType, typename LeafOutputType>
+  void AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+                    const treelite::DMatrix* dmat, int nthread, int verbose);
   /*!
    * \brief annotate branches in a given model using frequency patterns in the
    *        training data. The annotation can be accessed through Get() method.

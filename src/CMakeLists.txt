@@ -50,7 +50,7 @@ endforeach()
 set_target_properties(objtreelite objtreelite_runtime objtreelite_common
   PROPERTIES
   POSITION_INDEPENDENT_CODE ON
-  CXX_STANDARD 11
+  CXX_STANDARD 14
   CXX_STANDARD_REQUIRED ON)
 
 target_sources(objtreelite
@@ -59,6 +59,7 @@ target_sources(objtreelite
     compiler/ast/ast.h
     compiler/ast/build.cc
     compiler/ast/builder.h
+    compiler/ast/builder.cc
     compiler/ast/dump.cc
     compiler/ast/fold_code.cc
     compiler/ast/is_categorical_array.cc
@@ -80,7 +81,7 @@ target_sources(objtreelite
     compiler/failsafe.cc
     compiler/pred_transform.cc
     compiler/pred_transform.h
-    frontend/builder.cc
+    #frontend/builder.cc
     frontend/lightgbm.cc
     frontend/xgboost.cc
     annotator.cc

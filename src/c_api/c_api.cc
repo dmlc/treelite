@@ -342,35 +342,36 @@ int TreeliteFreeModel(ModelHandle handle) {
 
 int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
-  *out = model_->trees.size();
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out = model_->GetNumTree();
   API_END();
 }
 
 int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
-  *out = static_cast<size_t>(model_->num_feature);
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out = static_cast<size_t>(model_->GetNumFeature());
   API_END();
 }
 
 int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
-  *out = static_cast<size_t>(model_->num_output_group);
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out = static_cast<size_t>(model_->GetNumOutputGroup());
   API_END();
 }
 
 int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
   API_BEGIN();
   CHECK_GT(limit, 0) << "limit should be greater than 0!";
-  auto model_ = static_cast<Model*>(handle);
-  CHECK_GE(model_->trees.size(), limit)
-    << "Model contains less trees(" << model_->trees.size() << ") than limit";
-  model_->trees.resize(limit);
+  auto* model_ = static_cast<Model*>(handle);
+  const size_t num_tree = model_->GetNumTree();
+  CHECK_GE(num_tree, limit) << "Model contains less trees(" << num_tree << ") than limit";
+  model_->SetTreeLimit(limit);
   API_END();
 }
 
+#if 0
 int TreeliteCreateTreeBuilder(TreeBuilderHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::TreeBuilder> builder{new frontend::TreeBuilder()};
@@ -536,3 +537,4 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
+#endif

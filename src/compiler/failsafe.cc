@@ -136,12 +136,13 @@ const char* arrays_template = R"TREELITETEMPLATE(
 // nodes[]: stores nodes from all decision trees
 // nodes_row_ptr[]: marks bounaries between decision trees. The nodes belonging to Tree [i] are
 //                  found in nodes[nodes_row_ptr[i]:nodes_row_ptr[i+1]]
-inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Model& model) {
+inline std::pair<std::string, std::string> FormatNodesArray(
+    const treelite::ModelImpl<float, float>& model_handle) {
   treelite::compiler::common_util::ArrayFormatter nodes(100, 2);
   treelite::compiler::common_util::ArrayFormatter nodes_row_ptr(100, 2);
   int node_count = 0;
   nodes_row_ptr << "0";
-  for (const auto& tree : model.trees) {
+  for (const auto& tree : model_handle.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
       if (tree.IsLeaf(nid)) {
         CHECK(!tree.HasLeafVector(nid))
@@ -172,7 +173,8 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
 }
 
 // Variant of FormatNodesArray(), where nodes[] array is dumped as an ELF binary
-inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treelite::Model& model) {
+inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
+    const treelite::ModelImpl<float, float>& model_handle) {
   std::vector<char> nodes_elf;
   treelite::compiler::AllocateELFHeader(&nodes_elf);
 
@@ -180,7 +182,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
   NodeStructValue val;
   int node_count = 0;
   nodes_row_ptr << "0";
-  for (const auto& tree : model.trees) {
+  for (const auto& tree : model_handle.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
       if (tree.IsLeaf(nid)) {
         CHECK(!tree.HasLeafVector(nid))
@@ -208,7 +210,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
 
 // Get the comparison op used in the tree ensemble model
 // If splits have more than one op, throw an error
-inline std::string GetCommonOp(const treelite::Model& model) {
+inline std::string GetCommonOp(const treelite::ModelImpl<float, float>& model) {
   std::set<treelite::Operator> ops;
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
@@ -263,12 +265,16 @@ class FailSafeCompiler : public Compiler {
   }
 
   CompiledModel Compile(const Model& model) override {
+    CHECK(model.GetModelType() == ModelType::kFloat32ThresholdFloat32LeafOutput)
+      << "Failsafe compiler only supports models with float32 thresholds and float32 leaf outputs";
+    const ModelImpl<float, float>& model_handle = model.GetImpl<float, float>();
+
     CompiledModel cm;
     cm.backend = "native";
 
-    num_feature_ = model.num_feature;
-    num_output_group_ = model.num_output_group;
-    CHECK(!model.random_forest_flag)
+    num_feature_ = model_handle.num_feature;
+    num_output_group_ = model_handle.num_output_group;
+    CHECK(!model_handle.random_forest_flag)
       << "Only gradient boosted trees supported in FailSafeCompiler";
     pred_tranform_func_ = PredTransformFunction("native", model);
     files_.clear();
@@ -297,10 +303,10 @@ class FailSafeCompiler : public Compiler {
          ? fmt::format(return_multiclass_template,
              "num_output_group"_a = num_output_group_,
              "global_bias"_a
-                = compiler::common_util::ToStringHighPrecision(model.param.global_bias))
+                = compiler::common_util::ToStringHighPrecision(model_handle.param.global_bias))
          : fmt::format(return_template,
              "global_bias"_a
-                = compiler::common_util::ToStringHighPrecision(model.param.global_bias)));
+                = compiler::common_util::ToStringHighPrecision(model_handle.param.global_bias)));
 
     std::string nodes, nodes_row_ptr;
     std::vector<char> nodes_elf;
@@ -308,9 +314,9 @@ class FailSafeCompiler : public Compiler {
       if (param.verbose > 0) {
         LOG(INFO) << "Dumping arrays as an ELF relocatable object...";
       }
-      std::tie(nodes_elf, nodes_row_ptr) = FormatNodesArrayELF(model);
+      std::tie(nodes_elf, nodes_row_ptr) = FormatNodesArrayELF(model_handle);
     } else {
-      std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
+      std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model_handle);
     }
 
     main_program << fmt::format(main_template,
@@ -319,8 +325,8 @@ class FailSafeCompiler : public Compiler {
       "predict_function_signature"_a = predict_function_signature,
       "num_output_group"_a = num_output_group_,
       "num_feature"_a = num_feature_,
-      "num_tree"_a = model.trees.size(),
-      "compare_op"_a = GetCommonOp(model),
+      "num_tree"_a = model_handle.trees.size(),
+      "compare_op"_a = GetCommonOp(model_handle),
       "accumulator_definition"_a = accumulator_definition,
       "output_statement"_a = output_statement,
       "return_statement"_a = return_statement);

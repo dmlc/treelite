@@ -360,6 +360,16 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
   *scalar = *t;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
+inline const char*
+Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
+  if (std::is_same<ThresholdType, float>::value) {
+    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
+  } else {
+    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?xx}";
+  }
+}
+
 constexpr size_t kNumFramePerTree = 6;
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -367,7 +377,7 @@ inline std::vector<PyBufferFrame>
 Tree<ThresholdType, LeafOutputType>::GetPyBuffer() {
   return {
       GetPyBufferFromScalar(&num_nodes),
-      GetPyBufferFromArray(&nodes_, "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?=H}"),
+      GetPyBufferFromArray(&nodes_, GetFormatStringForNode()),
       GetPyBufferFromArray(&leaf_vector_),
       GetPyBufferFromArray(&leaf_vector_offset_),
       GetPyBufferFromArray(&left_categories_),
@@ -405,7 +415,7 @@ ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer() {
   };
 
   /* Body */
-  for (auto& tree : trees) {
+  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
     auto tree_frames = tree.GetPyBuffer();
     frames.insert(frames.end(), tree_frames.begin(), tree_frames.end());
   }
@@ -447,7 +457,6 @@ inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   data_count_present_ = sum_hess_present_ = gain_present_ = false;
   split_type_ = SplitFeatureType::kNone;
   cmp_ = Operator::kNone;
-  pad_ = 0;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

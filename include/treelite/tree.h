@@ -134,13 +134,22 @@ class Tree {
     bool sum_hess_present_;
     /*! \brief whether gain_present_ field is present */
     bool gain_present_;
-    // padding
-    uint16_t pad_;
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
-  // TODO(hcho3): Add back size check
-  //static_assert(sizeof(Node) == 48, "Node must be 48 bytes");
+  static_assert(std::is_same<ThresholdType, float>::value
+                || std::is_same<ThresholdType, double>::value,
+                "ThresholdType must be either float32 or float64");
+  static_assert(std::is_same<LeafOutputType, uint32_t>::value
+                || std::is_same<LeafOutputType, float>::value
+                || std::is_same<LeafOutputType, double>::value,
+                "LeafOutputType must be either uint32_t, float32 or float64");
+  static_assert(!std::is_same<ThresholdType, float>::value
+                || !std::is_same<LeafOutputType, double>::value,
+                "LeafOutputType cannot be float64 when ThresholdType is float32");
+  static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
+                || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
+                "Node incorrect size");
 
   Tree() = default;
   ~Tree() = default;
@@ -150,6 +159,7 @@ class Tree {
   Tree& operator=(Tree&&) noexcept = default;
   inline Tree Clone() const;
 
+  inline const char* GetFormatStringForNode();
   inline std::vector<PyBufferFrame> GetPyBuffer();
   inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
 

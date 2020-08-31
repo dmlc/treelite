@@ -65,6 +65,7 @@ class Value {
   Value& operator=(Value&&) noexcept = default;
   template <typename T>
   static Value Create(T init_value);
+  static Value Create(const void* init_value, TypeInfo type);
   template <typename T>
   T& Get();
   template <typename T>

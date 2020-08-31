@@ -1,8 +1,8 @@
 /*!
  * Copyright (c) 2017-2020 by Contributors
- * \file optable.cc
+ * \file tables.cc
  * \author Hyunsu Cho
- * \brief Conversion table from string to Operator
+ * \brief Conversion tables to obtain Operator and TypeInfo from strings
  */
 
 #include <treelite/base.h>
@@ -15,6 +15,12 @@ const std::unordered_map<std::string, Operator> optable{
   {"<=", Operator::kLE},
   {">",  Operator::kGT},
   {">=", Operator::kGE}
+};
+
+const std::unordered_map<std::string, TypeInfo> typeinfo_table{
+  {"uint32", TypeInfo::kUInt32},
+  {"float32", TypeInfo::kFloat32},
+  {"float64", TypeInfo::kFloat64}
 };
 
 }  // namespace treelite

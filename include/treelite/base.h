@@ -40,8 +40,11 @@ enum class TypeInfo : uint8_t {
 static_assert(std::is_same<std::underlying_type<TypeInfo>::type, uint8_t>::value,
               "TypeInfo must use uint8_t as underlying type");
 
-/*! \brief conversion table from string to operator, defined in optable.cc */
+/*! \brief conversion table from string to Operator, defined in tables.cc */
 extern const std::unordered_map<std::string, Operator> optable;
+
+/*! \brief conversion table from string to TypeInfo, defined in tables.cc */
+extern const std::unordered_map<std::string, TypeInfo> typeinfo_table;
 
 /*!
  * \brief get string representation of comparison operator

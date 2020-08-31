@@ -120,11 +120,24 @@ Value::Value() : handle_(nullptr), type_(TypeInfo::kInvalid) {}
 template <typename T>
 Value
 Value::Create(T init_value) {
-  Value val;
+  Value value;
   std::unique_ptr<T> ptr = std::make_unique<T>(init_value);
-  val.handle_.reset(ptr.release());
-  val.type_ = InferTypeInfoOf<T>();
-  return val;
+  value.handle_.reset(ptr.release());
+  value.type_ = InferTypeInfoOf<T>();
+  return value;
+}
+
+Value
+Value::Create(const void* init_value, TypeInfo type) {
+  Value value;
+  CHECK(type != TypeInfo::kInvalid) << "Type must be valid";
+  value.type_ = type;
+  value.Dispatch([init_value](auto& value_handle) {
+    using T = std::remove_reference_t<decltype(value_handle)>;
+    T t = *static_cast<const T*>(init_value);
+    value_handle = t;
+  });
+  return value;
 }
 
 template <typename T>

@@ -68,4 +68,14 @@ void ModelImpl<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* 
   }
 }
 
+template void Tree<float, uint32_t>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void Tree<float, float>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void Tree<double, uint32_t>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void Tree<double, double>::ReferenceSerialize(dmlc::Stream* fo) const;
+
+template void ModelImpl<float, uint32_t>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void ModelImpl<float, float>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void ModelImpl<double, uint32_t>::ReferenceSerialize(dmlc::Stream* fo) const;
+template void ModelImpl<double, double>::ReferenceSerialize(dmlc::Stream* fo) const;
+
 }  // namespace treelite

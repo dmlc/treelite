@@ -81,7 +81,7 @@ target_sources(objtreelite
     compiler/failsafe.cc
     compiler/pred_transform.cc
     compiler/pred_transform.h
-    #frontend/builder.cc
+    frontend/builder.cc
     frontend/lightgbm.cc
     frontend/xgboost.cc
     annotator.cc
@@ -97,6 +97,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/data.h
     ${PROJECT_SOURCE_DIR}/include/treelite/filesystem.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h

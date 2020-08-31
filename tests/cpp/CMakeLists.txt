@@ -17,7 +17,7 @@ endif()
 
 target_sources(treelite_cpp_test
   PRIVATE  test_main.cc
-           #test_serializer.cc
+           test_serializer.cc
 )
 
 msvc_use_static_runtime()

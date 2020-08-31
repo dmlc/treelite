@@ -332,6 +332,11 @@ inline PyBufferFrame GetPyBufferFromScalar(T* scalar, const char* format) {
   return GetPyBufferFromScalar(static_cast<void*>(scalar), format, sizeof(T));
 }
 
+inline PyBufferFrame GetPyBufferFromScalar(TypeInfo* scalar) {
+  using T = std::underlying_type<TypeInfo>::type;
+  return GetPyBufferFromScalar(reinterpret_cast<T*>(scalar), InferFormatString<T>());
+}
+
 template <typename T>
 inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
   static_assert(std::is_arithmetic<T>::value,
@@ -346,6 +351,18 @@ inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame buffer)
     throw std::runtime_error("Incorrect itemsize");
   }
   vec->UseForeignBuffer(buffer.buf, buffer.nitem);
+}
+
+inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
+  using T = std::underlying_type<TypeInfo>::type;
+  if (sizeof(T) != buffer.itemsize) {
+    throw std::runtime_error("Incorrect itemsize");
+  }
+  if (buffer.nitem != 1) {
+    throw std::runtime_error("nitem must be 1 for a scalar");
+  }
+  T* t = static_cast<T*>(buffer.buf);
+  *scalar = static_cast<TypeInfo>(*t);
 }
 
 template <typename T>
@@ -373,75 +390,72 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
 constexpr size_t kNumFramePerTree = 6;
 
 template <typename ThresholdType, typename LeafOutputType>
-inline std::vector<PyBufferFrame>
-Tree<ThresholdType, LeafOutputType>::GetPyBuffer() {
-  return {
-      GetPyBufferFromScalar(&num_nodes),
-      GetPyBufferFromArray(&nodes_, GetFormatStringForNode()),
-      GetPyBufferFromArray(&leaf_vector_),
-      GetPyBufferFromArray(&leaf_vector_offset_),
-      GetPyBufferFromArray(&left_categories_),
-      GetPyBufferFromArray(&left_categories_offset_)
-  };
+inline void
+Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  dest->push_back(GetPyBufferFromScalar(&num_nodes));
+  dest->push_back(GetPyBufferFromArray(&nodes_, GetFormatStringForNode()));
+  dest->push_back(GetPyBufferFromArray(&leaf_vector_));
+  dest->push_back(GetPyBufferFromArray(&leaf_vector_offset_));
+  dest->push_back(GetPyBufferFromArray(&left_categories_));
+  dest->push_back(GetPyBufferFromArray(&left_categories_offset_));
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  size_t frame_id = 0;
-  InitScalarFromPyBuffer(&num_nodes, frames[frame_id++]);
-  InitArrayFromPyBuffer(&nodes_, frames[frame_id++]);
+Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+  if (std::distance(begin, end) != kNumFramePerTree) {
+    throw std::runtime_error("Wrong number of frames specified");
+  }
+  InitScalarFromPyBuffer(&num_nodes, *begin++);
+  InitArrayFromPyBuffer(&nodes_, *begin++);
   if (num_nodes != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
   }
-  InitArrayFromPyBuffer(&leaf_vector_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&leaf_vector_offset_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&left_categories_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&left_categories_offset_, frames[frame_id++]);
-  if (frame_id != kNumFramePerTree) {
-    throw std::runtime_error("Wrong number of frames loaded");
-  }
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-inline std::vector<PyBufferFrame>
-ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer() {
-  /* Header */
-  std::vector<PyBufferFrame> frames{
-      GetPyBufferFromScalar(&num_feature),
-      GetPyBufferFromScalar(&num_output_group),
-      GetPyBufferFromScalar(&random_forest_flag),
-      GetPyBufferFromScalar(&param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}")
-  };
-
-  /* Body */
-  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
-    auto tree_frames = tree.GetPyBuffer();
-    frames.insert(frames.end(), tree_frames.begin(), tree_frames.end());
-  }
-  return frames;
+  InitArrayFromPyBuffer(&leaf_vector_, *begin++);
+  InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++);
+  InitArrayFromPyBuffer(&left_categories_, *begin++);
+  InitArrayFromPyBuffer(&left_categories_offset_, *begin++);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
+ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
   /* Header */
-  size_t frame_id = 0;
-  InitScalarFromPyBuffer(&num_feature, frames[frame_id++]);
-  InitScalarFromPyBuffer(&num_output_group, frames[frame_id++]);
-  InitScalarFromPyBuffer(&random_forest_flag, frames[frame_id++]);
-  InitScalarFromPyBuffer(&param, frames[frame_id++]);
+  dest->push_back(GetPyBufferFromScalar(&num_feature));
+  dest->push_back(GetPyBufferFromScalar(&num_output_group));
+  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
+  dest->push_back(GetPyBufferFromScalar(
+      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
+
   /* Body */
-  const size_t num_frame = frames.size();
-  if ((num_frame - frame_id) % kNumFramePerTree != 0) {
+  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
+    tree.GetPyBuffer(dest);
+  }
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+  const size_t num_frame = std::distance(begin, end);
+  /* Header */
+  constexpr size_t kNumFrameInHeader = 4;
+  if (num_frame < kNumFrameInHeader) {
+    throw std::runtime_error("Wrong number of frames");
+  }
+  InitScalarFromPyBuffer(&num_feature, *begin++);
+  InitScalarFromPyBuffer(&num_output_group, *begin++);
+  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
+  InitScalarFromPyBuffer(&param, *begin++);
+  /* Body */
+  if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
     throw std::runtime_error("Wrong number of frames");
   }
   trees.clear();
-  for (; frame_id < num_frame; frame_id += kNumFramePerTree) {
-    std::vector<PyBufferFrame> tree_frames(frames.begin() + frame_id,
-                                           frames.begin() + frame_id + kNumFramePerTree);
+  for (; begin < end; begin += kNumFramePerTree) {
     trees.emplace_back();
-    trees.back().InitFromPyBuffer(tree_frames);
+    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree);
   }
 }
 
@@ -732,7 +746,7 @@ Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetLeafVector(
-    int nid, const std::vector<ThresholdType>& node_leaf_vector) {
+    int nid, const std::vector<LeafOutputType>& node_leaf_vector) {
   const size_t end_oft = leaf_vector_offset_.Back();
   const size_t new_end_oft = end_oft + node_leaf_vector.size();
   if (end_oft != leaf_vector_.Size()) {
@@ -812,12 +826,8 @@ Model::GetModelType() const {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline Model
-Model::Create() {
-  Model model;
-  model.handle_.reset(new ModelImpl<ThresholdType, LeafOutputType>());
-  model.type_ = ModelType::kInvalid;
-
+inline ModelType
+Model::InferModelTypeOf() {
   const char* error_msg = "Unsupported combination of ThresholdType and LeafOutputType";
   static_assert(std::is_same<ThresholdType, float>::value
                 || std::is_same<ThresholdType, double>::value,
@@ -828,42 +838,77 @@ Model::Create() {
                 "LeafOutputType should be uint32, float32 or float64");
   if (std::is_same<ThresholdType, float>::value) {
     if (std::is_same<LeafOutputType, uint32_t>::value) {
-      model.type_ = ModelType::kFloat32ThresholdUInt32LeafOutput;
+      return ModelType::kFloat32ThresholdUInt32LeafOutput;
     } else if (std::is_same<LeafOutputType, float>::value) {
-      model.type_ = ModelType::kFloat32ThresholdFloat32LeafOutput;
+      return ModelType::kFloat32ThresholdFloat32LeafOutput;
     } else {
       throw std::runtime_error(error_msg);
     }
   } else if (std::is_same<ThresholdType, double>::value) {
     if (std::is_same<LeafOutputType, uint32_t>::value) {
-      model.type_ = ModelType::kFloat64ThresholdUint32LeafOutput;
+      return ModelType::kFloat64ThresholdUInt32LeafOutput;
     } else if (std::is_same<LeafOutputType, double>::value) {
-      model.type_ = ModelType::kFloat64ThresholdFloat64LeafOutput;
+      return ModelType::kFloat64ThresholdFloat64LeafOutput;
     } else {
       throw std::runtime_error(error_msg);
     }
-  } else {
-    throw std::runtime_error(error_msg);
   }
+  throw std::runtime_error(error_msg);
+  return ModelType::kInvalid;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline Model
+Model::Create() {
+  Model model;
+  model.handle_.reset(new ModelImpl<ThresholdType, LeafOutputType>());
+  model.type_ = InferModelTypeOf<ThresholdType, LeafOutputType>();
+  model.threshold_type_ = InferTypeInfoOf<ThresholdType>();
+  model.leaf_output_type_ = InferTypeInfoOf<LeafOutputType>();
   return model;
 }
 
-template <typename Func>
-inline auto
-Model::Dispatch(Func func) const {
-  switch(type_) {
-  case ModelType::kFloat32ThresholdUInt32LeafOutput:
-    return func(GetImpl<float, uint32_t>());
-  case ModelType::kFloat32ThresholdFloat32LeafOutput:
-    return func(GetImpl<float, float>());
-  case ModelType::kFloat64ThresholdUint32LeafOutput:
-    return func(GetImpl<double, uint32_t>());
-  case ModelType::kFloat64ThresholdFloat64LeafOutput:
-    return func(GetImpl<double, double>());
+inline Model
+Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
+  auto error_threshold_type = [threshold_type]() {
+    std::ostringstream oss;
+    oss << "Invalid threshold type: " << treelite::TypeInfoToString(threshold_type);
+    return oss.str();
+  };
+  auto error_leaf_output_type = [threshold_type, leaf_output_type]() {
+    std::ostringstream oss;
+    oss << "Cannot use leaf output type " << treelite::TypeInfoToString(leaf_output_type)
+        << "with threshold type " << treelite::TypeInfoToString(threshold_type);
+    return oss.str();
+  };
+  switch (threshold_type) {
+  case treelite::TypeInfo::kFloat32:
+    switch (leaf_output_type) {
+    case treelite::TypeInfo::kUInt32:
+      return treelite::Model::Create<float, uint32_t>();
+    case treelite::TypeInfo::kFloat32:
+      return treelite::Model::Create<float, float>();
+    default:
+      throw std::runtime_error(error_leaf_output_type());
+      break;
+    }
+    break;
+  case treelite::TypeInfo::kFloat64:
+    switch (leaf_output_type) {
+    case treelite::TypeInfo::kUInt32:
+      return treelite::Model::Create<double, uint32_t>();
+    case treelite::TypeInfo::kFloat64:
+      return treelite::Model::Create<double, float>();
+    default:
+      throw std::runtime_error(error_leaf_output_type());
+      break;
+    }
+    break;
   default:
-    throw std::runtime_error("Unknown type name");
-    return func(GetImpl<double, double>());  // avoid "missing return" warning
+    throw std::runtime_error(error_threshold_type());
+    break;
   }
+  return treelite::Model();  // avoid missing return value warning
 }
 
 template <typename Func>
@@ -874,12 +919,32 @@ Model::Dispatch(Func func) {
     return func(GetImpl<float, uint32_t>());
   case ModelType::kFloat32ThresholdFloat32LeafOutput:
     return func(GetImpl<float, float>());
-  case ModelType::kFloat64ThresholdUint32LeafOutput:
+  case ModelType::kFloat64ThresholdUInt32LeafOutput:
     return func(GetImpl<double, uint32_t>());
   case ModelType::kFloat64ThresholdFloat64LeafOutput:
     return func(GetImpl<double, double>());
   default:
-    throw std::runtime_error("Unknown type name");
+    throw std::runtime_error(std::string("Unknown type detected: ")
+                             + std::to_string(static_cast<int>(type_)));
+    return func(GetImpl<double, double>());  // avoid "missing return" warning
+  }
+}
+
+template <typename Func>
+inline auto
+Model::Dispatch(Func func) const {
+  switch(type_) {
+  case ModelType::kFloat32ThresholdUInt32LeafOutput:
+    return func(GetImpl<float, uint32_t>());
+  case ModelType::kFloat32ThresholdFloat32LeafOutput:
+    return func(GetImpl<float, float>());
+  case ModelType::kFloat64ThresholdUInt32LeafOutput:
+    return func(GetImpl<double, uint32_t>());
+  case ModelType::kFloat64ThresholdFloat64LeafOutput:
+    return func(GetImpl<double, double>());
+  default:
+    throw std::runtime_error(std::string("Unknown type detected: ")
+                             + std::to_string(static_cast<int>(type_)));
     return func(GetImpl<double, double>());  // avoid "missing return" warning
   }
 }
@@ -921,12 +986,28 @@ Model::ReferenceSerialize(dmlc::Stream* fo) const {
 
 inline std::vector<PyBufferFrame>
 Model::GetPyBuffer() {
-  return Dispatch([](auto& handle) { return handle.GetPyBuffer(); });
+  std::vector<PyBufferFrame> buffer;
+  buffer.push_back(GetPyBufferFromScalar(&threshold_type_));
+  buffer.push_back(GetPyBufferFromScalar(&leaf_output_type_));
+  Dispatch([&buffer](auto& handle) { return handle.GetPyBuffer(&buffer); });
+  return buffer;
 }
 
-inline void
-Model::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  Dispatch([&frames](auto& handle) { handle.InitFromPyBuffer(frames); });
+inline Model
+Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
+  using TypeInfoInt = std::underlying_type<TypeInfo>::type;
+  TypeInfo threshold_type, leaf_output_type;
+  if (frames.size() < 2) {
+    throw std::runtime_error("Insufficient number of frames: there must be at least two");
+  }
+  InitScalarFromPyBuffer(&threshold_type, frames[0]);
+  InitScalarFromPyBuffer(&leaf_output_type, frames[1]);
+
+  Model model = Model::Create(threshold_type, leaf_output_type);
+  model.Dispatch([&frames](auto& handle) {
+    handle.InitFromPyBuffer(frames.begin() + 2, frames.end());
+  });
+  return model;
 }
 
 inline void InitParamAndCheck(ModelParam* param,

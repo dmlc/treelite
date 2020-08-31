@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <iomanip>
+#include <typeinfo>
 #include <stdexcept>
 #include <iostream>
 
@@ -828,7 +829,10 @@ Model::GetModelType() const {
 template <typename ThresholdType, typename LeafOutputType>
 inline ModelType
 Model::InferModelTypeOf() {
-  const char* error_msg = "Unsupported combination of ThresholdType and LeafOutputType";
+  const std::string error_msg
+    = std::string("Unsupported combination of ThresholdType (")
+        + TypeInfoToString(InferTypeInfoOf<ThresholdType>()) + ") and LeafOutputType ("
+        + TypeInfoToString(InferTypeInfoOf<LeafOutputType>()) + ")";
   static_assert(std::is_same<ThresholdType, float>::value
                 || std::is_same<ThresholdType, double>::value,
                 "ThresholdType should be either float32 or float64");
@@ -878,7 +882,7 @@ Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
   auto error_leaf_output_type = [threshold_type, leaf_output_type]() {
     std::ostringstream oss;
     oss << "Cannot use leaf output type " << treelite::TypeInfoToString(leaf_output_type)
-        << "with threshold type " << treelite::TypeInfoToString(threshold_type);
+        << " with threshold type " << treelite::TypeInfoToString(threshold_type);
     return oss.str();
   };
   switch (threshold_type) {
@@ -898,7 +902,7 @@ Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
     case treelite::TypeInfo::kUInt32:
       return treelite::Model::Create<double, uint32_t>();
     case treelite::TypeInfo::kFloat64:
-      return treelite::Model::Create<double, float>();
+      return treelite::Model::Create<double, double>();
     default:
       throw std::runtime_error(error_leaf_output_type());
       break;

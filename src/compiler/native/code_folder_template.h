@@ -12,7 +12,7 @@ namespace treelite {
 namespace compiler {
 namespace native {
 
-const char* eval_loop_template =
+const char* const eval_loop_template =
 R"TREELITETEMPLATE(
 nid = 0;
 while (nid >= 0) {{  /* negative nid implies leaf */
@@ -31,7 +31,7 @@ while (nid >= 0) {{  /* negative nid implies leaf */
 {output_switch_statement}
 )TREELITETEMPLATE";
 
-const char* eval_loop_template_without_categorical_feature =
+const char* const eval_loop_template_without_categorical_feature =
 R"TREELITETEMPLATE(
 nid = 0;
 while (nid >= 0) {{  /* negative nid implies leaf */

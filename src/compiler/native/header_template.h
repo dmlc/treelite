@@ -12,7 +12,7 @@ namespace treelite {
 namespace compiler {
 namespace native {
 
-const char* header_template =
+const char* const header_template =
 R"TREELITETEMPLATE(
 #include <stdlib.h>
 #include <string.h>
@@ -29,14 +29,14 @@ R"TREELITETEMPLATE(
 
 union Entry {{
   int missing;
-  float fvalue;
+  {threshold_type} fvalue;
   int qvalue;
 }};
 
 struct Node {{
   uint8_t default_left;
   unsigned int split_index;
-  {threshold_type} threshold;
+  {threshold_type_Node} threshold;
   int left_child;
   int right_child;
 }};

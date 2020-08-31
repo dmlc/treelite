@@ -826,6 +826,16 @@ Model::GetModelType() const {
   return type_;
 }
 
+inline TypeInfo
+Model::GetThresholdType() const {
+  return threshold_type_;
+}
+
+inline TypeInfo
+Model::GetLeafOutputType() const {
+  return leaf_output_type_;
+}
+
 template <typename ThresholdType, typename LeafOutputType>
 inline ModelType
 Model::InferModelTypeOf() {

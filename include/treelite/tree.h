@@ -481,6 +481,8 @@ struct Model {
   template <typename ThresholdType, typename LeafOutputType>
   inline const ModelImpl<ThresholdType, LeafOutputType>& GetImpl() const;
   inline ModelType GetModelType() const;
+  inline TypeInfo GetThresholdType() const;
+  inline TypeInfo GetLeafOutputType() const;
   template <typename Func>
   inline auto Dispatch(Func func);
   template <typename Func>

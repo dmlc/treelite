@@ -64,7 +64,7 @@ inline std::string OpName(Operator op) {
 }
 
 /*!
- * \brief get string representation of type info
+ * \brief Get string representation of type info
  * \param info a type info
  * \return string representation
  */

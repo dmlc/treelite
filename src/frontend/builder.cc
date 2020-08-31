@@ -345,10 +345,10 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
   }
   if (tree_builder->pimpl_->tree.leaf_output_type != this->pimpl_->leaf_output_type) {
     LOG(FATAL)
-        << "InsertTree: cannot insert the tree into the ensemble, because the ensemble requires all "
-        << "member trees to use " << TypeInfoToString(this->pimpl_->leaf_output_type)
-        << " type for leaf outputs whereas the tree is using "
-        << TypeInfoToString(tree_builder->pimpl_->tree.leaf_output_type);
+      << "InsertTree: cannot insert the tree into the ensemble, because the ensemble requires all "
+      << "member trees to use " << TypeInfoToString(this->pimpl_->leaf_output_type)
+      << " type for leaf outputs whereas the tree is using "
+      << TypeInfoToString(tree_builder->pimpl_->tree.leaf_output_type);
     return -1;
   }
 

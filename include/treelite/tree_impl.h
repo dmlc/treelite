@@ -914,7 +914,7 @@ Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
 template <typename Func>
 inline auto
 Model::Dispatch(Func func) {
-  switch(type_) {
+  switch (type_) {
   case ModelType::kFloat32ThresholdUInt32LeafOutput:
     return func(GetImpl<float, uint32_t>());
   case ModelType::kFloat32ThresholdFloat32LeafOutput:
@@ -933,7 +933,7 @@ Model::Dispatch(Func func) {
 template <typename Func>
 inline auto
 Model::Dispatch(Func func) const {
-  switch(type_) {
+  switch (type_) {
   case ModelType::kFloat32ThresholdUInt32LeafOutput:
     return func(GetImpl<float, uint32_t>());
   case ModelType::kFloat32ThresholdFloat32LeafOutput:

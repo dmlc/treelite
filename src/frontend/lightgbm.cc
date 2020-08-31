@@ -466,7 +466,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK(num_class >= 0 && num_class == model_handle.num_output_group)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
-    std::strncpy(model_handle.param.pred_transform, "softmax", sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "softmax",
+                 sizeof(model_handle.param.pred_transform));
   } else if (obj_name_ == "multiclassova") {
     // validate num_class and alpha parameters
     int num_class = -1;
@@ -489,7 +490,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
           && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
-    std::strncpy(model_handle.param.pred_transform, "multiclass_ova", sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "multiclass_ova",
+                 sizeof(model_handle.param.pred_transform));
     model_handle.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "binary") {
     // validate alpha parameter
@@ -506,16 +508,19 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK_GT(alpha, 0.0f)
       << "Ill-formed LightGBM model file: not a valid binary objective";
 
-    std::strncpy(model_handle.param.pred_transform, "sigmoid", sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "sigmoid",
+                 sizeof(model_handle.param.pred_transform));
     model_handle.param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "xentropy" || obj_name_ == "cross_entropy") {
-    std::strncpy(model_handle.param.pred_transform, "sigmoid", sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "sigmoid",
+                 sizeof(model_handle.param.pred_transform));
     model_handle.param.sigmoid_alpha = 1.0f;
   } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
     std::strncpy(model_handle.param.pred_transform, "logarithm_one_plus_exp",
                  sizeof(model_handle.param.pred_transform));
   } else {
-    std::strncpy(model_handle.param.pred_transform, "identity", sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle.param.pred_transform, "identity",
+                 sizeof(model_handle.param.pred_transform));
   }
 
   // traverse trees

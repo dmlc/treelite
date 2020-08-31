@@ -8,13 +8,15 @@
 #ifndef TREELITE_FRONTEND_IMPL_H_
 #define TREELITE_FRONTEND_IMPL_H_
 
+#include <string>
+
 namespace treelite {
 namespace frontend {
 
 template<typename Func>
 inline auto
 Value::Dispatch(Func func) {
-  switch(type_) {
+  switch (type_) {
   case TypeInfo::kUInt32:
     return func(Get<uint32_t>());
   case TypeInfo::kFloat32:
@@ -31,7 +33,7 @@ Value::Dispatch(Func func) {
 template<typename Func>
 inline auto
 Value::Dispatch(Func func) const {
-  switch(type_) {
+  switch (type_) {
   case TypeInfo::kUInt32:
     return func(Get<uint32_t>());
   case TypeInfo::kFloat32:

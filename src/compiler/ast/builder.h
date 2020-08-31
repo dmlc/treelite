@@ -70,7 +70,7 @@ class ASTBuilder {
   }
 
  private:
-  friend bool treelite::compiler::fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder*);
+  friend bool treelite::compiler::fold_code<>(ASTNode*, CodeFoldingContext*, ASTBuilder*);
 
   template <typename NodeType, typename ...Args>
   NodeType* AddNode(ASTNode* parent, Args&& ...args) {

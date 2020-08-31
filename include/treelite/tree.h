@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <map>
 #include <string>
+#include <memory>
 #include <vector>
 #include <utility>
 #include <type_traits>
@@ -468,6 +469,7 @@ struct Model {
   ModelType type_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
+
  public:
   template <typename ThresholdType, typename LeafOutputType>
   inline static ModelType InferModelTypeOf();

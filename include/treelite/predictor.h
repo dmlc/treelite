@@ -9,6 +9,7 @@
 
 #include <dmlc/logging.h>
 #include <treelite/entry.h>
+#include <treelite/typeinfo.h>
 #include <string>
 #include <cstdint>
 

@@ -88,7 +88,7 @@ target_sources(objtreelite
     annotator.cc
     data.cc
     filesystem.cc
-    tables.cc
+    optable.cc
     reference_serializer.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/annotator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/base.h
@@ -121,9 +121,11 @@ target_sources(objtreelite_common
     c_api/c_api_error.cc
     c_api/c_api_error.h
     logging.cc
+    typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
     ${PROJECT_SOURCE_DIR}/include/treelite/math.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
 )
 
 msvc_use_static_runtime()

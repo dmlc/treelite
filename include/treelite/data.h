@@ -8,12 +8,15 @@
 #define TREELITE_DATA_H_
 
 #include <dmlc/data.h>
+#include <treelite/typeinfo.h>
 #include <vector>
+#include <type_traits>
+#include <memory>
 
 namespace treelite {
 
 /*! \brief a simple data matrix in CSR (Compressed Sparse Row) storage */
-struct DMatrix {
+struct LegacyDMatrix {
   /*! \brief feature values */
   std::vector<float> data;
   /*! \brief feature indices */
@@ -45,8 +48,8 @@ struct DMatrix {
    * \param verbose whether to produce extra messages
    * \return newly built DMatrix
    */
-  static DMatrix* Create(const char* filename, const char* format,
-                         int nthread, int verbose);
+  static LegacyDMatrix* Create(const char* filename, const char* format,
+                               int nthread, int verbose);
   /*!
    * \brief construct a new DMatrix from a data parser. The data parser here
    *        refers to any iterable object that streams input data in small
@@ -56,8 +59,34 @@ struct DMatrix {
    * \param verbose whether to produce extra messages
    * \return newly built DMatrix
    */
-  static DMatrix* Create(dmlc::Parser<uint32_t>* parser,
-                         int nthread, int verbose);
+  static LegacyDMatrix* Create(dmlc::Parser<uint32_t>* parser,
+                               int nthread, int verbose);
+};
+
+class DenseDMatrix {
+
+};
+
+template<typename T>
+class DenseDMatrixImpl : public DenseDMatrix {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "T must be either float32 or float64");
+};
+
+class CSRDMatrix {
+ private:
+  std::shared_ptr<void> handle_;
+  TypeInfo type_;
+ public:
+  template<typename T>
+  static CSRDMatrix Create();
+  static CSRDMatrix Create(TypeInfo type);
+};
+
+template<typename T>
+class CSRDMatrixImpl : public CSRDMatrix {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "T must be either float32 or float64");
 };
 
 }  // namespace treelite

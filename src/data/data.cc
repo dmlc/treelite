@@ -1,6 +1,6 @@
 /*!
  * Copyright (c) 2017-2020 by Contributors
- * \file data.h
+ * \file data.cc
  * \author Hyunsu Cho
  * \brief Input data structure of Treelite
  */
@@ -13,20 +13,20 @@
 
 namespace treelite {
 
-DMatrix*
-DMatrix::Create(const char* filename, const char* format,
-                int nthread, int verbose) {
+LegacyDMatrix*
+LegacyDMatrix::Create(const char* filename, const char* format,
+                      int nthread, int verbose) {
   std::unique_ptr<dmlc::Parser<uint32_t>> parser(
     dmlc::Parser<uint32_t>::Create(filename, 0, 1, format));
   return Create(parser.get(), nthread, verbose);
 }
 
-DMatrix*
-DMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
+LegacyDMatrix*
+LegacyDMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) {
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
 
-  DMatrix* dmat = new DMatrix();
+  LegacyDMatrix* dmat = new LegacyDMatrix();
   dmat->Clear();
   auto& data_ = dmat->data;
   auto& col_ind_ = dmat->col_ind;

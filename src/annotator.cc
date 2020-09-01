@@ -58,7 +58,7 @@ void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const E
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                              const treelite::DMatrix* dmat, size_t rbegin, size_t rend,
+                              const treelite::LegacyDMatrix* dmat, size_t rbegin, size_t rend,
                               int nthread, const size_t* count_row_ptr, size_t* counts_tloc,
                               Entry* inst) {
   const size_t ntree = model.trees.size();
@@ -92,7 +92,7 @@ namespace treelite {
 template <typename ThresholdType, typename LeafOutputType>
 void
 BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                              const treelite::DMatrix* dmat, int nthread, int verbose) {
+                              const treelite::LegacyDMatrix* dmat, int nthread, int verbose) {
   std::vector<size_t> new_counts;
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
@@ -133,7 +133,7 @@ BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutpu
 }
 
 void
-BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose) {
+BranchAnnotator::Annotate(const Model& model, const LegacyDMatrix* dmat, int nthread, int verbose) {
   model.Dispatch([this, dmat, nthread, verbose](auto& handle) {
     AnnotateImpl(handle, dmat, nthread, verbose);
   });

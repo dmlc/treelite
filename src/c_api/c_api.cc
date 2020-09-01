@@ -50,8 +50,8 @@ int TreeliteDMatrixCreateFromFile(const char* path,
                                   int verbose,
                                   DMatrixHandle* out) {
   API_BEGIN();
-  *out = static_cast<DMatrixHandle>(DMatrix::Create(path, format,
-                                    nthread, verbose));
+  *out = static_cast<DMatrixHandle>(LegacyDMatrix::Create(path, format,
+                                                          nthread, verbose));
   API_END();
 }
 
@@ -62,7 +62,7 @@ int TreeliteDMatrixCreateFromCSR(const float* data,
                                  size_t num_col,
                                  DMatrixHandle* out) {
   API_BEGIN();
-  std::unique_ptr<DMatrix> dmat{new DMatrix()};
+  std::unique_ptr<LegacyDMatrix> dmat{new LegacyDMatrix()};
   dmat->Clear();
   auto& data_ = dmat->data;
   auto& col_ind_ = dmat->col_ind;
@@ -102,7 +102,7 @@ int TreeliteDMatrixCreateFromMat(const float* data,
   API_BEGIN();
   CHECK_LT(num_col, std::numeric_limits<uint32_t>::max())
     << "num_col argument is too big";
-  std::unique_ptr<DMatrix> dmat{new DMatrix()};
+  std::unique_ptr<LegacyDMatrix> dmat{new LegacyDMatrix()};
   dmat->Clear();
   auto& data_ = dmat->data;
   auto& col_ind_ = dmat->col_ind;
@@ -145,7 +145,7 @@ int TreeliteDMatrixGetDimension(DMatrixHandle handle,
                                 size_t* out_num_col,
                                 size_t* out_nelem) {
   API_BEGIN();
-  const DMatrix* dmat = static_cast<DMatrix*>(handle);
+  const LegacyDMatrix* dmat = static_cast<LegacyDMatrix*>(handle);
   *out_num_row = dmat->num_row;
   *out_num_col = dmat->num_col;
   *out_nelem = dmat->nelem;
@@ -155,7 +155,7 @@ int TreeliteDMatrixGetDimension(DMatrixHandle handle,
 int TreeliteDMatrixGetPreview(DMatrixHandle handle,
                               const char** out_preview) {
   API_BEGIN();
-  const DMatrix* dmat = static_cast<DMatrix*>(handle);
+  const LegacyDMatrix* dmat = static_cast<LegacyDMatrix*>(handle);
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
   std::ostringstream oss;
   const size_t iend = (dmat->nelem <= 50) ? dmat->nelem : 25;
@@ -186,7 +186,7 @@ int TreeliteDMatrixGetArrays(DMatrixHandle handle,
                              const uint32_t** out_col_ind,
                              const size_t** out_row_ptr) {
   API_BEGIN();
-  const DMatrix* dmat_ = static_cast<DMatrix*>(handle);
+  const LegacyDMatrix* dmat_ = static_cast<LegacyDMatrix*>(handle);
   *out_data = &dmat_->data[0];
   *out_col_ind = &dmat_->col_ind[0];
   *out_row_ptr = &dmat_->row_ptr[0];
@@ -195,7 +195,7 @@ int TreeliteDMatrixGetArrays(DMatrixHandle handle,
 
 int TreeliteDMatrixFree(DMatrixHandle handle) {
   API_BEGIN();
-  delete static_cast<DMatrix*>(handle);
+  delete static_cast<LegacyDMatrix*>(handle);
   API_END();
 }
 
@@ -207,7 +207,7 @@ int TreeliteAnnotateBranch(ModelHandle model,
   API_BEGIN();
   std::unique_ptr<BranchAnnotator> annotator{new BranchAnnotator()};
   const Model* model_ = static_cast<Model*>(model);
-  const DMatrix* dmat_ = static_cast<DMatrix*>(dmat);
+  const LegacyDMatrix* dmat_ = static_cast<LegacyDMatrix*>(dmat);
   annotator->Annotate(*model_, dmat_, nthread, verbose);
   *out = static_cast<AnnotationHandle>(annotator.release());
   API_END();

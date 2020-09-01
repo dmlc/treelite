@@ -18,7 +18,7 @@ class BranchAnnotator {
  public:
   template <typename ThresholdType, typename LeafOutputType>
   void AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                    const treelite::DMatrix* dmat, int nthread, int verbose);
+                    const treelite::LegacyDMatrix* dmat, int nthread, int verbose);
   /*!
    * \brief annotate branches in a given model using frequency patterns in the
    *        training data. The annotation can be accessed through Get() method.
@@ -27,7 +27,7 @@ class BranchAnnotator {
    * \param nthread number of threads to use
    * \param verbose whether to produce extra messages
    */
-  void Annotate(const Model& model, const DMatrix* dmat,
+  void Annotate(const Model& model, const LegacyDMatrix* dmat,
                int nthread, int verbose);
   /*!
    * \brief load branch annotation from a JSON file

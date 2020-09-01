@@ -86,7 +86,6 @@ target_sources(objtreelite
     frontend/lightgbm.cc
     frontend/xgboost.cc
     annotator.cc
-    data.cc
     filesystem.cc
     optable.cc
     reference_serializer.cc
@@ -95,7 +94,6 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
     ${PROJECT_SOURCE_DIR}/include/treelite/compiler.h
     ${PROJECT_SOURCE_DIR}/include/treelite/compiler_param.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/data.h
     ${PROJECT_SOURCE_DIR}/include/treelite/filesystem.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
@@ -120,12 +118,14 @@ target_sources(objtreelite_common
     c_api/c_api_common.cc
     c_api/c_api_error.cc
     c_api/c_api_error.h
+    data/data.cc
     logging.cc
     typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
     ${PROJECT_SOURCE_DIR}/include/treelite/math.h
     ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/data.h
 )
 
 msvc_use_static_runtime()

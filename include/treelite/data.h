@@ -64,29 +64,85 @@ struct LegacyDMatrix {
 };
 
 class DenseDMatrix {
-
+ private:
+  TypeInfo type_;
+ public:
+  template<typename ElementType>
+  static std::unique_ptr<DenseDMatrix> Create(
+      std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col);
+  template<typename ElementType>
+  static std::unique_ptr<DenseDMatrix> Create(
+      const void* data, const void* missing_value, size_t num_row, size_t num_col);
+  static std::unique_ptr<DenseDMatrix> Create(
+      TypeInfo type, const void* data, const void* missing_value, size_t num_row, size_t num_col);
 };
 
-template<typename T>
+template<typename ElementType>
 class DenseDMatrixImpl : public DenseDMatrix {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "T must be either float32 or float64");
+ private:
+  /*! \brief feature values */
+  std::vector<ElementType> data;
+  /*! \brief value representing the missing value (usually NaN) */
+  ElementType missing_value;
+  /*! \brief number of rows */
+  size_t num_row;
+  /*! \brief number of columns (i.e. # of features used) */
+  size_t num_col;
+ public:
+  DenseDMatrixImpl() = delete;
+  DenseDMatrixImpl(std::vector<ElementType> data, ElementType missing_value, size_t num_row,
+                   size_t num_col);
+  ~DenseDMatrixImpl() = default;
+  DenseDMatrixImpl(const DenseDMatrixImpl&) = default;
+  DenseDMatrixImpl(DenseDMatrixImpl&&) noexcept = default;
+
+  friend class DenseDMatrix;
+  static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
+                "ElementType must be either float32 or float64");
 };
 
 class CSRDMatrix {
  private:
-  std::shared_ptr<void> handle_;
   TypeInfo type_;
  public:
-  template<typename T>
-  static CSRDMatrix Create();
-  static CSRDMatrix Create(TypeInfo type);
+  template<typename ElementType>
+  static std::unique_ptr<CSRDMatrix> Create(
+      std::vector<ElementType> data, std::vector<uint32_t> col_ind, std::vector<size_t> row_ptr,
+      size_t num_row, size_t num_col);
+  template<typename ElementType>
+  static std::unique_ptr<CSRDMatrix> Create(
+      const void* data, const uint32_t* col_ind, const size_t* row_ptr, size_t num_row,
+      size_t num_col, size_t num_elem);
+  static std::unique_ptr<CSRDMatrix> Create(
+      TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
+      size_t num_row, size_t num_col, size_t num_elem);
 };
 
-template<typename T>
+template<typename ElementType>
 class CSRDMatrixImpl : public CSRDMatrix {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "T must be either float32 or float64");
+ private:
+  /*! \brief feature values */
+  std::vector<ElementType> data;
+  /*! \brief feature indices. col_ind[i] indicates the feature index associated with data[i]. */
+  std::vector<uint32_t> col_ind;
+  /*! \brief pointer to row headers; length is [num_row] + 1. */
+  std::vector<size_t> row_ptr;
+  /*! \brief number of rows */
+  size_t num_row;
+  /*! \brief number of columns (i.e. # of features used) */
+  size_t num_col;
+
+ public:
+  CSRDMatrixImpl() = delete;
+  CSRDMatrixImpl(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
+                 std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
+  ~CSRDMatrixImpl() = default;
+  CSRDMatrixImpl(const CSRDMatrixImpl&) = default;
+  CSRDMatrixImpl(CSRDMatrixImpl&&) noexcept = default;
+
+  friend class CSRDMatrix;
+  static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
+                "ElementType must be either float32 or float64");
 };
 
 }  // namespace treelite

@@ -76,4 +76,97 @@ LegacyDMatrix::Create(dmlc::Parser<uint32_t>* parser, int nthread, int verbose) 
   return dmat;
 }
 
+template<typename ElementType>
+std::unique_ptr<DenseDMatrix>
+DenseDMatrix::Create(
+    std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col) {
+  std::unique_ptr<DenseDMatrix> matrix = std::make_unique<DenseDMatrixImpl<ElementType>>(
+      std::move(data), missing_value, num_row, num_col
+  );
+  matrix->type_ = InferTypeInfoOf<ElementType>();
+  return matrix;
+}
+
+template<typename ElementType>
+std::unique_ptr<DenseDMatrix>
+DenseDMatrix::Create(const void* data, const void* missing_value, size_t num_row, size_t num_col) {
+  auto* data_ptr = static_cast<const ElementType*>(data);
+  const size_t num_elem = num_row * num_col;
+  return DenseDMatrix::Create(std::vector<ElementType>(data_ptr, data_ptr + num_elem),
+                              *static_cast<const ElementType*>(missing_value), num_row, num_col);
+}
+
+std::unique_ptr<DenseDMatrix>
+DenseDMatrix::Create(
+    TypeInfo type, const void* data, const void* missing_value, size_t num_row, size_t num_col) {
+  CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
+  switch (type) {
+  case TypeInfo::kFloat32:
+    return Create<float>(data, missing_value, num_row, num_col);
+  case TypeInfo::kFloat64:
+    return Create<double>(data, missing_value, num_row, num_col);
+  case TypeInfo::kInvalid:
+  case TypeInfo::kUInt32:
+  default:
+    LOG(FATAL) << "Invalid type for DenseDMatrix: " << TypeInfoToString(type);
+  }
+  return std::unique_ptr<DenseDMatrix>(nullptr);
+}
+
+template<typename ElementType>
+DenseDMatrixImpl<ElementType>::DenseDMatrixImpl(
+    std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col)
+    : DenseDMatrix(), data(std::move(data)), missing_value(missing_value), num_row(num_row),
+      num_col(num_col) {}
+
+template<typename ElementType>
+std::unique_ptr<CSRDMatrix>
+CSRDMatrix::Create(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
+                   std::vector<size_t> row_ptr, size_t num_row, size_t num_col) {
+  std::unique_ptr<CSRDMatrix> matrix = std::make_unique<CSRDMatrixImpl<ElementType>>(
+      std::move(data), std::move(col_ind), std::move(row_ptr), num_row, num_col
+  );
+  matrix->type_ = InferTypeInfoOf<ElementType>();
+  return matrix;
+}
+
+template<typename ElementType>
+std::unique_ptr<CSRDMatrix>
+CSRDMatrix::Create(const void* data, const uint32_t* col_ind,
+                   const size_t* row_ptr, size_t num_row, size_t num_col, size_t num_elem) {
+  auto* data_ptr = static_cast<const ElementType*>(data);
+  return CSRDMatrix::Create(
+      std::vector<ElementType>(data_ptr, data_ptr + num_elem),
+      std::vector<uint32_t>(col_ind, col_ind + num_elem),
+      std::vector<size_t>(row_ptr, row_ptr + num_row + 1),
+      num_row,
+      num_col
+  );
+}
+
+std::unique_ptr<CSRDMatrix>
+CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
+                   size_t num_row, size_t num_col, size_t num_elem) {
+  CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
+  switch (type) {
+  case TypeInfo::kFloat32:
+    return Create<float>(data, col_ind, row_ptr, num_row, num_col, num_elem);
+  case TypeInfo::kFloat64:
+    return Create<double>(data, col_ind, row_ptr, num_row, num_col, num_elem);
+  case TypeInfo::kInvalid:
+  case TypeInfo::kUInt32:
+  default:
+    LOG(FATAL) << "Invalid type for CSRDMatrix: " << TypeInfoToString(type);
+  }
+  return std::unique_ptr<CSRDMatrix>(nullptr);
+}
+
+template <typename ElementType>
+CSRDMatrixImpl<ElementType>::CSRDMatrixImpl(
+    std::vector<ElementType> data, std::vector<uint32_t> col_ind, std::vector<size_t> row_ptr,
+    size_t num_row, size_t num_col)
+    : CSRDMatrix(), data(std::move(data)), col_ind(std::move(col_ind)), row_ptr(std::move(row_ptr)),
+      num_row(num_col), num_col(num_col)
+{}
+
 }  // namespace treelite

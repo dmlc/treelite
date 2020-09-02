@@ -49,6 +49,8 @@ extern const unsigned char is_categorical[];
 {dllexport}{get_sigmoid_alpha_function_signature};
 {dllexport}{get_global_bias_function_signature};
 {dllexport}{predict_function_signature};
+{dllexport}{get_threshold_type_signature};
+{dllexport}{get_leaf_output_type_signature};
 )TREELITETEMPLATE";
 
 }  // namespace native

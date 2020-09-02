@@ -208,6 +208,8 @@ class ASTNativeCompiler : public Compiler {
                       leaf_output_type)
         : fmt::format("{} predict(union Entry* data, int pred_margin)",
                       leaf_output_type);
+    const char* get_threshold_type_signature = "const char* get_threshold_type(void)";
+    const char* get_leaf_output_type_signature = "const char* get_leaf_output_type(void)";
 
     if (!array_is_categorical_.empty()) {
       array_is_categorical_
@@ -230,6 +232,10 @@ class ASTNativeCompiler : public Compiler {
           = get_global_bias_function_signature,
         "pred_transform_function"_a = pred_tranform_func_,
         "predict_function_signature"_a = predict_function_signature,
+        "get_threshold_type_signature"_a = get_threshold_type_signature,
+        "threshold_type_str"_a = TypeInfoToString(InferTypeInfoOf<ThresholdType>()),
+        "get_leaf_output_type_signature"_a = get_leaf_output_type_signature,
+        "leaf_output_type_str"_a = TypeInfoToString(InferTypeInfoOf<LeafOutputType>()),
         "num_output_group"_a = num_output_group_,
         "num_feature"_a = num_feature_,
         "pred_transform"_a = pred_transform_,
@@ -250,6 +256,8 @@ class ASTNativeCompiler : public Compiler {
         "get_global_bias_function_signature"_a
           = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
+        "get_threshold_type_signature"_a = get_threshold_type_signature,
+        "get_leaf_output_type_signature"_a = get_leaf_output_type_signature,
         "threshold_type"_a = threshold_type,
         "threshold_type_Node"_a = (param.quantize > 0 ? std::string("int") : threshold_type)),
       indent);

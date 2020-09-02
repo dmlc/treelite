@@ -38,6 +38,14 @@ R"TREELITETEMPLATE(
   return {global_bias};
 }}
 
+{get_threshold_type_signature} {{
+  return "{threshold_type_str}";
+}}
+
+{get_leaf_output_type_signature} {{
+  return "{leaf_output_type_str}";
+}}
+
 {pred_transform_function}
 {predict_function_signature} {{
 )TREELITETEMPLATE";

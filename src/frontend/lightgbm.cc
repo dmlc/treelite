@@ -14,7 +14,7 @@
 
 namespace {
 
-treelite::Model ParseStream(dmlc::Stream* fi);
+inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi);
 
 }  // anonymous namespace
 
@@ -23,9 +23,9 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(lightgbm);
 
-void LoadLightGBMModel(const char *filename, Model* out) {
+std::unique_ptr<treelite::Model> LoadLightGBMModel(const char *filename) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  *out = std::move(ParseStream(fi.get()));
+  return ParseStream(fi.get());
 }
 
 }  // namespace frontend
@@ -253,7 +253,7 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
   return lines;
 }
 
-inline treelite::Model ParseStream(dmlc::Stream* fi) {
+inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::vector<LGBTree> lgb_trees_;
   int max_feature_idx_;
   int num_tree_per_iteration_;
@@ -436,18 +436,18 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   }
 
   /* 2. Export model */
-  treelite::Model model_wrapper = treelite::Model::Create<double, double>();
-  treelite::ModelImpl<double, double>& model_handle = model_wrapper.GetImpl<double, double>();
-  model_handle.num_feature = max_feature_idx_ + 1;
-  model_handle.num_output_group = num_tree_per_iteration_;
-  if (model_handle.num_output_group > 1) {
+  std::unique_ptr<treelite::Model> model = treelite::Model::Create<double, double>();
+  auto* model_handle = dynamic_cast<treelite::ModelImpl<double, double>*>(model.get());
+  model_handle->num_feature = max_feature_idx_ + 1;
+  model_handle->num_output_group = num_tree_per_iteration_;
+  if (model_handle->num_output_group > 1) {
     // multiclass classification with gradient boosted trees
     CHECK(!average_output_)
       << "Ill-formed LightGBM model file: cannot use random forest mode "
       << "for multi-class classification";
-    model_handle.random_forest_flag = false;
+    model_handle->random_forest_flag = false;
   } else {
-    model_handle.random_forest_flag = average_output_;
+    model_handle->random_forest_flag = average_output_;
   }
 
   // set correct prediction transform function, depending on objective function
@@ -463,11 +463,11 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         break;
       }
     }
-    CHECK(num_class >= 0 && num_class == model_handle.num_output_group)
+    CHECK(num_class >= 0 && num_class == model_handle->num_output_group)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
-    std::strncpy(model_handle.param.pred_transform, "softmax",
-                 sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle->param.pred_transform, "softmax",
+                 sizeof(model_handle->param.pred_transform));
   } else if (obj_name_ == "multiclassova") {
     // validate num_class and alpha parameters
     int num_class = -1;
@@ -486,13 +486,13 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
         }
       }
     }
-    CHECK(num_class >= 0 && num_class == model_handle.num_output_group
+    CHECK(num_class >= 0 && num_class == model_handle->num_output_group
           && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
-    std::strncpy(model_handle.param.pred_transform, "multiclass_ova",
-                 sizeof(model_handle.param.pred_transform));
-    model_handle.param.sigmoid_alpha = alpha;
+    std::strncpy(model_handle->param.pred_transform, "multiclass_ova",
+                 sizeof(model_handle->param.pred_transform));
+    model_handle->param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "binary") {
     // validate alpha parameter
     float alpha = -1.0f;
@@ -508,25 +508,25 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
     CHECK_GT(alpha, 0.0f)
       << "Ill-formed LightGBM model file: not a valid binary objective";
 
-    std::strncpy(model_handle.param.pred_transform, "sigmoid",
-                 sizeof(model_handle.param.pred_transform));
-    model_handle.param.sigmoid_alpha = alpha;
+    std::strncpy(model_handle->param.pred_transform, "sigmoid",
+                 sizeof(model_handle->param.pred_transform));
+    model_handle->param.sigmoid_alpha = alpha;
   } else if (obj_name_ == "xentropy" || obj_name_ == "cross_entropy") {
-    std::strncpy(model_handle.param.pred_transform, "sigmoid",
-                 sizeof(model_handle.param.pred_transform));
-    model_handle.param.sigmoid_alpha = 1.0f;
+    std::strncpy(model_handle->param.pred_transform, "sigmoid",
+                 sizeof(model_handle->param.pred_transform));
+    model_handle->param.sigmoid_alpha = 1.0f;
   } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
-    std::strncpy(model_handle.param.pred_transform, "logarithm_one_plus_exp",
-                 sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle->param.pred_transform, "logarithm_one_plus_exp",
+                 sizeof(model_handle->param.pred_transform));
   } else {
-    std::strncpy(model_handle.param.pred_transform, "identity",
-                 sizeof(model_handle.param.pred_transform));
+    std::strncpy(model_handle->param.pred_transform, "identity",
+                 sizeof(model_handle->param.pred_transform));
   }
 
   // traverse trees
   for (const auto& lgb_tree : lgb_trees_) {
-    model_handle.trees.emplace_back();
-    treelite::Tree<double, double>& tree = model_handle.trees.back();
+    model_handle->trees.emplace_back();
+    treelite::Tree<double, double>& tree = model_handle->trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -588,7 +588,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       }
     }
   }
-  return model_wrapper;
+  return model;
 }
 
 }  // anonymous namespace

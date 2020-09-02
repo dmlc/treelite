@@ -419,9 +419,54 @@ static_assert(std::is_standard_layout<ModelParam>::value,
 inline void InitParamAndCheck(ModelParam* param,
                               const std::vector<std::pair<std::string, std::string>>& cfg);
 
+enum class ModelType : uint16_t {
+  // Threshold type,
+  kInvalid = 0,
+  kFloat32ThresholdUInt32LeafOutput = 1,
+  kFloat32ThresholdFloat32LeafOutput = 2,
+  kFloat64ThresholdUInt32LeafOutput = 3,
+  kFloat64ThresholdFloat64LeafOutput = 4
+};
+
+class Model {
+ private:
+  ModelType type_;
+  TypeInfo threshold_type_;
+  TypeInfo leaf_output_type_;
+  virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
+  virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                                std::vector<PyBufferFrame>::iterator end) = 0;
+
+ public:
+  Model() = default;
+  virtual ~Model() = default;
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ModelType InferModelTypeOf();
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static std::unique_ptr<Model> Create();
+  inline static std::unique_ptr<Model> Create(TypeInfo threshold_type, TypeInfo leaf_output_type);
+  inline ModelType GetModelType() const;
+  inline TypeInfo GetThresholdType() const;
+  inline TypeInfo GetLeafOutputType() const;
+  template <typename Func>
+  inline auto Dispatch(Func func);
+  template <typename Func>
+  inline auto Dispatch(Func func) const;
+  virtual ModelParam GetParam() const = 0;
+  virtual int GetNumFeature() const = 0;
+  virtual int GetNumOutputGroup() const = 0;
+  virtual bool GetRandomForestFlag() const = 0;
+  virtual size_t GetNumTree() const = 0;
+  virtual void SetTreeLimit(size_t limit) = 0;
+  virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
+  inline std::vector<PyBufferFrame> GetPyBuffer();
+  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+};
+
 /*! \brief thin wrapper for tree ensemble model */
 template <typename ThresholdType, typename LeafOutputType>
-struct ModelImpl {
+class ModelImpl : public Model {
+ public:
   /*! \brief member trees */
   std::vector<Tree<ThresholdType, LeafOutputType>> trees;
   /*!
@@ -446,56 +491,18 @@ struct ModelImpl {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void ReferenceSerialize(dmlc::Stream* fo) const;
+  inline ModelParam GetParam() const override;
+  inline int GetNumFeature() const override;
+  inline int GetNumOutputGroup() const override;
+  inline bool GetRandomForestFlag() const override;
+  inline size_t GetNumTree() const override;
+  inline void SetTreeLimit(size_t limit) override;
+  void ReferenceSerialize(dmlc::Stream* fo) const override;
 
-  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
+  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end);
+                               std::vector<PyBufferFrame>::iterator end) override;
   inline ModelImpl Clone() const;
-};
-
-enum class ModelType : uint16_t {
-  // Threshold type,
-  kInvalid = 0,
-  kFloat32ThresholdUInt32LeafOutput = 1,
-  kFloat32ThresholdFloat32LeafOutput = 2,
-  kFloat64ThresholdUInt32LeafOutput = 3,
-  kFloat64ThresholdFloat64LeafOutput = 4
-};
-
-struct Model {
- private:
-  std::shared_ptr<void> handle_;
-  ModelType type_;
-  TypeInfo threshold_type_;
-  TypeInfo leaf_output_type_;
-
- public:
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static ModelType InferModelTypeOf();
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static Model Create();
-  inline static Model Create(TypeInfo threshold_type, TypeInfo leaf_output_type);
-  template <typename ThresholdType, typename LeafOutputType>
-  inline ModelImpl<ThresholdType, LeafOutputType>& GetImpl();
-  template <typename ThresholdType, typename LeafOutputType>
-  inline const ModelImpl<ThresholdType, LeafOutputType>& GetImpl() const;
-  inline ModelType GetModelType() const;
-  inline TypeInfo GetThresholdType() const;
-  inline TypeInfo GetLeafOutputType() const;
-  template <typename Func>
-  inline auto Dispatch(Func func);
-  template <typename Func>
-  inline auto Dispatch(Func func) const;
-  inline ModelParam GetParam() const;
-  inline int GetNumFeature() const;
-  inline int GetNumOutputGroup() const;
-  inline bool GetRandomForestFlag() const;
-  inline size_t GetNumTree() const;
-  inline void SetTreeLimit(size_t limit);
-  inline void ReferenceSerialize(dmlc::Stream* fo) const;
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline static Model CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
 };
 
 }  // namespace treelite

@@ -142,29 +142,23 @@ int TreeliteCompilerFree(CompilerHandle handle) {
   API_END();
 }
 
-int TreeliteLoadLightGBMModel(const char* filename,
-                              ModelHandle* out) {
+int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadLightGBMModel(filename, model.get());
+  std::unique_ptr<Model> model = frontend::LoadLightGBMModel(filename);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostModel(const char* filename,
-                             ModelHandle* out) {
+int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostModel(filename, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostModel(filename);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len,
-                                             ModelHandle* out) {
+int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostModel(buf, len, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostModel(buf, len);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -322,8 +316,7 @@ int TreeliteCreateModelBuilder(
   API_END();
 }
 
-int TreeliteModelBuilderSetModelParam(ModelBuilderHandle handle,
-                                      const char* name,
+int TreeliteModelBuilderSetModelParam(ModelBuilderHandle handle, const char* name,
                                       const char* value) {
   API_BEGIN();
   auto* builder = static_cast<frontend::ModelBuilder*>(handle);
@@ -338,8 +331,7 @@ int TreeliteDeleteModelBuilder(ModelBuilderHandle handle) {
   API_END();
 }
 
-int TreeliteModelBuilderInsertTree(ModelBuilderHandle handle,
-                                   TreeBuilderHandle tree_builder_handle,
+int TreeliteModelBuilderInsertTree(ModelBuilderHandle handle, TreeBuilderHandle tree_builder_handle,
                                    int index) {
   API_BEGIN();
   auto* model_builder = static_cast<frontend::ModelBuilder*>(handle);
@@ -350,8 +342,7 @@ int TreeliteModelBuilderInsertTree(ModelBuilderHandle handle,
   API_END();
 }
 
-int TreeliteModelBuilderGetTree(ModelBuilderHandle handle, int index,
-                                TreeBuilderHandle *out) {
+int TreeliteModelBuilderGetTree(ModelBuilderHandle handle, int index, TreeBuilderHandle *out) {
   API_BEGIN();
   auto* model_builder = static_cast<frontend::ModelBuilder*>(handle);
   CHECK(model_builder) << "Detected dangling reference to deleted ModelBuilder object";
@@ -369,13 +360,11 @@ int TreeliteModelBuilderDeleteTree(ModelBuilderHandle handle, int index) {
   API_END();
 }
 
-int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
-                                    ModelHandle* out) {
+int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle, ModelHandle* out) {
   API_BEGIN();
   auto* builder = static_cast<frontend::ModelBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

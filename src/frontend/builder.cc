@@ -401,13 +401,13 @@ ModelBuilder::DeleteTree(int index) {
   trees.erase(trees.begin() + index);
 }
 
-void
-ModelBuilder::CommitModel(Model* out_model) {
-  Model& model = *out_model;
-  model = Model::Create(pimpl_->threshold_type, pimpl_->leaf_output_type);
-  model.Dispatch([this](auto& model_handle) {
+std::unique_ptr<Model>
+ModelBuilder::CommitModel() {
+  std::unique_ptr<Model> model = Model::Create(pimpl_->threshold_type, pimpl_->leaf_output_type);
+  model->Dispatch([this](auto& model_handle) {
     this->pimpl_->CommitModelImpl(&model_handle);
   });
+  return model;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

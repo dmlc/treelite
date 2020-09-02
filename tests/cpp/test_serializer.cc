@@ -24,9 +24,9 @@ inline std::string TreeliteToBytes(treelite::Model* model) {
 
 inline void TestRoundTrip(treelite::Model* model) {
   auto buffer = model->GetPyBuffer();
-  treelite::Model received_model = treelite::Model::CreateFromPyBuffer(buffer);
+  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
-  ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(&received_model));
+  ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
 }
 
 }  // anonymous namespace
@@ -52,8 +52,7 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
   tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -90,8 +89,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
                               frontend::Value::Create<LeafOutputType>(-1)});
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -131,8 +129,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
   tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -180,8 +177,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     builder->InsertTree(tree.get());
   }
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -229,8 +225,7 @@ void PyBufferInterfaceRoundTrip_DeepFullTree() {
   tree->SetRootNode(0);
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 

@@ -420,47 +420,6 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
-  /* Header */
-  dest->push_back(GetPyBufferFromScalar(&num_feature));
-  dest->push_back(GetPyBufferFromScalar(&num_output_group));
-  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
-  dest->push_back(GetPyBufferFromScalar(
-      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
-
-  /* Body */
-  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
-    tree.GetPyBuffer(dest);
-  }
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
-  const size_t num_frame = std::distance(begin, end);
-  /* Header */
-  constexpr size_t kNumFrameInHeader = 4;
-  if (num_frame < kNumFrameInHeader) {
-    throw std::runtime_error("Wrong number of frames");
-  }
-  InitScalarFromPyBuffer(&num_feature, *begin++);
-  InitScalarFromPyBuffer(&num_output_group, *begin++);
-  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
-  InitScalarFromPyBuffer(&param, *begin++);
-  /* Body */
-  if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
-    throw std::runtime_error("Wrong number of frames");
-  }
-  trees.clear();
-  for (; begin < end; begin += kNumFramePerTree) {
-    trees.emplace_back();
-    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree);
-  }
-}
-
-template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   cleft_ = cright_ = -1;
   sindex_ = 0;
@@ -795,32 +754,6 @@ Tree<ThresholdType, LeafOutputType>::SetGain(int nid, double gain) {
   node.gain_present_ = true;
 }
 
-template <typename ThresholdType, typename LeafOutputType>
-inline ModelImpl<ThresholdType, LeafOutputType>
-ModelImpl<ThresholdType, LeafOutputType>::Clone() const {
-  ModelImpl<ThresholdType, LeafOutputType> model;
-  for (const Tree<ThresholdType, LeafOutputType>& t : trees) {
-    model.trees.push_back(t.Clone());
-  }
-  model.num_feature = num_feature;
-  model.num_output_group = num_output_group;
-  model.random_forest_flag = random_forest_flag;
-  model.param = param;
-  return model;
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-inline ModelImpl<ThresholdType, LeafOutputType>&
-Model::GetImpl() {
-  return *static_cast<ModelImpl<ThresholdType, LeafOutputType>*>(handle_.get());
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-inline const ModelImpl<ThresholdType, LeafOutputType>&
-Model::GetImpl() const {
-  return *static_cast<const ModelImpl<ThresholdType, LeafOutputType>*>(handle_.get());
-}
-
 inline ModelType
 Model::GetModelType() const {
   return type_;
@@ -872,17 +805,16 @@ Model::InferModelTypeOf() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline Model
+inline std::unique_ptr<Model>
 Model::Create() {
-  Model model;
-  model.handle_.reset(new ModelImpl<ThresholdType, LeafOutputType>());
-  model.type_ = InferModelTypeOf<ThresholdType, LeafOutputType>();
-  model.threshold_type_ = InferTypeInfoOf<ThresholdType>();
-  model.leaf_output_type_ = InferTypeInfoOf<LeafOutputType>();
+  std::unique_ptr<Model> model = std::make_unique<ModelImpl<ThresholdType, LeafOutputType>>();
+  model->type_ = InferModelTypeOf<ThresholdType, LeafOutputType>();
+  model->threshold_type_ = InferTypeInfoOf<ThresholdType>();
+  model->leaf_output_type_ = InferTypeInfoOf<LeafOutputType>();
   return model;
 }
 
-inline Model
+inline std::unique_ptr<Model>
 Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
   auto error_threshold_type = [threshold_type]() {
     std::ostringstream oss;
@@ -922,7 +854,7 @@ Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
     throw std::runtime_error(error_threshold_type());
     break;
   }
-  return treelite::Model();  // avoid missing return value warning
+  return std::unique_ptr<Model>(nullptr);  // avoid missing return value warning
 }
 
 template <typename Func>
@@ -930,17 +862,18 @@ inline auto
 Model::Dispatch(Func func) {
   switch (type_) {
   case ModelType::kFloat32ThresholdUInt32LeafOutput:
-    return func(GetImpl<float, uint32_t>());
+    return func(*dynamic_cast<ModelImpl<float, uint32_t>*>(this));
   case ModelType::kFloat32ThresholdFloat32LeafOutput:
-    return func(GetImpl<float, float>());
+    return func(*dynamic_cast<ModelImpl<float, float>*>(this));
   case ModelType::kFloat64ThresholdUInt32LeafOutput:
-    return func(GetImpl<double, uint32_t>());
+    return func(*dynamic_cast<ModelImpl<double, uint32_t>*>(this));
   case ModelType::kFloat64ThresholdFloat64LeafOutput:
-    return func(GetImpl<double, double>());
+    return func(*dynamic_cast<ModelImpl<double, double>*>(this));
   default:
     throw std::runtime_error(std::string("Unknown type detected: ")
                              + std::to_string(static_cast<int>(type_)));
-    return func(GetImpl<double, double>());  // avoid "missing return" warning
+    return func(*dynamic_cast<ModelImpl<double, double>*>(this));
+    // avoid "missing return" warning
   }
 }
 
@@ -949,53 +882,19 @@ inline auto
 Model::Dispatch(Func func) const {
   switch (type_) {
   case ModelType::kFloat32ThresholdUInt32LeafOutput:
-    return func(GetImpl<float, uint32_t>());
+    return func(*dynamic_cast<const ModelImpl<float, uint32_t>*>(this));
   case ModelType::kFloat32ThresholdFloat32LeafOutput:
-    return func(GetImpl<float, float>());
+    return func(*dynamic_cast<const ModelImpl<float, float>*>(this));
   case ModelType::kFloat64ThresholdUInt32LeafOutput:
-    return func(GetImpl<double, uint32_t>());
+    return func(*dynamic_cast<const ModelImpl<double, uint32_t>*>(this));
   case ModelType::kFloat64ThresholdFloat64LeafOutput:
-    return func(GetImpl<double, double>());
+    return func(*dynamic_cast<const ModelImpl<double, double>*>(this));
   default:
     throw std::runtime_error(std::string("Unknown type detected: ")
                              + std::to_string(static_cast<int>(type_)));
-    return func(GetImpl<double, double>());  // avoid "missing return" warning
+    return func(*dynamic_cast<const ModelImpl<double, double>*>(this));
+      // avoid "missing return" warning
   }
-}
-
-inline ModelParam
-Model::GetParam() const {
-  return Dispatch([](const auto& handle) { return handle.param; });
-}
-
-inline int
-Model::GetNumFeature() const {
-  return Dispatch([](const auto& handle) { return handle.num_feature; });
-}
-
-inline int
-Model::GetNumOutputGroup() const {
-  return Dispatch([](const auto& handle) { return handle.num_output_group; });
-}
-
-inline bool
-Model::GetRandomForestFlag() const {
-  return Dispatch([](const auto& handle) { return handle.random_forest_flag; });
-}
-
-inline size_t
-Model::GetNumTree() const {
-  return Dispatch([](const auto& handle) { return handle.trees.size(); });
-}
-
-inline void
-Model::SetTreeLimit(size_t limit) {
-  Dispatch([limit](auto& handle) { handle.trees.resize(limit); });
-}
-
-inline void
-Model::ReferenceSerialize(dmlc::Stream* fo) const {
-  Dispatch([fo](const auto& handle) { handle.ReferenceSerialize(fo); });
 }
 
 inline std::vector<PyBufferFrame>
@@ -1003,11 +902,11 @@ Model::GetPyBuffer() {
   std::vector<PyBufferFrame> buffer;
   buffer.push_back(GetPyBufferFromScalar(&threshold_type_));
   buffer.push_back(GetPyBufferFromScalar(&leaf_output_type_));
-  Dispatch([&buffer](auto& handle) { return handle.GetPyBuffer(&buffer); });
+  this->GetPyBuffer(&buffer);
   return buffer;
 }
 
-inline Model
+inline std::unique_ptr<Model>
 Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   using TypeInfoInt = std::underlying_type<TypeInfo>::type;
   TypeInfo threshold_type, leaf_output_type;
@@ -1017,11 +916,102 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   InitScalarFromPyBuffer(&threshold_type, frames[0]);
   InitScalarFromPyBuffer(&leaf_output_type, frames[1]);
 
-  Model model = Model::Create(threshold_type, leaf_output_type);
-  model.Dispatch([&frames](auto& handle) {
-    handle.InitFromPyBuffer(frames.begin() + 2, frames.end());
-  });
+  std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
+  model->InitFromPyBuffer(frames.begin() + 2, frames.end());
   return model;
+}
+
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  /* Header */
+  dest->push_back(GetPyBufferFromScalar(&num_feature));
+  dest->push_back(GetPyBufferFromScalar(&num_output_group));
+  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
+  dest->push_back(GetPyBufferFromScalar(
+      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
+
+  /* Body */
+  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
+    tree.GetPyBuffer(dest);
+  }
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+  const size_t num_frame = std::distance(begin, end);
+  /* Header */
+  constexpr size_t kNumFrameInHeader = 4;
+  if (num_frame < kNumFrameInHeader) {
+    throw std::runtime_error("Wrong number of frames");
+  }
+  InitScalarFromPyBuffer(&num_feature, *begin++);
+  InitScalarFromPyBuffer(&num_output_group, *begin++);
+  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
+  InitScalarFromPyBuffer(&param, *begin++);
+  /* Body */
+  if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
+    throw std::runtime_error("Wrong number of frames");
+  }
+  trees.clear();
+  for (; begin < end; begin += kNumFramePerTree) {
+    trees.emplace_back();
+    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree);
+  }
+}
+
+
+template <typename ThresholdType, typename LeafOutputType>
+inline ModelImpl<ThresholdType, LeafOutputType>
+ModelImpl<ThresholdType, LeafOutputType>::Clone() const {
+  ModelImpl<ThresholdType, LeafOutputType> model;
+  for (const Tree<ThresholdType, LeafOutputType>& t : trees) {
+    model.trees.push_back(t.Clone());
+  }
+  model.num_feature = num_feature;
+  model.num_output_group = num_output_group;
+  model.random_forest_flag = random_forest_flag;
+  model.param = param;
+  return model;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline ModelParam
+ModelImpl<ThresholdType, LeafOutputType>::GetParam() const {
+  return param;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline int
+ModelImpl<ThresholdType, LeafOutputType>::GetNumFeature() const {
+  return num_feature;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline int
+ModelImpl<ThresholdType, LeafOutputType>::GetNumOutputGroup() const {
+  return num_output_group;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline bool
+ModelImpl<ThresholdType, LeafOutputType>::GetRandomForestFlag() const {
+  return random_forest_flag;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline size_t
+ModelImpl<ThresholdType, LeafOutputType>::GetNumTree() const {
+  return trees.size();
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::SetTreeLimit(size_t limit) {
+  trees.resize(limit);
 }
 
 inline void InitParamAndCheck(ModelParam* param,

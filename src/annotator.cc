@@ -13,14 +13,15 @@
 
 namespace {
 
+template <typename ThresholdType>
 union Entry {
   int missing;
-  float fvalue;
+  ThresholdType fvalue;
 };
 
 template <typename ThresholdType, typename LeafOutputType>
-void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const Entry* data,
-               int nid, size_t* out_counts) {
+void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
+               const Entry<ThresholdType>* data, int nid, size_t* out_counts) {
   ++out_counts[nid];
   if (!tree.IsLeaf(nid)) {
     const unsigned split_index = tree.SplitIndex(nid);
@@ -51,16 +52,16 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const 
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree, const Entry* data,
-              size_t* out_counts) {
+void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
+              const Entry<ThresholdType>* data, size_t* out_counts) {
   Traverse_(tree, data, 0, out_counts);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                              const treelite::LegacyDMatrix* dmat, size_t rbegin, size_t rend,
-                              int nthread, const size_t* count_row_ptr, size_t* counts_tloc,
-                              Entry* inst) {
+                              const treelite::CSRDMatrixImpl<ThresholdType>* dmat, size_t rbegin,
+                              size_t rend,int nthread, const size_t* count_row_ptr,
+                              size_t* counts_tloc, Entry<ThresholdType>* inst) {
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
@@ -90,12 +91,18 @@ inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutpu
 namespace treelite {
 
 template <typename ThresholdType, typename LeafOutputType>
-void
-BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                              const treelite::LegacyDMatrix* dmat, int nthread, int verbose) {
+inline void
+AnnotateImpl(
+    const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+    const treelite::CSRDMatrix* dmat, int nthread, int verbose,
+    std::vector<std::vector<size_t>>* out_counts) {
+  auto* dmat_ = dynamic_cast<const CSRDMatrixImpl<ThresholdType>*>(dmat);
+  CHECK(dmat_) << "BranchAnnotator: Dangling reference to CSRDMatrix detected";
+
   std::vector<size_t> new_counts;
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
+
   count_row_ptr = {0};
   const size_t ntree = model.trees.size();
   const int max_thread = omp_get_max_threads();
@@ -106,15 +113,15 @@ BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutpu
   new_counts.resize(count_row_ptr[ntree], 0);
   counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
 
-  std::vector<Entry> inst(nthread * dmat->num_col, {-1});
-  const size_t pstep = (dmat->num_row + 19) / 20;
+  std::vector<Entry<ThresholdType>> inst(nthread * dmat_->num_col, {-1});
+  const size_t pstep = (dmat_->num_row + 19) / 20;
   // interval to display progress
-  for (size_t rbegin = 0; rbegin < dmat->num_row; rbegin += pstep) {
-    const size_t rend = std::min(rbegin + pstep, dmat->num_row);
-    ComputeBranchLoop(model, dmat, rbegin, rend, nthread,
+  for (size_t rbegin = 0; rbegin < dmat_->num_row; rbegin += pstep) {
+    const size_t rend = std::min(rbegin + pstep, dmat_->num_row);
+    ComputeBranchLoop(model, dmat_, rbegin, rend, nthread,
                       &count_row_ptr[0], &counts_tloc[0], &inst[0]);
     if (verbose > 0) {
-      LOG(INFO) << rend << " of " << dmat->num_row << " rows processed";
+      LOG(INFO) << rend << " of " << dmat_->num_row << " rows processed";
     }
   }
 
@@ -127,15 +134,19 @@ BranchAnnotator::AnnotateImpl(const treelite::ModelImpl<ThresholdType, LeafOutpu
   }
 
   // change layout of counts
+  std::vector<std::vector<size_t>>& counts = *out_counts;
   for (size_t i = 0; i < ntree; ++i) {
-    this->counts.emplace_back(&new_counts[count_row_ptr[i]], &new_counts[count_row_ptr[i + 1]]);
+    counts.emplace_back(&new_counts[count_row_ptr[i]], &new_counts[count_row_ptr[i + 1]]);
   }
 }
 
 void
-BranchAnnotator::Annotate(const Model& model, const LegacyDMatrix* dmat, int nthread, int verbose) {
-  model.Dispatch([this, dmat, nthread, verbose](auto& handle) {
-    AnnotateImpl(handle, dmat, nthread, verbose);
+BranchAnnotator::Annotate(const Model& model, const CSRDMatrix* dmat, int nthread, int verbose) {
+  TypeInfo threshold_type = model.GetThresholdType();
+  model.Dispatch([this, dmat, nthread, verbose, threshold_type](auto& handle) {
+    CHECK(dmat->GetMatrixType() == threshold_type)
+      << "BranchAnnotator: the matrix type must match the threshold type of the model";
+    AnnotateImpl(handle, dmat, nthread, verbose, &this->counts);
   });
 }
 

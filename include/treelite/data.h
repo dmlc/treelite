@@ -15,57 +15,18 @@
 
 namespace treelite {
 
-/*! \brief a simple data matrix in CSR (Compressed Sparse Row) storage */
-struct LegacyDMatrix {
-  /*! \brief feature values */
-  std::vector<float> data;
-  /*! \brief feature indices */
-  std::vector<uint32_t> col_ind;
-  /*! \brief pointer to row headers; length of [num_row] + 1 */
-  std::vector<size_t> row_ptr;
-  /*! \brief number of rows */
-  size_t num_row;
-  /*! \brief number of columns */
-  size_t num_col;
-  /*! \brief number of nonzero entries */
-  size_t nelem;
-
-  /*!
-   * \brief clear all data fields
-   */
-  inline void Clear() {
-    data.clear();
-    row_ptr.clear();
-    col_ind.clear();
-    row_ptr.resize(1, 0);
-    num_row = num_col = nelem = 0;
-  }
-  /*!
-   * \brief construct a new DMatrix from a file
-   * \param filename name of file
-   * \param format format of file (libsvm/libfm/csv)
-   * \param nthread number of threads to use
-   * \param verbose whether to produce extra messages
-   * \return newly built DMatrix
-   */
-  static LegacyDMatrix* Create(const char* filename, const char* format,
-                               int nthread, int verbose);
-  /*!
-   * \brief construct a new DMatrix from a data parser. The data parser here
-   *        refers to any iterable object that streams input data in small
-   *        batches.
-   * \param parser pointer to data parser
-   * \param nthread number of threads to use
-   * \param verbose whether to produce extra messages
-   * \return newly built DMatrix
-   */
-  static LegacyDMatrix* Create(dmlc::Parser<uint32_t>* parser,
-                               int nthread, int verbose);
+class DMatrix {
+ public:
+  virtual size_t GetNumRow() const = 0;
+  virtual size_t GetNumCol() const = 0;
+  virtual size_t GetNumElem() const = 0;
+  DMatrix() = default;
+  virtual ~DMatrix() = default;
 };
 
-class DenseDMatrix {
+class DenseDMatrix : public DMatrix {
  private:
-  TypeInfo type_;
+  TypeInfo element_type_;
  public:
   template<typename ElementType>
   static std::unique_ptr<DenseDMatrix> Create(
@@ -75,6 +36,9 @@ class DenseDMatrix {
       const void* data, const void* missing_value, size_t num_row, size_t num_col);
   static std::unique_ptr<DenseDMatrix> Create(
       TypeInfo type, const void* data, const void* missing_value, size_t num_row, size_t num_col);
+  size_t GetNumRow() const override = 0;
+  size_t GetNumCol() const override = 0;
+  size_t GetNumElem() const override = 0;
 };
 
 template<typename ElementType>
@@ -95,15 +59,21 @@ class DenseDMatrixImpl : public DenseDMatrix {
   ~DenseDMatrixImpl() = default;
   DenseDMatrixImpl(const DenseDMatrixImpl&) = default;
   DenseDMatrixImpl(DenseDMatrixImpl&&) noexcept = default;
+  DenseDMatrixImpl& operator=(const DenseDMatrixImpl&) = default;
+  DenseDMatrixImpl& operator=(DenseDMatrixImpl&&) noexcept = default;
+
+  size_t GetNumRow() const override;
+  size_t GetNumCol() const override;
+  size_t GetNumElem() const override;
 
   friend class DenseDMatrix;
   static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
                 "ElementType must be either float32 or float64");
 };
 
-class CSRDMatrix {
+class CSRDMatrix : public DMatrix {
  private:
-  TypeInfo type_;
+  TypeInfo element_type_;
  public:
   template<typename ElementType>
   static std::unique_ptr<CSRDMatrix> Create(
@@ -112,15 +82,23 @@ class CSRDMatrix {
   template<typename ElementType>
   static std::unique_ptr<CSRDMatrix> Create(
       const void* data, const uint32_t* col_ind, const size_t* row_ptr, size_t num_row,
-      size_t num_col, size_t num_elem);
+      size_t num_col);
   static std::unique_ptr<CSRDMatrix> Create(
       TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
-      size_t num_row, size_t num_col, size_t num_elem);
+      size_t num_row, size_t num_col);
+  static std::unique_ptr<CSRDMatrix> Create(
+      const char* filename, const char* format, int nthread, int verbose);
+  TypeInfo GetMatrixType() const;
+  template <typename Func>
+  inline auto Dispatch(Func func) const;
+  size_t GetNumRow() const override = 0;
+  size_t GetNumCol() const override = 0;
+  size_t GetNumElem() const override = 0;
 };
 
 template<typename ElementType>
 class CSRDMatrixImpl : public CSRDMatrix {
- private:
+ public:
   /*! \brief feature values */
   std::vector<ElementType> data;
   /*! \brief feature indices. col_ind[i] indicates the feature index associated with data[i]. */
@@ -132,18 +110,41 @@ class CSRDMatrixImpl : public CSRDMatrix {
   /*! \brief number of columns (i.e. # of features used) */
   size_t num_col;
 
- public:
   CSRDMatrixImpl() = delete;
   CSRDMatrixImpl(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
                  std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
   ~CSRDMatrixImpl() = default;
   CSRDMatrixImpl(const CSRDMatrixImpl&) = default;
   CSRDMatrixImpl(CSRDMatrixImpl&&) noexcept = default;
+  CSRDMatrixImpl& operator=(const CSRDMatrixImpl&) = default;
+  CSRDMatrixImpl& operator=(CSRDMatrixImpl&&) noexcept = default;
+
+  size_t GetNumRow() const override;
+  size_t GetNumCol() const override;
+  size_t GetNumElem() const override;
 
   friend class CSRDMatrix;
   static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
                 "ElementType must be either float32 or float64");
 };
+
+template <typename Func>
+inline auto
+CSRDMatrix::Dispatch(Func func) const {
+  switch (element_type_) {
+  case TypeInfo::kFloat32:
+    return func(*dynamic_cast<const CSRDMatrixImpl<float>*>(this));
+    break;
+  case TypeInfo::kFloat64:
+    return func(*dynamic_cast<const CSRDMatrixImpl<double>*>(this));
+    break;
+  case TypeInfo::kUInt32:
+  case TypeInfo::kInvalid:
+  default:
+    LOG(FATAL) << "Invalid element type for the matrix: " << TypeInfoToString(element_type_);
+    return func(*dynamic_cast<const CSRDMatrixImpl<double>*>(this));  // avoid missing return error
+  }
+}
 
 }  // namespace treelite
 

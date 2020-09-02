@@ -78,19 +78,6 @@ class Predictor {
                       bool pred_margin, float* out_result);
   size_t PredictBatch(const DenseBatch* batch, int verbose,
                       bool pred_margin, float* out_result);
-  /*!
-   * \brief Make predictions on a single data row (synchronously). The work
-   *        will be scheduled to the calling thread.
-   * \param inst single data row
-   * \param pred_margin whether to produce raw margin scores instead of
-   *                    transformed probabilities
-   * \param out_result resulting output vector; use
-   *                   QueryResultSizeSingleInst() to allocate sufficient space
-   * \return length of the output vector, which is guaranteed to be less than
-   *         or equal to QueryResultSizeSingleInst()
-   */
-  size_t PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
-                     float* out_result);
 
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to

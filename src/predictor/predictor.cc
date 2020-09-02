@@ -189,26 +189,6 @@ inline size_t PredictBatch_(const BatchType* batch, bool pred_margin,
   return query_result_size;
 }
 
-inline size_t PredictInst_(TreelitePredictorEntry* inst,
-                           bool pred_margin, size_t num_output_group,
-                           treelite::Predictor::PredFuncHandle pred_func_handle,
-                           size_t expected_query_result_size, float* out_pred) {
-  CHECK(pred_func_handle != nullptr)
-    << "A shared library needs to be loaded first using Load()";
-  size_t query_result_size;  // Dimention of output vector
-  if (num_output_group > 1) {  // multi-class classification task
-    using PredFunc = size_t (*)(TreelitePredictorEntry*, int, float*);
-    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
-    query_result_size = pred_func(inst, static_cast<int>(pred_margin), out_pred);
-  } else {  // every other task
-    using PredFunc = float (*)(TreelitePredictorEntry*, int);
-    PredFunc pred_func = reinterpret_cast<PredFunc>(pred_func_handle);
-    out_pred[0] = pred_func(inst, static_cast<int>(pred_margin));
-    query_result_size = 1;
-  }
-  return query_result_size;
-}
-
 }  // anonymous namespace
 
 namespace treelite {
@@ -437,8 +417,7 @@ Predictor::PredictBatchBase_(const BatchType* batch, int verbose,
   }
   const double tend = dmlc::GetTime();
   if (verbose > 0) {
-    LOG(INFO) << "Treelite: Finished prediction in "
-              << tend - tstart << " sec";
+    LOG(INFO) << "Treelite: Finished prediction in " << tend - tstart << " sec";
   }
   return total_size;
 }
@@ -453,16 +432,6 @@ size_t
 Predictor::PredictBatch(const DenseBatch* batch, int verbose,
                         bool pred_margin, float* out_result) {
   return PredictBatchBase_(batch, verbose, pred_margin, out_result);
-}
-
-size_t
-Predictor::PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
-                       float* out_result) {
-  size_t total_size;
-  total_size = PredictInst_(inst, pred_margin, num_output_group_,
-                            pred_func_handle_,
-                            QueryResultSizeSingleInst(), out_result);
-  return total_size;
 }
 
 }  // namespace treelite

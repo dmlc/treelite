@@ -7,6 +7,7 @@
 #ifndef TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_
 #define TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_
 
+#include <string>
 #include <memory>
 #include <vector>
 #include <cstdlib>
@@ -42,7 +43,7 @@ class ThreadPool {
     }
     /* bind threads to cores */
     const char* bind_flag = getenv("TREELITE_BIND_THREADS");
-    if (bind_flag == nullptr || std::atoi(bind_flag) == 1) {
+    if (bind_flag == nullptr || std::stoi(bind_flag) == 1) {
       SetAffinity();
     }
   }

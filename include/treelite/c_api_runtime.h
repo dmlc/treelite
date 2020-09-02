@@ -123,25 +123,6 @@ TREELITE_DLL int TreelitePredictorPredictBatch(PredictorHandle handle,
                                                int pred_margin,
                                                float* out_result,
                                                size_t* out_result_size);
-
-/*!
- * \brief Make predictions on a single data row (synchronously). The work
- *        will be scheduled to the calling thread.
- * \param handle predictor
- * \param inst single data row
- * \param pred_margin whether to produce raw margin scores instead of
- *                    transformed probabilities
- * \param out_result resulting output vector; use
- *        TreelitePredictorQueryResultSizeSingleInst() to allocate sufficient space
- * \param out_result_size used to save length of the output vector, which is
- *        guaranteed to be at most TreelitePredictorQueryResultSizeSingleInst()
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreelitePredictorPredictInst(PredictorHandle handle,
-                                              union TreelitePredictorEntry* inst,
-                                              int pred_margin, float* out_result,
-                                              size_t* out_result_size);
-
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to
  *        hold predictions for all data points.

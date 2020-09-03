@@ -15,11 +15,18 @@
 
 namespace treelite {
 
+enum class DMatrixType : uint8_t {
+  kDense = 0,
+  kSparseCSR = 1
+};
+
 class DMatrix {
  public:
   virtual size_t GetNumRow() const = 0;
   virtual size_t GetNumCol() const = 0;
   virtual size_t GetNumElem() const = 0;
+  virtual DMatrixType GetType() const = 0;
+  virtual TypeInfo GetElementType() const = 0;
   DMatrix() = default;
   virtual ~DMatrix() = default;
 };
@@ -39,11 +46,13 @@ class DenseDMatrix : public DMatrix {
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;
+  DMatrixType GetType() const override = 0;
+  TypeInfo GetElementType() const override;
 };
 
 template<typename ElementType>
 class DenseDMatrixImpl : public DenseDMatrix {
- private:
+ public:
   /*! \brief feature values */
   std::vector<ElementType> data;
   /*! \brief value representing the missing value (usually NaN) */
@@ -52,7 +61,7 @@ class DenseDMatrixImpl : public DenseDMatrix {
   size_t num_row;
   /*! \brief number of columns (i.e. # of features used) */
   size_t num_col;
- public:
+
   DenseDMatrixImpl() = delete;
   DenseDMatrixImpl(std::vector<ElementType> data, ElementType missing_value, size_t num_row,
                    size_t num_col);
@@ -65,6 +74,7 @@ class DenseDMatrixImpl : public DenseDMatrix {
   size_t GetNumRow() const override;
   size_t GetNumCol() const override;
   size_t GetNumElem() const override;
+  DMatrixType GetType() const override;
 
   friend class DenseDMatrix;
   static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
@@ -88,12 +98,11 @@ class CSRDMatrix : public DMatrix {
       size_t num_row, size_t num_col);
   static std::unique_ptr<CSRDMatrix> Create(
       const char* filename, const char* format, int nthread, int verbose);
-  TypeInfo GetMatrixType() const;
-  template <typename Func>
-  inline auto Dispatch(Func func) const;
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;
+  DMatrixType GetType() const override = 0;
+  TypeInfo GetElementType() const override;
 };
 
 template<typename ElementType>
@@ -113,7 +122,6 @@ class CSRDMatrixImpl : public CSRDMatrix {
   CSRDMatrixImpl() = delete;
   CSRDMatrixImpl(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
                  std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
-  ~CSRDMatrixImpl() = default;
   CSRDMatrixImpl(const CSRDMatrixImpl&) = default;
   CSRDMatrixImpl(CSRDMatrixImpl&&) noexcept = default;
   CSRDMatrixImpl& operator=(const CSRDMatrixImpl&) = default;
@@ -122,29 +130,12 @@ class CSRDMatrixImpl : public CSRDMatrix {
   size_t GetNumRow() const override;
   size_t GetNumCol() const override;
   size_t GetNumElem() const override;
+  DMatrixType GetType() const override;
 
   friend class CSRDMatrix;
   static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
                 "ElementType must be either float32 or float64");
 };
-
-template <typename Func>
-inline auto
-CSRDMatrix::Dispatch(Func func) const {
-  switch (element_type_) {
-  case TypeInfo::kFloat32:
-    return func(*dynamic_cast<const CSRDMatrixImpl<float>*>(this));
-    break;
-  case TypeInfo::kFloat64:
-    return func(*dynamic_cast<const CSRDMatrixImpl<double>*>(this));
-    break;
-  case TypeInfo::kUInt32:
-  case TypeInfo::kInvalid:
-  default:
-    LOG(FATAL) << "Invalid element type for the matrix: " << TypeInfoToString(element_type_);
-    return func(*dynamic_cast<const CSRDMatrixImpl<double>*>(this));  // avoid missing return error
-  }
-}
 
 }  // namespace treelite
 

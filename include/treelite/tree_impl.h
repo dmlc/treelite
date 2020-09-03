@@ -814,47 +814,17 @@ Model::Create() {
   return model;
 }
 
+template <typename ThresholdType, typename LeafOutputType>
+class ModelCreateDispatcher {
+ public:
+  inline static std::unique_ptr<Model> Dispatch() {
+    return Model::Create<ThresholdType, LeafOutputType>();
+  }
+};
+
 inline std::unique_ptr<Model>
 Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
-  auto error_threshold_type = [threshold_type]() {
-    std::ostringstream oss;
-    oss << "Invalid threshold type: " << treelite::TypeInfoToString(threshold_type);
-    return oss.str();
-  };
-  auto error_leaf_output_type = [threshold_type, leaf_output_type]() {
-    std::ostringstream oss;
-    oss << "Cannot use leaf output type " << treelite::TypeInfoToString(leaf_output_type)
-        << " with threshold type " << treelite::TypeInfoToString(threshold_type);
-    return oss.str();
-  };
-  switch (threshold_type) {
-  case treelite::TypeInfo::kFloat32:
-    switch (leaf_output_type) {
-    case treelite::TypeInfo::kUInt32:
-      return treelite::Model::Create<float, uint32_t>();
-    case treelite::TypeInfo::kFloat32:
-      return treelite::Model::Create<float, float>();
-    default:
-      throw std::runtime_error(error_leaf_output_type());
-      break;
-    }
-    break;
-  case treelite::TypeInfo::kFloat64:
-    switch (leaf_output_type) {
-    case treelite::TypeInfo::kUInt32:
-      return treelite::Model::Create<double, uint32_t>();
-    case treelite::TypeInfo::kFloat64:
-      return treelite::Model::Create<double, double>();
-    default:
-      throw std::runtime_error(error_leaf_output_type());
-      break;
-    }
-    break;
-  default:
-    throw std::runtime_error(error_threshold_type());
-    break;
-  }
-  return std::unique_ptr<Model>(nullptr);  // avoid missing return value warning
+  return DispatchWithModelTypes<ModelCreateDispatcher>(threshold_type, leaf_output_type);
 }
 
 template <typename Func>

@@ -19,6 +19,7 @@
 #include "spsc_queue.h"
 
 namespace treelite {
+namespace predictor {
 
 template <typename InputToken, typename OutputToken, typename TaskContext>
 class ThreadPool {
@@ -123,6 +124,7 @@ class ThreadPool {
   }
 };
 
+}  // namespace predictor
 }  // namespace treelite
 
 #endif  // TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_

@@ -104,6 +104,11 @@ DenseDMatrix::Create(
   return std::unique_ptr<DenseDMatrix>(nullptr);
 }
 
+TypeInfo
+DenseDMatrix::GetElementType() const {
+  return element_type_;
+}
+
 template<typename ElementType>
 DenseDMatrixImpl<ElementType>::DenseDMatrixImpl(
     std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col)
@@ -126,6 +131,12 @@ template<typename ElementType>
 size_t
 DenseDMatrixImpl<ElementType>::GetNumElem() const {
   return num_row * num_col;
+}
+
+template<typename ElementType>
+DMatrixType
+DenseDMatrixImpl<ElementType>::GetType() const {
+  return DMatrixType::kDense;
 }
 
 template<typename ElementType>
@@ -179,7 +190,7 @@ CSRDMatrix::Create(const char* filename, const char* format, int nthread, int ve
 }
 
 TypeInfo
-CSRDMatrix::GetMatrixType() const {
+CSRDMatrix::GetElementType() const {
   return element_type_;
 }
 
@@ -191,22 +202,28 @@ CSRDMatrixImpl<ElementType>::CSRDMatrixImpl(
       num_row(num_col), num_col(num_col)
 {}
 
-template<typename ElementType>
+template <typename ElementType>
 size_t
 CSRDMatrixImpl<ElementType>::GetNumRow() const {
   return num_row;
 }
 
-template<typename ElementType>
+template <typename ElementType>
 size_t
 CSRDMatrixImpl<ElementType>::GetNumCol() const {
   return num_col;
 }
 
-template<typename ElementType>
+template <typename ElementType>
 size_t
 CSRDMatrixImpl<ElementType>::GetNumElem() const {
   return row_ptr.at(num_row);
+}
+
+template <typename ElementType>
+DMatrixType
+CSRDMatrixImpl<ElementType>::GetType() const {
+  return DMatrixType::kSparseCSR;
 }
 
 }  // namespace treelite

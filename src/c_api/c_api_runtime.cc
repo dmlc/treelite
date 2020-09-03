@@ -28,144 +28,73 @@ using TreeliteRuntimeAPIThreadLocalStore
 
 }  // anonymous namespace
 
-int TreeliteAssembleSparseBatch(const float* data,
-                                const uint32_t* col_ind,
-                                const size_t* row_ptr,
-                                size_t num_row, size_t num_col,
-                                CSRBatchHandle* out) {
+int TreelitePredictorLoad(const char* library_path, int num_worker_thread, PredictorHandle* out) {
   API_BEGIN();
-  CSRBatch* batch = new CSRBatch();
-  batch->data = data;
-  batch->col_ind = col_ind;
-  batch->row_ptr = row_ptr;
-  batch->num_row = num_row;
-  batch->num_col = num_col;
-  *out = static_cast<CSRBatchHandle>(batch);
-  API_END();
-}
-
-int TreeliteDeleteSparseBatch(CSRBatchHandle handle) {
-  API_BEGIN();
-  delete static_cast<CSRBatch*>(handle);
-  API_END();
-}
-
-int TreeliteAssembleDenseBatch(const float* data, float missing_value,
-                               size_t num_row, size_t num_col,
-                               DenseBatchHandle* out) {
-  API_BEGIN();
-  DenseBatch* batch = new DenseBatch();
-  batch->data = data;
-  batch->missing_value = missing_value;
-  batch->num_row = num_row;
-  batch->num_col = num_col;
-  *out = static_cast<DenseBatchHandle>(batch);
-  API_END();
-}
-
-int TreeliteDeleteDenseBatch(DenseBatchHandle handle) {
-  API_BEGIN();
-  delete static_cast<DenseBatch*>(handle);
-  API_END();
-}
-
-int TreeliteBatchGetDimension(void* handle,
-                              int batch_sparse,
-                              size_t* out_num_row,
-                              size_t* out_num_col) {
-  API_BEGIN();
-  if (batch_sparse) {
-    const CSRBatch* batch_ = static_cast<CSRBatch*>(handle);
-    *out_num_row = batch_->num_row;
-    *out_num_col = batch_->num_col;
-  } else {
-    const DenseBatch* batch_ = static_cast<DenseBatch*>(handle);
-    *out_num_row = batch_->num_row;
-    *out_num_col = batch_->num_col;
-  }
-  API_END();
-}
-
-int TreelitePredictorLoad(const char* library_path,
-                          int num_worker_thread,
-                          PredictorHandle* out) {
-  API_BEGIN();
-  Predictor* predictor = new Predictor(num_worker_thread);
+  auto predictor = std::make_unique<predictor::Predictor>(num_worker_thread);
   predictor->Load(library_path);
-  *out = static_cast<PredictorHandle>(predictor);
+  *out = static_cast<PredictorHandle>(predictor.release());
   API_END();
 }
 
-int TreelitePredictorPredictBatch(PredictorHandle handle,
-                                  void* batch,
-                                  int batch_sparse,
-                                  int verbose,
-                                  int pred_margin,
-                                  float* out_result,
-                                  size_t* out_result_size) {
+int TreelitePredictorPredictBatch(
+    PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin,
+    PredictorOutputHandle output_buffer, size_t* out_result_size) {
   API_BEGIN();
-  Predictor* predictor_ = static_cast<Predictor*>(handle);
-  const size_t num_feature = predictor_->QueryNumFeature();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  const auto* dmat = static_cast<const DMatrix*>(batch);
+  auto* out_result = static_cast<predictor::PredictorOutput*>(output_buffer);
+  const size_t num_feature = predictor->QueryNumFeature();
   const std::string err_msg
     = std::string("Too many columns (features) in the given batch. "
-                  "Number of features must not exceed ")
-      + std::to_string(num_feature);
-  if (batch_sparse) {
-    const CSRBatch* batch_ = static_cast<CSRBatch*>(batch);
-    CHECK_LE(batch_->num_col, num_feature) << err_msg;
-    *out_result_size = predictor_->PredictBatch(batch_, verbose,
-                                               (pred_margin != 0), out_result);
-  } else {
-    const DenseBatch* batch_ = static_cast<DenseBatch*>(batch);
-    CHECK_LE(batch_->num_col, num_feature) << err_msg;
-    *out_result_size = predictor_->PredictBatch(batch_, verbose,
-                                               (pred_margin != 0), out_result);
-  }
+                  "Number of features must not exceed ") + std::to_string(num_feature);
+  CHECK_LE(dmat->GetNumCol(), num_feature) << err_msg;
+  *out_result_size = predictor->PredictBatch(dmat, verbose, (pred_margin != 0), out_result);
   API_END();
 }
 
-int TreelitePredictorQueryResultSize(PredictorHandle handle,
-                                     void* batch,
-                                     int batch_sparse,
-                                     size_t* out) {
+int TreelitePredictorAllocateOutputBuffer(
+    PredictorHandle handle, DMatrixHandle batch, PredictorOutputHandle* out_output_buffer) {
   API_BEGIN();
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  if (batch_sparse) {
-    const CSRBatch* batch_ = static_cast<CSRBatch*>(batch);
-    *out = predictor_->QueryResultSize(batch_);
-  } else {
-    const DenseBatch* batch_ = static_cast<DenseBatch*>(batch);
-    *out = predictor_->QueryResultSize(batch_);
-  }
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  const auto* dmat = static_cast<const DMatrix*>(batch);
+  std::unique_ptr<predictor::PredictorOutput> output_buffer
+    = predictor->AllocateOutputBuffer(dmat);
+  *out_output_buffer = static_cast<PredictorOutputHandle>(output_buffer.release());
   API_END();
 }
 
-int TreelitePredictorQueryResultSizeSingleInst(PredictorHandle handle,
-                                               size_t* out) {
+int TreelitePredictorDeleteOutputBuffer(PredictorOutputHandle handle) {
   API_BEGIN();
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  *out = predictor_->QueryResultSizeSingleInst();
+  delete static_cast<predictor::PredictorOutput*>(handle);
+  API_END();
+}
+
+int TreelitePredictorQueryResultSize(PredictorHandle handle, DMatrixHandle batch, size_t* out) {
+  API_BEGIN();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  const auto* dmat = static_cast<const DMatrix*>(batch);
+  *out = predictor->QueryResultSize(dmat);
   API_END();
 }
 
 int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle, size_t* out) {
   API_BEGIN();
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  *out = predictor_->QueryNumOutputGroup();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  *out = predictor->QueryNumOutputGroup();
   API_END();
 }
 
 int TreelitePredictorQueryNumFeature(PredictorHandle handle, size_t* out) {
   API_BEGIN();
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  *out = predictor_->QueryNumFeature();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  *out = predictor->QueryNumFeature();
   API_END();
 }
 
 int TreelitePredictorQueryPredTransform(PredictorHandle handle, const char** out) {
   API_BEGIN()
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  auto pred_transform = predictor_->QueryPredTransform();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  auto pred_transform = predictor->QueryPredTransform();
   std::string& ret_str = TreeliteRuntimeAPIThreadLocalStore::Get()->ret_str;
   ret_str = pred_transform;
   *out = ret_str.c_str();
@@ -174,20 +103,20 @@ int TreelitePredictorQueryPredTransform(PredictorHandle handle, const char** out
 
 int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle, float* out) {
   API_BEGIN()
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  *out = predictor_->QuerySigmoidAlpha();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  *out = predictor->QuerySigmoidAlpha();
   API_END();
 }
 
 int TreelitePredictorQueryGlobalBias(PredictorHandle handle, float* out) {
   API_BEGIN()
-  const Predictor* predictor_ = static_cast<Predictor*>(handle);
-  *out = predictor_->QueryGlobalBias();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  *out = predictor->QueryGlobalBias();
   API_END();
 }
 
 int TreelitePredictorFree(PredictorHandle handle) {
   API_BEGIN();
-  delete static_cast<Predictor*>(handle);
+  delete static_cast<predictor::Predictor*>(handle);
   API_END();
 }

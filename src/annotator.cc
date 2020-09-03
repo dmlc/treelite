@@ -144,7 +144,7 @@ void
 BranchAnnotator::Annotate(const Model& model, const CSRDMatrix* dmat, int nthread, int verbose) {
   TypeInfo threshold_type = model.GetThresholdType();
   model.Dispatch([this, dmat, nthread, verbose, threshold_type](auto& handle) {
-    CHECK(dmat->GetMatrixType() == threshold_type)
+    CHECK(dmat->GetElementType() == threshold_type)
       << "BranchAnnotator: the matrix type must match the threshold type of the model";
     AnnotateImpl(handle, dmat, nthread, verbose, &this->counts);
   });

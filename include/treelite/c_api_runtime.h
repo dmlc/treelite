@@ -51,8 +51,9 @@ TREELITE_DLL int TreelitePredictorLoad(
  * \param verbose whether to produce extra messages
  * \param pred_margin whether to produce raw margin scores instead of
  *                    transformed probabilities
- * \param output_buffer resulting output vector; use
- *                      TreelitePredictorQueryResultSize() to allocate sufficient space
+ * \param out_result Resulting output vector. This pointer must point to an array of length
+ *                   TreelitePredictorQueryResultSize() and of type
+ *                   TreelitePredictorQueryLeafOutputType().
  * \param out_result_size used to save length of the output vector,
  *                        which is guaranteed to be less than or equal to
  *                        TreelitePredictorQueryResultSize()
@@ -60,23 +61,7 @@ TREELITE_DLL int TreelitePredictorLoad(
  */
 TREELITE_DLL int TreelitePredictorPredictBatch(
     PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin,
-    PredictorOutputHandle output_buffer, size_t* out_result_size);
-/*!
- * \brief Allocate a buffer space that's sufficient to hold predicton for a given data matrix.
- *        The size of the buffer is given by TreelitePredictorQueryResultSize().
- * \param handle predictor
- * \param batch the data matrix containing a batch of rows
- * \param out_output_buffer Newly allocated buffer space
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreelitePredictorAllocateOutputBuffer(
-    PredictorHandle handle, DMatrixHandle batch, PredictorOutputHandle* out_output_buffer);
-/*!
- * \brief Delete a buffer space from memory
- * \param handle the buffer space to delete
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreelitePredictorDeleteOutputBuffer(PredictorOutputHandle handle);
+    void* out_result, size_t* out_result_size);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to
  *        hold predictions for all data points.
@@ -129,6 +114,9 @@ TREELITE_DLL int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle, floa
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorQueryGlobalBias(PredictorHandle handle, float* out);
+
+TREELITE_DLL int TreelitePredictorQueryThresholdType(PredictorHandle handle, const char** out);
+TREELITE_DLL int TreelitePredictorQueryLeafOutputType(PredictorHandle handle, const char** out);
 /*!
  * \brief delete predictor from memory
  * \param handle predictor to remove

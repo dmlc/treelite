@@ -15,8 +15,9 @@ class SKLGBMRegressorMixin:
                                          "the option init='zero'")
         # Initialize Treelite model builder
         # Set random_forest=False for gradient boosted trees
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        random_forest=False)
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, random_forest=False,
+            threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder
             builder.append(cls.process_tree(sklearn_model.estimators_[i][0].tree_,
@@ -31,4 +32,4 @@ class SKLGBMRegressorMixin:
         # Need to shrink each leaf output by the learning rate
         leaf_value *= sklearn_model.learning_rate
         # Initialize the leaf node with given node ID
-        treelite_tree[node_id].set_leaf_node(leaf_value)
+        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='float64')

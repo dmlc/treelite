@@ -27,36 +27,6 @@ union Entry {
   // may contain extra fields later, such as qvalue
 };
 
-class PredictorOutput {
- public:
-  virtual size_t GetNumRow() const = 0;
-  virtual size_t GetNumOutputGroup() const = 0;
-
-  PredictorOutput() = default;
-  virtual ~PredictorOutput() = default;
-
-  static std::unique_ptr<PredictorOutput> Create(
-      TypeInfo leaf_output_type, size_t num_row, size_t num_output_group);
-};
-
-template<typename LeafOutputType>
-class PredictorOutputImpl : public PredictorOutput {
- private:
-  std::vector<LeafOutputType> preds_;
-  size_t num_row_;
-  size_t num_output_group_;
-
-  friend class PredictorOutput;
-
- public:
-  size_t GetNumRow() const override;
-  size_t GetNumOutputGroup() const override;
-  std::vector<LeafOutputType>& GetPreds();
-  const std::vector<LeafOutputType>& GetPreds() const;
-
-  PredictorOutputImpl(size_t num_row, size_t num_output_group);
-};
-
 class SharedLibrary {
  public:
   using LibraryHandle = void*;
@@ -82,9 +52,8 @@ class PredFunction {
   virtual ~PredFunction() = default;
   virtual TypeInfo GetThresholdType() const = 0;
   virtual TypeInfo GetLeafOutputType() const = 0;
-  virtual size_t PredictBatch(
-      const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-      PredictorOutput* out_pred) const = 0;
+  virtual size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+      void* out_pred) const = 0;
 };
 
 template<typename ThresholdType, typename LeafOutputType>
@@ -94,9 +63,8 @@ class PredFunctionImpl : public PredFunction {
   PredFunctionImpl(const SharedLibrary& library, int num_feature, int num_output_group);
   TypeInfo GetThresholdType() const override;
   TypeInfo GetLeafOutputType() const override;
-  size_t PredictBatch(
-      const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-      PredictorOutput* out_pred) const override;
+  size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+      void* out_pred) const override;
 
  private:
   PredFuncHandle handle_;
@@ -128,19 +96,13 @@ class Predictor {
    * \param verbose whether to produce extra messages
    * \param pred_margin whether to produce raw margin scores instead of
    *                    transformed probabilities
-   * \param out_result resulting output vector
+   * \param out_result Resulting output vector. This pointer must point to an array of length
+   *                   QueryResultSize() and of type QueryLeafOutputType().
    * \return length of the output vector, which is guaranteed to be less than
    *         or equal to QueryResultSize()
    */
   size_t PredictBatch(
-      const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutput* out_result) const;
-  /*!
-   * \brief Allocate a buffer space that's sufficient to hold predicton for a given data matrix.
-   *        The size of the buffer is given by QueryResultSize().
-   * \param dmat a batch of rows
-   * \return Newly allocated buffer space
-   */
-  std::unique_ptr<PredictorOutput> AllocateOutputBuffer(const DMatrix* dmat) const;
+      const DMatrix* dmat, int verbose, bool pred_margin, void* out_result) const;
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
    *        hold predictions for all data points.
@@ -202,6 +164,12 @@ class Predictor {
   inline float QueryGlobalBias() const {
     return global_bias_;
   }
+  inline TypeInfo QueryThresholdType() const {
+    return threshold_type_;
+  }
+  inline TypeInfo QueryLeafOutputType() const {
+    return leaf_output_type_;
+  }
 
  private:
   SharedLibrary lib_;
@@ -215,6 +183,8 @@ class Predictor {
   int num_worker_thread_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
+
+  mutable dmlc::OMPException exception_catcher_;
 };
 
 }  // namespace predictor

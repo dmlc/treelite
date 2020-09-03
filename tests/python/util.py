@@ -5,7 +5,6 @@ from sys import platform as _platform
 from contextlib import contextmanager
 
 import numpy as np
-import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from .metadata import dataset_db
@@ -56,11 +55,10 @@ def does_not_raise():
 
 def check_predictor(predictor, dataset):
     """Check whether a predictor produces correct predictions for a given dataset"""
-    dtest = treelite.DMatrix(dataset_db[dataset].dtest)
-    batch = treelite_runtime.Batch.from_csr(dtest)
-    out_margin = predictor.predict(batch, pred_margin=True)
-    out_prob = predictor.predict(batch)
-    check_predictor_output(dataset, dtest.shape, out_margin, out_prob)
+    dmat = treelite_runtime.DMatrix(dataset_db[dataset].dtest, dtype=dataset_db[dataset].dtype)
+    out_margin = predictor.predict(dmat, pred_margin=True)
+    out_prob = predictor.predict(dmat)
+    check_predictor_output(dataset, dmat.shape, out_margin, out_prob)
 
 
 def check_predictor_output(dataset, shape, out_margin, out_prob):
@@ -68,6 +66,8 @@ def check_predictor_output(dataset, shape, out_margin, out_prob):
     expected_margin = load_txt(dataset_db[dataset].expected_margin)
     if dataset_db[dataset].is_multiclass:
         expected_margin = expected_margin.reshape((shape[0], -1))
+    assert out_margin.shape == expected_margin.shape, \
+        f'out_margin.shape = {out_margin.shape}, expected_margin.shape = {expected_margin.shape}'
     np.testing.assert_almost_equal(out_margin, expected_margin, decimal=5)
 
     if dataset_db[dataset].expected_prob is not None:

@@ -127,29 +127,42 @@ Value::Create(T init_value) {
   return value;
 }
 
+template <typename ValueType>
+class CreateHandle {
+ public:
+  inline static std::shared_ptr<void> Dispatch(const void* init_value) {
+    const auto* v_ptr = static_cast<const ValueType*>(init_value);
+    CHECK(v_ptr);
+    ValueType v = *v_ptr;
+    return std::make_shared<ValueType>(v);
+  }
+};
+
 Value
 Value::Create(const void* init_value, TypeInfo type) {
   Value value;
   CHECK(type != TypeInfo::kInvalid) << "Type must be valid";
   value.type_ = type;
-  value.Dispatch([init_value](auto& value_handle) {
-    using T = std::remove_reference_t<decltype(value_handle)>;
-    T t = *static_cast<const T*>(init_value);
-    value_handle = t;
-  });
+  value.handle_ = DispatchWithTypeInfo<CreateHandle>(type, init_value);
   return value;
 }
 
 template <typename T>
 T&
 Value::Get() {
-  return *static_cast<T*>(handle_.get());
+  CHECK(handle_);
+  T* out = static_cast<T*>(handle_.get());
+  CHECK(out);
+  return *out;
 }
 
 template <typename T>
 const T&
 Value::Get() const {
-  return *static_cast<const T*>(handle_.get());
+  CHECK(handle_);
+  const T* out = static_cast<const T*>(handle_.get());
+  CHECK(out);
+  return *out;
 }
 
 TypeInfo

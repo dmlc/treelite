@@ -3,8 +3,9 @@
 
 import ctypes
 from .util import c_str, TreeliteError
-from .core import _LIB, DMatrix, _check_call
+from .core import _LIB, _check_call
 from .frontend import Model
+from treelite_runtime import DMatrix
 
 
 class Annotator():

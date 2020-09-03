@@ -12,39 +12,44 @@ namespace treelite {
 namespace compiler {
 namespace native {
 
+const char* const query_functions_definition_template =
+R"TREELITETEMPLATE(
+size_t get_num_output_group(void) {{
+  return {num_output_group};
+}}
+
+size_t get_num_feature(void) {{
+  return {num_feature};
+}}
+
+const char* get_pred_transform(void) {{
+  return "{pred_transform}";
+}}
+
+float get_sigmoid_alpha(void) {{
+  return {sigmoid_alpha};
+}}
+
+float get_global_bias(void) {{
+  return {global_bias};
+}}
+
+const char* get_threshold_type(void) {{
+  return "{threshold_type_str}";
+}}
+
+const char* get_leaf_output_type(void) {{
+  return "{leaf_output_type_str}";
+}}
+)TREELITETEMPLATE";
+
 const char* const main_start_template =
 R"TREELITETEMPLATE(
 #include "header.h"
 
 {array_is_categorical};
 
-{get_num_output_group_function_signature} {{
-  return {num_output_group};
-}}
-
-{get_num_feature_function_signature} {{
-  return {num_feature};
-}}
-
-{get_pred_transform_function_signature} {{
-  return "{pred_transform}";
-}}
-
-{get_sigmoid_alpha_function_signature} {{
-  return {sigmoid_alpha};
-}}
-
-{get_global_bias_function_signature} {{
-  return {global_bias};
-}}
-
-{get_threshold_type_signature} {{
-  return "{threshold_type_str}";
-}}
-
-{get_leaf_output_type_signature} {{
-  return "{leaf_output_type_str}";
-}}
+{query_functions_definition}
 
 {pred_transform_function}
 {predict_function_signature} {{

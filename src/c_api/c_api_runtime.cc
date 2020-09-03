@@ -37,35 +37,17 @@ int TreelitePredictorLoad(const char* library_path, int num_worker_thread, Predi
 }
 
 int TreelitePredictorPredictBatch(
-    PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin,
-    PredictorOutputHandle output_buffer, size_t* out_result_size) {
+    PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin, void* out_result,
+    size_t* out_result_size) {
   API_BEGIN();
   const auto* predictor = static_cast<const predictor::Predictor*>(handle);
   const auto* dmat = static_cast<const DMatrix*>(batch);
-  auto* out_result = static_cast<predictor::PredictorOutput*>(output_buffer);
   const size_t num_feature = predictor->QueryNumFeature();
   const std::string err_msg
     = std::string("Too many columns (features) in the given batch. "
                   "Number of features must not exceed ") + std::to_string(num_feature);
   CHECK_LE(dmat->GetNumCol(), num_feature) << err_msg;
   *out_result_size = predictor->PredictBatch(dmat, verbose, (pred_margin != 0), out_result);
-  API_END();
-}
-
-int TreelitePredictorAllocateOutputBuffer(
-    PredictorHandle handle, DMatrixHandle batch, PredictorOutputHandle* out_output_buffer) {
-  API_BEGIN();
-  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
-  const auto* dmat = static_cast<const DMatrix*>(batch);
-  std::unique_ptr<predictor::PredictorOutput> output_buffer
-    = predictor->AllocateOutputBuffer(dmat);
-  *out_output_buffer = static_cast<PredictorOutputHandle>(output_buffer.release());
-  API_END();
-}
-
-int TreelitePredictorDeleteOutputBuffer(PredictorOutputHandle handle) {
-  API_BEGIN();
-  delete static_cast<predictor::PredictorOutput*>(handle);
   API_END();
 }
 
@@ -112,6 +94,24 @@ int TreelitePredictorQueryGlobalBias(PredictorHandle handle, float* out) {
   API_BEGIN()
   const auto* predictor = static_cast<const predictor::Predictor*>(handle);
   *out = predictor->QueryGlobalBias();
+  API_END();
+}
+
+int TreelitePredictorQueryThresholdType(PredictorHandle handle, const char** out) {
+  API_BEGIN()
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  std::string& ret_str = TreeliteRuntimeAPIThreadLocalStore::Get()->ret_str;
+  ret_str = TypeInfoToString(predictor->QueryThresholdType());
+  *out = ret_str.c_str();
+  API_END();
+}
+
+int TreelitePredictorQueryLeafOutputType(PredictorHandle handle, const char** out) {
+  API_BEGIN()
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  std::string& ret_str = TreeliteRuntimeAPIThreadLocalStore::Get()->ret_str;
+  ret_str = TypeInfoToString(predictor->QueryLeafOutputType());
+  *out = ret_str.c_str();
   API_END();
 }
 

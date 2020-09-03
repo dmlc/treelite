@@ -97,7 +97,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
 
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     if use_annotation:
-        dtrain = treelite.DMatrix(dataset_db['mushroom'].dtrain)
+        dtrain = treelite_runtime.DMatrix(dataset_db['mushroom'].dtrain, dtype='float32')
         annotator = treelite.Annotator()
         annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
         annotator.save(path=annotation_path)
@@ -119,8 +119,8 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
 def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn multi-class classifier"""
-    if clazz == RandomForestClassifier:
-        pytest.xfail(reason='Need to use float64 thresholds to obtain correct result')
+    #if clazz == RandomForestClassifier:
+    #    pytest.xfail(reason='Need to use float64 thresholds to obtain correct result')
 
     X, y = load_iris(return_X_y=True)
     kwargs = {}
@@ -136,7 +136,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     assert (model.num_tree ==
             clf.n_estimators * (clf.n_classes_ if clazz == GradientBoostingClassifier else 1))
 
-    dtrain = treelite.DMatrix(X)
+    dtrain = treelite_runtime.DMatrix(X, dtype='float64')
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     annotator = treelite.Annotator()
     annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
@@ -152,8 +152,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
             ('softmax' if clazz == GradientBoostingClassifier else 'identity_multiclass'))
     assert predictor.global_bias == 0.0
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X)
-    out_prob = predictor.predict(batch)
+    out_prob = predictor.predict(dtrain)
     np.testing.assert_almost_equal(out_prob, expected_prob)
 
 
@@ -176,7 +175,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     assert model.num_output_group == 1
     assert model.num_tree == clf.n_estimators
 
-    dtrain = treelite.DMatrix(X)
+    dtrain = treelite_runtime.DMatrix(X, dtype='float64')
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     annotator = treelite.Annotator()
     annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
@@ -192,8 +191,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
             == ('sigmoid' if clazz == GradientBoostingClassifier else 'identity'))
     assert predictor.global_bias == 0.0
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X)
-    out_prob = predictor.predict(batch)
+    out_prob = predictor.predict(dtrain)
     np.testing.assert_almost_equal(out_prob, expected_prob)
 
 
@@ -215,7 +213,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     assert model.num_output_group == 1
     assert model.num_tree == clf.n_estimators
 
-    dtrain = treelite.DMatrix(X)
+    dtrain = treelite_runtime.DMatrix(X, dtype='float64')
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     annotator = treelite.Annotator()
     annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
@@ -230,8 +228,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.0
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X)
-    out_pred = predictor.predict(batch)
+    out_pred = predictor.predict(dtrain)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -275,8 +272,9 @@ def test_node_insert_delete(tmpdir, toolchain):
     for f0 in [-0.5, 0.5, 1.5, np.nan]:
         for f1 in [0, 1, 2, 3, 4, np.nan]:
             for f2 in [-1.0, -0.5, 1.0, np.nan]:
-                x = np.array([f0, f1, f2])
-                pred = predictor.predict_instance(x)
+                x = np.array([[f0, f1, f2]])
+                dmat = treelite_runtime.DMatrix(x, dtype='float32')
+                pred = predictor.predict(dmat)
                 if f1 in [1, 2, 4] or np.isnan(f1):
                     expected_pred = 2.0
                 elif f0 <= 0.5 and not np.isnan(f0):

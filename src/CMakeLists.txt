@@ -109,7 +109,6 @@ target_sources(objtreelite_runtime
     predictor/thread_pool/thread_pool.h
     predictor/predictor.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_runtime.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/entry.h
     ${PROJECT_SOURCE_DIR}/include/treelite/predictor.h
 )
 

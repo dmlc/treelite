@@ -19,10 +19,10 @@ class SKLGBMMultiClassifierMixin:
         # Set random_forest=False for gradient boosted trees
         # Set num_output_group for multi-class classification
         # Set pred_transform='softmax' to obtain probability predictions
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        num_output_group=sklearn_model.n_classes_,
-                                        random_forest=False,
-                                        pred_transform='softmax')
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, num_output_group=sklearn_model.n_classes_,
+            random_forest=False, pred_transform='softmax',
+            threshold_type='float64', leaf_output_type='float64')
         # Process [number of iterations] * [number of classes] trees
         for i in range(sklearn_model.n_estimators):
             for k in range(sklearn_model.n_classes_):
@@ -38,4 +38,4 @@ class SKLGBMMultiClassifierMixin:
         # Need to shrink each leaf output by the learning rate
         leaf_value *= sklearn_model.learning_rate
         # Initialize the leaf node with given node ID
-        treelite_tree[node_id].set_leaf_node(leaf_value)
+        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='float64')

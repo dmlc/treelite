@@ -13,14 +13,19 @@
 
 namespace {
 
-std::unique_ptr<treelite::CSRDMatrix>
-CreateFromParser(dmlc::Parser<uint32_t, float>* parser, int nthread, int verbose) {
+template <typename ElementType, typename DMLCParserDType>
+inline static std::unique_ptr<treelite::CSRDMatrix> CreateFromParserImpl(
+    const char* filename, const char* format, int nthread, int verbose) {
+  std::unique_ptr<dmlc::Parser<uint32_t, DMLCParserDType>> parser(
+      dmlc::Parser<uint32_t, DMLCParserDType>::Create(filename, 0, 1, format));
+
   const int max_thread = omp_get_max_threads();
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
 
-  std::vector<float> data;
+  std::vector<ElementType> data;
   std::vector<uint32_t> col_ind;
   std::vector<size_t> row_ptr;
+  row_ptr.resize(1, 0);
   size_t num_row = 0;
   size_t num_col = 0;
   size_t num_elem = 0;
@@ -28,7 +33,7 @@ CreateFromParser(dmlc::Parser<uint32_t, float>* parser, int nthread, int verbose
   std::vector<size_t> max_col_ind(nthread, 0);
   parser->BeforeFirst();
   while (parser->Next()) {
-    const dmlc::RowBlock<uint32_t, float>& batch = parser->Value();
+    const dmlc::RowBlock<uint32_t, DMLCParserDType>& batch = parser->Value();
     num_row += batch.size;
     num_elem += batch.offset[batch.size];
     const size_t top = data.size();
@@ -41,7 +46,9 @@ CreateFromParser(dmlc::Parser<uint32_t, float>* parser, int nthread, int verbose
          i < static_cast<int64_t>(batch.offset[batch.size]); ++i) {
       const int tid = omp_get_thread_num();
       const uint32_t index = batch.index[i];
-      const float fvalue = (batch.value == nullptr) ? 1.0f : static_cast<float>(batch.value[i]);
+      const ElementType fvalue
+        = ((batch.value == nullptr) ? static_cast<ElementType>(1)
+                                    : static_cast<ElementType>(batch.value[i]));
       const size_t offset = top + i - batch.offset[0];
       data[offset] = fvalue;
       col_ind[offset] = index;
@@ -61,6 +68,23 @@ CreateFromParser(dmlc::Parser<uint32_t, float>* parser, int nthread, int verbose
   num_col = *std::max_element(max_col_ind.begin(), max_col_ind.end()) + 1;
   return treelite::CSRDMatrix::Create(std::move(data), std::move(col_ind), std::move(row_ptr),
                                       num_row, num_col);
+}
+
+std::unique_ptr<treelite::CSRDMatrix>
+CreateFromParser(
+    const char* filename, const char* format, treelite::TypeInfo dtype, int nthread, int verbose) {
+  switch (dtype) {
+  case treelite::TypeInfo::kFloat32:
+    return CreateFromParserImpl<float, float>(filename, format, nthread, verbose);
+  case treelite::TypeInfo::kFloat64:
+    return CreateFromParserImpl<double, float>(filename, format, nthread, verbose);
+  case treelite::TypeInfo::kUInt32:
+    return CreateFromParserImpl<uint32_t, int64_t>(filename, format, nthread, verbose);
+  default:
+    LOG(FATAL) << "Unrecognized TypeInfo: " << treelite::TypeInfoToString(dtype);
+  }
+  return CreateFromParserImpl<float, float>(filename, format, nthread, verbose);
+    // avoid missing value warning
 }
 
 }  // anonymous namespace
@@ -183,10 +207,10 @@ CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, con
 }
 
 std::unique_ptr<CSRDMatrix>
-CSRDMatrix::Create(const char* filename, const char* format, int nthread, int verbose) {
-  std::unique_ptr<dmlc::Parser<uint32_t>> parser(
-      dmlc::Parser<uint32_t>::Create(filename, 0, 1, format));
-  return CreateFromParser(parser.get(), nthread, verbose);
+CSRDMatrix::Create(
+    const char* filename, const char* format, const char* data_type, int nthread, int verbose) {
+  TypeInfo dtype = (data_type ? typeinfo_table.at(data_type) : TypeInfo::kFloat32);
+  return CreateFromParser(filename, format, dtype, nthread, verbose);
 }
 
 TypeInfo
@@ -199,7 +223,7 @@ CSRDMatrixImpl<ElementType>::CSRDMatrixImpl(
     std::vector<ElementType> data, std::vector<uint32_t> col_ind, std::vector<size_t> row_ptr,
     size_t num_row, size_t num_col)
     : CSRDMatrix(), data(std::move(data)), col_ind(std::move(col_ind)), row_ptr(std::move(row_ptr)),
-      num_row(num_col), num_col(num_col)
+      num_row(num_row), num_col(num_col)
 {}
 
 template <typename ElementType>

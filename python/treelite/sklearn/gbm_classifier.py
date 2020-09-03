@@ -17,9 +17,9 @@ class SKLGBMClassifierMixin:
         # Initialize Treelite model builder
         # Set random_forest=False for gradient boosted trees
         # Set pred_transform='sigmoid' to obtain probability predictions
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        random_forest=False,
-                                        pred_transform='sigmoid')
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, random_forest=False, pred_transform='sigmoid',
+            threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder
             builder.append(cls.process_tree(sklearn_model.estimators_[i][0].tree_,
@@ -34,4 +34,4 @@ class SKLGBMClassifierMixin:
         # Need to shrink each leaf output by the learning rate
         leaf_value *= sklearn_model.learning_rate
         # Initialize the leaf node with given node ID
-        treelite_tree[node_id].set_leaf_node(leaf_value)
+        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='float64')

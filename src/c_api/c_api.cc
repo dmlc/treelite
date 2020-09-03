@@ -41,9 +41,7 @@ int TreeliteAnnotateBranch(
   const Model* model_ = static_cast<Model*>(model);
   const auto* dmat_ = static_cast<const DMatrix*>(dmat);
   CHECK(dmat_) << "Found a dangling reference to DMatrix";
-  const auto* csr_dmat_ = dynamic_cast<const CSRDMatrix*>(dmat_);
-  CHECK(csr_dmat_) << "Annotator supports a sparse DMatrix for now";
-  annotator->Annotate(*model_, csr_dmat_, nthread, verbose);
+  annotator->Annotate(*model_, dmat_, nthread, verbose);
   *out = static_cast<AnnotationHandle>(annotator.release());
   API_END();
 }

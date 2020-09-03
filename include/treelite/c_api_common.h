@@ -60,7 +60,8 @@ TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDMatrixCreateFromFile(
-    const char* path, const char* format, int nthread, int verbose, DMatrixHandle* out);
+    const char* path, const char* format, const char* data_type, int nthread, int verbose,
+    DMatrixHandle* out);
 /*!
  * \brief create DMatrix from a (in-memory) CSR matrix
  * \param data feature values

@@ -97,7 +97,7 @@ class CSRDMatrix : public DMatrix {
       TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
       size_t num_row, size_t num_col);
   static std::unique_ptr<CSRDMatrix> Create(
-      const char* filename, const char* format, int nthread, int verbose);
+      const char* filename, const char* format, const char* data_type, int nthread, int verbose);
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;
@@ -133,8 +133,6 @@ class CSRDMatrixImpl : public CSRDMatrix {
   DMatrixType GetType() const override;
 
   friend class CSRDMatrix;
-  static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
-                "ElementType must be either float32 or float64");
 };
 
 }  // namespace treelite

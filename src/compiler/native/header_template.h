@@ -12,6 +12,17 @@ namespace treelite {
 namespace compiler {
 namespace native {
 
+const char* const query_functions_prototype_template =
+R"TREELITETEMPLATE(
+{dllexport}size_t get_num_output_group(void);
+{dllexport}size_t get_num_feature(void);
+{dllexport}const char* get_pred_transform(void);
+{dllexport}float get_sigmoid_alpha(void);
+{dllexport}float get_global_bias(void);
+{dllexport}const char* get_threshold_type(void);
+{dllexport}const char* get_leaf_output_type(void);
+)TREELITETEMPLATE";
+
 const char* const header_template =
 R"TREELITETEMPLATE(
 #include <stdlib.h>
@@ -43,14 +54,8 @@ struct Node {{
 
 extern const unsigned char is_categorical[];
 
-{dllexport}{get_num_output_group_function_signature};
-{dllexport}{get_num_feature_function_signature};
-{dllexport}{get_pred_transform_function_signature};
-{dllexport}{get_sigmoid_alpha_function_signature};
-{dllexport}{get_global_bias_function_signature};
+{query_functions_prototype}
 {dllexport}{predict_function_signature};
-{dllexport}{get_threshold_type_signature};
-{dllexport}{get_leaf_output_type_signature};
 )TREELITETEMPLATE";
 
 }  // namespace native

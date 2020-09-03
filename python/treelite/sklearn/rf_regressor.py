@@ -11,8 +11,9 @@ class SKLRFRegressorMixin:
         """Process a RandomForestRegressor to convert it into a Treelite model"""
         # Initialize Treelite model builder
         # Set random_forest=True for random forests
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        random_forest=True)
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, random_forest=True,
+            threshold_type='float64', leaf_output_type='float64')
 
         # Iterate over individual trees
         for i in range(sklearn_model.n_estimators):
@@ -30,4 +31,4 @@ class SKLRFRegressorMixin:
         # The `value` attribute stores the output for every leaf node.
         leaf_value = sklearn_tree.value[node_id].squeeze()
         # Initialize the leaf node with given node ID
-        treelite_tree[node_id].set_leaf_node(leaf_value)
+        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='float64')

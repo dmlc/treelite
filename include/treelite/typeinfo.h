@@ -70,8 +70,39 @@ inline TypeInfo InferTypeInfoOf() {
 }
 
 /*!
+ * \brief Given a TypeInfo, dispatch a function with the corresponding template arg. More precisely,
+ *        we shall call Dispatcher<T>::Dispatch() where the template arg T corresponds to the
+ *        `type` parameter.
+ * \tparam Dispatcher Function object that takes in one template arg.
+ *         It must have a Dispatch() static function.
+ * \tparam Parameter pack, to forward an arbitrary number of args to Dispatcher::Dispatch()
+ * \param type TypeInfo corresponding to the template arg T with which
+ *             Dispatcher<T>::Dispatch() is called.
+ * \param args Other extra parameters to pass to Dispatcher::Dispatch()
+ * \return Whatever that's returned by the dispatcher
+ */
+template <template<class> class Dispatcher, typename ...Args>
+inline auto DispatchWithTypeInfo(TypeInfo type, Args&& ...args) {
+  switch (type) {
+  case TypeInfo::kUInt32:
+    return Dispatcher<uint32_t>::Dispatch(std::forward<Args>(args)...);
+  case TypeInfo::kFloat32:
+    return Dispatcher<float>::Dispatch(std::forward<Args>(args)...);
+  case TypeInfo::kFloat64:
+    return Dispatcher<double>::Dispatch(std::forward<Args>(args)...);
+  case TypeInfo::kInvalid:
+  default:
+    throw std::runtime_error(std::string("Invalid type: ") + TypeInfoToString(type));
+  }
+  return Dispatcher<double>::Dispatch(std::forward<Args>(args)...);  // avoid missing return error
+}
+
+/*!
  * \brief Given the types for thresholds and leaf outputs, validate that they consist of a valid
- *        combination for a model and then dispatch a function with the corresponding template args
+ *        combination for a model and then dispatch a function with the corresponding template args.
+ *        More precisely, we shall call Dispatcher<ThresholdType, LeafOutputType>::Dispatch() where
+ *        the template args ThresholdType and LeafOutputType correspond to the parameters
+ *        `threshold_type` and `leaf_output_type`, respectively.
  * \tparam Dispatcher Function object that takes in two template args.
  *         It must have a Dispatch() static function.
  * \tparam Parameter pack, to forward an arbitrary number of args to Dispatcher::Dispatch()

@@ -192,24 +192,12 @@ class ASTNativeCompiler : public Compiler {
       = native::TypeInfoToCTypeString(InferTypeInfoOf<ThresholdType>());
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(InferTypeInfoOf<LeafOutputType>());
-    const char* get_num_output_group_function_signature
-      = "size_t get_num_output_group(void)";
-    const char* get_num_feature_function_signature
-      = "size_t get_num_feature(void)";
-    const char* get_pred_transform_function_signature
-      = "const char* get_pred_transform(void)";
-    const char* get_sigmoid_alpha_function_signature
-      = "float get_sigmoid_alpha(void)";
-    const char* get_global_bias_function_signature
-      = "float get_global_bias(void)";
     const std::string predict_function_signature
       = (num_output_group_ > 1) ?
           fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
                       leaf_output_type)
         : fmt::format("{} predict(union Entry* data, int pred_margin)",
                       leaf_output_type);
-    const char* get_threshold_type_signature = "const char* get_threshold_type(void)";
-    const char* get_leaf_output_type_signature = "const char* get_leaf_output_type(void)";
 
     if (!array_is_categorical_.empty()) {
       array_is_categorical_
@@ -217,47 +205,31 @@ class ASTNativeCompiler : public Compiler {
                       array_is_categorical_);
     }
 
+    const std::string query_functions_definition
+      = fmt::format(native::query_functions_definition_template,
+          "num_output_group"_a = num_output_group_,
+          "num_feature"_a = num_feature_,
+          "pred_transform"_a = pred_transform_,
+          "sigmoid_alpha"_a = sigmoid_alpha_,
+          "global_bias"_a = global_bias_,
+          "threshold_type_str"_a = TypeInfoToString(InferTypeInfoOf<ThresholdType>()),
+          "leaf_output_type_str"_a = TypeInfoToString(InferTypeInfoOf<LeafOutputType>()));
+
     AppendToBuffer(dest,
       fmt::format(native::main_start_template,
         "array_is_categorical"_a = array_is_categorical_,
-        "get_num_output_group_function_signature"_a
-          = get_num_output_group_function_signature,
-        "get_num_feature_function_signature"_a
-          = get_num_feature_function_signature,
-        "get_pred_transform_function_signature"_a
-          = get_pred_transform_function_signature,
-        "get_sigmoid_alpha_function_signature"_a
-          = get_sigmoid_alpha_function_signature,
-        "get_global_bias_function_signature"_a
-          = get_global_bias_function_signature,
+        "query_functions_definition"_a = query_functions_definition,
         "pred_transform_function"_a = pred_tranform_func_,
-        "predict_function_signature"_a = predict_function_signature,
-        "get_threshold_type_signature"_a = get_threshold_type_signature,
-        "threshold_type_str"_a = TypeInfoToString(InferTypeInfoOf<ThresholdType>()),
-        "get_leaf_output_type_signature"_a = get_leaf_output_type_signature,
-        "leaf_output_type_str"_a = TypeInfoToString(InferTypeInfoOf<LeafOutputType>()),
-        "num_output_group"_a = num_output_group_,
-        "num_feature"_a = num_feature_,
-        "pred_transform"_a = pred_transform_,
-        "sigmoid_alpha"_a = sigmoid_alpha_,
-        "global_bias"_a = global_bias_),
+        "predict_function_signature"_a = predict_function_signature),
       indent);
+    const std::string query_functions_prototype
+      = fmt::format(native::query_functions_prototype_template,
+          "dllexport"_a = DLLEXPORT_KEYWORD);
     AppendToBuffer("header.h",
       fmt::format(native::header_template,
         "dllexport"_a = DLLEXPORT_KEYWORD,
-        "get_num_output_group_function_signature"_a
-          = get_num_output_group_function_signature,
-        "get_num_feature_function_signature"_a
-          = get_num_feature_function_signature,
-        "get_pred_transform_function_signature"_a
-          = get_pred_transform_function_signature,
-        "get_sigmoid_alpha_function_signature"_a
-          = get_sigmoid_alpha_function_signature,
-        "get_global_bias_function_signature"_a
-          = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
-        "get_threshold_type_signature"_a = get_threshold_type_signature,
-        "get_leaf_output_type_signature"_a = get_leaf_output_type_signature,
+        "query_functions_prototype"_a = query_functions_prototype,
         "threshold_type"_a = threshold_type,
         "threshold_type_Node"_a = (param.quantize > 0 ? std::string("int") : threshold_type)),
       indent);

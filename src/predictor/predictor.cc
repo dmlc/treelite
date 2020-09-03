@@ -34,8 +34,7 @@ struct InputToken {
   bool pred_margin;  // whether to store raw margin or transformed scores
   const treelite::predictor::PredFunction* pred_func_;
   size_t rbegin, rend; // range of instances (rows) assigned to each worker
-  treelite::predictor::PredictorOutput* out_pred;
-    // buffer to store output from each worker
+  void* out_pred;  // buffer to store output from each worker
 };
 
 struct OutputToken {
@@ -126,51 +125,6 @@ inline size_t PredLoop(const treelite::DMatrix* dmat, int num_feature,
 
 namespace treelite {
 namespace predictor {
-
-std::unique_ptr<PredictorOutput>
-PredictorOutput::Create(TypeInfo leaf_output_type, size_t num_row, size_t num_output_group) {
-  switch (leaf_output_type) {
-  case TypeInfo::kFloat32:
-    return std::make_unique<PredictorOutputImpl<float>>(num_row, num_output_group);
-  case TypeInfo::kFloat64:
-    return std::make_unique<PredictorOutputImpl<double>>(num_row, num_output_group);
-  case TypeInfo::kUInt32:
-    return std::make_unique<PredictorOutputImpl<uint32_t>>(num_row, num_output_group);
-  case TypeInfo::kInvalid:
-  default:
-    LOG(FATAL) << "Invalid leaf_output_type: " << TypeInfoToString(leaf_output_type);
-    return std::unique_ptr<PredictorOutput>(nullptr);
-  }
-}
-
-template <typename LeafOutputType>
-PredictorOutputImpl<LeafOutputType>::PredictorOutputImpl(size_t num_row, size_t num_output_group)
-  : preds_(num_row * num_output_group, static_cast<LeafOutputType>(0)),
-    num_row_(num_row), num_output_group_(num_output_group) {}
-
-template <typename LeafOutputType>
-size_t
-PredictorOutputImpl<LeafOutputType>::GetNumRow() const {
-  return num_row_;
-}
-
-template <typename LeafOutputType>
-size_t
-PredictorOutputImpl<LeafOutputType>::GetNumOutputGroup() const {
-  return num_output_group_;
-}
-
-template <typename LeafOutputType>
-std::vector<LeafOutputType>&
-PredictorOutputImpl<LeafOutputType>::GetPreds() {
-  return preds_;
-}
-
-template <typename LeafOutputType>
-const std::vector<LeafOutputType>&
-PredictorOutputImpl<LeafOutputType>::GetPreds() const {
-  return preds_;
-}
 
 SharedLibrary::SharedLibrary() : handle_(nullptr), libpath_() {}
 
@@ -263,8 +217,7 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::GetLeafOutputType() const {
 template <typename ThresholdType, typename LeafOutputType>
 size_t
 PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
-    const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-    PredictorOutput* out_pred) const {
+    const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin, void* out_pred) const {
   /* Pass the correct prediction function to PredLoop.
      We also need to specify how the function should be called. */
   size_t result_size;
@@ -277,8 +230,6 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
     << ", Given: " << TypeInfoToString(dmat->GetElementType());
   CHECK(rbegin < rend && rend <= dmat->GetNumRow());
   size_t num_row = rend - rbegin;
-  auto* out_pred_ = dynamic_cast<PredictorOutputImpl<LeafOutputType>*>(out_pred);
-  CHECK(out_pred_);
   if (num_output_group_ > 1) {  // multi-class classification
     using PredFunc = size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
@@ -291,7 +242,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
         };
     result_size =
         PredLoop<ThresholdType, LeafOutputType, decltype(pred_func_wrapper)>(
-            dmat, num_feature_, rbegin, rend, out_pred_->GetPreds().data(), pred_func_wrapper);
+            dmat, num_feature_, rbegin, rend, static_cast<LeafOutputType*>(out_pred),
+            pred_func_wrapper);
   } else {  // everything else
     using PredFunc = LeafOutputType (*)(Entry<ThresholdType>*, int);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
@@ -304,7 +256,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
         };
     result_size =
         PredLoop<ThresholdType, LeafOutputType, decltype(pred_func_wrapper)>(
-            dmat, num_feature_, rbegin, rend, out_pred_->GetPreds().data(), pred_func_wrapper);
+            dmat, num_feature_, rbegin, rend, static_cast<LeafOutputType*>(out_pred),
+            pred_func_wrapper);
   }
   return result_size;
 }
@@ -380,15 +333,17 @@ Predictor::Load(const char* libpath) {
                          [](SpscQueue<InputToken>* incoming_queue,
                             SpscQueue<OutputToken>* outgoing_queue,
                             const Predictor* predictor) {
-      InputToken input;
-      while (incoming_queue->Pop(&input)) {
-        const size_t rbegin = input.rbegin;
-        const size_t rend = input.rend;
-        size_t query_result_size
-         = predictor->pred_func_->PredictBatch(
-             input.dmat, rbegin, rend, input.pred_margin, input.out_pred);
-        outgoing_queue->Push(OutputToken{query_result_size});
-      }
+      predictor->exception_catcher_.Run([&]() {
+        InputToken input;
+        while (incoming_queue->Pop(&input)) {
+          const size_t rbegin = input.rbegin;
+          const size_t rend = input.rend;
+          size_t query_result_size
+              = predictor->pred_func_->PredictBatch(
+                  input.dmat, rbegin, rend, input.pred_margin, input.out_pred);
+          outgoing_queue->Push(OutputToken{query_result_size});
+        }
+      });
     }));
 }
 
@@ -416,9 +371,16 @@ std::vector<size_t> SplitBatch(const DMatrix* dmat, size_t split_factor) {
   return row_ptr;
 }
 
+template <typename LeafOutputType>
+class ShrinkResultToFit {
+ public:
+  inline static void Dispatch(
+      size_t num_row, size_t query_size_per_instance, size_t num_output_group, void* out_result);
+};
+
 size_t
 Predictor::PredictBatch(
-    const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutput* out_result) const {
+    const DMatrix* dmat, int verbose, bool pred_margin, void* out_result) const {
   const double tstart = dmlc::GetTime();
 
   const size_t num_row = dmat->GetNumRow();
@@ -454,12 +416,8 @@ Predictor::PredictBatch(
     const size_t query_size_per_instance = total_size / num_row;
     CHECK_GT(query_size_per_instance, 0);
     CHECK_LT(query_size_per_instance, num_output_group_);
-    for (size_t rid = 0; rid < num_row; ++rid) {
-      for (size_t k = 0; k < query_size_per_instance; ++k) {
-        out_result[rid * query_size_per_instance + k]
-            = out_result[rid * num_output_group_ + k];
-      }
-    }
+    DispatchWithTypeInfo<ShrinkResultToFit>(
+        leaf_output_type_, num_row, query_size_per_instance, num_output_group_, out_result);
   }
   const double tend = dmlc::GetTime();
   if (verbose > 0) {
@@ -468,9 +426,16 @@ Predictor::PredictBatch(
   return total_size;
 }
 
-std::unique_ptr<PredictorOutput>
-Predictor::AllocateOutputBuffer(const DMatrix* dmat) const {
-  return PredictorOutput::Create(leaf_output_type_, dmat->GetNumRow(), num_output_group_);
+template <typename LeafOutputType>
+void
+ShrinkResultToFit<LeafOutputType>::Dispatch(
+    size_t num_row, size_t query_size_per_instance, size_t num_output_group, void* out_result) {
+  auto* out_result_ = static_cast<LeafOutputType*>(out_result);
+  for (size_t rid = 0; rid < num_row; ++rid) {
+    for (size_t k = 0; k < query_size_per_instance; ++k) {
+      out_result_[rid * query_size_per_instance + k] = out_result_[rid * num_output_group + k];
+    }
+  }
 }
 
 }  // namespace predictor

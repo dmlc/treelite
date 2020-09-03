@@ -7,6 +7,8 @@ import shutil
 import os
 from tempfile import TemporaryDirectory
 
+import numpy as np
+
 from .util import c_str, TreeliteError
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
@@ -22,7 +24,7 @@ def _isascii(string):
         return False
 
 
-class Model():
+class Model:
     """
     Decision tree ensemble model
 
@@ -371,7 +373,7 @@ class Model():
         return Model(handle)
 
 
-class ModelBuilder():
+class ModelBuilder:
     """
     Builder class for tree ensemble model: provides tools to iteratively build
     an ensemble of decision trees
@@ -392,7 +394,44 @@ class ModelBuilder():
         parameters.
     """
 
-    class Node():
+    class Value:
+        """
+        Value whose type may be specified at runtime
+
+        Parameters
+        ----------
+        type : str
+            Initial value of model handle
+        """
+        CTYPES_PTR = {
+            'uint32': ctypes.c_uint32,
+            'float32': ctypes.c_float,
+            'float64': ctypes.c_double
+        }
+        NUMPY_TYPE = {
+            'uint32': np.uint32,
+            'float32': np.float32,
+            'float64': np.float64
+        }
+
+        def __init__(self, init_value, type):
+            self.type = type
+            self.handle = ctypes.c_void_p()
+            val = np.array([init_value], dtype=self.NUMPY_TYPE[type], order='C')
+            _check_call(_LIB.TreeliteTreeBuilderCreateValue(
+                val.ctypes.data_as(ctypes.POINTER(self.CTYPES_PTR[type])),
+                c_str(type),
+                ctypes.byref(self.handle)
+            ))
+
+        def __repr__(self):
+            return '<treelite.ModelBuilder.Value object>'
+
+        def __del__(self):
+            if self.handle is not None:
+                _check_call(_LIB.TreeliteTreeBuilderDeleteValue(self.handle))
+
+    class Node:
         """Handle to a node in a tree"""
 
         def __init__(self):
@@ -413,7 +452,7 @@ class ModelBuilder():
                 raise TreeliteError('This node has never been inserted into a tree; ' +
                                     'a node must be inserted before it can be a root') from e
 
-        def set_leaf_node(self, leaf_value):
+        def set_leaf_node(self, leaf_value, leaf_value_type='float32'):
             """
             Set the node as a leaf node
 
@@ -424,6 +463,8 @@ class ModelBuilder():
                          :py:class:`float <python:float>`
                 Usually a single leaf value (weight) of the leaf node. For multiclass
                 random forest classifier, leaf_value should be a list of leaf weights.
+            leaf_value_type : str
+                Data type used for leaf_value (e.g. 'float32')
             """
 
             if not self.empty:
@@ -446,9 +487,11 @@ class ModelBuilder():
 
             try:
                 if is_list:
-                    leaf_value = [float(i) for i in leaf_value]
+                    leaf_value = [ModelBuilder.Value(i, leaf_value_type) for i in leaf_value]
+                    leaf_value_handle = c_array(ctypes.c_void_p, [x.handle for x in leaf_value])
                 else:
-                    leaf_value = float(leaf_value)
+                    leaf_value = ModelBuilder.Value(leaf_value, leaf_value_type)
+                    leaf_value_handle = leaf_value.handle
             except TypeError as e:
                 raise TreeliteError('leaf_value parameter should be either a ' +
                                     'single float or a list of floats') from e
@@ -458,13 +501,13 @@ class ModelBuilder():
                     _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
                         self.tree.handle,
                         ctypes.c_int(self.node_key),
-                        c_array(ctypes.c_float, leaf_value),
+                        leaf_value_handle,
                         ctypes.c_size_t(len(leaf_value))))
                 else:
                     _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
                         self.tree.handle,
                         ctypes.c_int(self.node_key),
-                        ctypes.c_float(leaf_value)))
+                        leaf_value_handle))
                 self.empty = False
             except AttributeError as e:
                 raise TreeliteError('This node has never been inserted into a tree; ' +
@@ -472,7 +515,8 @@ class ModelBuilder():
 
         # pylint: disable=R0913
         def set_numerical_test_node(self, feature_id, opname, threshold,
-                                    default_left, left_child_key, right_child_key):
+                                    default_left, left_child_key, right_child_key,
+                                    threshold_type='float32'):
             """
             Set the node as a test node with numerical split. The test is in the form
             ``[feature value] OP [threshold]``. Depending on the result of the test,
@@ -493,6 +537,8 @@ class ModelBuilder():
                 unique integer key to identify the left child node
             right_child_key : :py:class:`int <python:int>`
                 unique integer key to identify the right child node
+            threshold_type : str
+                data type for threshold value (e.g. 'float32')
             """
             if not self.empty:
                 try:
@@ -505,6 +551,7 @@ class ModelBuilder():
                     'delete it first and then add an empty node with ' + \
                     'the same key.')
             try:
+                threshold_obj = ModelBuilder.Value(threshold, threshold_type)
                 # automatically create child nodes that don't exist yet
                 if left_child_key not in self.tree:
                     self.tree[left_child_key] = ModelBuilder.Node()
@@ -513,8 +560,9 @@ class ModelBuilder():
                 _check_call(_LIB.TreeliteTreeBuilderSetNumericalTestNode(
                     self.tree.handle,
                     ctypes.c_int(self.node_key),
-                    ctypes.c_uint(feature_id), c_str(opname),
-                    ctypes.c_float(threshold),
+                    ctypes.c_uint(feature_id),
+                    c_str(opname),
+                    threshold_obj.handle,
                     ctypes.c_int(1 if default_left else 0),
                     ctypes.c_int(left_child_key),
                     ctypes.c_int(right_child_key)))
@@ -578,12 +626,16 @@ class ModelBuilder():
                 raise TreeliteError('This node has never been inserted into a tree; ' +
                                     'a node must be inserted before it can be a test node') from e
 
-    class Tree():
+    class Tree:
         """Handle to a decision tree in a tree ensemble Builder"""
 
-        def __init__(self):
+        def __init__(self, threshold_type='float32', leaf_output_type='float32'):
             self.handle = ctypes.c_void_p()
-            _check_call(_LIB.TreeliteCreateTreeBuilder(ctypes.byref(self.handle)))
+            _check_call(_LIB.TreeliteCreateTreeBuilder(
+                c_str(threshold_type),
+                c_str(leaf_output_type),
+                ctypes.byref(self.handle)
+            ))
             self.nodes = {}
 
         def __del__(self):
@@ -640,8 +692,8 @@ class ModelBuilder():
             return '<treelite.ModelBuilder.Tree object containing {} nodes>\n' \
                 .format(len(self.nodes))
 
-    def __init__(self, num_feature, num_output_group=1,
-                 random_forest=False, **kwargs):
+    def __init__(self, num_feature, num_output_group=1, random_forest=False,
+                 threshold_type='float32', leaf_output_type='float32', **kwargs):
         if not isinstance(num_feature, int):
             raise ValueError('num_feature must be of int type')
         if num_feature <= 0:
@@ -655,6 +707,8 @@ class ModelBuilder():
             ctypes.c_int(num_feature),
             ctypes.c_int(num_output_group),
             ctypes.c_int(1 if random_forest else 0),
+            c_str(threshold_type),
+            c_str(leaf_output_type),
             ctypes.byref(self.handle)))
         self._set_param(kwargs)
         self.trees = []

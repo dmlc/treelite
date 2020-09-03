@@ -49,8 +49,8 @@ def test_xgb_boston(tmpdir, toolchain):  # pylint: disable=too-many-locals
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.5
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X_test)
-    out_pred = predictor.predict(batch)
+    dmat = treelite_runtime.DMatrix(X_test, dtype='float32')
+    out_pred = predictor.predict(dmat)
     expected_pred = bst.predict(dtest)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -86,8 +86,8 @@ def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
     assert predictor.pred_transform == 'max_index'
     assert predictor.global_bias == 0.5
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X_test)
-    out_pred = predictor.predict(batch)
+    dmat = treelite_runtime.DMatrix(X_test, dtype='float32')
+    out_pred = predictor.predict(dmat)
     expected_pred = bst.predict(dtest)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -126,7 +126,7 @@ def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchai
     assert predictor.pred_transform == expected_pred_transform[objective]
     np.testing.assert_almost_equal(predictor.global_bias, global_bias, decimal=5)
     assert predictor.sigmoid_alpha == 1.0
-    batch = treelite_runtime.Batch.from_npy2d(X)
-    out_pred = predictor.predict(batch)
+    dmat = treelite_runtime.DMatrix(X, dtype='float32')
+    out_pred = predictor.predict(dmat)
     expected_pred = bst.predict(dtrain)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

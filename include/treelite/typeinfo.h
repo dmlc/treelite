@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <sstream>
+#include <utility>
 #include <type_traits>
 
 namespace treelite {

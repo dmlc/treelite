@@ -11,6 +11,7 @@
 #include <treelite/typeinfo.h>
 #include <treelite/data.h>
 #include <string>
+#include <memory>
 #include <cstdint>
 
 namespace treelite {

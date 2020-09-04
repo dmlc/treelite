@@ -1,12 +1,16 @@
-//
-// Created by Philip Hyunsu Cho on 8/31/20.
-//
+/*!
+ * Copyright (c) 2020 by Contributors
+ * \file typeinfo_ctypes.h
+ * \author Hyunsu Cho
+ * \brief Look up C symbols corresponding to TypeInfo
+ */
+
 
 #ifndef TREELITE_COMPILER_NATIVE_TYPEINFO_CTYPES_H_
 #define TREELITE_COMPILER_NATIVE_TYPEINFO_CTYPES_H_
 
-#include <string>
 #include <treelite/base.h>
+#include <string>
 
 namespace treelite {
 namespace compiler {

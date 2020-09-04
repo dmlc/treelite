@@ -5,9 +5,6 @@ from __future__ import absolute_import as _abs
 import sys
 import ctypes
 
-import numpy as np
-import scipy.sparse
-
 from .util import py_str, _log_callback, TreeliteError
 from .libpath import find_lib_path, TreeliteLibraryNotFound
 

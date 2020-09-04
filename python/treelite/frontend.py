@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from .util import c_str, TreeliteError
+from .util import c_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
 
@@ -400,27 +400,16 @@ class ModelBuilder:
 
         Parameters
         ----------
-        type : str
+        dtype : str
             Initial value of model handle
         """
-        CTYPES_PTR = {
-            'uint32': ctypes.c_uint32,
-            'float32': ctypes.c_float,
-            'float64': ctypes.c_double
-        }
-        NUMPY_TYPE = {
-            'uint32': np.uint32,
-            'float32': np.float32,
-            'float64': np.float64
-        }
-
-        def __init__(self, init_value, type):
-            self.type = type
+        def __init__(self, init_value, dtype):
+            self.type = dtype
             self.handle = ctypes.c_void_p()
-            val = np.array([init_value], dtype=self.NUMPY_TYPE[type], order='C')
+            val = np.array([init_value], dtype=type_info_to_numpy_type(dtype), order='C')
             _check_call(_LIB.TreeliteTreeBuilderCreateValue(
-                val.ctypes.data_as(ctypes.POINTER(self.CTYPES_PTR[type])),
-                c_str(type),
+                val.ctypes.data_as(ctypes.POINTER(type_info_to_ctypes_type(dtype))),
+                c_str(dtype),
                 ctypes.byref(self.handle)
             ))
 
@@ -692,6 +681,7 @@ class ModelBuilder:
             return '<treelite.ModelBuilder.Tree object containing {} nodes>\n' \
                 .format(len(self.nodes))
 
+    # pylint: disable=R0913
     def __init__(self, num_feature, num_output_group=1, random_forest=False,
                  threshold_type='float32', leaf_output_type='float32', **kwargs):
         if not isinstance(num_feature, int):

@@ -7,9 +7,9 @@
 
 // Do not include other Treelite headers here, to minimize cross-header dependencies
 
+#include <treelite/typeinfo.h>
 #include <string>
 #include <unordered_map>
-#include <treelite/typeinfo.h>
 
 namespace treelite {
 

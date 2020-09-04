@@ -33,7 +33,7 @@ struct InputToken {
   const treelite::DMatrix* dmat;  // input data
   bool pred_margin;  // whether to store raw margin or transformed scores
   const treelite::predictor::PredFunction* pred_func_;
-  size_t rbegin, rend; // range of instances (rows) assigned to each worker
+  size_t rbegin, rend;  // range of instances (rows) assigned to each worker
   void* out_pred;  // buffer to store output from each worker
 };
 
@@ -146,7 +146,6 @@ inline size_t PredLoop(const treelite::DMatrix* dmat, ThresholdType test_val, in
     LOG(FATAL) << "Unrecognized data matrix type: " << static_cast<int>(dmat_type);
     return 0;
   }
-
 }
 
 }  // anonymous namespace
@@ -260,7 +259,7 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
     CHECK(pred_func) << "The predict_multiclass() function has incorrect signature.";
     auto pred_func_wrapper
-      = [pred_func, num_output_group=num_output_group_, pred_margin]
+      = [pred_func, num_output_group = num_output_group_, pred_margin]
             (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
           return pred_func(inst, static_cast<int>(pred_margin),
                            &out_pred[rid * num_output_group]);

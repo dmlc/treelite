@@ -7,7 +7,6 @@ import subprocess
 from zipfile import ZipFile
 
 import pytest
-import numpy as np
 from scipy.sparse import csr_matrix
 import treelite
 import treelite_runtime

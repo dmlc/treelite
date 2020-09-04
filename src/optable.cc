@@ -5,9 +5,9 @@
  * \brief Conversion tables to obtain Operator from string
  */
 
+#include <treelite/base.h>
 #include <string>
 #include <unordered_map>
-#include <treelite/base.h>
 
 namespace treelite {
 

@@ -554,6 +554,8 @@ class ASTNativeCompiler : public Compiler {
   template <typename ThresholdType>
   inline std::string
   ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node) {
+    const std::string threshold_type
+        = native::TypeInfoToCTypeString(InferTypeInfoOf<ThresholdType>());
     std::string result;
     if (node->quantized) {  // quantized threshold
       result = fmt::format("data[{split_index}].qvalue {opname} {threshold}",
@@ -566,10 +568,12 @@ class ASTNativeCompiler : public Compiler {
       result = (CompareWithOp(static_cast<ThresholdType>(0), node->op, node->threshold.float_val)
           ? "1" : "0");
     } else {  // finite threshold
-      result = fmt::format("data[{split_index}].fvalue {opname} (float){threshold}",
-                 "split_index"_a = node->split_index,
-                 "opname"_a = OpName(node->op),
-                 "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));
+      result
+        = fmt::format("data[{split_index}].fvalue {opname} ({threshold_type}){threshold}",
+            "split_index"_a = node->split_index,
+            "opname"_a = OpName(node->op),
+            "threshold_type"_a = threshold_type,
+            "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));
     }
     return result;
   }

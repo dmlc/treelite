@@ -218,6 +218,16 @@ class Predictor:
         """Query sigmoid alpha of the model"""
         return self.sigmoid_alpha_
 
+    @property
+    def threshold_type(self):
+        """Query threshold type of the model"""
+        return self.threshold_type_
+
+    @property
+    def leaf_output_type(self):
+        """Query threshold type of the model"""
+        return self.leaf_output_type_
+
 class DMatrix:
     """Data matrix used in Treelite.
 

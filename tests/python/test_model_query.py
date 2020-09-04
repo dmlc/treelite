@@ -12,13 +12,15 @@ from .metadata import dataset_db
 from .util import os_platform, os_compatible_toolchains
 
 ModelFact = collections.namedtuple(
-    'ModelFact', 'num_tree num_feature num_output_group pred_transform global_bias sigmoid_alpha')
+    'ModelFact',
+    'num_tree num_feature num_output_group pred_transform global_bias sigmoid_alpha '
+    'threshold_type leaf_output_type')
 _model_facts = {
-    'mushroom': ModelFact(2, 127, 1, 'sigmoid', 0.0, 1.0),
-    'dermatology': ModelFact(60, 33, 6, 'softmax', 0.5, 1.0),
-    'letor': ModelFact(713, 47, 1, 'identity', 0.5, 1.0),
-    'toy_categorical': ModelFact(30, 2, 1, 'identity', 0.0, 1.0),
-    'sparse_categorical': ModelFact(1, 5057, 1, 'sigmoid', 0.0, 1.0)
+    'mushroom': ModelFact(2, 127, 1, 'sigmoid', 0.0, 1.0, 'float32', 'float32'),
+    'dermatology': ModelFact(60, 33, 6, 'softmax', 0.5, 1.0, 'float32', 'float32'),
+    'letor': ModelFact(713, 47, 1, 'identity', 0.5, 1.0, 'float32', 'float32'),
+    'toy_categorical': ModelFact(30, 2, 1, 'identity', 0.0, 1.0, 'float64', 'float64'),
+    'sparse_categorical': ModelFact(1, 5057, 1, 'sigmoid', 0.0, 1.0, 'float64', 'float64')
 }
 
 
@@ -46,3 +48,5 @@ def test_model_query(tmpdir, dataset):
     assert predictor.pred_transform == _model_facts[dataset].pred_transform
     assert predictor.global_bias == _model_facts[dataset].global_bias
     assert predictor.sigmoid_alpha == _model_facts[dataset].sigmoid_alpha
+    assert predictor.threshold_type == _model_facts[dataset].threshold_type
+    assert predictor.leaf_output_type == _model_facts[dataset].leaf_output_type

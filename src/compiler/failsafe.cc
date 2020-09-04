@@ -260,7 +260,8 @@ class FailSafeCompiler : public Compiler {
   }
 
   CompiledModel Compile(const Model& model) override {
-    CHECK(model.GetModelType() == ModelType::kFloat32ThresholdFloat32LeafOutput)
+    CHECK(model.GetThresholdType() == TypeInfo::kFloat32
+          && model.GetLeafOutputType() == TypeInfo::kFloat32)
       << "Failsafe compiler only supports models with float32 thresholds and float32 leaf outputs";
     const auto& model_handle = dynamic_cast<const ModelImpl<float, float>&>(model);
 

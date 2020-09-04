@@ -754,11 +754,6 @@ Tree<ThresholdType, LeafOutputType>::SetGain(int nid, double gain) {
   node.gain_present_ = true;
 }
 
-inline ModelType
-Model::GetModelType() const {
-  return type_;
-}
-
 inline TypeInfo
 Model::GetThresholdType() const {
   return threshold_type_;
@@ -770,52 +765,16 @@ Model::GetLeafOutputType() const {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline ModelType
-Model::InferModelTypeOf() {
-  const std::string error_msg
-    = std::string("Unsupported combination of ThresholdType (")
-        + TypeInfoToString(InferTypeInfoOf<ThresholdType>()) + ") and LeafOutputType ("
-        + TypeInfoToString(InferTypeInfoOf<LeafOutputType>()) + ")";
-  static_assert(std::is_same<ThresholdType, float>::value
-                || std::is_same<ThresholdType, double>::value,
-                "ThresholdType should be either float32 or float64");
-  static_assert(std::is_same<LeafOutputType, uint32_t>::value
-                || std::is_same<LeafOutputType, float>::value
-                || std::is_same<LeafOutputType, double>::value,
-                "LeafOutputType should be uint32, float32 or float64");
-  if (std::is_same<ThresholdType, float>::value) {
-    if (std::is_same<LeafOutputType, uint32_t>::value) {
-      return ModelType::kFloat32ThresholdUInt32LeafOutput;
-    } else if (std::is_same<LeafOutputType, float>::value) {
-      return ModelType::kFloat32ThresholdFloat32LeafOutput;
-    } else {
-      throw std::runtime_error(error_msg);
-    }
-  } else if (std::is_same<ThresholdType, double>::value) {
-    if (std::is_same<LeafOutputType, uint32_t>::value) {
-      return ModelType::kFloat64ThresholdUInt32LeafOutput;
-    } else if (std::is_same<LeafOutputType, double>::value) {
-      return ModelType::kFloat64ThresholdFloat64LeafOutput;
-    } else {
-      throw std::runtime_error(error_msg);
-    }
-  }
-  throw std::runtime_error(error_msg);
-  return ModelType::kInvalid;
-}
-
-template <typename ThresholdType, typename LeafOutputType>
 inline std::unique_ptr<Model>
 Model::Create() {
   std::unique_ptr<Model> model = std::make_unique<ModelImpl<ThresholdType, LeafOutputType>>();
-  model->type_ = InferModelTypeOf<ThresholdType, LeafOutputType>();
   model->threshold_type_ = InferTypeInfoOf<ThresholdType>();
   model->leaf_output_type_ = InferTypeInfoOf<LeafOutputType>();
   return model;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-class ModelCreateDispatcher {
+class ModelCreateImpl {
  public:
   inline static std::unique_ptr<Model> Dispatch() {
     return Model::Create<ThresholdType, LeafOutputType>();
@@ -824,47 +783,33 @@ class ModelCreateDispatcher {
 
 inline std::unique_ptr<Model>
 Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
-  return DispatchWithModelTypes<ModelCreateDispatcher>(threshold_type, leaf_output_type);
+  return DispatchWithModelTypes<ModelCreateImpl>(threshold_type, leaf_output_type);
 }
+
+template <typename ThresholdType, typename LeafOutputType>
+class ModelDispatchImpl {
+ public:
+  template <typename Func>
+  inline static auto Dispatch(Model* model, Func func) {
+    return func(*dynamic_cast<ModelImpl<ThresholdType, LeafOutputType>*>(model));
+  }
+
+  template <typename Func>
+  inline static auto Dispatch(const Model* model, Func func) {
+    return func(*dynamic_cast<const ModelImpl<ThresholdType, LeafOutputType>*>(model));
+  }
+};
 
 template <typename Func>
 inline auto
 Model::Dispatch(Func func) {
-  switch (type_) {
-  case ModelType::kFloat32ThresholdUInt32LeafOutput:
-    return func(*dynamic_cast<ModelImpl<float, uint32_t>*>(this));
-  case ModelType::kFloat32ThresholdFloat32LeafOutput:
-    return func(*dynamic_cast<ModelImpl<float, float>*>(this));
-  case ModelType::kFloat64ThresholdUInt32LeafOutput:
-    return func(*dynamic_cast<ModelImpl<double, uint32_t>*>(this));
-  case ModelType::kFloat64ThresholdFloat64LeafOutput:
-    return func(*dynamic_cast<ModelImpl<double, double>*>(this));
-  default:
-    throw std::runtime_error(std::string("Unknown type detected: ")
-                             + std::to_string(static_cast<int>(type_)));
-    return func(*dynamic_cast<ModelImpl<double, double>*>(this));
-    // avoid "missing return" warning
-  }
+  return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
 }
 
 template <typename Func>
 inline auto
 Model::Dispatch(Func func) const {
-  switch (type_) {
-  case ModelType::kFloat32ThresholdUInt32LeafOutput:
-    return func(*dynamic_cast<const ModelImpl<float, uint32_t>*>(this));
-  case ModelType::kFloat32ThresholdFloat32LeafOutput:
-    return func(*dynamic_cast<const ModelImpl<float, float>*>(this));
-  case ModelType::kFloat64ThresholdUInt32LeafOutput:
-    return func(*dynamic_cast<const ModelImpl<double, uint32_t>*>(this));
-  case ModelType::kFloat64ThresholdFloat64LeafOutput:
-    return func(*dynamic_cast<const ModelImpl<double, double>*>(this));
-  default:
-    throw std::runtime_error(std::string("Unknown type detected: ")
-                             + std::to_string(static_cast<int>(type_)));
-    return func(*dynamic_cast<const ModelImpl<double, double>*>(this));
-      // avoid "missing return" warning
-  }
+  return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
 }
 
 inline std::vector<PyBufferFrame>

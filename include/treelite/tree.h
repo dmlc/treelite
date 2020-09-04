@@ -419,18 +419,8 @@ static_assert(std::is_standard_layout<ModelParam>::value,
 inline void InitParamAndCheck(ModelParam* param,
                               const std::vector<std::pair<std::string, std::string>>& cfg);
 
-enum class ModelType : uint16_t {
-  // Threshold type,
-  kInvalid = 0,
-  kFloat32ThresholdUInt32LeafOutput = 1,
-  kFloat32ThresholdFloat32LeafOutput = 2,
-  kFloat64ThresholdUInt32LeafOutput = 3,
-  kFloat64ThresholdFloat64LeafOutput = 4
-};
-
 class Model {
  private:
-  ModelType type_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
@@ -441,11 +431,8 @@ class Model {
   Model() = default;
   virtual ~Model() = default;
   template <typename ThresholdType, typename LeafOutputType>
-  inline static ModelType InferModelTypeOf();
-  template <typename ThresholdType, typename LeafOutputType>
   inline static std::unique_ptr<Model> Create();
   inline static std::unique_ptr<Model> Create(TypeInfo threshold_type, TypeInfo leaf_output_type);
-  inline ModelType GetModelType() const;
   inline TypeInfo GetThresholdType() const;
   inline TypeInfo GetLeafOutputType() const;
   template <typename Func>

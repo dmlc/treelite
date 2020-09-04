@@ -7,6 +7,11 @@ target_link_libraries(treelite_cpp_test
     PRIVATE objtreelite objtreelite_runtime objtreelite_common GTest::GTest)
 set_output_directory(treelite_cpp_test ${PROJECT_BINARY_DIR})
 
+if(MSVC)
+  target_compile_options(treelite_cpp_test PRIVATE
+                         /utf-8 -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+endif()
+
 if(TEST_COVERAGE)
   if(MSVC)
     message(FATAL_ERROR "Test coverage not available on Windows")

@@ -22,7 +22,7 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildAST(
 
   this->main_node = AddNode<MainNode>(nullptr, model.param.global_bias,
                                                model.random_forest_flag,
-                                               model.trees.size(),
+                                               static_cast<int>(model.trees.size()),
                                                model.num_feature);
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);

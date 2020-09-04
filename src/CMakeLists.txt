@@ -60,7 +60,6 @@ target_sources(objtreelite
     compiler/ast/ast.h
     compiler/ast/build.cc
     compiler/ast/builder.h
-    compiler/ast/builder.cc
     compiler/ast/dump.cc
     compiler/ast/fold_code.cc
     compiler/ast/is_categorical_array.cc

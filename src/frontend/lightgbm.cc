@@ -350,8 +350,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
       CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";
       tree.cat_threshold
-        = TextToArray<uint32_t>(it->second,
-                                                  tree.cat_boundaries.back());
+        = TextToArray<uint32_t>(it->second, static_cast<uint32_t>(tree.cat_boundaries.back()));
     }
 
     it = dict.find("split_feature");

@@ -473,7 +473,7 @@ Tree<ThresholdType, LeafOutputType>::Init() {
   left_categories_offset_.Resize(2, 0);
   nodes_.Resize(1);
   nodes_[0].Init();
-  SetLeaf(0, 0.0f);
+  SetLeaf(0, static_cast<LeafOutputType>(0));
 }
 
 template <typename ThresholdType, typename LeafOutputType>

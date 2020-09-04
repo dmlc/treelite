@@ -17,7 +17,6 @@ template <typename ThresholdType>
 static void
 scan_thresholds(ASTNode* node, std::vector<std::set<ThresholdType>>* cut_pts) {
   NumericalConditionNode<ThresholdType>* num_cond;
-  CategoricalConditionNode* cat_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode<ThresholdType>*>(node)) ) {
     CHECK(!num_cond->quantized) << "should not be already quantized";
     const ThresholdType threshold = num_cond->threshold.float_val;

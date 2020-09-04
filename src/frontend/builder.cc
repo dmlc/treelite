@@ -465,9 +465,12 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
         CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
         CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
-        node->threshold.Dispatch([&tree, nid, node](const auto& threshold) {
-          tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
-        });
+        CHECK(node->threshold.GetValueType() == InferTypeInfoOf<ThresholdType>())
+          << "CommitModel: The specified threshold has incorrect type. Expected: "
+          << TypeInfoToString(InferTypeInfoOf<ThresholdType>())
+          << " Given: " << TypeInfoToString(node->threshold.GetValueType());
+        ThresholdType threshold = node->threshold.Get<ThresholdType>();
+        tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
         Q.push({node->left_child, tree.LeftChild(nid)});
         Q.push({node->right_child, tree.RightChild(nid)});
       } else if (node->status == NodeDraft::Status::kCategoricalTest) {
@@ -497,9 +500,12 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
             << "CommitModel: Inconsistent use of leaf vector: if one leaf node does not use a leaf "
             << "vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          node->leaf_value.Dispatch([&tree, nid](const auto& leaf_value) {
-            tree.SetLeaf(nid, leaf_value);
-          });
+          CHECK(node->leaf_value.GetValueType() == InferTypeInfoOf<LeafOutputType>())
+            << "CommitModel: The specified leaf value has incorrect type. Expected: "
+            << TypeInfoToString(InferTypeInfoOf<LeafOutputType>())
+            << " Given: " << TypeInfoToString(node->leaf_value.GetValueType());
+          LeafOutputType leaf_value = node->leaf_value.Get<LeafOutputType>();
+          tree.SetLeaf(nid, leaf_value);
         }
       }
     }

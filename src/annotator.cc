@@ -68,7 +68,7 @@ inline void ComputeBranchLoopImpl(
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const size_t num_col = dmat->num_col;
-  const ThresholdType missing_value = dmat->missing_value;
+  const ElementType missing_value = dmat->missing_value;
   const bool nan_missing = treelite::math::CheckNAN(missing_value);
   const auto rbegin_i = static_cast<int64_t>(rbegin);
   const auto rend_i = static_cast<int64_t>(rend);

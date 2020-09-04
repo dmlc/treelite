@@ -60,7 +60,7 @@ inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int nu
     const size_t ibegin = row_ptr[rid];
     const size_t iend = row_ptr[rid + 1];
     for (size_t i = ibegin; i < iend; ++i) {
-      inst[col_ind[i]].fvalue = data[i];
+      inst[col_ind[i]].fvalue = static_cast<ThresholdType>(data[i]);
     }
     total_output_size += func(rid, &inst[0], out_pred);
     for (size_t i = ibegin; i < iend; ++i) {
@@ -90,7 +90,7 @@ inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int 
         CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any NaN in the matrix.";
       } else if (nan_missing || row[j] != missing_value) {
-        inst[j].fvalue = row[j];
+        inst[j].fvalue = static_cast<ThresholdType>(row[j]);
       }
     }
     total_output_size += func(rid, &inst[0], out_pred);

@@ -105,7 +105,8 @@ def test_srcpkg_cmake(tmpdir, dataset):  # pylint: disable=R0914
     build_dir = os.path.join(tmpdir, dataset_db[dataset].libname, 'build')
     os.mkdir(build_dir)
     nproc = os.cpu_count()
-    subprocess.check_call(['cmake', '..'], cwd=build_dir)
+    win_opts = ['-A', 'x64'] if os_platform() == 'windows' else []
+    subprocess.check_call(['cmake', '..'] + win_opts, cwd=build_dir)
     subprocess.check_call(['cmake', '--build', '.', '--config', 'Release',
                            '--parallel', str(nproc)], cwd=build_dir)
 

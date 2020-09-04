@@ -117,7 +117,7 @@ target_sources(objtreelite_common
     c_api/c_api_common.cc
     c_api/c_api_error.cc
     c_api/c_api_error.h
-    data/data.cc
+    data.cc
     logging.cc
     typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h

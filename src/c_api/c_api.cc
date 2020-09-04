@@ -13,6 +13,7 @@
 #include <treelite/data.h>
 #include <treelite/filesystem.h>
 #include <treelite/frontend.h>
+#include <treelite/tree.h>
 #include <treelite/math.h>
 #include <dmlc/thread_local.h>
 #include <memory>

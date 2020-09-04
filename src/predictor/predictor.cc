@@ -168,7 +168,7 @@ SharedLibrary::~SharedLibrary() {
 void
 SharedLibrary::Load(const char* libpath) {
 #ifdef _WIN32
-  HMODULE handle = LoadLibraryA(name);
+  HMODULE handle = LoadLibraryA(libpath);
 #else
   void* handle = dlopen(libpath, RTLD_LAZY | RTLD_LOCAL);
 #endif

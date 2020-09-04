@@ -250,4 +250,9 @@ CSRDMatrixImpl<ElementType>::GetType() const {
   return DMatrixType::kSparseCSR;
 }
 
+template class DenseDMatrixImpl<float>;
+template class DenseDMatrixImpl<double>;
+template class CSRDMatrixImpl<float>;
+template class CSRDMatrixImpl<double>;
+
 }  // namespace treelite

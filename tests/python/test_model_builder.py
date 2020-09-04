@@ -210,7 +210,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     assert model.num_output_group == 1
     assert model.num_tree == clf.n_estimators
 
-    dtrain = treelite_runtime.DMatrix(X, dtype='float64')
+    dtrain = treelite_runtime.DMatrix(X, dtype='float32')
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     annotator = treelite.Annotator()
     annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)

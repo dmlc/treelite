@@ -14,15 +14,15 @@
 
 namespace {
 
-template <typename ThresholdType>
+template <typename ElementType>
 union Entry {
   int missing;
-  ThresholdType fvalue;
+  ElementType fvalue;
 };
 
-template <typename ThresholdType, typename LeafOutputType>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-               const Entry<ThresholdType>* data, int nid, size_t* out_counts) {
+               const Entry<ElementType>* data, int nid, size_t* out_counts) {
   ++out_counts[nid];
   if (!tree.IsLeaf(nid)) {
     const unsigned split_index = tree.SplitIndex(nid);
@@ -34,7 +34,7 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
       if (tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical) {
         const ThresholdType threshold = tree.Threshold(nid);
         const treelite::Operator op = tree.ComparisonOp(nid);
-        const auto fvalue = static_cast<ThresholdType>(data[split_index].fvalue);
+        const auto fvalue = static_cast<ElementType>(data[split_index].fvalue);
         result = treelite::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
@@ -52,17 +52,18 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
   }
 }
 
-template <typename ThresholdType, typename LeafOutputType>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-              const Entry<ThresholdType>* data, size_t* out_counts) {
+              const Entry<ElementType>* data, size_t* out_counts) {
   Traverse_(tree, data, 0, out_counts);
 }
 
-template <typename ThresholdType, typename LeafOutputType>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-    const treelite::DenseDMatrixImpl<ThresholdType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, size_t* counts_tloc, Entry<ThresholdType>* inst) {
+    const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
+    const size_t* count_row_ptr, size_t* counts_tloc) {
+  std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
@@ -74,7 +75,7 @@ inline void ComputeBranchLoopImpl(
   #pragma omp parallel for schedule(static) num_threads(nthread)
   for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
     const int tid = omp_get_thread_num();
-    const ThresholdType* row = &dmat->data[rid * num_col];
+    const ElementType* row = &dmat->data[rid * num_col];
     const size_t off = dmat->num_col * tid;
     const size_t off2 = count_row_ptr[ntree] * tid;
     for (size_t j = 0; j < num_col; ++j) {
@@ -94,11 +95,12 @@ inline void ComputeBranchLoopImpl(
   }
 }
 
-template <typename ThresholdType, typename LeafOutputType>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-    const treelite::CSRDMatrixImpl<ThresholdType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, size_t* counts_tloc, Entry<ThresholdType>* inst) {
+    const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
+    const size_t* count_row_ptr, size_t* counts_tloc) {
+  std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
@@ -123,26 +125,48 @@ inline void ComputeBranchLoopImpl(
   }
 }
 
+template <typename ElementType>
+class ComputeBranchLoopDispatcherWithDenseDMatrix {
+ public:
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static void Dispatch(
+      const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
+      const size_t* count_row_ptr, size_t* counts_tloc) {
+    const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
+    CHECK(dmat_) << "Dangling data matrix reference detected";
+    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+  }
+};
+
+template <typename ElementType>
+class ComputeBranchLoopDispatcherWithCSRDMatrix {
+ public:
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static void Dispatch(
+      const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
+      const size_t* count_row_ptr, size_t* counts_tloc) {
+    const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
+    CHECK(dmat_) << "Dangling data matrix reference detected";
+    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+  }
+};
+
 template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                               const treelite::DMatrix* dmat, size_t rbegin,
                               size_t rend, int nthread, const size_t* count_row_ptr,
-                              size_t* counts_tloc, Entry<ThresholdType>* inst) {
-  CHECK(dmat->GetElementType() == treelite::InferTypeInfoOf<ThresholdType>())
-    << "DMatrix has a wrong type. DMatrix has "
-    << treelite::TypeInfoToString(dmat->GetElementType()) << " whereas the model expects "
-    << treelite::TypeInfoToString(treelite::InferTypeInfoOf<ThresholdType>());
+                              size_t* counts_tloc) {
   switch (dmat->GetType()) {
   case treelite::DMatrixType::kDense: {
-    const auto* dmat_ = dynamic_cast<const treelite::DenseDMatrixImpl<ThresholdType>*>(dmat);
-    CHECK(dmat_) << "Dangling data matrix reference detected";
-    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc, inst);
+    treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithDenseDMatrix>(
+        dmat->GetElementType(), model, dmat, rbegin, rend, nthread, count_row_ptr, counts_tloc);
     break;
   }
   case treelite::DMatrixType::kSparseCSR: {
-    const auto* dmat_ = dynamic_cast<const treelite::CSRDMatrixImpl<ThresholdType>*>(dmat);
-    CHECK(dmat_) << "Dangling data matrix reference detected";
-    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc, inst);
+    treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithCSRDMatrix>(
+        dmat->GetElementType(), model, dmat, rbegin, rend, nthread, count_row_ptr, counts_tloc);
     break;
   }
   default:
@@ -178,13 +202,11 @@ AnnotateImpl(
 
   const size_t num_row = dmat->GetNumRow();
   const size_t num_col = dmat->GetNumCol();
-  std::vector<Entry<ThresholdType>> inst(nthread * num_col, {-1});
   const size_t pstep = (num_row + 19) / 20;
   // interval to display progress
   for (size_t rbegin = 0; rbegin < num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, num_row);
-    ComputeBranchLoop(model, dmat, rbegin, rend, nthread,
-                      &count_row_ptr[0], &counts_tloc[0], &inst[0]);
+    ComputeBranchLoop(model, dmat, rbegin, rend, nthread, &count_row_ptr[0], &counts_tloc[0]);
     if (verbose > 0) {
       LOG(INFO) << rend << " of " << num_row << " rows processed";
     }
@@ -209,10 +231,6 @@ void
 BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose) {
   TypeInfo threshold_type = model.GetThresholdType();
   model.Dispatch([this, dmat, nthread, verbose, threshold_type](auto& handle) {
-    CHECK(dmat->GetElementType() == threshold_type)
-      << "BranchAnnotator: the matrix type must match the threshold type of the model."
-      << "(current matrix type = " << TypeInfoToString(dmat->GetElementType())
-      << " vs threshold type = " << TypeInfoToString(threshold_type) << ")";
     AnnotateImpl(handle, dmat, nthread, verbose, &this->counts);
   });
 }

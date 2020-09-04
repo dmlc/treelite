@@ -77,8 +77,6 @@ class DenseDMatrixImpl : public DenseDMatrix {
   DMatrixType GetType() const override;
 
   friend class DenseDMatrix;
-  static_assert(std::is_same<ElementType, float>::value || std::is_same<ElementType, double>::value,
-                "ElementType must be either float32 or float64");
 };
 
 class CSRDMatrix : public DMatrix {

@@ -59,8 +59,8 @@ inline std::string OpName(Operator op) {
  * \param rhs float on the right hand side
  * \return whether [lhs] [op] [rhs] is true or not
  */
-template <typename ThresholdType>
-inline bool CompareWithOp(ThresholdType lhs, Operator op, ThresholdType rhs) {
+template <typename ElementType, typename ThresholdType>
+inline bool CompareWithOp(ElementType lhs, Operator op, ThresholdType rhs) {
   switch (op) {
     case Operator::kEQ: return lhs == rhs;
     case Operator::kLT: return lhs <  rhs;

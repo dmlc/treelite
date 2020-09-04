@@ -44,11 +44,11 @@ struct OutputToken {
 using PredThreadPool
   = treelite::predictor::ThreadPool<InputToken, OutputToken, treelite::predictor::Predictor>;
 
-template <typename ElementType, typename LeafOutputType, typename PredFunc>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType, typename PredFunc>
 inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int num_feature,
                        size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
   CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
-  std::vector<treelite::predictor::Entry<ElementType>> inst(
+  std::vector<treelite::predictor::Entry<ThresholdType>> inst(
     std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
   CHECK(rbegin < rend && rend <= dmat->num_row);
   const size_t num_col = dmat->num_col;
@@ -70,12 +70,12 @@ inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int nu
   return total_output_size;
 }
 
-template <typename ElementType, typename LeafOutputType, typename PredFunc>
+template <typename ElementType, typename ThresholdType, typename LeafOutputType, typename PredFunc>
 inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int num_feature,
                        size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
   const bool nan_missing = treelite::math::CheckNAN(dmat->missing_value);
   CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
-  std::vector<treelite::predictor::Entry<ElementType>> inst(
+  std::vector<treelite::predictor::Entry<ThresholdType>> inst(
       std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
   CHECK(rbegin < rend && rend <= dmat->num_row);
   const size_t num_col = dmat->num_col;
@@ -101,18 +101,46 @@ inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int 
   return total_output_size;
 }
 
-template <typename ElementType, typename LeafOutputType, typename PredFunc>
-inline size_t PredLoop(const treelite::DMatrix* dmat, int num_feature,
+template <typename ElementType>
+class PredLoopDispatcherWithDenseDMatrix {
+ public:
+  template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
+  inline static size_t Dispatch(
+      const treelite::DMatrix* dmat, ThresholdType test_val,
+      int num_feature, size_t rbegin, size_t rend,
+      LeafOutputType* out_pred, PredFunc func) {
+    const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
+    return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
+        dmat_, num_feature, rbegin, rend, out_pred, func);
+  }
+};
+
+template <typename ElementType>
+class PredLoopDispatcherWithCSRDMatrix {
+ public:
+  template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
+  inline static size_t Dispatch(
+      const treelite::DMatrix* dmat, ThresholdType test_val,
+      int num_feature, size_t rbegin, size_t rend,
+      LeafOutputType* out_pred, PredFunc func) {
+    const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
+    return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
+        dmat_, num_feature, rbegin, rend, out_pred, func);
+  }
+};
+
+template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
+inline size_t PredLoop(const treelite::DMatrix* dmat, ThresholdType test_val, int num_feature,
                        size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
   treelite::DMatrixType dmat_type = dmat->GetType();
   switch (dmat_type) {
   case treelite::DMatrixType::kDense: {
-    const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
-    return PredLoop(dmat_, num_feature, rbegin, rend, out_pred, func);
+    return treelite::DispatchWithTypeInfo<PredLoopDispatcherWithDenseDMatrix>(
+        dmat->GetElementType(), dmat, test_val, num_feature, rbegin, rend, out_pred, func);
   }
   case treelite::DMatrixType::kSparseCSR: {
-    const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
-    return PredLoop(dmat_, num_feature, rbegin, rend, out_pred, func);
+    return treelite::DispatchWithTypeInfo<PredLoopDispatcherWithCSRDMatrix>(
+        dmat->GetElementType(), dmat, test_val, num_feature, rbegin, rend, out_pred, func);
   }
   default:
     LOG(FATAL) << "Unrecognized data matrix type: " << static_cast<int>(dmat_type);
@@ -225,9 +253,6 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
   // can be either [num_data] or [num_class]*[num_data].
   // Note that size of prediction may be smaller than out_pred (this occurs
   // when pred_function is set to "max_index").
-  CHECK(dmat->GetElementType() == GetThresholdType())
-    << "Mismatched data type in the data matrix. Expected: " << TypeInfoToString(GetThresholdType())
-    << ", Given: " << TypeInfoToString(dmat->GetElementType());
   CHECK(rbegin < rend && rend <= dmat->GetNumRow());
   size_t num_row = rend - rbegin;
   if (num_output_group_ > 1) {  // multi-class classification
@@ -240,10 +265,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
           return pred_func(inst, static_cast<int>(pred_margin),
                            &out_pred[rid * num_output_group]);
         };
-    result_size =
-        PredLoop<ThresholdType, LeafOutputType, decltype(pred_func_wrapper)>(
-            dmat, num_feature_, rbegin, rend, static_cast<LeafOutputType*>(out_pred),
-            pred_func_wrapper);
+    result_size = PredLoop(dmat, static_cast<ThresholdType>(0), num_feature_, rbegin, rend,
+                           static_cast<LeafOutputType*>(out_pred), pred_func_wrapper);
   } else {  // everything else
     using PredFunc = LeafOutputType (*)(Entry<ThresholdType>*, int);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
@@ -254,10 +277,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
           out_pred[rid] = pred_func(inst, static_cast<int>(pred_margin));
           return 1;
         };
-    result_size =
-        PredLoop<ThresholdType, LeafOutputType, decltype(pred_func_wrapper)>(
-            dmat, num_feature_, rbegin, rend, static_cast<LeafOutputType*>(out_pred),
-            pred_func_wrapper);
+    result_size = PredLoop(dmat, static_cast<ThresholdType>(0), num_feature_, rbegin, rend,
+                           static_cast<LeafOutputType*>(out_pred), pred_func_wrapper);
   }
   return result_size;
 }

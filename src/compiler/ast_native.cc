@@ -124,7 +124,7 @@ class ASTNativeCompiler : public Compiler {
   CompiledModel Compile(const Model& model) override {
     this->pred_tranform_func_ = PredTransformFunction("native", model);
     return model.Dispatch([this](const auto& model_handle) {
-      return CompileImpl(model_handle);
+      return this->CompileImpl(model_handle);
     });
   }
 

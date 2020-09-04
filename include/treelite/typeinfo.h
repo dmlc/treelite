@@ -9,6 +9,7 @@
 #define TREELITE_TYPEINFO_H_
 
 #include <cstdint>
+#include <typeinfo>
 #include <string>
 #include <unordered_map>
 #include <sstream>

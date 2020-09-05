@@ -8,28 +8,30 @@
 
 using treelite::frontend::TreeBuilder;
 using treelite::frontend::ModelBuilder;
+using treelite::frontend::Value;
+using treelite::TypeInfo;
 
 int main(void) {
-  std::unique_ptr<TreeBuilder> tree{new TreeBuilder};
+  auto tree = std::make_unique<TreeBuilder>(TypeInfo::kFloat32, TypeInfo::kFloat32);
   tree->CreateNode(0);
   tree->CreateNode(1);
   tree->CreateNode(2);
-  tree->SetNumericalTestNode(0, 0, "<", 0.0f, true, 1, 2);
-  tree->SetLeafNode(1, -1.0f);
-  tree->SetLeafNode(2, 1.0f);
+  tree->SetNumericalTestNode(0, 0, "<", Value::Create<float>(0), true, 1, 2);
+  tree->SetLeafNode(1, Value::Create<float>(-1.0));
+  tree->SetLeafNode(2, Value::Create<float>(1.0));
   tree->SetRootNode(0);
 
-  std::unique_ptr<ModelBuilder> builder{new ModelBuilder(2, 1, false)};
+  auto builder
+      = std::make_unique<ModelBuilder>(2, 1, false, TypeInfo::kFloat32, TypeInfo::kFloat32);
   builder->InsertTree(tree.get());
 
-  treelite::Model model;
-  builder->CommitModel(&model);
-  std::cout << model.trees.size() << std::endl;
+  auto model = builder->CommitModel();
+  std::cout << model->GetNumTree() << std::endl;
 
   treelite::compiler::CompilerParam param;
   param.Init(std::map<std::string, std::string>{});
   std::unique_ptr<treelite::Compiler> compiler{treelite::Compiler::Create("ast_native", param)};
-  treelite::compiler::CompiledModel cm = compiler->Compile(model);
+  treelite::compiler::CompiledModel cm = compiler->Compile(*model.get());
   for (const auto& kv : cm.files) {
     std::cout << "=================" << kv.first << "=================" << std::endl;
     std::cout << kv.second.content << std::endl;

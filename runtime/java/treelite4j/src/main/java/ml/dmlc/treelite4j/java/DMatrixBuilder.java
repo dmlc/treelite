@@ -26,7 +26,7 @@ public class DMatrixBuilder {
    * @throws TreeliteError Treelite error
    * @throws IOException   IO error
    */
-  public static DMatrix createSparseCSRDMatrixFloat32(Iterator<DataPoint> dIter)
+  public static DMatrix createSparseCSRDMatrix(Iterator<DataPoint> dIter)
       throws TreeliteError, IOException {
     ArrayList<Float> data = new ArrayList<>();
     ArrayList<Integer> col_ind = new ArrayList<>();
@@ -71,8 +71,7 @@ public class DMatrixBuilder {
    * @throws TreeliteError Treelite error
    * @throws IOException   IO error
    */
-  public static DMatrix createDenseDMatrixFloat32(
-       Iterator<DataPoint> dIter)
+  public static DMatrix createDenseDMatrix(Iterator<DataPoint> dIter)
       throws TreeliteError, IOException {
     int num_row = 0;
     int num_col = 0;
@@ -126,7 +125,7 @@ public class DMatrixBuilder {
    * @throws TreeliteError Treelite error
    * @throws IOException   IO error
    */
-  public static List<DataPoint> LoadDatasetFromLibSVMFloat32(String filename)
+  public static List<DataPoint> LoadDatasetFromLibSVM(String filename)
       throws TreeliteError, IOException {
     File file = new File(filename);
     LineIterator it = FileUtils.lineIterator(file, "UTF-8");

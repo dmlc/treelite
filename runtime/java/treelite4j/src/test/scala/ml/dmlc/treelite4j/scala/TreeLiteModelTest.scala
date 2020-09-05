@@ -62,7 +62,7 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
   private def buildDataFrame(numPartitions: Int = numWorkers): DataFrame = {
     val probResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
     val marginResult = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
-    val dataPoint = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation).asScala
+    val dataPoint = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation).asScala
 
     val localData = dataPoint.zip(probResult.zip(marginResult)).map {
       case (dp, (prob, margin)) =>

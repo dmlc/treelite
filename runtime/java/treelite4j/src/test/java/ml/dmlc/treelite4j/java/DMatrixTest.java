@@ -78,7 +78,7 @@ public class DMatrixTest {
         add(new DataPoint(new int[]{5},       new float[]{80f}));
       }
     };
-    DMatrix dmat = DMatrixBuilder.createSparseCSRDMatrixFloat32(data_list.iterator());
+    DMatrix dmat = DMatrixBuilder.createSparseCSRDMatrix(data_list.iterator());
 
     // should get 4-by-6 matrix
     TestCase.assertEquals(4, dmat.getNumRow());

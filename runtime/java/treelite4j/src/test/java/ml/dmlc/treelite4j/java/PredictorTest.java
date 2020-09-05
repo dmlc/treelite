@@ -48,10 +48,9 @@ public class PredictorTest {
   @Test
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    List<DataPoint> dmat
-        = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation);
-    DMatrix sparse_dmat = DMatrixBuilder.createSparseCSRDMatrixFloat32(dmat.iterator());
-    DMatrix dense_dmat = DMatrixBuilder.createDenseDMatrixFloat32(dmat.iterator());
+    List<DataPoint> dmat = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix sparse_dmat = DMatrixBuilder.createSparseCSRDMatrix(dmat.iterator());
+    DMatrix dense_dmat = DMatrixBuilder.createDenseDMatrix(dmat.iterator());
     float[] expected_result = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
     float[][] result = predictor.predict(sparse_dmat, true, false).toFloatMatrix();
@@ -70,10 +69,9 @@ public class PredictorTest {
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    List<DataPoint> dmat
-        = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation);
-    DMatrix sparse_batch = DMatrixBuilder.createSparseCSRDMatrixFloat32(dmat.iterator());
-    DMatrix dense_batch = DMatrixBuilder.createDenseDMatrixFloat32(dmat.iterator());
+    List<DataPoint> dmat = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix sparse_batch = DMatrixBuilder.createSparseCSRDMatrix(dmat.iterator());
+    DMatrix dense_batch = DMatrixBuilder.createDenseDMatrix(dmat.iterator());
     float[] expected_result
         = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
 
@@ -102,9 +100,8 @@ public class PredictorTest {
     TestCase.assertEquals(predictor.GetSigmoidAlpha(), predictor2.GetSigmoidAlpha());
     TestCase.assertEquals(predictor.GetGlobalBias(), predictor2.GetGlobalBias());
 
-    List<DataPoint> dataset
-        = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation);
-    DMatrix dmat = DMatrixBuilder.createSparseCSRDMatrixFloat32(dataset.iterator());
+    List<DataPoint> dataset = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix dmat = DMatrixBuilder.createSparseCSRDMatrix(dataset.iterator());
     float[] expected_result = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
     float[][] result = predictor.predict(dmat, true, false).toFloatMatrix();
     for (int i = 0; i < result.length; ++i) {

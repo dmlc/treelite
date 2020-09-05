@@ -70,12 +70,12 @@ class TreeLiteModel private[spark](
         }
         val result = batchRow.head.getAs[Vector]($(featuresCol)) match {
           case _: SparseVector =>
-            val batch = DMatrixBuilder.createSparseCSRDMatrixFloat32(dataPoints.asJava)
+            val batch = DMatrixBuilder.createSparseCSRDMatrix(dataPoints.asJava)
             val ret = broadcastModel.value.predictBatch(batch, $(predictMargin), $(verbose))
             batch.dispose()
             ret.toFloatMatrix.map(Row.apply(_))
           case _: DenseVector =>
-            val batch = DMatrixBuilder.createDenseDMatrixFloat32(dataPoints.asJava)
+            val batch = DMatrixBuilder.createDenseDMatrix(dataPoints.asJava)
             val ret = broadcastModel.value.predictBatch(batch, $(predictMargin), $(verbose))
             batch.dispose()
             ret.toFloatMatrix.map(Row.apply(_))

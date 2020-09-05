@@ -27,9 +27,9 @@ class PredictorTest extends FunSuite with Matchers {
 
   test("PredictBatch") {
     val predictor = Predictor(mushroomLibLocation)
-    val dmat = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation)
-    val sparseDMatrix = DMatrixBuilder.createSparseCSRDMatrixFloat32(dmat.iterator())
-    val denseDMatrix = DMatrixBuilder.createDenseDMatrixFloat32(dmat.iterator())
+    val dmat = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
+    val sparseDMatrix = DMatrixBuilder.createSparseCSRDMatrix(dmat.iterator())
+    val denseDMatrix = DMatrixBuilder.createDenseDMatrix(dmat.iterator())
     val retProb = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
     val retMargin = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
 

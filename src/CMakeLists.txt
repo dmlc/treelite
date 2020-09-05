@@ -116,11 +116,11 @@ target_sources(objtreelite_common
     PRIVATE
     c_api/c_api_common.cc
     c_api/c_api_error.cc
-    c_api/c_api_error.h
     data.cc
     logging.cc
     typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
     ${PROJECT_SOURCE_DIR}/include/treelite/math.h
     ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h

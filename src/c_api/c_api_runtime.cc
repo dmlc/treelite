@@ -7,10 +7,10 @@
 
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
+#include <treelite/c_api_error.h>
 #include <dmlc/thread_local.h>
 #include <string>
 #include <cstring>
-#include "./c_api_error.h"
 
 using namespace treelite;
 

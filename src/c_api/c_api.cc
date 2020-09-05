@@ -8,6 +8,7 @@
 
 #include <treelite/annotator.h>
 #include <treelite/c_api.h>
+#include <treelite/c_api_error.h>
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
 #include <treelite/data.h>
@@ -18,7 +19,6 @@
 #include <dmlc/thread_local.h>
 #include <memory>
 #include <algorithm>
-#include "./c_api_error.h"
 
 using namespace treelite;
 

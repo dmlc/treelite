@@ -8,5 +8,5 @@ target_include_directories(treelite4j PUBLIC ${JNI_INCLUDE_DIRS})
 set_target_properties(treelite4j
   PROPERTIES
   POSITION_INDEPENDENT_CODE ON
-  CXX_STANDARD 11
+  CXX_STANDARD 14
   CXX_STANDARD_REQUIRED ON)

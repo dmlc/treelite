@@ -1,7 +1,7 @@
 package ml.dmlc.treelite4j.scala
 
 import ml.dmlc.treelite4j.java.PredictorTest.LoadArrayFromText
-import ml.dmlc.treelite4j.java.{BatchBuilder, Entry, NativeLibLoader}
+import ml.dmlc.treelite4j.java.{DMatrixBuilder, Entry, NativeLibLoader}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
@@ -27,16 +27,16 @@ class PredictorTest extends FunSuite with Matchers {
 
   test("PredictBatch") {
     val predictor = Predictor(mushroomLibLocation)
-    val dmat = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
-    val sparseBatch = BatchBuilder.CreateSparseBatch(dmat.iterator())
-    val denseBatch = BatchBuilder.CreateDenseBatch(dmat.iterator())
+    val dmat = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation)
+    val sparseDMatrix = DMatrixBuilder.createSparseCSRDMatrixFloat32(dmat.iterator())
+    val denseDMatrix = DMatrixBuilder.createDenseDMatrixFloat32(dmat.iterator())
     val retProb = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
     val retMargin = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
 
-    val sparseMargin = predictor.predictSparseBatch(sparseBatch, predMargin = true)
-    val sparseProb = predictor.predictSparseBatch(sparseBatch)
-    val denseMargin = predictor.predictDenseBatch(denseBatch, predMargin = true)
-    val denseProb = predictor.predictDenseBatch(denseBatch)
+    val sparseMargin = predictor.predictBatch(sparseDMatrix, predMargin = true).toFloatMatrix
+    val sparseProb = predictor.predictBatch(sparseDMatrix).toFloatMatrix
+    val denseMargin = predictor.predictBatch(denseDMatrix, predMargin = true).toFloatMatrix
+    val denseProb = predictor.predictBatch(denseDMatrix).toFloatMatrix
 
     retProb.zip(denseProb.zip(sparseProb)).foreach { case (ret, (dense, sparse)) =>
       Seq(dense.length, sparse.length) shouldEqual Seq(1, 1)
@@ -45,28 +45,6 @@ class PredictorTest extends FunSuite with Matchers {
     retMargin.zip(denseMargin.zip(sparseMargin)).foreach { case (ret, (dense, sparse)) =>
       Seq(dense.length, sparse.length) shouldEqual Seq(1, 1)
       Seq(dense.head, sparse.head) shouldEqual Seq(ret, ret)
-    }
-  }
-
-  test("PredictInst") {
-    val predictor = Predictor(mushroomLibLocation)
-    mushroomLibPredictionTest(predictor)
-  }
-
-  private def mushroomLibPredictionTest(predictor: Predictor): Unit = {
-    val instArray = Array.tabulate(predictor.numFeature)(_ => {
-      val entry = new Entry()
-      entry.setMissing()
-      entry
-    })
-    val expectedResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
-    val dataPoints = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation)
-    dataPoints.asScala.zipWithIndex.foreach { case (dp, row) =>
-      dp.indices.zip(dp.values).foreach { case (i, v) => instArray(i).setFValue(v) }
-      val result = predictor.predictInst(instArray)
-      result.length shouldEqual 1
-      result(0) shouldEqual expectedResult(row)
-      instArray.foreach(_.setMissing())
     }
   }
 }

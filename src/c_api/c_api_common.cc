@@ -9,7 +9,7 @@
 #include <treelite/logging.h>
 #include <treelite/data.h>
 #include <treelite/c_api_common.h>
-#include "./c_api_error.h"
+#include <treelite/c_api_error.h>
 
 using namespace treelite;
 

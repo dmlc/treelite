@@ -1,7 +1,7 @@
 package ml.dmlc.treelite4j.scala
 
 import ml.dmlc.treelite4j.java.PredictorTest.LoadArrayFromText
-import ml.dmlc.treelite4j.java.{BatchBuilder, NativeLibLoader}
+import ml.dmlc.treelite4j.java.{DMatrixBuilder, NativeLibLoader}
 import ml.dmlc.treelite4j.scala.spark.TreeLiteModel
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.linalg._
@@ -62,7 +62,7 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
   private def buildDataFrame(numPartitions: Int = numWorkers): DataFrame = {
     val probResult = LoadArrayFromText(mushroomTestDataPredProbResultLocation)
     val marginResult = LoadArrayFromText(mushroomTestDataPredMarginResultLocation)
-    val dataPoint = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation).asScala
+    val dataPoint = DMatrixBuilder.LoadDatasetFromLibSVMFloat32(mushroomTestDataLocation).asScala
 
     val localData = dataPoint.zip(probResult.zip(marginResult)).map {
       case (dp, (prob, margin)) =>

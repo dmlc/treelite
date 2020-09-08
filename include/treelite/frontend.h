@@ -8,6 +8,7 @@
 #define TREELITE_FRONTEND_H_
 
 #include <treelite/base.h>
+#include <string>
 #include <memory>
 #include <vector>
 #include <cstdint>

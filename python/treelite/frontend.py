@@ -365,6 +365,9 @@ class Model():
         elif model_format == 'xgboost':
             _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
                                                       ctypes.byref(handle)))
+        elif model_format == 'xgboost_json':
+            _check_call(_LIB.TreeliteLoadXGBoostJSON(c_str(filename),
+                                                     ctypes.byref(handle)))
         else:
             raise ValueError('Unknown model_format: must be one of ' \
                              + '{lightgbm, xgboost}')

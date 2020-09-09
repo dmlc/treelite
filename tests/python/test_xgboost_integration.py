@@ -3,6 +3,7 @@
 # pylint: disable=R0201
 import math
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -130,3 +131,75 @@ def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchai
     out_pred = predictor.predict(batch)
     expected_pred = bst.predict(dtrain)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+def test_xgb_deserializers(tmpdir, toolchain):
+    """Test Boston data (regression)"""
+    from sklearn.datasets import load_boston
+    from sklearn.model_selection import train_test_split
+
+    # Train xgboost model
+    X, y = load_boston(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, shuffle=False
+    )
+    dtrain = xgboost.DMatrix(X_train, label=y_train)
+    dtest = xgboost.DMatrix(X_test, label=y_test)
+    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': 'reg:linear'}
+    num_round = 10
+    bst = xgboost.train(param, dtrain, num_boost_round=num_round,
+                        evals=[(dtrain, 'train'), (dtest, 'test')])
+
+    # Serialize xgboost model
+    model_bin_path = os.path.join(tmpdir, 'serialized.model')
+    bst.save_model(model_bin_path)
+    model_json_path = os.path.join(tmpdir, 'serialized.json')
+    bst.save_model(model_json_path)
+
+    # Construct Treelite models from xgboost serializations
+    model_bin = treelite.Model.load(
+        model_bin_path, model_format='xgboost'
+    )
+    # model_json = treelite.Model.load(
+    #     model_json_path, model_format='xgboost_json'
+    # )
+
+    # Compile models to libraries
+    model_bin_lib = os.path.join(tmpdir, 'bin{}'.format(_libext()))
+    model_bin.export_lib(
+        toolchain=toolchain,
+        libpath=model_bin_lib,
+        params={'parallel_comp': model_bin.num_tree}
+    )
+    # model_json_lib = os.path.join(tmpdir, 'json{}'.format(_libext()))
+    # model_json.export_lib(
+    #     toolchain=toolchain,
+    #     libpath=model_json_lib,
+    #     params={'parallel_comp': model_json.num_tree}
+    # )
+
+    # Generate predictors from compiled libraries
+    predictor_bin = treelite_runtime.Predictor(model_bin_lib)
+    assert predictor_bin.num_feature == dtrain.num_col()
+    assert predictor_bin.num_output_group == 1
+    assert predictor_bin.pred_transform == 'identity'
+    assert predictor_bin.global_bias == pytest.approx(0.5)
+    assert predictor_bin.sigmoid_alpha == pytest.approx(1.0)
+
+    # predictor_json = treelite_runtime.Predictor(model_json_lib)
+    # assert predictor_json.num_feature == dtrain.num_col()
+    # assert predictor_json.num_output_group == 1
+    # assert predictor_json.pred_transform == 'identity'
+    # assert predictor_json.global_bias == pytest.approx(0.5)
+    # assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
+
+    # Run inference with each predictor
+    batch = treelite_runtime.Batch.from_npy2d(X_test)
+    bin_pred = predictor_bin.predict(batch)
+    # json_pred = predictor_json.predict(batch)
+
+    expected_pred = bst.predict(dtest)
+    np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=5)
+    # np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)

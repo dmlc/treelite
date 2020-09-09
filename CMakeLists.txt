@@ -59,7 +59,7 @@ endforeach()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 install(TARGETS treelite treelite_static treelite_runtime treelite_runtime_static
-                objtreelite objtreelite_common objtreelite_runtime dmlc fmt-header-only
+                objtreelite objtreelite_common objtreelite_runtime dmlc fmt-header-only rapidjson
     EXPORT TreeliteTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

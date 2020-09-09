@@ -3,7 +3,6 @@
 # pylint: disable=R0201
 import math
 import os
-import tempfile
 
 import numpy as np
 import pytest
@@ -136,6 +135,7 @@ def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchai
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_deserializers(tmpdir, toolchain):
+    # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     from sklearn.datasets import load_boston
     from sklearn.model_selection import train_test_split

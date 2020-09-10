@@ -21,9 +21,6 @@
  */
 /*! \brief handle to predictor class */
 typedef void* PredictorHandle;
-/*! \brief handle to output from predictor */
-typedef void* PredictorOutputHandle;
-
 /*! \} */
 
 /*!

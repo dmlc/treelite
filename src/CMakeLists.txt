@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only)
+target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only RapidJSON::rapidjson)
 
 add_library(objtreelite_runtime OBJECT)
 # -ldl for UNIX-like systems
@@ -85,6 +85,7 @@ target_sources(objtreelite
     frontend/builder.cc
     frontend/lightgbm.cc
     frontend/xgboost.cc
+    frontend/xgboost_json.cc
     annotator.cc
     filesystem.cc
     optable.cc

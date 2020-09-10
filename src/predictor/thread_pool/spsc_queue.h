@@ -14,6 +14,9 @@
 #include <condition_variable>
 #include <cstdint>
 
+namespace treelite {
+namespace predictor {
+
 const constexpr int kL1CacheBytes = 64;
 
 /*! \brief Lock-free single-producer-single-consumer queue for each thread */
@@ -116,5 +119,8 @@ class SpscQueue {
   // cv for consumer
   std::condition_variable cv_;
 };
+
+}  // namespace predictor
+}  // namespace treelite
 
 #endif  // TREELITE_PREDICTOR_THREAD_POOL_SPSC_QUEUE_H_

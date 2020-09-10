@@ -4,8 +4,8 @@
  * \author Hyunsu Cho
  * \brief Error handling for C API.
  */
-#ifndef TREELITE_C_API_C_API_ERROR_H_
-#define TREELITE_C_API_C_API_ERROR_H_
+#ifndef TREELITE_C_API_ERROR_H_
+#define TREELITE_C_API_ERROR_H_
 
 #include <dmlc/base.h>
 #include <dmlc/logging.h>
@@ -46,4 +46,4 @@ inline int TreeliteAPIHandleException(const std::exception &e) {
   TreeliteAPISetLastError(e.what());
   return -1;
 }
-#endif  // TREELITE_C_API_C_API_ERROR_H_
+#endif  // TREELITE_C_API_ERROR_H_

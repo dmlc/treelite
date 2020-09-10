@@ -8,150 +8,124 @@
 #define TREELITE_PREDICTOR_H_
 
 #include <dmlc/logging.h>
-#include <treelite/entry.h>
+#include <treelite/typeinfo.h>
+#include <treelite/data.h>
 #include <string>
+#include <memory>
 #include <cstdint>
 
 namespace treelite {
+namespace predictor {
 
-/*! \brief sparse batch in Compressed Sparse Row (CSR) format */
-struct CSRBatch {
-  /*! \brief feature values */
-  const float* data;
-  /*! \brief feature indices */
-  const uint32_t* col_ind;
-  /*! \brief pointer to row headers; length of [num_row] + 1 */
-  const size_t* row_ptr;
-  /*! \brief number of rows */
-  size_t num_row;
-  /*! \brief number of columns (i.e. # of features used) */
-  size_t num_col;
+/*! \brief data layout. The value -1 signifies the missing value.
+    When the "missing" field is set to -1, the "fvalue" field is set to
+    NaN (Not a Number), so there is no danger for mistaking between
+    missing values and non-missing values. */
+template <typename ElementType>
+union Entry {
+  int missing;
+  ElementType fvalue;
+  // may contain extra fields later, such as qvalue
 };
 
-/*! \brief dense batch */
-struct DenseBatch {
-  /*! \brief feature values */
-  const float* data;
-  /*! \brief value representing the missing value (usually nan) */
-  float missing_value;
-  /*! \brief number of rows */
-  size_t num_row;
-  /*! \brief number of columns (i.e. # of features used) */
-  size_t num_col;
+class SharedLibrary {
+ public:
+  using LibraryHandle = void*;
+  using FunctionHandle = void*;
+  SharedLibrary();
+  ~SharedLibrary();
+  void Load(const char* libpath);
+  FunctionHandle LoadFunction(const char* name) const;
+  template<typename HandleType>
+  HandleType LoadFunctionWithSignature(const char* name) const;
+
+ private:
+  LibraryHandle handle_;
+  std::string libpath_;
+};
+
+class PredFunction {
+ public:
+  static std::unique_ptr<PredFunction> Create(TypeInfo threshold_type, TypeInfo leaf_output_type,
+                                              const SharedLibrary& library, int num_feature,
+                                              int num_output_group);
+  PredFunction() = default;
+  virtual ~PredFunction() = default;
+  virtual TypeInfo GetThresholdType() const = 0;
+  virtual TypeInfo GetLeafOutputType() const = 0;
+  virtual size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+      void* out_pred) const = 0;
+};
+
+template<typename ThresholdType, typename LeafOutputType>
+class PredFunctionImpl : public PredFunction {
+ public:
+  using PredFuncHandle = void*;
+  PredFunctionImpl(const SharedLibrary& library, int num_feature, int num_output_group);
+  TypeInfo GetThresholdType() const override;
+  TypeInfo GetLeafOutputType() const override;
+  size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+      void* out_pred) const override;
+
+ private:
+  PredFuncHandle handle_;
+  int num_feature_;
+  int num_output_group_;
 };
 
 /*! \brief predictor class: wrapper for optimized prediction code */
 class Predictor {
  public:
   /*! \brief opaque handle types */
-  typedef void* QueryFuncHandle;
-  typedef void* PredFuncHandle;
-  typedef void* LibraryHandle;
   typedef void* ThreadPoolHandle;
 
   explicit Predictor(int num_worker_thread = -1);
   ~Predictor();
   /*!
    * \brief load the prediction function from dynamic shared library.
-   * \param name name of dynamic shared library (.so/.dll/.dylib).
+   * \param libpath path of dynamic shared library (.so/.dll/.dylib).
    */
-  void Load(const char* name);
+  void Load(const char* libpath);
   /*!
    * \brief unload the prediction function
    */
   void Free();
-
   /*!
    * \brief Make predictions on a batch of data rows (synchronously). This
    *        function internally divides the workload among all worker threads.
-   * \param batch a batch of rows
+   * \param dmat a batch of rows
    * \param verbose whether to produce extra messages
    * \param pred_margin whether to produce raw margin scores instead of
    *                    transformed probabilities
-   * \param out_result resulting output vector; use
-   *                   QueryResultSize() to allocate sufficient space
+   * \param out_result Resulting output vector. This pointer must point to an array of length
+   *                   QueryResultSize() and of type QueryLeafOutputType().
    * \return length of the output vector, which is guaranteed to be less than
    *         or equal to QueryResultSize()
    */
-  size_t PredictBatch(const CSRBatch* batch, int verbose,
-                      bool pred_margin, float* out_result);
-  size_t PredictBatch(const DenseBatch* batch, int verbose,
-                      bool pred_margin, float* out_result);
-  /*!
-   * \brief Make predictions on a single data row (synchronously). The work
-   *        will be scheduled to the calling thread.
-   * \param inst single data row
-   * \param pred_margin whether to produce raw margin scores instead of
-   *                    transformed probabilities
-   * \param out_result resulting output vector; use
-   *                   QueryResultSizeSingleInst() to allocate sufficient space
-   * \return length of the output vector, which is guaranteed to be less than
-   *         or equal to QueryResultSizeSingleInst()
-   */
-  size_t PredictInst(TreelitePredictorEntry* inst, bool pred_margin,
-                     float* out_result);
-
+  size_t PredictBatch(
+      const DMatrix* dmat, int verbose, bool pred_margin, void* out_result) const;
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
    *        hold predictions for all data points.
-   * \param batch a batch of rows
+   * \param dmat a batch of rows
    * \return length of prediction array
    */
-  inline size_t QueryResultSize(const CSRBatch* batch) const {
-    CHECK(pred_func_handle_ != nullptr)
-      << "A shared library needs to be loaded first using Load()";
-    return batch->num_row * num_output_group_;
+  inline size_t QueryResultSize(const DMatrix* dmat) const {
+    CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
+    return dmat->GetNumRow() * num_output_group_;
   }
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
    *        hold predictions for all data points.
-   * \param batch a batch of rows
-   * \return length of prediction array
-   */
-  inline size_t QueryResultSize(const DenseBatch* batch) const {
-    CHECK(pred_func_handle_ != nullptr)
-      << "A shared library needs to be loaded first using Load()";
-    return batch->num_row * num_output_group_;
-  }
-  /*!
-   * \brief Given a batch of data rows, query the necessary size of array to
-   *        hold predictions for all data points.
-   * \param batch a batch of rows
+   * \param dmat a batch of rows
    * \param rbegin beginning of range of rows
    * \param rend end of range of rows
    * \return length of prediction array
    */
-  inline size_t QueryResultSize(const CSRBatch* batch,
-                                size_t rbegin, size_t rend) const {
-    CHECK(pred_func_handle_ != nullptr)
-      << "A shared library needs to be loaded first using Load()";
-    CHECK(rbegin < rend && rend <= batch->num_row);
+  inline size_t QueryResultSize(const DMatrix* dmat, size_t rbegin, size_t rend) const {
+    CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
+    CHECK(rbegin < rend && rend <= dmat->GetNumRow());
     return (rend - rbegin) * num_output_group_;
-  }
-  /*!
-   * \brief Given a batch of data rows, query the necessary size of array to
-   *        hold predictions for all data points.
-   * \param batch a batch of rows
-   * \param rbegin beginning of range of rows
-   * \param rend end of range of rows
-   * \return length of prediction array
-   */
-  inline size_t QueryResultSize(const DenseBatch* batch,
-                                size_t rbegin, size_t rend) const {
-    CHECK(pred_func_handle_ != nullptr)
-      << "A shared library needs to be loaded first using Load()";
-    CHECK(rbegin < rend && rend <= batch->num_row);
-    return (rend - rbegin) * num_output_group_;
-  }
-  /*!
-   * \brief Query the necessary size of array to hold the prediction for a
-   *        single data row
-   * \return length of prediction array
-   */
-  inline size_t QueryResultSizeSingleInst() const {
-    CHECK(pred_func_handle_ != nullptr)
-      << "A shared library needs to be loaded first using Load()";
-    return num_output_group_;
   }
   /*!
    * \brief Get the number of output groups in the loaded model
@@ -162,7 +136,6 @@ class Predictor {
   inline size_t QueryNumOutputGroup() const {
     return num_output_group_;
   }
-
   /*!
    * \brief Get the width (number of features) of each instance used to train
    *        the loaded model
@@ -171,7 +144,6 @@ class Predictor {
   inline size_t QueryNumFeature() const {
     return num_feature_;
   }
-
   /*!
    * \brief Get name of post prediction transformation used to train the loaded model
    * \return name of prediction transformation
@@ -179,7 +151,6 @@ class Predictor {
   inline std::string QueryPredTransform() const {
     return pred_transform_;
   }
-
   /*!
    * \brief Get alpha value in sigmoid transformation used to train the loaded model
    * \return alpha value in sigmoid transformation
@@ -187,7 +158,6 @@ class Predictor {
   inline float QuerySigmoidAlpha() const {
     return sigmoid_alpha_;
   }
-
   /*!
    * \brief Get global bias which adjusting predicted margin scores
    * \return global bias
@@ -195,15 +165,16 @@ class Predictor {
   inline float QueryGlobalBias() const {
     return global_bias_;
   }
+  inline TypeInfo QueryThresholdType() const {
+    return threshold_type_;
+  }
+  inline TypeInfo QueryLeafOutputType() const {
+    return leaf_output_type_;
+  }
 
  private:
-  LibraryHandle lib_handle_;
-  QueryFuncHandle num_output_group_query_func_handle_;
-  QueryFuncHandle num_feature_query_func_handle_;
-  QueryFuncHandle pred_transform_query_func_handle_;
-  QueryFuncHandle sigmoid_alpha_query_func_handle_;
-  QueryFuncHandle global_bias_query_func_handle_;
-  PredFuncHandle pred_func_handle_;
+  SharedLibrary lib_;
+  std::unique_ptr<PredFunction> pred_func_;
   ThreadPoolHandle thread_pool_handle_;
   size_t num_output_group_;
   size_t num_feature_;
@@ -211,12 +182,13 @@ class Predictor {
   float sigmoid_alpha_;
   float global_bias_;
   int num_worker_thread_;
+  TypeInfo threshold_type_;
+  TypeInfo leaf_output_type_;
 
-  template <typename BatchType>
-  size_t PredictBatchBase_(const BatchType* batch, int verbose,
-                           bool pred_margin, float* out_result);
+  mutable dmlc::OMPException exception_catcher_;
 };
 
+}  // namespace predictor
 }  // namespace treelite
 
 #endif  // TREELITE_PREDICTOR_H_

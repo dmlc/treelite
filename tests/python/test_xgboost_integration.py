@@ -162,9 +162,9 @@ def test_xgb_deserializers(tmpdir, toolchain):
     model_bin = treelite.Model.load(
         model_bin_path, model_format='xgboost'
     )
-    # model_json = treelite.Model.load(
-    #     model_json_path, model_format='xgboost_json'
-    # )
+    model_json = treelite.Model.load(
+        model_json_path, model_format='xgboost_json'
+    )
 
     # Compile models to libraries
     model_bin_lib = os.path.join(tmpdir, 'bin{}'.format(_libext()))
@@ -173,12 +173,12 @@ def test_xgb_deserializers(tmpdir, toolchain):
         libpath=model_bin_lib,
         params={'parallel_comp': model_bin.num_tree}
     )
-    # model_json_lib = os.path.join(tmpdir, 'json{}'.format(_libext()))
-    # model_json.export_lib(
-    #     toolchain=toolchain,
-    #     libpath=model_json_lib,
-    #     params={'parallel_comp': model_json.num_tree}
-    # )
+    model_json_lib = os.path.join(tmpdir, 'json{}'.format(_libext()))
+    model_json.export_lib(
+        toolchain=toolchain,
+        libpath=model_json_lib,
+        params={'parallel_comp': model_json.num_tree}
+    )
 
     # Generate predictors from compiled libraries
     predictor_bin = treelite_runtime.Predictor(model_bin_lib)

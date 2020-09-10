@@ -370,7 +370,7 @@ class Model():
                                                      ctypes.byref(handle)))
         else:
             raise ValueError('Unknown model_format: must be one of ' \
-                             + '{lightgbm, xgboost}')
+                             + '{lightgbm, xgboost, xgboost_json}')
         return Model(handle)
 
 

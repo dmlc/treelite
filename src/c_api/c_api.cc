@@ -329,7 +329,7 @@ int TreeliteLoadXGBoostJSON(const char* filename,
                             ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostJSON(filename, model.get());
+  frontend::LoadXGBoostJSONModel(filename, model.get());
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

@@ -44,8 +44,21 @@ typedef void* PredictorOutputHandle;
 TREELITE_DLL int TreelitePredictorLoad(
     const char* library_path, int num_worker_thread, PredictorHandle* out);
 /*!
- * \brief Make predictions on a batch of data rows (synchronously). This
- *        function internally divides the workload among all worker threads.
+ * \brief Make predictions on a batch of data rows (synchronously). This function internally
+ *        divides the workload among all worker threads.
+ *
+ *        Note. This function does not allocate the result vector. Use
+ *        TreeliteCreatePredictorOutputVector() convenience function to allocate the vector of
+ *        the right length and type.
+ *
+ *        Note. To access the element values from the output vector, you should cast the opaque
+ *        handle (PredictorOutputHandle type) to an appropriate pointer LeafOutputType*, where
+ *        the type is either float, double, or uint32_t. So carry out the following steps:
+ *        1. Call TreelitePredictorQueryLeafOutputType() to obtain the type of the leaf output.
+ *           It will return a string ("float32", "float64", or "uint32") representing the type.
+ *        2. Depending on the type string, cast the output handle to float*, double*, or uint32_t*.
+ *        3. Now access the array with the casted pointer. The array's length is given by
+ *           TreelitePredictorQueryResultSize().
  * \param handle predictor
  * \param batch the data matrix containing a batch of rows
  * \param verbose whether to produce extra messages
@@ -61,7 +74,39 @@ TREELITE_DLL int TreelitePredictorLoad(
  */
 TREELITE_DLL int TreelitePredictorPredictBatch(
     PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin,
-    void* out_result, size_t* out_result_size);
+    PredictorOutputHandle out_result, size_t* out_result_size);
+/*!
+ * \brief Convenience function to allocate an output vector that is able to hold the prediction
+ *        result for a given data matrix. The vector's length will be identical to
+ *        TreelitePredictorQueryResultSize() and its type will be identical to
+ *        TreelitePredictorQueryLeafOutputType(). To prevent memory leak, make sure to de-allocate
+ *        the vector with TreeliteDeletePredictorOutputVector().
+ *
+ *        Note. To access the element values from the output vector, you should cast the opaque
+ *        handle (PredictorOutputHandle type) to an appropriate pointer LeafOutputType*, where
+ *        the type is either float, double, or uint32_t. So carry out the following steps:
+ *        1. Call TreelitePredictorQueryLeafOutputType() to obtain the type of the leaf output.
+ *           It will return a string ("float32", "float64", or "uint32") representing the type.
+ *        2. Depending on the type string, cast the output handle to float*, double*, or uint32_t*.
+ *        3. Now access the array with the casted pointer. The array's length is given by
+ *           TreelitePredictorQueryResultSize().
+ * \param handle predictor
+ * \param batch the data matrix containing a batch of rows
+ * \param out_output_vector Handle to the newly allocated output vector.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteCreatePredictorOutputVector(
+    PredictorHandle handle, DMatrixHandle batch, PredictorOutputHandle* out_output_vector);
+
+/*!
+ * \brief De-allocate an output vector
+ * \param handle predictor
+ * \param output_vector Output vector to delete from memory
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeletePredictorOutputVector(
+    PredictorHandle handle, PredictorOutputHandle output_vector);
+
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to
  *        hold predictions for all data points.

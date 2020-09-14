@@ -34,7 +34,7 @@ struct InputToken {
   bool pred_margin;  // whether to store raw margin or transformed scores
   const treelite::predictor::PredFunction* pred_func_;
   size_t rbegin, rend;  // range of instances (rows) assigned to each worker
-  void* out_pred;  // buffer to store output from each worker
+  PredictorOutputHandle out_pred;  // buffer to store output from each worker
 };
 
 struct OutputToken {
@@ -244,7 +244,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::GetLeafOutputType() const {
 template <typename ThresholdType, typename LeafOutputType>
 size_t
 PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
-    const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin, void* out_pred) const {
+    const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+    PredictorOutputHandle out_pred) const {
   /* Pass the correct prediction function to PredLoop.
      We also need to specify how the function should be called. */
   size_t result_size;
@@ -395,12 +396,25 @@ template <typename LeafOutputType>
 class ShrinkResultToFit {
  public:
   inline static void Dispatch(
-      size_t num_row, size_t query_size_per_instance, size_t num_output_group, void* out_result);
+      size_t num_row, size_t query_size_per_instance, size_t num_output_group,
+      PredictorOutputHandle out_result);
+};
+
+template <typename LeafOutputType>
+class AllocateOutputVector {
+ public:
+  inline static PredictorOutputHandle Dispatch(size_t size);
+};
+
+template <typename LeafOutputType>
+class DeallocateOutputVector {
+ public:
+  inline static void Dispatch(PredictorOutputHandle output_vector);
 };
 
 size_t
 Predictor::PredictBatch(
-    const DMatrix* dmat, int verbose, bool pred_margin, void* out_result) const {
+    const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutputHandle out_result) const {
   const double tstart = dmlc::GetTime();
 
   const size_t num_row = dmat->GetNumRow();
@@ -446,16 +460,40 @@ Predictor::PredictBatch(
   return total_size;
 }
 
+PredictorOutputHandle
+Predictor::CreateOutputVector(const DMatrix* dmat) const {
+  const size_t output_vector_size = this->QueryResultSize(dmat);
+  return DispatchWithTypeInfo<AllocateOutputVector>(leaf_output_type_, output_vector_size);
+}
+
+void
+Predictor::DeleteOutputVector(PredictorOutputHandle output_vector) const {
+  DispatchWithTypeInfo<DeallocateOutputVector>(leaf_output_type_, output_vector);
+}
+
 template <typename LeafOutputType>
 void
 ShrinkResultToFit<LeafOutputType>::Dispatch(
-    size_t num_row, size_t query_size_per_instance, size_t num_output_group, void* out_result) {
+    size_t num_row, size_t query_size_per_instance, size_t num_output_group,
+    PredictorOutputHandle out_result) {
   auto* out_result_ = static_cast<LeafOutputType*>(out_result);
   for (size_t rid = 0; rid < num_row; ++rid) {
     for (size_t k = 0; k < query_size_per_instance; ++k) {
       out_result_[rid * query_size_per_instance + k] = out_result_[rid * num_output_group + k];
     }
   }
+}
+
+template <typename LeafOutputType>
+PredictorOutputHandle
+AllocateOutputVector<LeafOutputType>::Dispatch(size_t size) {
+  return static_cast<PredictorOutputHandle>(new LeafOutputType[size]);
+}
+
+template <typename LeafOutputType>
+void
+DeallocateOutputVector<LeafOutputType>::Dispatch(PredictorOutputHandle output_vector) {
+  delete[] (static_cast<LeafOutputType*>(output_vector));
 }
 
 }  // namespace predictor

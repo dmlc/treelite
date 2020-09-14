@@ -406,7 +406,8 @@ inline void InitParamAndCheck(ModelParam* param,
                               const std::vector<std::pair<std::string, std::string>>& cfg);
 
 /*! \brief thin wrapper for tree ensemble model */
-struct Model {
+class Model {
+ public:
   /*! \brief member trees */
   std::vector<Tree> trees;
   /*!

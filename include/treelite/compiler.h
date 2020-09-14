@@ -17,7 +17,7 @@
 
 namespace treelite {
 
-struct Model;  // forward declaration
+class Model;  // forward declaration
 
 namespace compiler {
 

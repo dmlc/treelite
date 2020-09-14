@@ -10,6 +10,7 @@
 #include <treelite/base.h>
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <utility>
@@ -144,10 +145,10 @@ class Tree {
   Tree& operator=(const Tree&) = delete;
   Tree(Tree&&) noexcept = default;
   Tree& operator=(Tree&&) noexcept = default;
-  inline Tree Clone() const;
 
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
+  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                               std::vector<PyBufferFrame>::iterator end);
 
  private:
   // vector of nodes
@@ -406,8 +407,22 @@ inline void InitParamAndCheck(ModelParam* param,
 /*! \brief thin wrapper for tree ensemble model */
 class Model {
  public:
-  /*! \brief member trees */
-  std::vector<Tree> trees;
+  /*! \brief disable copy; use default move */
+  Model() = default;
+  virtual ~Model() = default;
+  inline static std::unique_ptr<Model> Create();
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+  Model(Model&&) = default;
+  Model& operator=(Model&&) = default;
+
+  virtual size_t GetNumTree() const = 0;
+  virtual void SetTreeLimit(size_t limit) = 0;
+  virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
+
+  inline std::vector<PyBufferFrame> GetPyBuffer();
+  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+
   /*!
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
@@ -422,19 +437,37 @@ class Model {
   /*! \brief extra parameters */
   ModelParam param;
 
+ private:
+  // Internal functions for serialization
+  virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
+  virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                                std::vector<PyBufferFrame>::iterator end) = 0;
+};
+
+class ModelImpl : public Model {
+ public:
+  /*! \brief member trees */
+  std::vector<Tree> trees;
+
   /*! \brief disable copy; use default move */
-  Model() = default;
-  ~Model() = default;
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
-  Model(Model&&) = default;
-  Model& operator=(Model&&) = default;
+  ModelImpl() = default;
+  ~ModelImpl() override = default;
+  ModelImpl(const ModelImpl&) = delete;
+  ModelImpl& operator=(const ModelImpl&) = delete;
+  ModelImpl(ModelImpl&&) noexcept = default;
+  ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void ReferenceSerialize(dmlc::Stream* fo) const;
+  void ReferenceSerialize(dmlc::Stream* fo) const override;
+  inline size_t GetNumTree() const override {
+    return trees.size();
+  }
+  void SetTreeLimit(size_t limit) override {
+    return trees.resize(limit);
+  }
 
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
-  inline Model Clone() const;
+  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                               std::vector<PyBufferFrame>::iterator end) override;
 };
 
 }  // namespace treelite

@@ -11,7 +11,7 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(build);
 
-void ASTBuilder::BuildAST(const Model& model) {
+void ASTBuilder::BuildAST(const ModelImpl& model) {
   this->output_vector_flag
     = (model.num_output_group > 1 && model.random_forest_flag);
   this->num_feature = model.num_feature;

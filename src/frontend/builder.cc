@@ -310,9 +310,10 @@ ModelBuilder::DeleteTree(int index) {
   trees.erase(trees.begin() + index);
 }
 
-void
-ModelBuilder::CommitModel(Model* out_model) {
-  Model model;
+std::unique_ptr<Model>
+ModelBuilder::CommitModel() {
+  std::unique_ptr<Model> model_ptr = Model::Create();
+  ModelImpl& model = *dynamic_cast<ModelImpl*>(model_ptr.get());
   model.num_feature = pimpl->num_feature;
   model.num_output_group = pimpl->num_output_group;
   model.random_forest_flag = pimpl->random_forest_flag;
@@ -405,7 +406,7 @@ ModelBuilder::CommitModel(Model* out_model) {
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
-  *out_model = std::move(model);
+  return model_ptr;
 }
 
 }  // namespace frontend

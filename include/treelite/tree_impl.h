@@ -362,73 +362,31 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
 
 constexpr size_t kNumFramePerTree = 6;
 
-inline std::vector<PyBufferFrame>
-Tree::GetPyBuffer() {
-  return {
-      GetPyBufferFromScalar(&num_nodes),
-      GetPyBufferFromArray(&nodes_, "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?=H}"),
-      GetPyBufferFromArray(&leaf_vector_),
-      GetPyBufferFromArray(&leaf_vector_offset_),
-      GetPyBufferFromArray(&left_categories_),
-      GetPyBufferFromArray(&left_categories_offset_)
-  };
+inline void
+Tree::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  dest->push_back(GetPyBufferFromScalar(&num_nodes));
+  dest->push_back(GetPyBufferFromArray(&nodes_, "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?=H}"));
+  dest->push_back(GetPyBufferFromArray(&leaf_vector_));
+  dest->push_back(GetPyBufferFromArray(&leaf_vector_offset_));
+  dest->push_back(GetPyBufferFromArray(&left_categories_));
+  dest->push_back(GetPyBufferFromArray(&left_categories_offset_));
 }
 
 inline void
-Tree::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  size_t frame_id = 0;
-  InitScalarFromPyBuffer(&num_nodes, frames[frame_id++]);
-  InitArrayFromPyBuffer(&nodes_, frames[frame_id++]);
+Tree::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                       std::vector<PyBufferFrame>::iterator end) {
+  if (std::distance(begin, end) != kNumFramePerTree) {
+    throw std::runtime_error("Wrong number of frames specified");
+  }
+  InitScalarFromPyBuffer(&num_nodes, *begin++);
+  InitArrayFromPyBuffer(&nodes_, *begin++);
   if (num_nodes != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
   }
-  InitArrayFromPyBuffer(&leaf_vector_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&leaf_vector_offset_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&left_categories_, frames[frame_id++]);
-  InitArrayFromPyBuffer(&left_categories_offset_, frames[frame_id++]);
-  if (frame_id != kNumFramePerTree) {
-    throw std::runtime_error("Wrong number of frames loaded");
-  }
-}
-
-inline std::vector<PyBufferFrame>
-Model::GetPyBuffer() {
-  /* Header */
-  std::vector<PyBufferFrame> frames{
-      GetPyBufferFromScalar(&num_feature),
-      GetPyBufferFromScalar(&num_output_group),
-      GetPyBufferFromScalar(&random_forest_flag),
-      GetPyBufferFromScalar(&param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}")
-  };
-
-  /* Body */
-  for (auto& tree : trees) {
-    auto tree_frames = tree.GetPyBuffer();
-    frames.insert(frames.end(), tree_frames.begin(), tree_frames.end());
-  }
-  return frames;
-}
-
-inline void
-Model::InitFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  /* Header */
-  size_t frame_id = 0;
-  InitScalarFromPyBuffer(&num_feature, frames[frame_id++]);
-  InitScalarFromPyBuffer(&num_output_group, frames[frame_id++]);
-  InitScalarFromPyBuffer(&random_forest_flag, frames[frame_id++]);
-  InitScalarFromPyBuffer(&param, frames[frame_id++]);
-  /* Body */
-  const size_t num_frame = frames.size();
-  if ((num_frame - frame_id) % kNumFramePerTree != 0) {
-    throw std::runtime_error("Wrong number of frames");
-  }
-  trees.clear();
-  for (; frame_id < num_frame; frame_id += kNumFramePerTree) {
-    std::vector<PyBufferFrame> tree_frames(frames.begin() + frame_id,
-                                           frames.begin() + frame_id + kNumFramePerTree);
-    trees.emplace_back();
-    trees.back().InitFromPyBuffer(tree_frames);
-  }
+  InitArrayFromPyBuffer(&leaf_vector_, *begin++);
+  InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++);
+  InitArrayFromPyBuffer(&left_categories_, *begin++);
+  InitArrayFromPyBuffer(&left_categories_offset_, *begin++);
 }
 
 inline void Tree::Node::Init() {
@@ -457,18 +415,6 @@ Tree::AllocNode() {
     nodes_.Back().Init();
   }
   return nd;
-}
-
-inline Tree
-Tree::Clone() const {
-  Tree tree;
-  tree.num_nodes = num_nodes;
-  tree.nodes_ = nodes_.Clone();
-  tree.leaf_vector_ = leaf_vector_.Clone();
-  tree.leaf_vector_offset_ = leaf_vector_offset_.Clone();
-  tree.left_categories_ = left_categories_.Clone();
-  tree.left_categories_offset_ = left_categories_offset_.Clone();
-  return tree;
 }
 
 inline void
@@ -732,17 +678,63 @@ Tree::SetGain(int nid, double gain) {
   node.gain_present_ = true;
 }
 
-inline Model
-Model::Clone() const {
-  Model model;
-  for (const Tree& t : trees) {
-    model.trees.push_back(t.Clone());
-  }
-  model.num_feature = num_feature;
-  model.num_output_group = num_output_group;
-  model.random_forest_flag = random_forest_flag;
-  model.param = param;
+inline std::unique_ptr<Model>
+Model::Create() {
+  std::unique_ptr<Model> model = std::make_unique<ModelImpl>();
   return model;
+}
+
+inline std::vector<PyBufferFrame>
+Model::GetPyBuffer() {
+  std::vector<PyBufferFrame> buffer;
+  this->GetPyBuffer(&buffer);
+  return buffer;
+}
+
+inline std::unique_ptr<Model>
+Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
+  std::unique_ptr<Model> model = Model::Create();
+  model->InitFromPyBuffer(frames.begin(), frames.end());
+  return model;
+}
+
+inline void
+ModelImpl::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  /* Header */
+  dest->push_back(GetPyBufferFromScalar(&num_feature));
+  dest->push_back(GetPyBufferFromScalar(&num_output_group));
+  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
+  dest->push_back(GetPyBufferFromScalar(
+      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
+
+  /* Body */
+  for (Tree& tree : trees) {
+    tree.GetPyBuffer(dest);
+  }
+}
+
+inline void
+ModelImpl::InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+  const size_t num_frame = std::distance(begin, end);
+  /* Header */
+  constexpr size_t kNumFrameInHeader = 4;
+  if (num_frame < kNumFrameInHeader) {
+    throw std::runtime_error("Wrong number of frames");
+  }
+  InitScalarFromPyBuffer(&num_feature, *begin++);
+  InitScalarFromPyBuffer(&num_output_group, *begin++);
+  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
+  InitScalarFromPyBuffer(&param, *begin++);
+  /* Body */
+  if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
+    throw std::runtime_error("Wrong number of frames");
+  }
+  trees.clear();
+  for (; begin < end; begin += kNumFramePerTree) {
+    trees.emplace_back();
+    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree);
+  }
 }
 
 inline void InitParamAndCheck(ModelParam* param,

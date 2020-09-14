@@ -142,8 +142,8 @@ class Tree {
   ~Tree() = default;
   Tree(const Tree&) = delete;
   Tree& operator=(const Tree&) = delete;
-  Tree(Tree&&) = default;
-  Tree& operator=(Tree&&) = default;
+  Tree(Tree&&) noexcept = default;
+  Tree& operator=(Tree&&) noexcept = default;
   inline Tree Clone() const;
 
   inline std::vector<PyBufferFrame> GetPyBuffer();

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <map>
 #include <string>
 #include <utility>

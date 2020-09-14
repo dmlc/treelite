@@ -442,7 +442,6 @@ inline void Tree::Node::Init() {
   data_count_present_ = sum_hess_present_ = gain_present_ = false;
   split_type_ = SplitFeatureType::kNone;
   cmp_ = Operator::kNone;
-  pad_ = 0;
 }
 
 inline int

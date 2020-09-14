@@ -133,8 +133,6 @@ class Tree {
     bool sum_hess_present_;
     /*! \brief whether gain_present_ field is present */
     bool gain_present_;
-    // padding
-    uint16_t pad_;
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");

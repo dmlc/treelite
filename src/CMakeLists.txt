@@ -85,7 +85,6 @@ target_sources(objtreelite
     frontend/xgboost.cc
     frontend/xgboost_json.cc
     annotator.cc
-    data.cc
     filesystem.cc
     optable.cc
     reference_serializer.cc
@@ -94,7 +93,6 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
     ${PROJECT_SOURCE_DIR}/include/treelite/compiler.h
     ${PROJECT_SOURCE_DIR}/include/treelite/compiler_param.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/data.h
     ${PROJECT_SOURCE_DIR}/include/treelite/filesystem.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
@@ -109,7 +107,6 @@ target_sources(objtreelite_runtime
     predictor/thread_pool/thread_pool.h
     predictor/predictor.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_runtime.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/entry.h
     ${PROJECT_SOURCE_DIR}/include/treelite/predictor.h
 )
 
@@ -117,11 +114,15 @@ target_sources(objtreelite_common
     PRIVATE
     c_api/c_api_common.cc
     c_api/c_api_error.cc
-    c_api/c_api_error.h
+    data.cc
     logging.cc
+    typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
     ${PROJECT_SOURCE_DIR}/include/treelite/math.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/data.h
 )
 
 msvc_use_static_runtime()

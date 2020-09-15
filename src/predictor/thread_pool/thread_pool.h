@@ -7,6 +7,7 @@
 #ifndef TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_
 #define TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_
 
+#include <string>
 #include <memory>
 #include <vector>
 #include <cstdlib>
@@ -18,6 +19,7 @@
 #include "spsc_queue.h"
 
 namespace treelite {
+namespace predictor {
 
 template <typename InputToken, typename OutputToken, typename TaskContext>
 class ThreadPool {
@@ -27,7 +29,8 @@ class ThreadPool {
 
   ThreadPool(int num_worker, const TaskContext* context, TaskFunc task)
     : num_worker_(num_worker), context_(context), task_(task) {
-    CHECK(num_worker_ >= 0 && num_worker_ < std::thread::hardware_concurrency())
+    CHECK(num_worker_ >= 0
+          && static_cast<unsigned>(num_worker_) < std::thread::hardware_concurrency())
     << "Number of worker threads must be between 0 and "
     << (std::thread::hardware_concurrency() - 1);
     for (int i = 0; i < num_worker_; ++i) {
@@ -42,7 +45,7 @@ class ThreadPool {
     }
     /* bind threads to cores */
     const char* bind_flag = getenv("TREELITE_BIND_THREADS");
-    if (bind_flag == nullptr || std::atoi(bind_flag) == 1) {
+    if (bind_flag == nullptr || std::stoi(bind_flag) == 1) {
       SetAffinity();
     }
   }
@@ -76,7 +79,7 @@ class ThreadPool {
     SetThreadAffinityMask(GetCurrentThread(), 0x1);
     for (int i = 0; i < num_worker_; ++i) {
       const int core_id = i + 1;
-      SetThreadAffinityMask(thread_[i].native_handle(), (1 << core_id));
+      SetThreadAffinityMask(thread_[i].native_handle(), (1ULL << core_id));
     }
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <TargetConditionals.h>
@@ -122,6 +125,7 @@ class ThreadPool {
   }
 };
 
+}  // namespace predictor
 }  // namespace treelite
 
 #endif  // TREELITE_PREDICTOR_THREAD_POOL_THREAD_POOL_H_

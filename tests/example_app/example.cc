@@ -22,14 +22,13 @@ int main(void) {
   std::unique_ptr<ModelBuilder> builder{new ModelBuilder(2, 1, false)};
   builder->InsertTree(tree.get());
 
-  treelite::Model model;
-  builder->CommitModel(&model);
-  std::cout << model.trees.size() << std::endl;
+  std::unique_ptr<treelite::Model> model = builder->CommitModel();
+  std::cout << model->GetNumTree() << std::endl;
 
   treelite::compiler::CompilerParam param;
   param.Init(std::map<std::string, std::string>{});
   std::unique_ptr<treelite::Compiler> compiler{treelite::Compiler::Create("ast_native", param)};
-  treelite::compiler::CompiledModel cm = compiler->Compile(model);
+  treelite::compiler::CompiledModel cm = compiler->Compile(*model.get());
   for (const auto& kv : cm.files) {
     std::cout << "=================" << kv.first << "=================" << std::endl;
     std::cout << kv.second.content << std::endl;

@@ -10,6 +10,7 @@
 #include <treelite/base.h>
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <utility>
@@ -133,8 +134,6 @@ class Tree {
     bool sum_hess_present_;
     /*! \brief whether gain_present_ field is present */
     bool gain_present_;
-    // padding
-    uint16_t pad_;
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
@@ -144,12 +143,12 @@ class Tree {
   ~Tree() = default;
   Tree(const Tree&) = delete;
   Tree& operator=(const Tree&) = delete;
-  Tree(Tree&&) = default;
-  Tree& operator=(Tree&&) = default;
-  inline Tree Clone() const;
+  Tree(Tree&&) noexcept = default;
+  Tree& operator=(Tree&&) noexcept = default;
 
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
+  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                               std::vector<PyBufferFrame>::iterator end);
 
  private:
   // vector of nodes
@@ -184,57 +183,86 @@ class Tree {
    * \brief index of the node's left child
    * \param nid ID of node being queried
    */
-  inline int LeftChild(int nid) const;
+  inline int LeftChild(int nid) const {
+    return nodes_[nid].cleft_;
+  }
   /*!
    * \brief index of the node's right child
    * \param nid ID of node being queried
    */
-  inline int RightChild(int nid) const;
+  inline int RightChild(int nid) const {
+    return nodes_[nid].cright_;
+  }
   /*!
    * \brief index of the node's "default" child, used when feature is missing
    * \param nid ID of node being queried
    */
-  inline int DefaultChild(int nid) const;
+  inline int DefaultChild(int nid) const {
+    return DefaultLeft(nid) ? LeftChild(nid) : RightChild(nid);
+  }
   /*!
    * \brief feature index of the node's split condition
    * \param nid ID of node being queried
    */
-  inline uint32_t SplitIndex(int nid) const;
+  inline uint32_t SplitIndex(int nid) const {
+    return (nodes_[nid].sindex_ & ((1U << 31U) - 1U));
+  }
   /*!
    * \brief whether to use the left child node, when the feature in the split condition is missing
    * \param nid ID of node being queried
    */
-  inline bool DefaultLeft(int nid) const;
+  inline bool DefaultLeft(int nid) const {
+    return (nodes_[nid].sindex_ >> 31U) != 0;
+  }
   /*!
    * \brief whether the node is leaf node
    * \param nid ID of node being queried
    */
-  inline bool IsLeaf(int nid) const;
+  inline bool IsLeaf(int nid) const {
+    return nodes_[nid].cleft_ == -1;
+  }
   /*!
    * \brief get leaf value of the leaf node
    * \param nid ID of node being queried
    */
-  inline tl_float LeafValue(int nid) const;
+  inline tl_float LeafValue(int nid) const {
+    return (nodes_[nid].info_).leaf_value;
+  }
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
    * \param nid ID of node being queried
    */
-  inline std::vector<tl_float> LeafVector(int nid) const;
+  inline std::vector<tl_float> LeafVector(int nid) const {
+    if (nid > leaf_vector_offset_.Size()) {
+      throw std::runtime_error("nid too large");
+    }
+    return std::vector<tl_float>(&leaf_vector_[leaf_vector_offset_[nid]],
+                                 &leaf_vector_[leaf_vector_offset_[nid + 1]]);
+  }
   /*!
    * \brief tests whether the leaf node has a non-empty leaf vector
    * \param nid ID of node being queried
    */
-  inline bool HasLeafVector(int nid) const;
+  inline bool HasLeafVector(int nid) const {
+    if (nid > leaf_vector_offset_.Size()) {
+      throw std::runtime_error("nid too large");
+    }
+    return leaf_vector_offset_[nid] != leaf_vector_offset_[nid + 1];
+  }
   /*!
    * \brief get threshold of the node
    * \param nid ID of node being queried
    */
-  inline tl_float Threshold(int nid) const;
+  inline tl_float Threshold(int nid) const {
+    return (nodes_[nid].info_).threshold;
+  }
   /*!
    * \brief get comparison operator
    * \param nid ID of node being queried
    */
-  inline Operator ComparisonOp(int nid) const;
+  inline Operator ComparisonOp(int nid) const {
+    return nodes_[nid].cmp_;
+  }
   /*!
    * \brief Get list of all categories belonging to the left child node. Categories not in this
    *        list will belong to the right child node. Categories are integers ranging from 0 to
@@ -242,48 +270,71 @@ class Tree {
    *        assumed to be in ascending order.
    * \param nid ID of node being queried
    */
-  inline std::vector<uint32_t> LeftCategories(int nid) const;
+  inline std::vector<uint32_t> LeftCategories(int nid) const {
+    if (nid > left_categories_offset_.Size()) {
+      throw std::runtime_error("nid too large");
+    }
+    return std::vector<uint32_t>(&left_categories_[left_categories_offset_[nid]],
+                                 &left_categories_[left_categories_offset_[nid + 1]]);
+  }
   /*!
    * \brief get feature split type
    * \param nid ID of node being queried
    */
-  inline SplitFeatureType SplitType(int nid) const;
+  inline SplitFeatureType SplitType(int nid) const {
+    return nodes_[nid].split_type_;
+  }
   /*!
    * \brief test whether this node has data count
    * \param nid ID of node being queried
    */
-  inline bool HasDataCount(int nid) const;
+  inline bool HasDataCount(int nid) const {
+    return nodes_[nid].data_count_present_;
+  }
   /*!
    * \brief get data count
    * \param nid ID of node being queried
    */
-  inline uint64_t DataCount(int nid) const;
+  inline uint64_t DataCount(int nid) const {
+    return nodes_[nid].data_count_;
+  }
+
   /*!
    * \brief test whether this node has hessian sum
    * \param nid ID of node being queried
    */
-  inline bool HasSumHess(int nid) const;
+  inline bool HasSumHess(int nid) const {
+    return nodes_[nid].sum_hess_present_;
+  }
   /*!
    * \brief get hessian sum
    * \param nid ID of node being queried
    */
-  inline double SumHess(int nid) const;
+  inline double SumHess(int nid) const {
+    return nodes_[nid].sum_hess_;
+  }
   /*!
    * \brief test whether this node has gain value
    * \param nid ID of node being queried
    */
-  inline bool HasGain(int nid) const;
+  inline bool HasGain(int nid) const {
+    return nodes_[nid].gain_present_;
+  }
   /*!
    * \brief get gain value
    * \param nid ID of node being queried
    */
-  inline double Gain(int nid) const;
+  inline double Gain(int nid) const {
+    return nodes_[nid].gain_;
+  }
   /*!
    * \brief test whether missing values should be converted into zero; only applicable for
    *        categorical splits
    * \param nid ID of node being queried
    */
-  inline bool MissingCategoryToZero(int nid) const;
+  inline bool MissingCategoryToZero(int nid) const {
+    return nodes_[nid].missing_category_to_zero_;
+  }
 
   /** Setters **/
   /*!
@@ -326,19 +377,31 @@ class Tree {
    * \param nid ID of node being updated
    * \param sum_hess hessian sum
    */
-  inline void SetSumHess(int nid, double sum_hess);
+  inline void SetSumHess(int nid, double sum_hess) {
+    Node& node = nodes_[nid];
+    node.sum_hess_ = sum_hess;
+    node.sum_hess_present_ = true;
+  }
   /*!
    * \brief set the data count of the node
    * \param nid ID of node being updated
    * \param data_count data count
    */
-  inline void SetDataCount(int nid, uint64_t data_count);
+  inline void SetDataCount(int nid, uint64_t data_count) {
+    Node& node = nodes_[nid];
+    node.data_count_ = data_count;
+    node.data_count_present_ = true;
+  }
   /*!
    * \brief set the gain value of the node
    * \param nid ID of node being updated
    * \param gain gain value
    */
-  inline void SetGain(int nid, double gain);
+  inline void SetGain(int nid, double gain) {
+    Node& node = nodes_[nid];
+    node.gain_ = gain;
+    node.gain_present_ = true;
+  }
 
   void ReferenceSerialize(dmlc::Stream* fo) const;
 };
@@ -406,9 +469,24 @@ inline void InitParamAndCheck(ModelParam* param,
                               const std::vector<std::pair<std::string, std::string>>& cfg);
 
 /*! \brief thin wrapper for tree ensemble model */
-struct Model {
-  /*! \brief member trees */
-  std::vector<Tree> trees;
+class Model {
+ public:
+  /*! \brief disable copy; use default move */
+  Model() = default;
+  virtual ~Model() = default;
+  inline static std::unique_ptr<Model> Create();
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+  Model(Model&&) = default;
+  Model& operator=(Model&&) = default;
+
+  virtual size_t GetNumTree() const = 0;
+  virtual void SetTreeLimit(size_t limit) = 0;
+  virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
+
+  inline std::vector<PyBufferFrame> GetPyBuffer();
+  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+
   /*!
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
@@ -423,19 +501,37 @@ struct Model {
   /*! \brief extra parameters */
   ModelParam param;
 
+ private:
+  // Internal functions for serialization
+  virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
+  virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                                std::vector<PyBufferFrame>::iterator end) = 0;
+};
+
+class ModelImpl : public Model {
+ public:
+  /*! \brief member trees */
+  std::vector<Tree> trees;
+
   /*! \brief disable copy; use default move */
-  Model() = default;
-  ~Model() = default;
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
-  Model(Model&&) = default;
-  Model& operator=(Model&&) = default;
+  ModelImpl() = default;
+  ~ModelImpl() override = default;
+  ModelImpl(const ModelImpl&) = delete;
+  ModelImpl& operator=(const ModelImpl&) = delete;
+  ModelImpl(ModelImpl&&) noexcept = default;
+  ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void ReferenceSerialize(dmlc::Stream* fo) const;
+  void ReferenceSerialize(dmlc::Stream* fo) const override;
+  inline size_t GetNumTree() const override {
+    return trees.size();
+  }
+  void SetTreeLimit(size_t limit) override {
+    return trees.resize(limit);
+  }
 
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame> frames);
-  inline Model Clone() const;
+  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                               std::vector<PyBufferFrame>::iterator end) override;
 };
 
 }  // namespace treelite

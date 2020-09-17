@@ -30,7 +30,7 @@ class ASTBuilder {
                  quantize_threshold_flag(false) {}
 
   /* \brief initially build AST from model */
-  void BuildAST(const Model& model);
+  void BuildAST(const ModelImpl& model);
   /* \brief generate is_categorical[] array, which tells whether each feature
             is categorical or numerical */
   std::vector<bool> GenerateIsCategoricalArray();

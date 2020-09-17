@@ -17,7 +17,7 @@
 
 namespace {
 
-treelite::Model ParseStream(dmlc::Stream* fi);
+inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi);
 
 }  // anonymous namespace
 
@@ -26,14 +26,14 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(xgboost);
 
-void LoadXGBoostModel(const char* filename, Model* out) {
+std::unique_ptr<treelite::Model> LoadXGBoostModel(const char* filename) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  *out = std::move(ParseStream(fi.get()));
+  return ParseStream(fi.get());
 }
 
-void LoadXGBoostModel(const void* buf, size_t len, Model* out) {
+std::unique_ptr<treelite::Model> LoadXGBoostModel(const void* buf, size_t len) {
   dmlc::MemoryFixedSizeStream fs(const_cast<void*>(buf), len);
-  *out = std::move(ParseStream(&fs));
+  return ParseStream(&fs);
 }
 
 }  // namespace frontend
@@ -322,7 +322,7 @@ class XGBTree {
   }
 };
 
-inline treelite::Model ParseStream(dmlc::Stream* fi) {
+inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::vector<XGBTree> xgb_trees_;
   LearnerModelParam mparam_;    // model parameter
   GBTreeModelParam gbm_param_;  // GBTree training parameter
@@ -384,45 +384,49 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   bool need_transform_to_margin = mparam_.major_version >= 1;
 
   /* 2. Export model */
-  treelite::Model model;
-  model.num_feature = mparam_.num_feature;
-  model.num_output_group = std::max(mparam_.num_class, 1);
-  model.random_forest_flag = false;
+  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create();
+  auto* model = dynamic_cast<treelite::ModelImpl*>(model_ptr.get());
+  model->num_feature = mparam_.num_feature;
+  model->num_output_group = std::max(mparam_.num_class, 1);
+  model->random_forest_flag = false;
 
   // set global bias
-  model.param.global_bias = static_cast<float>(mparam_.base_score);
+  model->param.global_bias = static_cast<float>(mparam_.base_score);
   std::vector<std::string> exponential_family {
     "count:poisson", "reg:gamma", "reg:tweedie"
   };
   if (need_transform_to_margin) {
     if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-      model.param.global_bias = treelite::details::ProbToMargin::Sigmoid(model.param.global_bias);
+      model->param.global_bias = treelite::details::ProbToMargin::Sigmoid(model->param.global_bias);
     } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
                != exponential_family.cend()) {
-      model.param.global_bias = treelite::details::ProbToMargin::Exponential(
-        model.param.global_bias);
+      model->param.global_bias = treelite::details::ProbToMargin::Exponential(
+          model->param.global_bias);
     }
   }
 
   // set correct prediction transform function, depending on objective function
   if (name_obj_ == "multi:softmax") {
-    std::strncpy(model.param.pred_transform, "max_index", sizeof(model.param.pred_transform));
+    std::strncpy(model->param.pred_transform, "max_index",
+                 sizeof(model->param.pred_transform));
   } else if (name_obj_ == "multi:softprob") {
-    std::strncpy(model.param.pred_transform, "softmax", sizeof(model.param.pred_transform));
+    std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
   } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-    std::strncpy(model.param.pred_transform, "sigmoid", sizeof(model.param.pred_transform));
-    model.param.sigmoid_alpha = 1.0f;
+    std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
+    model->param.sigmoid_alpha = 1.0f;
   } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
              != exponential_family.cend()) {
-    std::strncpy(model.param.pred_transform, "exponential", sizeof(model.param.pred_transform));
+    std::strncpy(model->param.pred_transform, "exponential",
+                 sizeof(model->param.pred_transform));
   } else {
-    std::strncpy(model.param.pred_transform, "identity", sizeof(model.param.pred_transform));
+    std::strncpy(model->param.pred_transform, "identity",
+                 sizeof(model->param.pred_transform));
   }
 
   // traverse trees
   for (const auto& xgb_tree : xgb_trees_) {
-    model.trees.emplace_back();
-    treelite::Tree& tree = model.trees.back();
+    model->trees.emplace_back();
+    treelite::Tree& tree = model->trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -451,7 +455,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       tree.SetSumHess(new_id, stat.sum_hess);
     }
   }
-  return model;
+  return model_ptr;
 }
 
 }  // anonymous namespace

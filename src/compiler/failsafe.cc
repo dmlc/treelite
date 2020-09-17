@@ -136,7 +136,7 @@ const char* arrays_template = R"TREELITETEMPLATE(
 // nodes[]: stores nodes from all decision trees
 // nodes_row_ptr[]: marks bounaries between decision trees. The nodes belonging to Tree [i] are
 //                  found in nodes[nodes_row_ptr[i]:nodes_row_ptr[i+1]]
-inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Model& model) {
+inline std::pair<std::string, std::string> FormatNodesArray(const treelite::ModelImpl& model) {
   treelite::compiler::common_util::ArrayFormatter nodes(100, 2);
   treelite::compiler::common_util::ArrayFormatter nodes_row_ptr(100, 2);
   int node_count = 0;
@@ -172,7 +172,8 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
 }
 
 // Variant of FormatNodesArray(), where nodes[] array is dumped as an ELF binary
-inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treelite::Model& model) {
+inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
+    const treelite::ModelImpl& model) {
   std::vector<char> nodes_elf;
   treelite::compiler::AllocateELFHeader(&nodes_elf);
 
@@ -208,7 +209,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(const treel
 
 // Get the comparison op used in the tree ensemble model
 // If splits have more than one op, throw an error
-inline std::string GetCommonOp(const treelite::Model& model) {
+inline std::string GetCommonOp(const treelite::ModelImpl& model) {
   std::set<treelite::Operator> ops;
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
@@ -262,7 +263,9 @@ class FailSafeCompiler : public Compiler {
     }
   }
 
-  CompiledModel Compile(const Model& model) override {
+  CompiledModel Compile(const Model& model_ptr) override {
+    const auto& model = dynamic_cast<const ModelImpl&>(model_ptr);
+
     CompiledModel cm;
     cm.backend = "native";
 

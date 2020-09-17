@@ -307,48 +307,37 @@ int TreeliteCompilerFree(CompilerHandle handle) {
   API_END();
 }
 
-int TreeliteLoadLightGBMModel(const char* filename,
-                              ModelHandle* out) {
+int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadLightGBMModel(filename, model.get());
+  std::unique_ptr<Model> model = frontend::LoadLightGBMModel(filename);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostModel(const char* filename,
-                             ModelHandle* out) {
+int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostModel(filename, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostModel(filename);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostJSON(const char* filename,
-                            ModelHandle* out) {
+int TreeliteLoadXGBoostJSON(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostJSONModel(filename, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModel(filename);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostJSONString(const char* json_str,
-                                  size_t length,
-                                  ModelHandle* out) {
+int TreeliteLoadXGBoostJSONString(const char* json_str, size_t length, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostJSONModelString(json_str, length, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModelString(json_str, length);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len,
-                                             ModelHandle* out) {
+int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model{new Model()};
-  frontend::LoadXGBoostModel(buf, len, model.get());
+  std::unique_ptr<Model> model = frontend::LoadXGBoostModel(buf, len);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -361,21 +350,21 @@ int TreeliteFreeModel(ModelHandle handle) {
 
 int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
-  *out = model_->trees.size();
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out = model_->GetNumTree();
   API_END();
 }
 
 int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
+  const auto* model_ = static_cast<const Model*>(handle);
   *out = static_cast<size_t>(model_->num_feature);
   API_END();
 }
 
 int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  auto model_ = static_cast<const Model*>(handle);
+  const auto* model_ = static_cast<const Model*>(handle);
   *out = static_cast<size_t>(model_->num_output_group);
   API_END();
 }
@@ -383,10 +372,10 @@ int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
 int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
   API_BEGIN();
   CHECK_GT(limit, 0) << "limit should be greater than 0!";
-  auto model_ = static_cast<Model*>(handle);
-  CHECK_GE(model_->trees.size(), limit)
-    << "Model contains less trees(" << model_->trees.size() << ") than limit";
-  model_->trees.resize(limit);
+  auto* model_ = static_cast<Model*>(handle);
+  const size_t num_tree = model_->GetNumTree();
+  CHECK_GE(num_tree, limit) << "Model contains less trees(" << num_tree << ") than limit";
+  model_->SetTreeLimit(limit);
   API_END();
 }
 
@@ -550,8 +539,7 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
   API_BEGIN();
   auto builder = static_cast<frontend::ModelBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

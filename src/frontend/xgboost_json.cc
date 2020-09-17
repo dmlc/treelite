@@ -31,9 +31,8 @@
 
 namespace {
 
-template<typename StreamType> treelite::Model ParseStream(
-    std::unique_ptr<StreamType> input_stream
-);
+template <typename StreamType>
+std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream);
 
 }  // anonymous namespace
 
@@ -42,7 +41,7 @@ namespace frontend {
 
 DMLC_REGISTRY_FILE_TAG(xgboost_json);
 
-void LoadXGBoostJSONModel(const char* filename, Model* out) {
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
   char readBuffer[65536];
 
 #ifdef _WIN32
@@ -55,15 +54,15 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
       fp,
       readBuffer,
       sizeof(readBuffer));
-  *out = std::move(ParseStream(std::move(input_stream)));
+  auto parsed_model = ParseStream(std::move(input_stream));
   fclose(fp);
+  return parsed_model;
 }
 
-void LoadXGBoostJSONModelString(const char* json_str,
-                                size_t length, Model *out) {
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(
       json_str, length);
-  *out = std::move(ParseStream(std::move(input_stream)));
+  return ParseStream(std::move(input_stream));
 }
 
 }  // namespace frontend
@@ -241,8 +240,7 @@ bool GradientBoosterHandler::String(const char *str,
   }
 }
 bool GradientBoosterHandler::StartObject() {
-  if (push_key_handler<GBTreeModelHandler, treelite::Model>("model",
-                                                            output)) {
+  if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl>("model", output)) {
     return true;
   } else {
     LOG(ERROR) << "Key \"" << get_cur_key()
@@ -285,9 +283,9 @@ bool LearnerParamHandler::String(const char *str,
  * ***************************************************************************/
 bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
-  return (push_key_handler<LearnerParamHandler, treelite::Model>(
+  return (push_key_handler<LearnerParamHandler, treelite::ModelImpl>(
               "learner_model_param", output) ||
-          push_key_handler<GradientBoosterHandler, treelite::Model>(
+          push_key_handler<GradientBoosterHandler, treelite::ModelImpl>(
               "gradient_booster", output) ||
           push_key_handler<ObjectiveHandler, std::string>("objective",
                                                           objective) ||
@@ -324,8 +322,7 @@ bool XGBoostModelHandler::StartArray() {
 }
 
 bool XGBoostModelHandler::StartObject() {
-  return push_key_handler<LearnerHandler, treelite::Model>("learner",
-                                                           output);
+  return push_key_handler<LearnerHandler, treelite::ModelImpl>("learner", output);
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
@@ -352,13 +349,14 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  return push_handler<XGBoostModelHandler, treelite::Model>(output);
+  return push_handler<XGBoostModelHandler, treelite::ModelImpl>(
+      *dynamic_cast<ModelImpl*>(output.get()));
 }
 
 /******************************************************************************
  * DelegatedHandler
  * ***************************************************************************/
-treelite::Model DelegatedHandler::get_result() { return std::move(result); }
+std::unique_ptr<treelite::Model> DelegatedHandler::get_result() { return std::move(result); }
 bool DelegatedHandler::Null() { return delegates.top()->Null(); }
 bool DelegatedHandler::Bool(bool b) { return delegates.top()->Bool(b); }
 bool DelegatedHandler::Int(int i) { return delegates.top()->Int(i); }
@@ -387,7 +385,7 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 
 namespace {
 template<typename StreamType>
-treelite::Model ParseStream(std::unique_ptr<StreamType> input_stream) {
+std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream) {
   std::shared_ptr<treelite::details::DelegatedHandler> handler =
     treelite::details::DelegatedHandler::create();
   rapidjson::Reader reader;

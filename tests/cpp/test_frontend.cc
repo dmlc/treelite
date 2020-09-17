@@ -377,7 +377,7 @@ TEST(GBTreeModelHandlerSuite, GBTreeModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Model output;
+  ModelImpl output;
   details::GBTreeModelHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -397,7 +397,7 @@ TEST(GradientBoosterHandlerSuite, GradientBoosterHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Model output;
+  ModelImpl output;
   details::GradientBoosterHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -440,7 +440,7 @@ TEST(LearnerParamHandlerSuite, LearnerParamHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Model output;
+  ModelImpl output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -464,7 +464,7 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Model output;
+  ModelImpl output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -485,7 +485,7 @@ TEST(RootHandlerSuite, RootHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Model output;
+  ModelImpl output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 

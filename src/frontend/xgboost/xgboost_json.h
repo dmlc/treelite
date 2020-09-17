@@ -33,7 +33,7 @@ class Delegator {
 class BaseHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, BaseHandler> {
  public:
-  /*! 
+  /*!
    * \brief construct handler to be added to given delegator's stack
    * \param parent_delegator pointer to Delegator for this handler
    */
@@ -141,7 +141,7 @@ class IgnoreHandler : public BaseHandler {
 /*! \brief base handler for updating some output object*/
 template <typename OutputType> class OutputHandler : public BaseHandler {
  public:
-  /*! 
+  /*!
    * \brief construct handler to be added to given delegator's stack
    * \param parent_delegator pointer to Delegator for this handler
    * \param output the object to be modified during parsing
@@ -262,16 +262,16 @@ class RegTreeHandler : public OutputHandler<treelite::Tree> {
 };
 
 /*! \brief handler for GBTreeModel objects from XGBoost schema*/
-class GBTreeModelHandler : public OutputHandler<treelite::Model> {
-  using OutputHandler<treelite::Model>::OutputHandler;
+class GBTreeModelHandler : public OutputHandler<treelite::ModelImpl> {
+  using OutputHandler<treelite::ModelImpl>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
 };
 
 /*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
-class GradientBoosterHandler : public OutputHandler<treelite::Model> {
+class GradientBoosterHandler : public OutputHandler<treelite::ModelImpl> {
  public:
-  using OutputHandler<treelite::Model>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
   bool StartObject() override;
 };
@@ -286,16 +286,16 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
-class LearnerParamHandler : public OutputHandler<treelite::Model> {
+class LearnerParamHandler : public OutputHandler<treelite::ModelImpl> {
  public:
-  using OutputHandler<treelite::Model>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
 };
 
 /*! \brief handler for Learner objects from XGBoost schema*/
-class LearnerHandler : public OutputHandler<treelite::Model> {
+class LearnerHandler : public OutputHandler<treelite::ModelImpl> {
  public:
-  using OutputHandler<treelite::Model>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl>::OutputHandler;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
 
@@ -304,9 +304,9 @@ class LearnerHandler : public OutputHandler<treelite::Model> {
 };
 
 /*! \brief handler for XGBoostModel objects from XGBoost schema*/
-class XGBoostModelHandler : public OutputHandler<treelite::Model> {
+class XGBoostModelHandler : public OutputHandler<treelite::ModelImpl> {
  public:
-  using OutputHandler<treelite::Model>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
@@ -316,9 +316,9 @@ class XGBoostModelHandler : public OutputHandler<treelite::Model> {
 };
 
 /*! \brief handler for root object of XGBoost schema*/
-class RootHandler : public OutputHandler<treelite::Model> {
+class RootHandler : public OutputHandler<std::unique_ptr<treelite::Model>> {
  public:
-  using OutputHandler<treelite::Model>::OutputHandler;
+  using OutputHandler<std::unique_ptr<treelite::Model>>::OutputHandler;
   bool StartObject() override;
 };
 
@@ -353,7 +353,7 @@ class DelegatedHandler
   void pop_delegate() override {
     delegates.pop();
   }
-  treelite::Model get_result();
+  std::unique_ptr<treelite::Model> get_result();
   bool Null();
   bool Bool(bool b);
   bool Int(int i);
@@ -369,10 +369,10 @@ class DelegatedHandler
   bool EndArray(std::size_t elementCount);
 
  private:
-  DelegatedHandler() : delegates{}, result{} {};
+  DelegatedHandler() : delegates{}, result{treelite::Model::Create<float, float>()} {};
 
   std::stack<std::shared_ptr<BaseHandler>> delegates;
-  treelite::Model result;
+  std::unique_ptr<treelite::Model> result;
 };
 
 }  // namespace details

@@ -54,7 +54,7 @@ void Tree::ReferenceSerialize(dmlc::Stream* fo) const {
   CHECK_EQ(left_categories_offset_.Back(), left_categories_.Size());
 }
 
-void Model::ReferenceSerialize(dmlc::Stream* fo) const {
+void ModelImpl::ReferenceSerialize(dmlc::Stream* fo) const {
   fo->Write(num_feature);
   fo->Write(num_output_group);
   fo->Write(random_forest_flag);

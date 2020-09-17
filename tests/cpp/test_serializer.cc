@@ -23,8 +23,7 @@ inline std::string TreeliteToBytes(treelite::Model* model) {
 
 inline void TestRoundTrip(treelite::Model* model) {
   auto buffer = model->GetPyBuffer();
-  std::unique_ptr<treelite::Model> received_model{new treelite::Model()};
-  received_model->InitFromPyBuffer(buffer);
+  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
   ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
 }
@@ -47,8 +46,7 @@ TEST(PyBufferInterfaceRoundTrip, TreeStump) {
   tree->SetLeafNode(2, 1.0f);
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -66,8 +64,7 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
   tree->SetLeafVectorNode(2, {1.0f, -1.0f});
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -85,8 +82,7 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpCategoricalSplit) {
   tree->SetLeafNode(2, 1.0f);
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -112,8 +108,7 @@ TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {
     builder->InsertTree(tree.get());
   }
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 
@@ -144,8 +139,7 @@ TEST(PyBufferInterfaceRoundTrip, DeepFullTree) {
   tree->SetRootNode(0);
   builder->InsertTree(tree.get());
 
-  std::unique_ptr<Model> model{new Model()};
-  builder->CommitModel(model.get());
+  std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
 }
 

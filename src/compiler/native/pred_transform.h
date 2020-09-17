@@ -115,7 +115,7 @@ inline std::string multiclass_ova(const Model& model) {
   const float alpha = model.param.sigmoid_alpha;
   CHECK_GT(alpha, 0.0f) << "multiclass_ova: alpha must be strictly positive";
   return fmt::format(
-R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
+      R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   const float alpha = (float){alpha};
   const int num_class = {num_class};
   for (int k = 0; k < num_class; ++k) {{
@@ -123,7 +123,7 @@ R"TREELITETEMPLATE(static inline size_t pred_transform(float* pred) {{
   }}
   return (size_t)num_class;
 }})TREELITETEMPLATE",
-    "num_class"_a = model.num_output_group, "alpha"_a = alpha);
+      "num_class"_a = model.num_output_group, "alpha"_a = alpha);
 }
 
 }  // namespace pred_transform

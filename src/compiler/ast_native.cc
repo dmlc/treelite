@@ -62,7 +62,7 @@ class ASTNativeCompiler : public Compiler {
     files_.clear();
 
     ASTBuilder builder;
-    builder.BuildAST(model);
+    builder.BuildAST(dynamic_cast<const ModelImpl&>(model));
     if (builder.FoldCode(param.code_folding_req)
         || param.quantize > 0) {
       // is_categorical[i] : is i-th feature categorical?

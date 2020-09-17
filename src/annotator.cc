@@ -54,11 +54,12 @@ void Traverse(const treelite::Tree& tree, const Entry* data,
   Traverse_(tree, data, 0, out_counts);
 }
 
-inline void ComputeBranchLoop(const treelite::Model& model,
+inline void ComputeBranchLoop(const treelite::Model& model_ptr,
                               const treelite::DMatrix* dmat,
                               size_t rbegin, size_t rend, int nthread,
                               const size_t* count_row_ptr,
                               size_t* counts_tloc, Entry* inst) {
+  const treelite::ModelImpl& model = dynamic_cast<const treelite::ModelImpl&>(model_ptr);
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
   CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
@@ -89,8 +90,10 @@ inline void ComputeBranchLoop(const treelite::Model& model,
 namespace treelite {
 
 void
-BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat,
+BranchAnnotator::Annotate(const Model& model_ptr, const DMatrix* dmat,
                           int nthread, int verbose) {
+  const ModelImpl& model = dynamic_cast<const ModelImpl&>(model_ptr);
+
   std::vector<size_t> new_counts;
   std::vector<size_t> counts_tloc;
   std::vector<size_t> count_row_ptr;

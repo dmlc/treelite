@@ -188,18 +188,18 @@ def test_xgb_deserializers(tmpdir, toolchain):
     assert predictor_bin.global_bias == pytest.approx(0.5)
     assert predictor_bin.sigmoid_alpha == pytest.approx(1.0)
 
-    # predictor_json = treelite_runtime.Predictor(model_json_lib)
-    # assert predictor_json.num_feature == dtrain.num_col()
-    # assert predictor_json.num_output_group == 1
-    # assert predictor_json.pred_transform == 'identity'
-    # assert predictor_json.global_bias == pytest.approx(0.5)
-    # assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
+    predictor_json = treelite_runtime.Predictor(model_json_lib)
+    assert predictor_json.num_feature == dtrain.num_col()
+    assert predictor_json.num_output_group == 1
+    assert predictor_json.pred_transform == 'identity'
+    assert predictor_json.global_bias == pytest.approx(0.5)
+    assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
 
     # Run inference with each predictor
     batch = treelite_runtime.Batch.from_npy2d(X_test)
     bin_pred = predictor_bin.predict(batch)
-    # json_pred = predictor_json.predict(batch)
+    json_pred = predictor_json.predict(batch)
 
     expected_pred = bst.predict(dtest)
     np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=5)
-    # np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)
+    np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)

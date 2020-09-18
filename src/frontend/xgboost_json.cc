@@ -169,6 +169,7 @@ private:
 };
 
 class IgnoreHandler : public BaseHandler {
+  using BaseHandler::BaseHandler;
   bool Null() { return true; }
   bool Bool(bool b) { return true; }
   bool Int(int i) { return true; }
@@ -198,6 +199,7 @@ protected:
 template <typename ElemType, typename HandlerType = BaseHandler>
 class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 public:
+  using OutputHandler<std::vector<ElemType>>::OutputHandler;
   bool Bool(ElemType b) {
     this->m_output.push_back(b);
     return true;
@@ -230,6 +232,9 @@ public:
     this->m_output.push_back(ElemType{str, length});
   }
 
+  template <typename ElemHandler = HandlerType,
+            typename std::enable_if<std::is_base_of<OutputHandler<ElemType>,
+                                                    ElemHandler>::value>::type>
   bool StartObject() {
     this->m_output.emplace_back();
     return this->template push_handler<HandlerType, ElemType>(
@@ -241,6 +246,7 @@ public:
 
 class GBTreeModelParamHandler : public OutputHandler<treelite::Model> {
 public:
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool Uint(unsigned u) {
     return (assign_value("num_feature", m_output.num_feature,
                          static_cast<int>(u)) ||
@@ -309,6 +315,7 @@ private:
 };
 
 class NodeHandler : public OutputHandler<Node> {
+  using OutputHandler<Node>::OutputHandler;
   bool StartArray() {
     m_output.is_leaf = false;
     return push_handler<TestNodeHandler, Node>(m_output);
@@ -376,10 +383,11 @@ private:
 
 class RegTreeHandler : public OutputHandler<treelite::Tree> {
 public:
+  using OutputHandler<treelite::Tree>::OutputHandler;
   bool StartArray() {
     return (push_key_handler<ArrayHandler<Node, NodeHandler>>("nodes", nodes) ||
             push_key_handler<ArrayHandler<NodeStat, NodeStatHandler>>("stats",
-                                                                      nodes));
+                                                                      stats));
   }
 
   bool EndObject() {
@@ -419,6 +427,7 @@ private:
 };
 
 class GBTreeModelHandler : public OutputHandler<treelite::Model> {
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray() {
     return (push_key_handler<ArrayHandler<treelite::Tree, RegTreeHandler>,
                              std::vector<treelite::Tree>>("trees",
@@ -436,6 +445,7 @@ class GBTreeModelHandler : public OutputHandler<treelite::Model> {
 
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
 public:
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool Uint(unsigned u) { return check_cur_key("num_boosting_round"); }
   bool String(const char *str, std::size_t length, bool copy) {
     fmt::string_view name{str, length};
@@ -480,6 +490,7 @@ struct Objective {
 };
 
 class ObjectiveHandler : public OutputHandler<Objective> {
+  using OutputHandler<Objective>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) {
     fmt::string_view value{str, length};
     return (assign_value("name", value, m_output.name) ||
@@ -505,6 +516,7 @@ class ObjectiveHandler : public OutputHandler<Objective> {
 
 class LearnerHandler : public OutputHandler<treelite::Model> {
 public:
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray() { return push_key_handler<IgnoreHandler>("eval_metrics"); }
 
   bool StartObject() {
@@ -556,6 +568,7 @@ private:
 
 class XGBoostModelHandler : public OutputHandler<treelite::Model> {
 public:
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray() {
     return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
         "version", version);
@@ -585,6 +598,8 @@ private:
 };
 
 class RootHandler : public OutputHandler<treelite::Model> {
+public:
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool StartObject() {
     return push_handler<XGBoostModelHandler, treelite::Model>(m_output);
   }
@@ -592,11 +607,12 @@ class RootHandler : public OutputHandler<treelite::Model> {
 
 class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
-      Delegator {
+      Delegator,
+      std::enable_shared_from_this<Delegator> {
 
 public:
   DelegatedHandler() : delegates{}, result{} {
-    push_delegate(std::make_shared<RootHandler>(result));
+    push_delegate(std::make_shared<RootHandler>(weak_from_this(), result));
   };
 
   void push_delegate(std::shared_ptr<BaseHandler> new_delegate) override {

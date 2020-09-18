@@ -591,8 +591,8 @@ template <typename ThresholdType, typename LeafOutputType>
 inline std::unique_ptr<Model>
 Model::Create() {
   std::unique_ptr<Model> model = std::make_unique<ModelImpl<ThresholdType, LeafOutputType>>();
-  model->threshold_type_ = InferTypeInfoOf<ThresholdType>();
-  model->leaf_output_type_ = InferTypeInfoOf<LeafOutputType>();
+  model->threshold_type_ = TypeToInfo<ThresholdType>();
+  model->leaf_output_type_ = TypeToInfo<LeafOutputType>();
   return model;
 }
 

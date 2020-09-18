@@ -150,7 +150,7 @@ class Tree {
                 "LeafOutputType cannot be float64 when ThresholdType is float32");
   static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
                 || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
-                "Node incorrect size");
+                "Node size incorrect");
 
   Tree() = default;
   ~Tree() = default;

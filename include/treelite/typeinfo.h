@@ -58,7 +58,7 @@ inline std::string TypeInfoToString(treelite::TypeInfo type) {
  * \return TypeInfo corresponding to the template type arg
  */
 template <typename T>
-inline TypeInfo InferTypeInfoOf() {
+inline TypeInfo TypeToInfo() {
   if (std::is_same<T, uint32_t>::value) {
     return TypeInfo::kUInt32;
   } else if (std::is_same<T, float>::value) {

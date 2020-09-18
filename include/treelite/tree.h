@@ -144,7 +144,7 @@ class Tree {
   static_assert(std::is_same<LeafOutputType, uint32_t>::value
                 || std::is_same<LeafOutputType, float>::value
                 || std::is_same<LeafOutputType, double>::value,
-                "LeafOutputType must be either uint32_t, float32 or float64");
+                "LeafOutputType must be one of uint32_t, float32 or float64");
   static_assert(!std::is_same<ThresholdType, float>::value
                 || !std::is_same<LeafOutputType, double>::value,
                 "LeafOutputType cannot be float64 when ThresholdType is float32");

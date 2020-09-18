@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <stack>
 #include <string>
 #include <utility>
@@ -62,6 +63,14 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
 
 namespace {
 
+// TODO: Use shared source for this
+struct ProbToMargin {
+  static float Sigmoid(float global_bias) {
+    return -logf(1.0f / global_bias - 1.0f);
+  }
+  static float Exponential(float global_bias) { return logf(global_bias); }
+};
+
 class BaseHandler;
 
 class Delegator {
@@ -92,7 +101,7 @@ public:
   }
   virtual bool EndObject(std::size_t memberCount) { return false; }
   virtual bool StartArray() { return false; }
-  bool EndArray(std::size_t elementCount) { return false; }
+  virtual bool EndArray(std::size_t elementCount) { return false; }
 
 protected:
   std::shared_ptr<Delegator> get_delegator() { return delegator.lock(); }
@@ -159,6 +168,22 @@ private:
   fmt::string_view cur_key;
 };
 
+class IgnoreHandler : public BaseHandler {
+  bool Null() { return true; }
+  bool Bool(bool b) { return true; }
+  bool Int(int i) { return true; }
+  bool Uint(unsigned u) { return true; }
+  bool Int64(int64_t i) { return true; }
+  bool Uint64(uint64_t u) { return true; }
+  bool Double(double d) { return true; }
+  bool String(const char *str, std::size_t length, bool copy) { return true; }
+  bool StartObject() { return push_handler<IgnoreHandler>(); }
+  bool Key(const char *str, std::size_t length, bool copy) { return true; }
+  bool EndObject(std::size_t memberCount) { return pop_handler(); }
+  bool StartArray() { return push_handler<IgnoreHandler>(); }
+  bool EndArray(std::size_t elementCount) { return pop_handler(); }
+};
+
 template <typename OutputType> class OutputHandler : public BaseHandler {
 public:
   OutputHandler(std::weak_ptr<Delegator> parent_delegator, OutputType &output)
@@ -206,7 +231,7 @@ public:
   }
 
   bool StartObject() {
-    this->m_output.push_back(ElemType{});
+    this->m_output.emplace_back();
     return this->template push_handler<HandlerType, ElemType>(
         this->m_output.back());
   }
@@ -214,100 +239,202 @@ public:
   bool EndArray(std::size_t elementCount) { return this->pop_handler(); }
 };
 
-struct LearnerTrainParam {
-  LearnerTrainParam() : n_gpus{0}, gpu_id{0} {};
-  int seed;
-  bool seed_per_iteration;
-  fmt::string_view dsplit;
-  fmt::string_view tree_method;
-  bool disable_default_eval_metric;
-  double base_score;
-  unsigned num_feature;
-  unsigned num_class;
-  unsigned gpu_id;
-  unsigned n_gpus;
-};
-
-class LearnerTrainParamHandler : public OutputHandler<LearnerTrainParam> {
-  bool Bool(bool b) {
-    return (this->assign_value("seed_per_iteration",
-                               m_output.seed_per_iteration, b) ||
-            this->assign_value("disable_default_eval_metric",
-                               m_output.disable_default_eval_metric, b));
-  }
-  bool Int(int i) { return this->assign_value("seed", m_output.seed, i); }
+class GBTreeModelParamHandler : public OutputHandler<treelite::Model> {
+public:
   bool Uint(unsigned u) {
-    return (this->assign_value("seed", m_output.seed, static_cast<int>(u)) ||
-            this->assign_value("num_feature", m_output.num_feature, u) ||
-            this->assign_value("num_class", m_output.num_class, u) ||
-            this->assign_value("gpu_id", m_output.gpu_id, u) ||
-            this->assign_value("n_gpus", m_output.n_gpus, u));
+    return (assign_value("num_feature", m_output.num_feature,
+                         static_cast<int>(u)) ||
+            assign_value("num_output_group", m_output.num_output_group,
+                         static_cast<int>(std::max(u, 1u))) ||
+            check_cur_key("num_trees"));
   }
+  bool EndObject(std::size_t memberCount) { return pop_handler(); }
+};
+
+struct Node {
+  bool is_leaf;
+  int child_left_id;
+  int child_right_id;
+  unsigned feature_id;
+  treelite::tl_float threshold;
+  treelite::tl_float leaf_output;
+  bool default_left;
+};
+
+class TestNodeHandler : public OutputHandler<Node> {
+public:
+  TestNodeHandler(std::weak_ptr<Delegator> parent_delegator, Node &output)
+      : OutputHandler{parent_delegator, output}, cur_index{0} {};
+
+  bool Bool(bool b) {
+    if (cur_index++ == 4) {
+      m_output.default_left = b;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   bool Double(double d) {
-    return this->assign_value("base_score", m_output.base_score, d);
+    if (cur_index++ == 3) {
+      m_output.threshold = static_cast<treelite::tl_float>(d);
+      return true;
+    } else {
+      return false;
+    }
   }
-  bool EndObject(std::size_t memberCount) { return this->pop_handler(); };
+
+  bool Uint(unsigned u) {
+    switch (cur_index++) {
+    case 0:
+      m_output.child_left_id = static_cast<int>(u);
+      return true;
+    case 1:
+      m_output.child_right_id = static_cast<int>(u);
+      return true;
+    case 2:
+      m_output.feature_id = u;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  bool EndArray(std::size_t elementCount) {
+    return (elementCount == 5 && pop_handler());
+  }
+
+private:
+  int cur_index;
 };
 
-struct GBTreeTrainParam {
-  std::vector<fmt::string_view> updater_seq;
-  fmt::string_view process_type;
-  fmt::string_view predictor;
-};
-
-class GBTreeTrainParamHandler : public OutputHandler<GBTreeTrainParam> {
-  bool Uint(unsigned u) { return check_cur_key("num_parallel_tree"); }
-  bool String(const char *str, std::size_t length, bool copy) {
-    return (this->assign_value("process_type", m_output.process_type,
-                               fmt::string_view{str, length}) ||
-            this->assign_value("predictor", m_output.predictor,
-                               fmt::string_view{str, length}));
-  }
+class NodeHandler : public OutputHandler<Node> {
   bool StartArray() {
-    return this->push_key_handler<ArrayHandler<fmt::string_view>,
-                                  std::vector<fmt::string_view>>(
-        "updater_seq", m_output.updater_seq);
+    m_output.is_leaf = false;
+    return push_handler<TestNodeHandler, Node>(m_output);
   }
+
+  bool Double(double d) {
+    m_output.is_leaf = true;
+    m_output.leaf_output = static_cast<treelite::tl_float>(d);
+    return true;
+  }
+
+  bool EndArray(std::size_t elementCount) { return pop_handler(); }
 };
 
-struct TreeTrainParam {};
-class TreeTrainParamHandler : public OutputHandler<TreeTrainParam> {};
-struct TreeUpdater {};
-class TreeUpdaterHandler : public OutputHandler<TreeUpdater> {};
+struct NodeStat {
+  treelite::tl_float loss_chg;
+  treelite::tl_float sum_hess;
+  treelite::tl_float base_weight;
+  int64_t instance_cnt;
+};
+class NodeStatHandler : public OutputHandler<NodeStat> {
+public:
+  NodeStatHandler(std::weak_ptr<Delegator> parent_delegator, NodeStat &output)
+      : OutputHandler{parent_delegator, output}, cur_index{0} {};
 
-struct GBTreeModelParam {};
-class GBTreeModelParamHandler : public OutputHandler<GBTreeModelParam> {};
+  bool Double(double d) {
+    switch (cur_index++) {
+    case 0:
+      m_output.loss_chg = static_cast<treelite::tl_float>(d);
+      return true;
+    case 1:
+      m_output.sum_hess = static_cast<treelite::tl_float>(d);
+      return true;
+    case 2:
+      m_output.base_weight = static_cast<treelite::tl_float>(d);
+      return true;
+    default:
+      return false;
+    }
+  }
 
-struct TreeParam {};
-class TreeParamHandler : public OutputHandler<TreeParam> {};
+  bool Uint(unsigned u) {
+    if (cur_index++ == 4) {
+      m_output.instance_cnt = static_cast<int64_t>(u);
+      return true;
+    } else {
+      return false;
+    }
+  }
 
-struct Node {};
-class NodeHandler : public OutputHandler<Node> {};
+  bool Uint64(unsigned u) {
+    if (cur_index++ == 4) {
+      m_output.instance_cnt = static_cast<int64_t>(u);
+      return true;
+    } else {
+      return false;
+    }
+  }
 
-struct NodeStat {};
-class NodeStatHandler : public OutputHandler<NodeStat> {};
+  bool EndArray(std::size_t elementCount) { return (elementCount == 4); }
 
-struct RegTree {
-  TreeParam tree_param;
+private:
+  int cur_index;
+};
+
+class RegTreeHandler : public OutputHandler<treelite::Tree> {
+public:
+  bool StartArray() {
+    return (push_key_handler<ArrayHandler<Node, NodeHandler>>("nodes", nodes) ||
+            push_key_handler<ArrayHandler<NodeStat, NodeStatHandler>>("stats",
+                                                                      nodes));
+  }
+
+  bool EndObject() {
+    if (nodes.size() != stats.size()) {
+      return false;
+    }
+    std::queue<std::pair<int, int>> Q; // (old ID, new ID) pair
+    Q.push({0, 0});
+    while (!Q.empty()) {
+      int old_id, new_id;
+      std::tie(old_id, new_id) = Q.front();
+      Q.pop();
+      if (old_id >= nodes.size()) {
+        return false;
+      }
+      const Node &node = nodes[old_id];
+      const NodeStat &stat = stats[old_id];
+
+      if (node.is_leaf) {
+        m_output.SetLeaf(new_id, node.leaf_output);
+      } else {
+        m_output.AddChilds(new_id);
+        m_output.SetNumericalSplit(new_id, node.feature_id, node.threshold,
+                                   node.default_left, treelite::Operator::kLT);
+        m_output.SetGain(new_id, stat.loss_chg);
+        Q.push({node.child_left_id, m_output.LeftChild(new_id)});
+        Q.push({node.child_right_id, m_output.RightChild(new_id)});
+      }
+      m_output.SetSumHess(new_id, stat.sum_hess);
+    }
+    return true;
+  }
+
+private:
   std::vector<Node> nodes;
   std::vector<NodeStat> stats;
 };
-class RegTreeHandler : public OutputHandler<RegTree> {};
 
-struct GBTreeModel {
-  GBTreeModelParam model_param;
-  std::vector<RegTree> trees;
-  std::vector<int> tree_info;
-};
-class GBTreeModelHandler : public OutputHandler<GBTreeModel> {};
+class GBTreeModelHandler : public OutputHandler<treelite::Model> {
+  bool StartArray() {
+    return (push_key_handler<ArrayHandler<treelite::Tree, RegTreeHandler>,
+                             std::vector<treelite::Tree>>("trees",
+                                                          m_output.trees) ||
+            push_key_handler<IgnoreHandler>("tree_info"));
+  }
 
-struct GradientBooster {
-  GBTreeTrainParam gbtree_train_param;
-  TreeTrainParam updater_train_param;
-  std::vector<TreeUpdater> updaters;
-  GBTreeModel model;
+  bool StartObject() {
+    return push_key_handler<GBTreeModelParamHandler, treelite::Model>(
+        "model_param", m_output);
+  }
+
+  bool EndObject(std::size_t memberCount) { return pop_handler(); }
 };
-class GradientBoosterHandler : public OutputHandler<GradientBooster> {
+
+class GradientBoosterHandler : public OutputHandler<treelite::Model> {
 public:
   bool Uint(unsigned u) { return check_cur_key("num_boosting_round"); }
   bool String(const char *str, std::size_t length, bool copy) {
@@ -324,12 +451,10 @@ public:
     return true;
   }
   bool StartObject() {
-    if (this->push_key_handler<GBTreeTrainParamHandler, GBTreeTrainParam>(
-            "gbtree_train_param", m_output.gbtree_train_param) ||
-        this->push_key_handler<TreeTrainParamHandler, TreeTrainParam>(
-            "updater_train_param", m_output.updater_train_param) ||
-        this->push_key_handler<GBTreeModelHandler, GBTreeModel>(
-            "model", m_output.model)) {
+    if (push_key_handler<IgnoreHandler>("gbtree_train_param") ||
+        push_key_handler<IgnoreHandler>("updater_train_param") ||
+        push_key_handler<GBTreeModelHandler, treelite::Model>("model",
+                                                              m_output)) {
       return true;
     } else {
       LOG(ERROR) << "Key \""
@@ -338,43 +463,94 @@ public:
       return false;
     }
   }
-  bool EndObject(std::size_t memberCount) { return this->pop_handler(); }
-  bool StartArray() {
-    return this->push_key_handler<ArrayHandler<TreeUpdater, TreeUpdaterHandler>,
-                                  std::vector<TreeUpdater>>("updaters",
-                                                            m_output.updaters);
-  }
+  bool EndObject(std::size_t memberCount) { return pop_handler(); }
+  bool StartArray() { return push_key_handler<IgnoreHandler>("updaters"); }
 };
 
-struct Objective {};
-class ObjectiveHandler : public OutputHandler<Objective> {};
+struct Objective {
+  fmt::string_view name;
+  unsigned num_class;
+  bool output_prob;
+  fmt::string_view loss_type;
+  double scale_pos_weight;
+  unsigned num_pairsample;
+  double fix_list_weight;
+  double max_delta_step;
+  double tweedie_variance_power;
+};
+
+class ObjectiveHandler : public OutputHandler<Objective> {
+  bool String(const char *str, std::size_t length, bool copy) {
+    fmt::string_view value{str, length};
+    return (assign_value("name", value, m_output.name) ||
+            assign_value("loss_type", value, m_output.loss_type));
+  }
+
+  bool Uint(unsigned u) {
+    return (assign_value("num_class", u, m_output.num_class) ||
+            assign_value("num_pairsample", u, m_output.num_pairsample));
+  }
+
+  bool Double(double d) {
+    treelite::tl_float value = static_cast<treelite::tl_float>(d);
+    return (assign_value("scale_pos_weight", d, m_output.scale_pos_weight) ||
+            assign_value("fix_list_weight", d, m_output.fix_list_weight) ||
+            assign_value("max_delta_step", d, m_output.max_delta_step) ||
+            assign_value("tweedie_variance_power", d,
+                         m_output.tweedie_variance_power));
+  }
+
+  bool EndObject(std::size_t memberCount) { return pop_handler(); }
+};
 
 class LearnerHandler : public OutputHandler<treelite::Model> {
 public:
-  bool StartArray() {
-    return this->push_key_handler<ArrayHandler<fmt::string_view>,
-                                  std::vector<fmt::string_view>>("eval_metrics",
-                                                                 eval_metrics);
-  }
+  bool StartArray() { return push_key_handler<IgnoreHandler>("eval_metrics"); }
 
   bool StartObject() {
-    return (this->push_key_handler<LearnerTrainParamHandler, LearnerTrainParam>(
-                "learner_train_param", learner_train_param) ||
-            this->push_key_handler<GradientBoosterHandler, GradientBooster>(
-                "gradient_booster", gradient_booster) ||
-            this->push_key_handler<ObjectiveHandler, Objective>("objective",
-                                                                objective));
+    return (
+        push_key_handler<IgnoreHandler>("learner_train_param") ||
+        push_key_handler<GradientBoosterHandler, treelite::Model>(
+            "gradient_booster", m_output) ||
+        push_key_handler<ObjectiveHandler, Objective>("objective", objective));
+  }
+
+  bool Double(double d) {
+    return assign_value("base_score", m_output.param.global_bias,
+                        static_cast<treelite::tl_float>(d));
+  }
+  bool Uint(unsigned u) {
+    return check_cur_key("num_feature") || check_cur_key("num_class");
   }
 
   bool EndObject(std::size_t memberCount) {
-    // TODO: eval_metrics
-    return this->pop_handler();
+    if (objective.name.compare("SoftMultiClassObj")) {
+      if (objective.output_prob) {
+        std::strncpy(m_output.param.pred_transform, "softmax",
+                     sizeof(m_output.param.pred_transform));
+      } else {
+        std::strncpy(m_output.param.pred_transform, "max_index",
+                     sizeof(m_output.param.pred_transform));
+      }
+    } else if (objective.name.compare("RegLossObj") &&
+               (objective.loss_type.compare("LogisticRegression") ||
+                objective.loss_type.compare("LogisticClassification"))) {
+      std::strncpy(m_output.param.pred_transform, "sigmoid",
+                   sizeof(m_output.param.pred_transform));
+      m_output.param.sigmoid_alpha = 1.0f;
+    } else if (objective.name.compare("GammaRegression") ||
+               objective.name.compare("TweedieRegression") ||
+               objective.name.compare("PoissonRegression")) {
+      std::strncpy(m_output.param.pred_transform, "exponential",
+                   sizeof(m_output.param.pred_transform));
+    } else {
+      std::strncpy(m_output.param.pred_transform, "identity",
+                   sizeof(m_output.param.pred_transform));
+    }
+    return pop_handler();
   }
 
 private:
-  std::vector<fmt::string_view> eval_metrics;
-  LearnerTrainParam learner_train_param;
-  GradientBooster gradient_booster;
   Objective objective;
 };
 
@@ -391,7 +567,16 @@ public:
   }
 
   bool EndObject(std::size_t memberCount) {
-    // TODO: version validation
+    m_output.random_forest_flag = false;
+    if (version.at(0) >= 1) {
+      if (std::strcmp(m_output.param.pred_transform, "logistic")) {
+        m_output.param.global_bias =
+            ProbToMargin::Sigmoid(m_output.param.global_bias);
+      } else if (std::strcmp(m_output.param.pred_transform, "exponential")) {
+        m_output.param.global_bias =
+            ProbToMargin::Exponential(m_output.param.global_bias);
+      }
+    }
     return this->pop_handler();
   }
 

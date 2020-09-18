@@ -496,8 +496,12 @@ class Model {
   template <typename ThresholdType, typename LeafOutputType>
   inline static std::unique_ptr<Model> Create();
   inline static std::unique_ptr<Model> Create(TypeInfo threshold_type, TypeInfo leaf_output_type);
-  inline TypeInfo GetThresholdType() const;
-  inline TypeInfo GetLeafOutputType() const;
+  inline TypeInfo GetThresholdType() const {
+    return threshold_type_;
+  }
+  inline TypeInfo GetLeafOutputType() const {
+    return leaf_output_type_;
+  }
   template <typename Func>
   inline auto Dispatch(Func func);
   template <typename Func>

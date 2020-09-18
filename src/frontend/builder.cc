@@ -416,11 +416,12 @@ ModelBuilder::DeleteTree(int index) {
 
 std::unique_ptr<Model>
 ModelBuilder::CommitModel() {
-  std::unique_ptr<Model> model = Model::Create(pimpl_->threshold_type, pimpl_->leaf_output_type);
-  model->Dispatch([this](auto& model_handle) {
-    this->pimpl_->CommitModelImpl(&model_handle);
+  std::unique_ptr<Model> model_ptr = Model::Create(pimpl_->threshold_type,
+                                                   pimpl_->leaf_output_type);
+  model_ptr->Dispatch([this](auto& model) {
+    this->pimpl_->CommitModelImpl(&model);
   });
-  return model;
+  return model_ptr;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

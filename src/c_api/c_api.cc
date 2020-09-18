@@ -178,14 +178,14 @@ int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
 int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(handle);
-  *out = static_cast<size_t>(model_->GetNumFeature());
+  *out = static_cast<size_t>(model_->num_feature);
   API_END();
 }
 
 int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(handle);
-  *out = static_cast<size_t>(model_->GetNumOutputGroup());
+  *out = static_cast<size_t>(model_->num_output_group);
   API_END();
 }
 

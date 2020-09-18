@@ -37,8 +37,8 @@ int TreelitePredictorLoad(const char* library_path, int num_worker_thread, Predi
 }
 
 int TreelitePredictorPredictBatch(
-    PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin, void* out_result,
-    size_t* out_result_size) {
+    PredictorHandle handle, DMatrixHandle batch, int verbose, int pred_margin,
+    PredictorOutputHandle out_result, size_t* out_result_size) {
   API_BEGIN();
   const auto* predictor = static_cast<const predictor::Predictor*>(handle);
   const auto* dmat = static_cast<const DMatrix*>(batch);
@@ -48,6 +48,23 @@ int TreelitePredictorPredictBatch(
                   "Number of features must not exceed ") + std::to_string(num_feature);
   CHECK_LE(dmat->GetNumCol(), num_feature) << err_msg;
   *out_result_size = predictor->PredictBatch(dmat, verbose, (pred_margin != 0), out_result);
+  API_END();
+}
+
+int TreeliteCreatePredictorOutputVector(
+    PredictorHandle handle, DMatrixHandle batch, PredictorOutputHandle* out_output_vector) {
+  API_BEGIN();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  const auto* dmat = static_cast<const DMatrix*>(batch);
+  *out_output_vector = predictor->CreateOutputVector(dmat);
+  API_END();
+}
+
+int TreeliteDeletePredictorOutputVector(
+    PredictorHandle handle, PredictorOutputHandle output_vector) {
+  API_BEGIN();
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  predictor->DeleteOutputVector(output_vector);
   API_END();
 }
 

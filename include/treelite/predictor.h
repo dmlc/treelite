@@ -9,6 +9,7 @@
 
 #include <dmlc/logging.h>
 #include <treelite/typeinfo.h>
+#include <treelite/c_api_runtime.h>
 #include <treelite/data.h>
 #include <string>
 #include <memory>
@@ -54,7 +55,7 @@ class PredFunction {
   virtual TypeInfo GetThresholdType() const = 0;
   virtual TypeInfo GetLeafOutputType() const = 0;
   virtual size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-      void* out_pred) const = 0;
+                              PredictorOutputHandle out_pred) const = 0;
 };
 
 template<typename ThresholdType, typename LeafOutputType>
@@ -65,7 +66,7 @@ class PredFunctionImpl : public PredFunction {
   TypeInfo GetThresholdType() const override;
   TypeInfo GetLeafOutputType() const override;
   size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-      void* out_pred) const override;
+                      PredictorOutputHandle out_pred) const override;
 
  private:
   PredFuncHandle handle_;
@@ -103,7 +104,7 @@ class Predictor {
    *         or equal to QueryResultSize()
    */
   size_t PredictBatch(
-      const DMatrix* dmat, int verbose, bool pred_margin, void* out_result) const;
+      const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutputHandle out_result) const;
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
    *        hold predictions for all data points.
@@ -165,12 +166,31 @@ class Predictor {
   inline float QueryGlobalBias() const {
     return global_bias_;
   }
+  /*!
+   * \brief Get the type of the split thresholds
+   * \return type of the split thresholds
+   */
   inline TypeInfo QueryThresholdType() const {
     return threshold_type_;
   }
+  /*!
+   * \brief Get the type of the leaf outputs
+   * \return type of the leaf outputs
+   */
   inline TypeInfo QueryLeafOutputType() const {
     return leaf_output_type_;
   }
+  /*!
+   * \brief Create an output vector suitable to hold prediction result for a given data matrix
+   * \param dmat a data matrix
+   * \return Opaque handle to the allocated output vector
+   */
+  PredictorOutputHandle CreateOutputVector(const DMatrix* dmat) const;
+  /*!
+   * \brief Free an output vector from memory
+   * \param output_vector Opaque handle to the output vector
+   */
+  void DeleteOutputVector(PredictorOutputHandle output_vector) const;
 
  private:
   SharedLibrary lib_;

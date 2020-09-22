@@ -5,7 +5,9 @@
  * \author Hyunsu Cho
  */
 
+#include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -53,10 +55,11 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
   *out = std::move(ParseStream(std::move(input_stream)));
 }
 
-/* void LoadXGBoostJSONModelString(std::string json_str, Model* out) {
-  dmlc::MemoryStringStream fs(&json_str);
-  *out = std::move(ParseStream(&fs));
-} */
+void LoadXGBoostJSONModelString(std::string &json_str, Model *out) {
+  auto input_stream = std::make_unique<rapidjson::MemoryStream>(
+      json_str.c_str(), json_str.size());
+  *out = std::move(ParseStream(std::move(input_stream)));
+}
 
 }  // namespace frontend
 }  // namespace treelite
@@ -82,8 +85,7 @@ public:
 class BaseHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, BaseHandler> {
 public:
-  BaseHandler(std::weak_ptr<Delegator> parent_delegator)
-      : delegator{parent_delegator} {};
+  BaseHandler(Delegator &parent_delegator) : delegator{parent_delegator} {};
   virtual bool Null() { return false; }
   virtual bool Bool(bool b) { return false; }
   virtual bool Int(int i) { return false; }
@@ -99,21 +101,16 @@ public:
     set_cur_key(str, length);
     return true;
   }
-  virtual bool EndObject(std::size_t memberCount) { return false; }
+  virtual bool EndObject(std::size_t memberCount) { return pop_handler(); }
   virtual bool StartArray() { return false; }
-  virtual bool EndArray(std::size_t elementCount) { return false; }
+  virtual bool EndArray(std::size_t elementCount) { return pop_handler(); }
 
 protected:
-  std::shared_ptr<Delegator> get_delegator() { return delegator.lock(); }
 
   template <typename HandlerType, typename... ArgsTypes>
   bool push_handler(ArgsTypes &... args) {
-    if (auto parent = get_delegator()) {
-      parent->push_delegate(std::make_shared<HandlerType>(parent, args...));
-      return true;
-    } else {
-      return false;
-    }
+    delegator.push_delegate(std::make_shared<HandlerType>(delegator, args...));
+    return true;
   }
 
   template <typename HandlerType, typename... ArgsTypes>
@@ -127,23 +124,18 @@ protected:
   }
 
   bool pop_handler() {
-    if (auto parent = get_delegator()) {
-      parent->pop_delegate();
-      return true;
-    } else {
-      return false;
-    }
+    delegator.pop_delegate();
+    return true;
   }
 
   void set_cur_key(const char *str, std::size_t length) {
-    cur_key = fmt::string_view(str, length);
+    cur_key = std::string{str, length};
   }
 
-  const fmt::string_view get_cur_key() { return cur_key; }
+  const std::string &get_cur_key() { return cur_key; }
 
   bool check_cur_key(const std::string &query_key) {
-    return cur_key.compare(
-        fmt::string_view{query_key.c_str(), query_key.size()});
+    return cur_key == query_key;
   }
 
   template <typename ValueType>
@@ -164,8 +156,8 @@ protected:
   }
 
 private:
-  std::weak_ptr<Delegator> delegator;
-  fmt::string_view cur_key;
+  Delegator &delegator;
+  std::string cur_key;
 };
 
 class IgnoreHandler : public BaseHandler {
@@ -180,17 +172,14 @@ class IgnoreHandler : public BaseHandler {
   bool String(const char *str, std::size_t length, bool copy) { return true; }
   bool StartObject() { return push_handler<IgnoreHandler>(); }
   bool Key(const char *str, std::size_t length, bool copy) { return true; }
-  bool EndObject(std::size_t memberCount) { return pop_handler(); }
   bool StartArray() { return push_handler<IgnoreHandler>(); }
-  bool EndArray(std::size_t elementCount) { return pop_handler(); }
 };
 
 template <typename OutputType> class OutputHandler : public BaseHandler {
 public:
-  OutputHandler(std::weak_ptr<Delegator> parent_delegator, OutputType &output)
+  OutputHandler(Delegator &parent_delegator, OutputType &output)
       : BaseHandler{parent_delegator}, m_output{output} {};
-  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
-                OutputType &&output) = delete;
+  OutputHandler(Delegator &parent_delegator, OutputType &&output) = delete;
 
 protected:
   OutputType &m_output;
@@ -204,226 +193,150 @@ public:
     this->m_output.push_back(b);
     return true;
   }
-  bool Int(ElemType i) {
-    this->m_output.push_back(i);
+  template <typename ArgType, typename IntType = ElemType>
+  typename std::enable_if<std::is_integral<IntType>::value, bool>::type
+  store_int(ArgType i) {
+    this->m_output.push_back(static_cast<ElemType>(i));
     return true;
   }
-  bool Uint(ElemType u) {
-    this->m_output.push_back(u);
-    return true;
+
+  template <typename ArgType, typename IntType = ElemType>
+  typename std::enable_if<!std::is_integral<IntType>::value, bool>::type
+  store_int(ArgType i) {
+    return false;
   }
-  bool Int64(ElemType i) {
-    this->m_output.push_back(i);
-    return true;
-  }
-  bool Uint64(ElemType u) {
-    this->m_output.push_back(u);
-    return true;
-  }
+
+  bool Int(int i) { return store_int<int>(i); }
+  bool Uint(unsigned u) { return store_int<unsigned>(u); }
+  bool Int64(int64_t i) { return store_int<int64_t>(i); }
+  bool Uint64(uint64_t u) { return store_int<uint64_t>(u); }
   bool Double(ElemType d) {
     this->m_output.push_back(d);
     return true;
   }
 
-  template <typename StringType = ElemType,
-            typename std::enable_if<
-                std::is_same<StringType, fmt::string_view>::value>::type>
-  bool String(const char *str, std::size_t length, bool copy) {
+  template <typename StringType = ElemType>
+  typename std::enable_if<std::is_same<StringType, std::string>::value,
+                          bool>::type
+  store_string(const char *str, std::size_t length, bool copy) {
     this->m_output.push_back(ElemType{str, length});
+    return true;
+  }
+  template <typename StringType = ElemType>
+  typename std::enable_if<!std::is_same<StringType, std::string>::value,
+                          bool>::type
+  store_string(const char *str, std::size_t length, bool copy) {
+    return false;
   }
 
-  template <typename ElemHandler = HandlerType,
-            typename std::enable_if<std::is_base_of<OutputHandler<ElemType>,
-                                                    ElemHandler>::value>::type>
-  bool StartObject() {
+  bool String(const char *str, std::size_t length, bool copy) {
+    return store_string(str, length, copy);
+  }
+
+  bool StartObject(std::true_type) {
     this->m_output.emplace_back();
     return this->template push_handler<HandlerType, ElemType>(
         this->m_output.back());
   }
 
-  bool EndArray(std::size_t elementCount) { return this->pop_handler(); }
+  bool StartObject(std::false_type) { return false; }
+
+  bool StartObject() {
+    return StartObject(
+        std::integral_constant<bool, std::is_base_of<OutputHandler<ElemType>,
+                                                     HandlerType>::value>{});
+  }
 };
 
-class GBTreeModelParamHandler : public OutputHandler<treelite::Model> {
+class TreeParamHandler : public OutputHandler<int> {
 public:
-  using OutputHandler<treelite::Model>::OutputHandler;
-  bool Uint(unsigned u) {
-    return (assign_value("num_feature", m_output.num_feature,
-                         static_cast<int>(u)) ||
-            assign_value("num_output_group", m_output.num_output_group,
-                         static_cast<int>(std::max(u, 1u))) ||
-            check_cur_key("num_trees"));
+  using OutputHandler<int>::OutputHandler;
+
+  bool String(const char *str, std::size_t length, bool copy) {
+    // Key "num_deleted" not documented in schema
+    return (check_cur_key("num_feature") ||
+            assign_value("num_nodes", m_output, atoi(str)) ||
+            check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
   }
-  bool EndObject(std::size_t memberCount) { return pop_handler(); }
-};
-
-struct Node {
-  bool is_leaf;
-  int child_left_id;
-  int child_right_id;
-  unsigned feature_id;
-  treelite::tl_float threshold;
-  treelite::tl_float leaf_output;
-  bool default_left;
-};
-
-class TestNodeHandler : public OutputHandler<Node> {
-public:
-  TestNodeHandler(std::weak_ptr<Delegator> parent_delegator, Node &output)
-      : OutputHandler{parent_delegator, output}, cur_index{0} {};
-
-  bool Bool(bool b) {
-    if (cur_index++ == 4) {
-      m_output.default_left = b;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool Double(double d) {
-    if (cur_index++ == 3) {
-      m_output.threshold = static_cast<treelite::tl_float>(d);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool Uint(unsigned u) {
-    switch (cur_index++) {
-    case 0:
-      m_output.child_left_id = static_cast<int>(u);
-      return true;
-    case 1:
-      m_output.child_right_id = static_cast<int>(u);
-      return true;
-    case 2:
-      m_output.feature_id = u;
-      return true;
-    default:
-      return false;
-    }
-  }
-
-  bool EndArray(std::size_t elementCount) {
-    return (elementCount == 5 && pop_handler());
-  }
-
-private:
-  int cur_index;
-};
-
-class NodeHandler : public OutputHandler<Node> {
-  using OutputHandler<Node>::OutputHandler;
-  bool StartArray() {
-    m_output.is_leaf = false;
-    return push_handler<TestNodeHandler, Node>(m_output);
-  }
-
-  bool Double(double d) {
-    m_output.is_leaf = true;
-    m_output.leaf_output = static_cast<treelite::tl_float>(d);
-    return true;
-  }
-
-  bool EndArray(std::size_t elementCount) { return pop_handler(); }
-};
-
-struct NodeStat {
-  treelite::tl_float loss_chg;
-  treelite::tl_float sum_hess;
-  treelite::tl_float base_weight;
-  int64_t instance_cnt;
-};
-class NodeStatHandler : public OutputHandler<NodeStat> {
-public:
-  NodeStatHandler(std::weak_ptr<Delegator> parent_delegator, NodeStat &output)
-      : OutputHandler{parent_delegator, output}, cur_index{0} {};
-
-  bool Double(double d) {
-    switch (cur_index++) {
-    case 0:
-      m_output.loss_chg = static_cast<treelite::tl_float>(d);
-      return true;
-    case 1:
-      m_output.sum_hess = static_cast<treelite::tl_float>(d);
-      return true;
-    case 2:
-      m_output.base_weight = static_cast<treelite::tl_float>(d);
-      return true;
-    default:
-      return false;
-    }
-  }
-
-  bool Uint(unsigned u) {
-    if (cur_index++ == 4) {
-      m_output.instance_cnt = static_cast<int64_t>(u);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool Uint64(unsigned u) {
-    if (cur_index++ == 4) {
-      m_output.instance_cnt = static_cast<int64_t>(u);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  bool EndArray(std::size_t elementCount) { return (elementCount == 4); }
-
-private:
-  int cur_index;
 };
 
 class RegTreeHandler : public OutputHandler<treelite::Tree> {
 public:
   using OutputHandler<treelite::Tree>::OutputHandler;
   bool StartArray() {
-    return (push_key_handler<ArrayHandler<Node, NodeHandler>>("nodes", nodes) ||
-            push_key_handler<ArrayHandler<NodeStat, NodeStatHandler>>("stats",
-                                                                      stats));
+    // Key "categories" not documented in schema
+    // Key "split_type" not documented in schema
+    return (
+        push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes) ||
+        push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian) ||
+        push_key_handler<ArrayHandler<double>>("base_weights", base_weights) ||
+        push_key_handler<IgnoreHandler>("categories") ||
+        push_key_handler<ArrayHandler<int>>("leaf_child_counts",
+                                            leaf_child_counts) ||
+        push_key_handler<ArrayHandler<int>>("left_children", left_children) ||
+        push_key_handler<ArrayHandler<int>>("right_children", right_children) ||
+        push_key_handler<ArrayHandler<int>>("parents", parents) ||
+        push_key_handler<ArrayHandler<int>>("split_indices", split_indices) ||
+        push_key_handler<IgnoreHandler>("split_type") ||
+        push_key_handler<ArrayHandler<double>>("split_conditions",
+                                               split_conditions) ||
+        push_key_handler<ArrayHandler<bool>>("default_left", default_left));
   }
 
-  bool EndObject() {
-    if (nodes.size() != stats.size()) {
+  bool StartObject() {
+    return push_key_handler<TreeParamHandler, int>("tree_param", num_nodes);
+  }
+
+  bool Uint(unsigned u) { return check_cur_key("id"); }
+
+  bool EndObject(std::size_t memberCount) {
+    m_output.Init();
+    if (num_nodes != loss_changes.size() || num_nodes != sum_hessian.size() ||
+        num_nodes != base_weights.size() ||
+        num_nodes != leaf_child_counts.size() ||
+        num_nodes != left_children.size() ||
+        num_nodes != right_children.size() || num_nodes != parents.size() ||
+        num_nodes != split_indices.size() ||
+        num_nodes != split_conditions.size() ||
+        num_nodes != default_left.size()) {
       return false;
     }
+
     std::queue<std::pair<int, int>> Q; // (old ID, new ID) pair
     Q.push({0, 0});
     while (!Q.empty()) {
       int old_id, new_id;
       std::tie(old_id, new_id) = Q.front();
       Q.pop();
-      if (old_id >= nodes.size()) {
-        return false;
-      }
-      const Node &node = nodes[old_id];
-      const NodeStat &stat = stats[old_id];
 
-      if (node.is_leaf) {
-        m_output.SetLeaf(new_id, node.leaf_output);
+      if (left_children[old_id] == -1) {
+        m_output.SetLeaf(new_id, base_weights[old_id]);
       } else {
         m_output.AddChilds(new_id);
-        m_output.SetNumericalSplit(new_id, node.feature_id, node.threshold,
-                                   node.default_left, treelite::Operator::kLT);
-        m_output.SetGain(new_id, stat.loss_chg);
-        Q.push({node.child_left_id, m_output.LeftChild(new_id)});
-        Q.push({node.child_right_id, m_output.RightChild(new_id)});
+        m_output.SetNumericalSplit(
+            new_id, split_indices[old_id], split_conditions[old_id],
+            default_left[old_id], treelite::Operator::kLT);
+        m_output.SetGain(new_id, loss_changes[old_id]);
+        Q.push({left_children[old_id], m_output.LeftChild(new_id)});
+        Q.push({right_children[old_id], m_output.RightChild(new_id)});
       }
-      m_output.SetSumHess(new_id, stat.sum_hess);
+      m_output.SetSumHess(new_id, sum_hessian[old_id]);
     }
-    return true;
+    return pop_handler();
   }
 
 private:
-  std::vector<Node> nodes;
-  std::vector<NodeStat> stats;
+  std::vector<double> loss_changes;
+  std::vector<double> sum_hessian;
+  std::vector<double> base_weights;
+  std::vector<int> leaf_child_counts;
+  std::vector<int> left_children;
+  std::vector<int> right_children;
+  std::vector<int> parents;
+  std::vector<int> split_indices;
+  std::vector<double> split_conditions;
+  std::vector<bool> default_left;
+  int num_nodes;
 };
 
 class GBTreeModelHandler : public OutputHandler<treelite::Model> {
@@ -436,11 +349,8 @@ class GBTreeModelHandler : public OutputHandler<treelite::Model> {
   }
 
   bool StartObject() {
-    return push_key_handler<GBTreeModelParamHandler, treelite::Model>(
-        "model_param", m_output);
+    return push_key_handler<IgnoreHandler>("gbtree_model_param");
   }
-
-  bool EndObject(std::size_t memberCount) { return pop_handler(); }
 };
 
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
@@ -449,69 +359,53 @@ public:
   bool Uint(unsigned u) { return check_cur_key("num_boosting_round"); }
   bool String(const char *str, std::size_t length, bool copy) {
     fmt::string_view name{str, length};
-    if (!name.compare("GBTree")) {
+    if (name != "gbtree") {
       LOG(ERROR) << "Only GBTree-type boosters are currently supported.";
       return false;
     } else {
       return true;
     }
   }
-  bool Key(const char *str, std::size_t length, bool copy) {
-    set_cur_key(str, length);
-    return true;
-  }
+
   bool StartObject() {
-    if (push_key_handler<IgnoreHandler>("gbtree_train_param") ||
-        push_key_handler<IgnoreHandler>("updater_train_param") ||
-        push_key_handler<GBTreeModelHandler, treelite::Model>("model",
+    if (push_key_handler<GBTreeModelHandler, treelite::Model>("model",
                                                               m_output)) {
       return true;
     } else {
-      LOG(ERROR) << "Key \""
-                 << std::string{get_cur_key().data(), get_cur_key().size()}
+      LOG(ERROR) << "Key \"" << get_cur_key()
                  << "\" not recognized. Is this a GBTree-type booster?";
       return false;
     }
   }
-  bool EndObject(std::size_t memberCount) { return pop_handler(); }
-  bool StartArray() { return push_key_handler<IgnoreHandler>("updaters"); }
 };
 
-struct Objective {
-  fmt::string_view name;
-  unsigned num_class;
-  bool output_prob;
-  fmt::string_view loss_type;
-  double scale_pos_weight;
-  unsigned num_pairsample;
-  double fix_list_weight;
-  double max_delta_step;
-  double tweedie_variance_power;
-};
+class ObjectiveHandler : public OutputHandler<std::string> {
+  using OutputHandler<std::string>::OutputHandler;
 
-class ObjectiveHandler : public OutputHandler<Objective> {
-  using OutputHandler<Objective>::OutputHandler;
+  bool StartObject() {
+    return (push_key_handler<IgnoreHandler>("reg_loss_param") ||
+            push_key_handler<IgnoreHandler>("poisson_regression_param") ||
+            push_key_handler<IgnoreHandler>("tweedie_regression_param") ||
+            push_key_handler<IgnoreHandler>("softmax_multiclass_param") ||
+            push_key_handler<IgnoreHandler>("lambda_rank_param") ||
+            push_key_handler<IgnoreHandler>("aft_loss_param"));
+  }
+
   bool String(const char *str, std::size_t length, bool copy) {
-    fmt::string_view value{str, length};
-    return (assign_value("name", value, m_output.name) ||
-            assign_value("loss_type", value, m_output.loss_type));
+    return assign_value("name", m_output, std::string{str, length});
   }
+};
 
-  bool Uint(unsigned u) {
-    return (assign_value("num_class", u, m_output.num_class) ||
-            assign_value("num_pairsample", u, m_output.num_pairsample));
+class LearnerParamHandler : public OutputHandler<treelite::Model> {
+public:
+  using OutputHandler<treelite::Model>::OutputHandler;
+  bool String(const char *str, std::size_t length, bool copy) {
+    return (assign_value("base_score", m_output.param.global_bias,
+                         strtof(str, nullptr)) ||
+            assign_value("num_class", m_output.num_output_group,
+                         static_cast<int>(std::max(atoi(str), 1))) ||
+            assign_value("num_feature", m_output.num_feature, atoi(str)));
   }
-
-  bool Double(double d) {
-    treelite::tl_float value = static_cast<treelite::tl_float>(d);
-    return (assign_value("scale_pos_weight", d, m_output.scale_pos_weight) ||
-            assign_value("fix_list_weight", d, m_output.fix_list_weight) ||
-            assign_value("max_delta_step", d, m_output.max_delta_step) ||
-            assign_value("tweedie_variance_power", d,
-                         m_output.tweedie_variance_power));
-  }
-
-  bool EndObject(std::size_t memberCount) { return pop_handler(); }
 };
 
 class LearnerHandler : public OutputHandler<treelite::Model> {
@@ -520,39 +414,28 @@ public:
   bool StartArray() { return push_key_handler<IgnoreHandler>("eval_metrics"); }
 
   bool StartObject() {
-    return (
-        push_key_handler<IgnoreHandler>("learner_train_param") ||
-        push_key_handler<GradientBoosterHandler, treelite::Model>(
-            "gradient_booster", m_output) ||
-        push_key_handler<ObjectiveHandler, Objective>("objective", objective));
-  }
-
-  bool Double(double d) {
-    return assign_value("base_score", m_output.param.global_bias,
-                        static_cast<treelite::tl_float>(d));
-  }
-  bool Uint(unsigned u) {
-    return check_cur_key("num_feature") || check_cur_key("num_class");
+    // "attributes" key is not documented in schema
+    return (push_key_handler<LearnerParamHandler, treelite::Model>(
+                "learner_model_param", m_output) ||
+            push_key_handler<GradientBoosterHandler, treelite::Model>(
+                "gradient_booster", m_output) ||
+            push_key_handler<ObjectiveHandler, std::string>("objective",
+                                                            objective) ||
+            push_key_handler<IgnoreHandler>("attributes"));
   }
 
   bool EndObject(std::size_t memberCount) {
-    if (objective.name.compare("SoftMultiClassObj")) {
-      if (objective.output_prob) {
-        std::strncpy(m_output.param.pred_transform, "softmax",
-                     sizeof(m_output.param.pred_transform));
-      } else {
-        std::strncpy(m_output.param.pred_transform, "max_index",
-                     sizeof(m_output.param.pred_transform));
-      }
-    } else if (objective.name.compare("RegLossObj") &&
-               (objective.loss_type.compare("LogisticRegression") ||
-                objective.loss_type.compare("LogisticClassification"))) {
+    if (objective == "multi:softmax") {
+      std::strncpy(m_output.param.pred_transform, "max_index",
+                   sizeof(m_output.param.pred_transform));
+    } else if (objective == "multi:softprob") {
+      std::strncpy(m_output.param.pred_transform, "softmax",
+                   sizeof(m_output.param.pred_transform));
+    } else if (objective == "reg:logistic" || objective == "binary:logistic") {
       std::strncpy(m_output.param.pred_transform, "sigmoid",
                    sizeof(m_output.param.pred_transform));
-      m_output.param.sigmoid_alpha = 1.0f;
-    } else if (objective.name.compare("GammaRegression") ||
-               objective.name.compare("TweedieRegression") ||
-               objective.name.compare("PoissonRegression")) {
+    } else if (objective == "count:poisson" || objective == "reg:gamma" ||
+               objective == "reg:tweedie") {
       std::strncpy(m_output.param.pred_transform, "exponential",
                    sizeof(m_output.param.pred_transform));
     } else {
@@ -563,7 +446,7 @@ public:
   }
 
 private:
-  Objective objective;
+  std::string objective;
 };
 
 class XGBoostModelHandler : public OutputHandler<treelite::Model> {
@@ -580,17 +463,21 @@ public:
   }
 
   bool EndObject(std::size_t memberCount) {
+    if (memberCount != 2) {
+      return false;
+    }
     m_output.random_forest_flag = false;
-    if (version.at(0) >= 1) {
-      if (std::strcmp(m_output.param.pred_transform, "logistic")) {
+    if (version[0] >= 1) {
+      if (std::strcmp(m_output.param.pred_transform, "sigmoid") == 0) {
         m_output.param.global_bias =
             ProbToMargin::Sigmoid(m_output.param.global_bias);
-      } else if (std::strcmp(m_output.param.pred_transform, "exponential")) {
+      } else if (std::strcmp(m_output.param.pred_transform, "exponential") ==
+                 0) {
         m_output.param.global_bias =
             ProbToMargin::Exponential(m_output.param.global_bias);
       }
     }
-    return this->pop_handler();
+    return pop_handler();
   }
 
 private:
@@ -607,18 +494,19 @@ public:
 
 class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
-      Delegator,
-      std::enable_shared_from_this<Delegator> {
+      public Delegator {
 
 public:
   DelegatedHandler() : delegates{}, result{} {
-    push_delegate(std::make_shared<RootHandler>(weak_from_this(), result));
+    push_delegate(std::make_shared<RootHandler>(*this, result));
   };
 
   void push_delegate(std::shared_ptr<BaseHandler> new_delegate) override {
     delegates.push(new_delegate);
   };
-  void pop_delegate() override { delegates.pop(); };
+  void pop_delegate() override {
+    delegates.pop();
+  };
   treelite::Model get_result() { return std::move(result); }
   bool Null() { return delegates.top()->Null(); }
   bool Bool(bool b) { return delegates.top()->Bool(b); }
@@ -650,11 +538,16 @@ private:
 template<typename StreamType>
 treelite::Model ParseStream(std::unique_ptr<StreamType> input_stream) {
 
-  DelegatedHandler handler;
+  DelegatedHandler handler{};
   rapidjson::Reader reader;
 
-  reader.Parse(*input_stream, handler);
-
+  rapidjson::ParseResult result = reader.Parse(*input_stream, handler);
+  /* if (!result) {
+    LOG(ERROR) << "Parsing error " << result.Code() << " at offset "
+               << result.Offset();
+    throw std::runtime_error(
+        "Provided JSON could not be parsed as XGBoost model");
+  } */
   return handler.get_result();
 }
 

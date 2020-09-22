@@ -14,7 +14,7 @@ TEST(XGBoostJSONFrontend, Basic) {
   std::string json_str = "{}";
 
   Model model;
-  frontend::LoadXGBoostJSONModel(json_str, &model);
+  frontend::LoadXGBoostJSONModelString(json_str, &model);
 }
 
 }  // namespace treelite

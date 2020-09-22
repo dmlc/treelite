@@ -55,7 +55,7 @@ void LoadXGBoostJSONModel(const char* filename, Model* out);
  * \param json_str JSON string
  * \param out reference to loaded model
  */
-void LoadXGBoostJSONModelString(std::string json_str, Model* out);
+void LoadXGBoostJSONModelString(std::string &json_str, Model *out);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

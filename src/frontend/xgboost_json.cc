@@ -3,6 +3,7 @@
  * \file xgboost_json.cc
  * \brief Frontend for xgboost model
  * \author Hyunsu Cho
+ * \author William Hicks
  */
 
 #include <algorithm>

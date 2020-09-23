@@ -53,6 +53,7 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
       sizeof(readBuffer)
   );
   *out = std::move(ParseStream(std::move(input_stream)));
+  fclose(fp);
 }
 
 void LoadXGBoostJSONModelString(std::string &json_str, Model *out) {

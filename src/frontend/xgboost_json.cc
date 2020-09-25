@@ -51,13 +51,12 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
   auto input_stream = std::make_unique<rapidjson::FileReadStream> (
       fp,
       readBuffer,
-      sizeof(readBuffer)
-  );
+      sizeof(readBuffer));
   *out = std::move(ParseStream(std::move(input_stream)));
   fclose(fp);
 }
 
-void LoadXGBoostJSONModelString(std::string &json_str, Model *out) {
+void LoadXGBoostJSONModelString(const std::string &json_str, Model *out) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(
       json_str.c_str(), json_str.size());
   *out = std::move(ParseStream(std::move(input_stream)));
@@ -68,7 +67,7 @@ void LoadXGBoostJSONModelString(std::string &json_str, Model *out) {
 
 namespace {
 
-// TODO: Use shared source for this
+// TODO(wphicks): Use shared source for this
 struct ProbToMargin {
   static float Sigmoid(float global_bias) {
     return -logf(1.0f / global_bias - 1.0f);
@@ -79,15 +78,16 @@ struct ProbToMargin {
 class BaseHandler;
 
 class Delegator {
-public:
+ public:
   virtual void pop_delegate() = 0;
   virtual void push_delegate(std::shared_ptr<BaseHandler> new_delegate) = 0;
 };
 
 class BaseHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, BaseHandler> {
-public:
-  BaseHandler(Delegator &parent_delegator) : delegator{parent_delegator} {};
+ public:
+  explicit BaseHandler(std::weak_ptr<Delegator> parent_delegator) :
+    delegator{parent_delegator} {};
   virtual bool Null() { return false; }
   virtual bool Bool(bool b) { return false; }
   virtual bool Int(int i) { return false; }
@@ -107,12 +107,15 @@ public:
   virtual bool StartArray() { return false; }
   virtual bool EndArray(std::size_t elementCount) { return pop_handler(); }
 
-protected:
-
+ protected:
   template <typename HandlerType, typename... ArgsTypes>
   bool push_handler(ArgsTypes &... args) {
-    delegator.push_delegate(std::make_shared<HandlerType>(delegator, args...));
-    return true;
+    if (auto parent = delegator.lock()) {
+      parent->push_delegate(std::make_shared<HandlerType>(delegator, args...));
+      return true;
+    } else {
+      return false;
+    }
   }
 
   template <typename HandlerType, typename... ArgsTypes>
@@ -126,8 +129,12 @@ protected:
   }
 
   bool pop_handler() {
-    delegator.pop_delegate();
-    return true;
+    if (auto parent = delegator.lock()) {
+      parent->pop_delegate();
+      return true;
+    } else {
+      return false;
+    }
   }
 
   void set_cur_key(const char *str, std::size_t length) {
@@ -140,8 +147,12 @@ protected:
     return cur_key == query_key;
   }
 
+  /* NOTE: Allowing non-const reference parameter because using pointer instead
+   * *substantially* increases complexity of the implementation.
+   */
   template <typename ValueType>
-  bool assign_value(const std::string &key, ValueType &output,
+  bool assign_value(const std::string &key,
+                    ValueType &output,  // NOLINT(runtime/references)
                     ValueType &&value) {
     if (check_cur_key(key)) {
       output = value;
@@ -152,13 +163,14 @@ protected:
   }
 
   template <typename ValueType>
-  bool assign_value(const std::string &key, ValueType &output,
-                    ValueType &value) {
+  bool assign_value(const std::string &key,
+                    ValueType &output,  // NOLINT(runtime/references)
+                    const ValueType &value) {
     return assign_value(key, output, std::forward<ValueType>(value));
   }
 
-private:
-  Delegator &delegator;
+ private:
+  std::weak_ptr<Delegator> delegator;
   std::string cur_key;
 };
 
@@ -178,18 +190,20 @@ class IgnoreHandler : public BaseHandler {
 };
 
 template <typename OutputType> class OutputHandler : public BaseHandler {
-public:
-  OutputHandler(Delegator &parent_delegator, OutputType &output)
+ public:
+  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                OutputType &output)  // NOLINT(runtime/references)
       : BaseHandler{parent_delegator}, m_output{output} {};
-  OutputHandler(Delegator &parent_delegator, OutputType &&output) = delete;
+  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                OutputType &&output) = delete;  // NOLINT(runtime/references)
 
-protected:
+ protected:
   OutputType &m_output;
 };
 
 template <typename ElemType, typename HandlerType = BaseHandler>
 class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
-public:
+ public:
   using OutputHandler<std::vector<ElemType>>::OutputHandler;
   bool Bool(ElemType b) {
     this->m_output.push_back(b);
@@ -251,7 +265,7 @@ public:
 };
 
 class TreeParamHandler : public OutputHandler<int> {
-public:
+ public:
   using OutputHandler<int>::OutputHandler;
 
   bool String(const char *str, std::size_t length, bool copy) {
@@ -263,7 +277,7 @@ public:
 };
 
 class RegTreeHandler : public OutputHandler<treelite::Tree> {
-public:
+ public:
   using OutputHandler<treelite::Tree>::OutputHandler;
   bool StartArray() {
     // Key "categories" not documented in schema
@@ -304,7 +318,7 @@ public:
       return false;
     }
 
-    std::queue<std::pair<int, int>> Q; // (old ID, new ID) pair
+    std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
     Q.push({0, 0});
     while (!Q.empty()) {
       int old_id, new_id;
@@ -327,7 +341,7 @@ public:
     return pop_handler();
   }
 
-private:
+ private:
   std::vector<double> loss_changes;
   std::vector<double> sum_hessian;
   std::vector<double> base_weights;
@@ -356,7 +370,7 @@ class GBTreeModelHandler : public OutputHandler<treelite::Model> {
 };
 
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
-public:
+ public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool Uint(unsigned u) { return check_cur_key("num_boosting_round"); }
   bool String(const char *str, std::size_t length, bool copy) {
@@ -399,7 +413,7 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 };
 
 class LearnerParamHandler : public OutputHandler<treelite::Model> {
-public:
+ public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) {
     return (assign_value("base_score", m_output.param.global_bias,
@@ -411,7 +425,7 @@ public:
 };
 
 class LearnerHandler : public OutputHandler<treelite::Model> {
-public:
+ public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray() { return push_key_handler<IgnoreHandler>("eval_metrics"); }
 
@@ -447,12 +461,12 @@ public:
     return pop_handler();
   }
 
-private:
+ private:
   std::string objective;
 };
 
 class XGBoostModelHandler : public OutputHandler<treelite::Model> {
-public:
+ public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray() {
     return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
@@ -482,12 +496,12 @@ public:
     return pop_handler();
   }
 
-private:
+ private:
   std::vector<unsigned> version;
 };
 
 class RootHandler : public OutputHandler<treelite::Model> {
-public:
+ public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool StartObject() {
     return push_handler<XGBoostModelHandler, treelite::Model>(m_output);
@@ -496,11 +510,12 @@ public:
 
 class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
-      public Delegator {
+      public Delegator,
+      public std::enable_shared_from_this<DelegatedHandler> {
 
-public:
+ public:
   DelegatedHandler() : delegates{}, result{} {
-    push_delegate(std::make_shared<RootHandler>(*this, result));
+    push_delegate(std::make_shared<RootHandler>(weak_from_this(), result));
   };
 
   void push_delegate(std::shared_ptr<BaseHandler> new_delegate) override {
@@ -532,24 +547,23 @@ public:
     return delegates.top()->EndArray(elementCount);
   }
 
-private:
+ private:
   std::stack<std::shared_ptr<BaseHandler>> delegates;
   treelite::Model result;
 };
 
 template<typename StreamType>
 treelite::Model ParseStream(std::unique_ptr<StreamType> input_stream) {
-
   DelegatedHandler handler{};
   rapidjson::Reader reader;
 
   rapidjson::ParseResult result = reader.Parse(*input_stream, handler);
-  /* if (!result) {
+  if (!result) {
     LOG(ERROR) << "Parsing error " << result.Code() << " at offset "
                << result.Offset();
     throw std::runtime_error(
         "Provided JSON could not be parsed as XGBoost model");
-  } */
+  }
   return handler.get_result();
 }
 

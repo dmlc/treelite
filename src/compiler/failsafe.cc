@@ -323,8 +323,8 @@ class FailSafeCompiler : public Compiler {
           "pred_transform"_a = model_param.pred_transform,
           "sigmoid_alpha"_a = model_param.sigmoid_alpha,
           "global_bias"_a = model_param.global_bias,
-          "threshold_type_str"_a = TypeInfoToString(InferTypeInfoOf<float>()),
-          "leaf_output_type_str"_a = TypeInfoToString(InferTypeInfoOf<float>()));
+          "threshold_type_str"_a = TypeInfoToString(TypeToInfo<float>()),
+          "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<float>()));
 
     main_program << fmt::format(main_template,
       "nodes_row_ptr"_a = nodes_row_ptr,

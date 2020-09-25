@@ -189,9 +189,9 @@ class ASTNativeCompiler : public Compiler {
                       const std::string& dest,
                       size_t indent) {
     const std::string threshold_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<ThresholdType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     const std::string leaf_output_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<LeafOutputType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     const std::string predict_function_signature
       = (num_output_group_ > 1) ?
           fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
@@ -212,8 +212,8 @@ class ASTNativeCompiler : public Compiler {
           "pred_transform"_a = pred_transform_,
           "sigmoid_alpha"_a = sigmoid_alpha_,
           "global_bias"_a = global_bias_,
-          "threshold_type_str"_a = TypeInfoToString(InferTypeInfoOf<ThresholdType>()),
-          "leaf_output_type_str"_a = TypeInfoToString(InferTypeInfoOf<LeafOutputType>()));
+          "threshold_type_str"_a = TypeInfoToString(TypeToInfo<ThresholdType>()),
+          "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<LeafOutputType>()));
 
     AppendToBuffer(dest,
       fmt::format(native::main_start_template,
@@ -262,7 +262,7 @@ class ASTNativeCompiler : public Compiler {
                     const std::string& dest,
                     size_t indent) {
     const std::string leaf_output_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<LeafOutputType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     if (num_output_group_ > 1) {
       AppendToBuffer(dest,
         fmt::format("{leaf_output_type} sum[{num_output_group}] = {{0}};\n"
@@ -337,7 +337,7 @@ class ASTNativeCompiler : public Compiler {
     const int unit_id = node->unit_id;
     const std::string new_file = fmt::format("tu{}.c", unit_id);
     const std::string leaf_output_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<LeafOutputType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
 
     std::string unit_function_name, unit_function_signature,
                 unit_function_call_signature;
@@ -384,7 +384,7 @@ class ASTNativeCompiler : public Compiler {
                    const std::string& dest,
                    size_t indent) {
     const std::string threshold_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<ThresholdType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     /* render arrays needed to convert feature values into bin indices */
     std::string array_threshold, array_th_begin, array_th_len;
     // threshold[] : list of all thresholds that occur at least once in the
@@ -555,7 +555,7 @@ class ASTNativeCompiler : public Compiler {
   inline std::string
   ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node) {
     const std::string threshold_type
-        = native::TypeInfoToCTypeString(InferTypeInfoOf<ThresholdType>());
+        = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     std::string result;
     if (node->quantized) {  // quantized threshold
       result = fmt::format("data[{split_index}].qvalue {opname} {threshold}",
@@ -634,7 +634,7 @@ class ASTNativeCompiler : public Compiler {
   template <typename LeafOutputType>
   inline std::string RenderOutputStatement(const OutputNode<LeafOutputType>* node) {
     const std::string leaf_output_type
-      = native::TypeInfoToCTypeString(InferTypeInfoOf<LeafOutputType>());
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     std::string output_statement;
     if (num_output_group_ > 1) {
       if (node->is_vector) {

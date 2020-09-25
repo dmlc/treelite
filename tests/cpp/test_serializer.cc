@@ -35,8 +35,8 @@ namespace treelite {
 
 template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_TreeStump() {
-  TypeInfo threshold_type = InferTypeInfoOf<ThresholdType>();
-  TypeInfo leaf_output_type = InferTypeInfoOf<LeafOutputType>();
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
@@ -70,8 +70,8 @@ TEST(PyBufferInterfaceRoundTrip, TreeStump) {
 
 template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
-  TypeInfo threshold_type = InferTypeInfoOf<ThresholdType>();
-  TypeInfo leaf_output_type = InferTypeInfoOf<LeafOutputType>();
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(2, 2, true, threshold_type, leaf_output_type)
   };
@@ -112,8 +112,8 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
 
 template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
-  TypeInfo threshold_type = InferTypeInfoOf<ThresholdType>();
-  TypeInfo leaf_output_type = InferTypeInfoOf<LeafOutputType>();
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
@@ -152,8 +152,8 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpCategoricalSplit) {
 
 template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_TreeDepth2() {
-  TypeInfo threshold_type = InferTypeInfoOf<ThresholdType>();
-  TypeInfo leaf_output_type = InferTypeInfoOf<LeafOutputType>();
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
@@ -195,8 +195,8 @@ TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {
 
 template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_DeepFullTree() {
-  TypeInfo threshold_type = InferTypeInfoOf<ThresholdType>();
-  TypeInfo leaf_output_type = InferTypeInfoOf<LeafOutputType>();
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   const int depth = 19;
 
   std::unique_ptr<frontend::ModelBuilder> builder{

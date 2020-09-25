@@ -102,7 +102,7 @@ template <typename ThresholdType, typename LeafOutputType>
 void SetLeafVector(Tree<ThresholdType, LeafOutputType>* tree, int nid,
                    const std::vector<Value>& leaf_vector) {
   const size_t leaf_vector_size = leaf_vector.size();
-  const TypeInfo expected_leaf_type = InferTypeInfoOf<LeafOutputType>();
+  const TypeInfo expected_leaf_type = TypeToInfo<LeafOutputType>();
   std::vector<LeafOutputType> out_leaf_vector;
   for (size_t i = 0; i < leaf_vector_size; ++i) {
     const Value& leaf_value = leaf_vector[i];
@@ -123,7 +123,7 @@ Value::Create(T init_value) {
   Value value;
   std::unique_ptr<T> ptr = std::make_unique<T>(init_value);
   value.handle_.reset(ptr.release());
-  value.type_ = InferTypeInfoOf<T>();
+  value.type_ = TypeToInfo<T>();
   return value;
 }
 
@@ -466,9 +466,9 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
         CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
         CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
-        CHECK(node->threshold.GetValueType() == InferTypeInfoOf<ThresholdType>())
+        CHECK(node->threshold.GetValueType() == TypeToInfo<ThresholdType>())
           << "CommitModel: The specified threshold has incorrect type. Expected: "
-          << TypeInfoToString(InferTypeInfoOf<ThresholdType>())
+          << TypeInfoToString(TypeToInfo<ThresholdType>())
           << " Given: " << TypeInfoToString(node->threshold.GetValueType());
         ThresholdType threshold = node->threshold.Get<ThresholdType>();
         tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
@@ -501,9 +501,9 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
             << "CommitModel: Inconsistent use of leaf vector: if one leaf node does not use a leaf "
             << "vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          CHECK(node->leaf_value.GetValueType() == InferTypeInfoOf<LeafOutputType>())
+          CHECK(node->leaf_value.GetValueType() == TypeToInfo<LeafOutputType>())
             << "CommitModel: The specified leaf value has incorrect type. Expected: "
-            << TypeInfoToString(InferTypeInfoOf<LeafOutputType>())
+            << TypeInfoToString(TypeToInfo<LeafOutputType>())
             << " Given: " << TypeInfoToString(node->leaf_value.GetValueType());
           LeafOutputType leaf_value = node->leaf_value.Get<LeafOutputType>();
           tree.SetLeaf(nid, leaf_value);

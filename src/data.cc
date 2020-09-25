@@ -97,7 +97,7 @@ DenseDMatrix::Create(
     std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col) {
   std::unique_ptr<DenseDMatrix> matrix = std::make_unique<DenseDMatrixImpl<ElementType>>(
       std::move(data), missing_value, num_row, num_col);
-  matrix->element_type_ = InferTypeInfoOf<ElementType>();
+  matrix->element_type_ = TypeToInfo<ElementType>();
   return matrix;
 }
 
@@ -168,7 +168,7 @@ CSRDMatrix::Create(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
                    std::vector<size_t> row_ptr, size_t num_row, size_t num_col) {
   std::unique_ptr<CSRDMatrix> matrix = std::make_unique<CSRDMatrixImpl<ElementType>>(
       std::move(data), std::move(col_ind), std::move(row_ptr), num_row, num_col);
-  matrix->element_type_ = InferTypeInfoOf<ElementType>();
+  matrix->element_type_ = TypeToInfo<ElementType>();
   return matrix;
 }
 

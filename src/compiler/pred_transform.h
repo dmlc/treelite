@@ -14,8 +14,7 @@
 namespace treelite {
 namespace compiler {
 
-std::string PredTransformFunction(const std::string& backend,
-                                  const Model& model);
+std::string PredTransformFunction(const std::string& backend, const Model& model);
 
 }  // namespace compiler
 }  // namespace treelite

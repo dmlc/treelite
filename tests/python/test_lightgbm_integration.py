@@ -44,8 +44,8 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
 
-    batch = treelite_runtime.Batch.from_npy2d(X_test)
-    out_pred = predictor.predict(batch)
+    dmat = treelite_runtime.DMatrix(X_test, dtype='float64')
+    out_pred = predictor.predict(dmat)
     expected_pred = bst.predict(X_test)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -72,12 +72,12 @@ def test_lightgbm_binary_classification(tmpdir, objective, toolchain):
 
     model = treelite.Model.load(model_path, model_format='lightgbm')
     libpath = os.path.join(tmpdir, f'agaricus_{objective}' + _libext())
-    batch = treelite_runtime.Batch.from_csr(treelite.DMatrix(dtest_path))
+    dmat = treelite_runtime.DMatrix(dtest_path, dtype='float64')
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
     predictor = treelite_runtime.Predictor(libpath, verbose=True)
-    out_prob = predictor.predict(batch)
+    out_prob = predictor.predict(dmat)
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
-    out_margin = predictor.predict(batch, pred_margin=True)
+    out_margin = predictor.predict(dmat, pred_margin=True)
     np.testing.assert_almost_equal(out_margin, expected_margin, decimal=5)
 
 

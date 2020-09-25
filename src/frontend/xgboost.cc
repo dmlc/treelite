@@ -384,9 +384,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   bool need_transform_to_margin = mparam_.major_version >= 1;
 
   /* 2. Export model */
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create();
-  auto* model = dynamic_cast<treelite::ModelImpl*>(model_ptr.get());
-  model->num_feature = mparam_.num_feature;
+  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
+  auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
+  model->num_feature = static_cast<int>(mparam_.num_feature);
   model->num_output_group = std::max(mparam_.num_class, 1);
   model->random_forest_flag = false;
 
@@ -426,7 +426,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   // traverse trees
   for (const auto& xgb_tree : xgb_trees_) {
     model->trees.emplace_back();
-    treelite::Tree& tree = model->trees.back();
+    treelite::Tree<float, float>& tree = model->trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -441,13 +441,12 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
       const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
         const bst_float leaf_value = node.leaf_value();
-        tree.SetLeaf(new_id, static_cast<treelite::tl_float>(leaf_value));
+        tree.SetLeaf(new_id, static_cast<float>(leaf_value));
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
         tree.SetNumericalSplit(new_id, node.split_index(),
-            static_cast<treelite::tl_float>(split_cond), node.default_left(),
-            treelite::Operator::kLT);
+            static_cast<float>(split_cond), node.default_left(), treelite::Operator::kLT);
         tree.SetGain(new_id, stat.loss_chg);
         Q.push({node.cleft(), tree.LeftChild(new_id)});
         Q.push({node.cright(), tree.RightChild(new_id)});

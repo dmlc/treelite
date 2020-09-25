@@ -24,8 +24,7 @@ class BranchAnnotator {
    * \param nthread number of threads to use
    * \param verbose whether to produce extra messages
    */
-  void Annotate(const Model& model, const DMatrix* dmat,
-               int nthread, int verbose);
+  void Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose);
   /*!
    * \brief load branch annotation from a JSON file
    * \param fi input stream

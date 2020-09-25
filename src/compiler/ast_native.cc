@@ -19,6 +19,7 @@
 #include "./native/header_template.h"
 #include "./native/qnode_template.h"
 #include "./native/code_folder_template.h"
+#include "./native/typeinfo_ctypes.h"
 #include "./common/format_util.h"
 #include "./common/code_folding_util.h"
 #include "./common/categorical_bitmap.h"
@@ -49,7 +50,8 @@ class ASTNativeCompiler : public Compiler {
     }
   }
 
-  CompiledModel Compile(const Model& model) override {
+  template <typename ThresholdType, typename LeafOutputType>
+  CompiledModel CompileImpl(const ModelImpl<ThresholdType, LeafOutputType>& model) {
     CompiledModel cm;
     cm.backend = "native";
 
@@ -58,13 +60,11 @@ class ASTNativeCompiler : public Compiler {
     pred_transform_ = model.param.pred_transform;
     sigmoid_alpha_ = model.param.sigmoid_alpha;
     global_bias_ = model.param.global_bias;
-    pred_tranform_func_ = PredTransformFunction("native", model);
     files_.clear();
 
-    ASTBuilder builder;
-    builder.BuildAST(dynamic_cast<const ModelImpl&>(model));
-    if (builder.FoldCode(param.code_folding_req)
-        || param.quantize > 0) {
+    ASTBuilder<ThresholdType, LeafOutputType> builder;
+    builder.BuildAST(model);
+    if (builder.FoldCode(param.code_folding_req) || param.quantize > 0) {
       // is_categorical[i] : is i-th feature categorical?
       array_is_categorical_
         = RenderIsCategoricalArray(builder.GenerateIsCategoricalArray());
@@ -92,7 +92,7 @@ class ASTNativeCompiler : public Compiler {
       }
     }
 
-    WalkAST(builder.GetRootNode(), "main.c", 0);
+    WalkAST<ThresholdType, LeafOutputType>(builder.GetRootNode(), "main.c", 0);
     if (files_.count("arrays.c") > 0) {
       PrependToBuffer("arrays.c", "#include \"header.h\"\n", 0);
     }
@@ -121,6 +121,13 @@ class ASTNativeCompiler : public Compiler {
     return cm;
   }
 
+  CompiledModel Compile(const Model& model) override {
+    this->pred_tranform_func_ = PredTransformFunction("native", model);
+    return model.Dispatch([this](const auto& model_handle) {
+      return this->CompileImpl(model_handle);
+    });
+  }
+
  private:
   CompilerParam param;
   int num_feature_;
@@ -132,30 +139,31 @@ class ASTNativeCompiler : public Compiler {
   std::string array_is_categorical_;
   std::unordered_map<std::string, CompiledModel::FileEntry> files_;
 
+  template <typename ThresholdType, typename LeafOutputType>
   void WalkAST(const ASTNode* node,
                const std::string& dest,
                size_t indent) {
     const MainNode* t1;
     const AccumulatorContextNode* t2;
     const ConditionNode* t3;
-    const OutputNode* t4;
+    const OutputNode<LeafOutputType>* t4;
     const TranslationUnitNode* t5;
-    const QuantizerNode* t6;
+    const QuantizerNode<ThresholdType>* t6;
     const CodeFolderNode* t7;
     if ( (t1 = dynamic_cast<const MainNode*>(node)) ) {
-      HandleMainNode(t1, dest, indent);
+      HandleMainNode<ThresholdType, LeafOutputType>(t1, dest, indent);
     } else if ( (t2 = dynamic_cast<const AccumulatorContextNode*>(node)) ) {
-      HandleACNode(t2, dest, indent);
+      HandleACNode<ThresholdType, LeafOutputType>(t2, dest, indent);
     } else if ( (t3 = dynamic_cast<const ConditionNode*>(node)) ) {
-      HandleCondNode(t3, dest, indent);
-    } else if ( (t4 = dynamic_cast<const OutputNode*>(node)) ) {
-      HandleOutputNode(t4, dest, indent);
+      HandleCondNode<ThresholdType, LeafOutputType>(t3, dest, indent);
+    } else if ( (t4 = dynamic_cast<const OutputNode<LeafOutputType>*>(node)) ) {
+      HandleOutputNode<ThresholdType, LeafOutputType>(t4, dest, indent);
     } else if ( (t5 = dynamic_cast<const TranslationUnitNode*>(node)) ) {
-      HandleTUNode(t5, dest, indent);
-    } else if ( (t6 = dynamic_cast<const QuantizerNode*>(node)) ) {
-      HandleQNode(t6, dest, indent);
+      HandleTUNode<ThresholdType, LeafOutputType>(t5, dest, indent);
+    } else if ( (t6 = dynamic_cast<const QuantizerNode<ThresholdType>*>(node)) ) {
+      HandleQNode<ThresholdType, LeafOutputType>(t6, dest, indent);
     } else if ( (t7 = dynamic_cast<const CodeFolderNode*>(node)) ) {
-      HandleCodeFolderNode(t7, dest, indent);
+      HandleCodeFolderNode<ThresholdType, LeafOutputType>(t7, dest, indent);
     } else {
       LOG(FATAL) << "Unrecognized AST node type";
     }
@@ -176,24 +184,20 @@ class ASTNativeCompiler : public Compiler {
       = common_util::IndentMultiLineString(content, indent) + files_[dest].content;
   }
 
+  template <typename ThresholdType, typename LeafOutputType>
   void HandleMainNode(const MainNode* node,
                       const std::string& dest,
                       size_t indent) {
-    const char* get_num_output_group_function_signature
-      = "size_t get_num_output_group(void)";
-    const char* get_num_feature_function_signature
-      = "size_t get_num_feature(void)";
-    const char* get_pred_transform_function_signature
-      = "const char* get_pred_transform(void)";
-    const char* get_sigmoid_alpha_function_signature
-      = "float get_sigmoid_alpha(void)";
-    const char* get_global_bias_function_signature
-      = "float get_global_bias(void)";
-    const char* predict_function_signature
+    const std::string threshold_type
+      = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
+    const std::string leaf_output_type
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
+    const std::string predict_function_signature
       = (num_output_group_ > 1) ?
-          "size_t predict_multiclass(union Entry* data, int pred_margin, "
-                                    "float* result)"
-        : "float predict(union Entry* data, int pred_margin)";
+          fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
+                      leaf_output_type)
+        : fmt::format("{} predict(union Entry* data, int pred_margin)",
+                      leaf_output_type);
 
     if (!array_is_categorical_.empty()) {
       array_is_categorical_
@@ -201,92 +205,91 @@ class ASTNativeCompiler : public Compiler {
                       array_is_categorical_);
     }
 
+    const std::string query_functions_definition
+      = fmt::format(native::query_functions_definition_template,
+          "num_output_group"_a = num_output_group_,
+          "num_feature"_a = num_feature_,
+          "pred_transform"_a = pred_transform_,
+          "sigmoid_alpha"_a = sigmoid_alpha_,
+          "global_bias"_a = global_bias_,
+          "threshold_type_str"_a = TypeInfoToString(TypeToInfo<ThresholdType>()),
+          "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<LeafOutputType>()));
+
     AppendToBuffer(dest,
       fmt::format(native::main_start_template,
         "array_is_categorical"_a = array_is_categorical_,
-        "get_num_output_group_function_signature"_a
-          = get_num_output_group_function_signature,
-        "get_num_feature_function_signature"_a
-          = get_num_feature_function_signature,
-        "get_pred_transform_function_signature"_a
-          = get_pred_transform_function_signature,
-        "get_sigmoid_alpha_function_signature"_a
-          = get_sigmoid_alpha_function_signature,
-        "get_global_bias_function_signature"_a
-          = get_global_bias_function_signature,
+        "query_functions_definition"_a = query_functions_definition,
         "pred_transform_function"_a = pred_tranform_func_,
-        "predict_function_signature"_a = predict_function_signature,
-        "num_output_group"_a = num_output_group_,
-        "num_feature"_a = num_feature_,
-        "pred_transform"_a = pred_transform_,
-        "sigmoid_alpha"_a = sigmoid_alpha_,
-        "global_bias"_a = global_bias_),
+        "predict_function_signature"_a = predict_function_signature),
       indent);
+    const std::string query_functions_prototype
+      = fmt::format(native::query_functions_prototype_template,
+          "dllexport"_a = DLLEXPORT_KEYWORD);
     AppendToBuffer("header.h",
       fmt::format(native::header_template,
         "dllexport"_a = DLLEXPORT_KEYWORD,
-        "get_num_output_group_function_signature"_a
-          = get_num_output_group_function_signature,
-        "get_num_feature_function_signature"_a
-          = get_num_feature_function_signature,
-        "get_pred_transform_function_signature"_a
-          = get_pred_transform_function_signature,
-        "get_sigmoid_alpha_function_signature"_a
-          = get_sigmoid_alpha_function_signature,
-        "get_global_bias_function_signature"_a
-          = get_global_bias_function_signature,
         "predict_function_signature"_a = predict_function_signature,
-        "threshold_type"_a = (param.quantize > 0 ? "int" : "float")),
+        "query_functions_prototype"_a = query_functions_prototype,
+        "threshold_type"_a = threshold_type,
+        "threshold_type_Node"_a = (param.quantize > 0 ? std::string("int") : threshold_type)),
       indent);
 
     CHECK_EQ(node->children.size(), 1);
-    WalkAST(node->children[0], dest, indent + 2);
+    WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent + 2);
 
     const std::string optional_average_field
-      = (node->average_result) ? fmt::format(" / {}", node->num_tree)
-                               : std::string("");
+      = (node->average_result) ? fmt::format(" / {}", node->num_tree) : std::string("");
     if (num_output_group_ > 1) {
       AppendToBuffer(dest,
         fmt::format(native::main_end_multiclass_template,
           "num_output_group"_a = num_output_group_,
           "optional_average_field"_a = optional_average_field,
-          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias)),
+          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias),
+          "leaf_output_type"_a = leaf_output_type),
         indent);
     } else {
       AppendToBuffer(dest,
         fmt::format(native::main_end_template,
           "optional_average_field"_a = optional_average_field,
-          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias)),
+          "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias),
+          "leaf_output_type"_a = leaf_output_type),
         indent);
     }
   }
 
+  template <typename ThresholdType, typename LeafOutputType>
   void HandleACNode(const AccumulatorContextNode* node,
                     const std::string& dest,
                     size_t indent) {
+    const std::string leaf_output_type
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     if (num_output_group_ > 1) {
       AppendToBuffer(dest,
-        fmt::format("float sum[{num_output_group}] = {{0.0f}};\n"
+        fmt::format("{leaf_output_type} sum[{num_output_group}] = {{0}};\n"
                     "unsigned int tmp;\n"
                     "int nid, cond, fid;  /* used for folded subtrees */\n",
-          "num_output_group"_a = num_output_group_), indent);
+          "num_output_group"_a = num_output_group_,
+          "leaf_output_type"_a = leaf_output_type), indent);
     } else {
       AppendToBuffer(dest,
-        "float sum = 0.0f;\n"
-        "unsigned int tmp;\n"
-        "int nid, cond, fid;  /* used for folded subtrees */\n", indent);
+        fmt::format("{leaf_output_type} sum = ({leaf_output_type})0;\n"
+                    "unsigned int tmp;\n"
+                    "int nid, cond, fid;  /* used for folded subtrees */\n",
+          "leaf_output_type"_a = leaf_output_type),
+        indent);
     }
     for (ASTNode* child : node->children) {
-      WalkAST(child, dest, indent);
+      WalkAST<ThresholdType, LeafOutputType>(child, dest, indent);
     }
   }
 
+  template <typename ThresholdType, typename LeafOutputType>
   void HandleCondNode(const ConditionNode* node,
                       const std::string& dest,
                       size_t indent) {
-    const NumericalConditionNode* t;
+    const NumericalConditionNode<ThresholdType>* t;
     std::string condition, condition_with_na_check;
-    if ( (t = dynamic_cast<const NumericalConditionNode*>(node)) ) {
+    if ( (t = dynamic_cast<const NumericalConditionNode<ThresholdType>*>(node)) ) {
       /* numerical split */
       condition = ExtractNumericalCondition(t);
       const char* condition_with_na_check_template
@@ -298,14 +301,13 @@ class ASTNativeCompiler : public Compiler {
             "split_index"_a = node->split_index,
             "condition"_a = condition);
     } else {   /* categorical split */
-      const CategoricalConditionNode* t2
-        = dynamic_cast<const CategoricalConditionNode*>(node);
+      const CategoricalConditionNode* t2 = dynamic_cast<const CategoricalConditionNode*>(node);
       CHECK(t2);
       condition_with_na_check = ExtractCategoricalCondition(t2);
     }
     if (node->children[0]->data_count && node->children[1]->data_count) {
-      const int left_freq = node->children[0]->data_count.value();
-      const int right_freq = node->children[1]->data_count.value();
+      const size_t left_freq = node->children[0]->data_count.value();
+      const size_t right_freq = node->children[1]->data_count.value();
       condition_with_na_check
         = fmt::format(" {keyword}( {condition} ) ",
             "keyword"_a = ((left_freq > right_freq) ? "LIKELY" : "UNLIKELY"),
@@ -314,24 +316,28 @@ class ASTNativeCompiler : public Compiler {
     AppendToBuffer(dest,
       fmt::format("if ({}) {{\n", condition_with_na_check), indent);
     CHECK_EQ(node->children.size(), 2);
-    WalkAST(node->children[0], dest, indent + 2);
+    WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent + 2);
     AppendToBuffer(dest, "} else {\n", indent);
-    WalkAST(node->children[1], dest, indent + 2);
+    WalkAST<ThresholdType, LeafOutputType>(node->children[1], dest, indent + 2);
     AppendToBuffer(dest, "}\n", indent);
   }
 
-  void HandleOutputNode(const OutputNode* node,
+  template <typename ThresholdType, typename LeafOutputType>
+  void HandleOutputNode(const OutputNode<LeafOutputType>* node,
                         const std::string& dest,
                         size_t indent) {
     AppendToBuffer(dest, RenderOutputStatement(node), indent);
     CHECK_EQ(node->children.size(), 0);
   }
 
+  template <typename ThresholdType, typename LeafOutputType>
   void HandleTUNode(const TranslationUnitNode* node,
                     const std::string& dest,
-                    int indent) {
+                    size_t indent) {
     const int unit_id = node->unit_id;
     const std::string new_file = fmt::format("tu{}.c", unit_id);
+    const std::string leaf_output_type
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
 
     std::string unit_function_name, unit_function_signature,
                 unit_function_call_signature;
@@ -339,15 +345,18 @@ class ASTNativeCompiler : public Compiler {
       unit_function_name
         = fmt::format("predict_margin_multiclass_unit{}", unit_id);
       unit_function_signature
-        = fmt::format("void {}(union Entry* data, float* result)",
-            unit_function_name);
+        = fmt::format("void {function_name}(union Entry* data, {leaf_output_type}* result)",
+            "function_name"_a = unit_function_name,
+            "leaf_output_type"_a = leaf_output_type);
       unit_function_call_signature
         = fmt::format("{}(data, sum);\n", unit_function_name);
     } else {
       unit_function_name
         = fmt::format("predict_margin_unit{}", unit_id);
       unit_function_signature
-        = fmt::format("float {}(union Entry* data)", unit_function_name);
+        = fmt::format("{leaf_output_type} {function_name}(union Entry* data)",
+            "function_name"_a = unit_function_name,
+            "leaf_output_type"_a = leaf_output_type);
       unit_function_call_signature
         = fmt::format("sum += {}(data);\n", unit_function_name);
     }
@@ -356,7 +365,7 @@ class ASTNativeCompiler : public Compiler {
                    fmt::format("#include \"header.h\"\n"
                                "{} {{\n", unit_function_signature), 0);
     CHECK_EQ(node->children.size(), 1);
-    WalkAST(node->children[0], new_file, 2);
+    WalkAST<ThresholdType, LeafOutputType>(node->children[0], new_file, 2);
     if (num_output_group_ > 1) {
       AppendToBuffer(new_file,
         fmt::format("  for (int i = 0; i < {num_output_group}; ++i) {{\n"
@@ -370,9 +379,12 @@ class ASTNativeCompiler : public Compiler {
     AppendToBuffer("header.h", fmt::format("{};\n", unit_function_signature), 0);
   }
 
-  void HandleQNode(const QuantizerNode* node,
+  template <typename ThresholdType, typename LeafOutputType>
+  void HandleQNode(const QuantizerNode<ThresholdType>* node,
                    const std::string& dest,
                    size_t indent) {
+    const std::string threshold_type
+      = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     /* render arrays needed to convert feature values into bin indices */
     std::string array_threshold, array_th_begin, array_th_len;
     // threshold[] : list of all thresholds that occur at least once in the
@@ -386,7 +398,7 @@ class ASTNativeCompiler : public Compiler {
       for (const auto& e : node->cut_pts) {
         // cut_pts had been generated in ASTBuilder::QuantizeThresholds
         // cut_pts[i][k] stores the k-th threshold of feature i.
-        for (tl_float v : e) {
+        for (auto v : e) {
           formatter << v;
         }
       }
@@ -412,16 +424,21 @@ class ASTNativeCompiler : public Compiler {
     if (!array_threshold.empty() && !array_th_begin.empty() && !array_th_len.empty()) {
       PrependToBuffer(dest,
         fmt::format(native::qnode_template,
-          "total_num_threshold"_a = total_num_threshold), 0);
+          "total_num_threshold"_a = total_num_threshold,
+          "threshold_type"_a = threshold_type),
+        0);
       AppendToBuffer(dest,
         fmt::format(native::quantize_loop_template,
           "num_feature"_a = num_feature_), indent);
     }
     if (!array_threshold.empty()) {
       PrependToBuffer(dest,
-        fmt::format("static const float threshold[] = {{\n"
+        fmt::format("static const {threshold_type} threshold[] = {{\n"
                     "{array_threshold}\n"
-                    "}};\n", "array_threshold"_a = array_threshold), 0);
+                    "}};\n",
+          "array_threshold"_a = array_threshold,
+          "threshold_type"_a = threshold_type),
+        0);
     }
     if (!array_th_begin.empty()) {
       PrependToBuffer(dest,
@@ -436,9 +453,10 @@ class ASTNativeCompiler : public Compiler {
                     "}};\n", "array_th_len"_a = array_th_len), 0);
     }
     CHECK_EQ(node->children.size(), 1);
-    WalkAST(node->children[0], dest, indent);
+    WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent);
   }
 
+  template <typename ThresholdType, typename LeafOutputType>
   void HandleCodeFolderNode(const CodeFolderNode* node,
                             const std::string& dest,
                             size_t indent) {
@@ -464,9 +482,9 @@ class ASTNativeCompiler : public Compiler {
 
     std::string output_switch_statement;
     Operator common_comp_op;
-    common_util::RenderCodeFolderArrays(node, param.quantize, false,
+    common_util::RenderCodeFolderArrays<ThresholdType, LeafOutputType>(node, param.quantize, false,
       "{{ {default_left}, {split_index}, {threshold}, {left_child}, {right_child} }}",
-      [this](const OutputNode* node) { return RenderOutputStatement(node); },
+      [this](const OutputNode<LeafOutputType>* node) { return RenderOutputStatement(node); },
       &array_nodes, &array_cat_bitmap, &array_cat_begin,
       &output_switch_statement, &common_comp_op);
     if (!array_nodes.empty()) {
@@ -533,8 +551,11 @@ class ASTNativeCompiler : public Compiler {
     }
   }
 
+  template <typename ThresholdType>
   inline std::string
-  ExtractNumericalCondition(const NumericalConditionNode* node) {
+  ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node) {
+    const std::string threshold_type
+        = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     std::string result;
     if (node->quantized) {  // quantized threshold
       result = fmt::format("data[{split_index}].qvalue {opname} {threshold}",
@@ -544,12 +565,15 @@ class ASTNativeCompiler : public Compiler {
     } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
       // According to IEEE 754, the result of comparison [lhs] < infinity
       // must be identical for all finite [lhs]. Same goes for operator >.
-      result = (CompareWithOp(0.0, node->op, node->threshold.float_val) ? "1" : "0");
+      result = (CompareWithOp(static_cast<ThresholdType>(0), node->op, node->threshold.float_val)
+          ? "1" : "0");
     } else {  // finite threshold
-      result = fmt::format("data[{split_index}].fvalue {opname} (float){threshold}",
-                 "split_index"_a = node->split_index,
-                 "opname"_a = OpName(node->op),
-                 "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));
+      result
+        = fmt::format("data[{split_index}].fvalue {opname} ({threshold_type}){threshold}",
+            "split_index"_a = node->split_index,
+            "opname"_a = OpName(node->op),
+            "threshold_type"_a = threshold_type,
+            "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));
     }
     return result;
   }
@@ -607,7 +631,10 @@ class ASTNativeCompiler : public Compiler {
     return formatter.str();
   }
 
-  inline std::string RenderOutputStatement(const OutputNode* node) {
+  template <typename LeafOutputType>
+  inline std::string RenderOutputStatement(const OutputNode<LeafOutputType>* node) {
+    const std::string leaf_output_type
+      = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     std::string output_statement;
     if (num_output_group_ > 1) {
       if (node->is_vector) {
@@ -616,21 +643,24 @@ class ASTNativeCompiler : public Compiler {
           << "Ill-formed model: leaf vector must be of length [num_output_group]";
         for (int group_id = 0; group_id < num_output_group_; ++group_id) {
           output_statement
-            += fmt::format("sum[{group_id}] += (float){output};\n",
+            += fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
                  "group_id"_a = group_id,
-                 "output"_a = common_util::ToStringHighPrecision(node->vector[group_id]));
+                 "output"_a = common_util::ToStringHighPrecision(node->vector[group_id]),
+                 "leaf_output_type"_a = leaf_output_type);
         }
       } else {
         // multi-class classification with gradient boosted trees
         output_statement
-          = fmt::format("sum[{group_id}] += (float){output};\n",
+          = fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
               "group_id"_a = node->tree_id % num_output_group_,
-              "output"_a = common_util::ToStringHighPrecision(node->scalar));
+              "output"_a = common_util::ToStringHighPrecision(node->scalar),
+              "leaf_output_type"_a = leaf_output_type);
       }
     } else {
       output_statement
-        = fmt::format("sum += (float){output};\n",
-            "output"_a = common_util::ToStringHighPrecision(node->scalar));
+        = fmt::format("sum += ({leaf_output_type}){output};\n",
+            "output"_a = common_util::ToStringHighPrecision(node->scalar),
+            "leaf_output_type"_a = leaf_output_type);
     }
     return output_statement;
   }

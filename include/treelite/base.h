@@ -31,7 +31,8 @@ enum class Operator : int8_t {
   kGT,  /*!< operator >  */
   kGE,  /*!< operator >= */
 };
-/*! \brief conversion table from string to operator, defined in optable.cc */
+
+/*! \brief conversion table from string to Operator, defined in tables.cc */
 extern const std::unordered_map<std::string, Operator> optable;
 
 /*!

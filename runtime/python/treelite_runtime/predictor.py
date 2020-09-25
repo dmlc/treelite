@@ -9,7 +9,8 @@ import pathlib
 import numpy as np
 import scipy.sparse
 from .util import c_str, py_str, _log_callback, TreeliteRuntimeError, lineno, log_info, \
-    lib_extension_current_platform
+    lib_extension_current_platform, type_info_to_ctypes_type, type_info_to_numpy_type, \
+    numpy_type_to_type_info
 from .libpath import TreeliteRuntimeLibraryNotFound, find_lib_path
 
 
@@ -50,183 +51,7 @@ def _check_call(ret):
         raise TreeliteRuntimeError(py_str(_LIB.TreeliteGetLastError()))
 
 
-class PredictorEntry(ctypes.Union):
-    _fields_ = [('missing', ctypes.c_int), ('fvalue', ctypes.c_float)]
-
-
-class Batch(object):
-    """Batch of rows to be used for prediction"""
-
-    def __init__(self):
-        self.handle = None
-        self.kind = None
-
-    def __del__(self):
-        if self.handle is not None:
-            if self.kind == 'sparse':
-                _check_call(_LIB.TreeliteDeleteSparseBatch(self.handle))
-            elif self.kind == 'dense':
-                _check_call(_LIB.TreeliteDeleteDenseBatch(self.handle))
-            else:
-                raise TreeliteRuntimeError('this batch has wrong value for `kind` field')
-            self.handle = None
-            self.kind = None
-
-    def shape(self):
-        """
-        Get dimensions of the batch
-
-        Returns
-        -------
-        dims : :py:class:`tuple <python:tuple>` of length 2
-            (number of rows, number of columns)
-        """
-        num_row = ctypes.c_size_t()
-        num_col = ctypes.c_size_t()
-        _check_call(_LIB.TreeliteBatchGetDimension(
-            self.handle,
-            ctypes.c_int(1 if self.kind == 'sparse' else 0),
-            ctypes.byref(num_row),
-            ctypes.byref(num_col)))
-        return (num_row.value, num_col.value)
-
-    @classmethod
-    def from_npy2d(cls, mat, rbegin=0, rend=None, missing=None):
-        """
-        Get a dense batch from a 2D numpy matrix.
-        If ``mat`` does not have ``order='C'`` (also known as row-major) or is not
-        contiguous, a temporary copy will be made.
-        If ``mat`` does not have ``dtype=numpy.float32``, a temporary copy will be
-        made also.
-        Thus, as many as two temporary copies of data can be made. One should set
-        input layout and type judiciously to conserve memory.
-
-        Parameters
-        ----------
-        mat : object of type :py:class:`numpy.ndarray`, with dimension 2
-            data matrix
-        rbegin : :py:class:`int <python:int>`, optional
-            the index of the first row in the subset
-        rend : :py:class:`int <python:int>`, optional
-            one past the index of the last row in the subset. If missing, set to
-            the end of the matrix.
-        missing : :py:class:`float <python:float>`, optional
-            value indicating missing value. If missing, set to ``numpy.nan``.
-
-        Returns
-        -------
-        dense_batch : :py:class:`Batch`
-            a dense batch consisting of rows ``[rbegin, rend)``
-        """
-        if not isinstance(mat, np.ndarray):
-            raise ValueError('mat must be of type numpy.ndarray')
-        if len(mat.shape) != 2:
-            raise ValueError('Input numpy.ndarray must be two-dimensional')
-        num_row = mat.shape[0]
-        num_col = mat.shape[1]
-        rbegin = rbegin if rbegin is not None else 0
-        rend = rend if rend is not None else num_row
-        if rbegin >= rend:
-            raise TreeliteRuntimeError('rbegin must be less than rend')
-        if rbegin < 0:
-            raise TreeliteRuntimeError('rbegin must be nonnegative')
-        if rend > num_row:
-            raise TreeliteRuntimeError('rend must be less than number of rows in mat')
-        # flatten the array by rows and ensure it is float32.
-        # we try to avoid data copies if possible
-        # (reshape returns a view when possible and we explicitly tell np.array to
-        #  avoid copying)
-        data_subset = np.array(mat[rbegin:rend, :].reshape((rend - rbegin) * num_col),
-                               copy=False, dtype=np.float32)
-        missing = missing if missing is not None else np.nan
-
-        batch = Batch()
-        batch.handle = ctypes.c_void_p()
-        batch.kind = 'dense'
-        _check_call(_LIB.TreeliteAssembleDenseBatch(
-            data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            ctypes.c_float(missing),
-            ctypes.c_size_t(rend - rbegin),
-            ctypes.c_size_t(num_col),
-            ctypes.byref(batch.handle)))
-        # save handles for internal arrays
-        batch.data = data_subset
-        # save pointer to mat so that it doesn't get garbage-collected prematurely
-        batch.mat = mat
-        return batch
-
-    @classmethod
-    def from_csr(cls, csr, rbegin=None, rend=None):
-        """
-        Get a sparse batch from a subset of rows in a CSR (Compressed Sparse Row)
-        matrix. The subset is given by the range ``[rbegin, rend)``.
-
-        Parameters
-        ----------
-        csr : object of class :py:class:`treelite.DMatrix` or \
-              :py:class:`scipy.sparse.csr_matrix`
-            data matrix
-        rbegin : :py:class:`int <python:int>`, optional
-            the index of the first row in the subset
-        rend : :py:class:`int <python:int>`, optional
-            one past the index of the last row in the subset. If missing, set to
-            the end of the matrix.
-
-        Returns
-        -------
-        sparse_batch : :py:class:`Batch`
-            a sparse batch consisting of rows ``[rbegin, rend)``
-        """
-        # use duck typing so as to accomodate both scipy.sparse.csr_matrix
-        # and DMatrix without explictly importing any of them
-        try:
-            num_row = csr.shape[0]
-            num_col = csr.shape[1]
-        except AttributeError:
-            raise ValueError('csr must contain shape attribute')
-        except TypeError:
-            raise ValueError('csr.shape must be of tuple type')
-        except IndexError:
-            raise ValueError('csr.shape must be of length 2 (indicating 2D matrix)')
-        rbegin = rbegin if rbegin is not None else 0
-        rend = rend if rend is not None else num_row
-        if rbegin >= rend:
-            raise TreeliteRuntimeError('rbegin must be less than rend')
-        if rbegin < 0:
-            raise TreeliteRuntimeError('rbegin must be nonnegative')
-        if rend > num_row:
-            raise TreeliteRuntimeError('rend must be less than number of rows in csr')
-
-        # compute submatrix with rows [rbegin, rend)
-        ibegin = csr.indptr[rbegin]
-        iend = csr.indptr[rend]
-        data_subset = np.array(csr.data[ibegin:iend], copy=False,
-                               dtype=np.float32, order='C')
-        indices_subset = np.array(csr.indices[ibegin:iend], copy=False,
-                                  dtype=np.uint32, order='C')
-        indptr_subset = np.array(csr.indptr[rbegin:(rend + 1)] - ibegin, copy=False,
-                                 dtype=np.uintp, order='C')
-
-        batch = Batch()
-        batch.handle = ctypes.c_void_p()
-        batch.kind = 'sparse'
-        _check_call(_LIB.TreeliteAssembleSparseBatch(
-            data_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            indices_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
-            indptr_subset.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
-            ctypes.c_size_t(rend - rbegin),
-            ctypes.c_size_t(num_col),
-            ctypes.byref(batch.handle)))
-        # save handles for internal arrays
-        batch.data = data_subset
-        batch.indices = indices_subset
-        batch.indptr = indptr_subset
-        # save pointer to csr so that it doesn't get garbage-collected prematurely
-        batch.csr = csr
-        return batch
-
-
-class Predictor(object):
+class Predictor:
     """
     Predictor class: loader for compiled shared libraries
 
@@ -291,7 +116,7 @@ class Predictor(object):
         _check_call(_LIB.TreelitePredictorQueryPredTransform(
             self.handle,
             ctypes.byref(pred_transform)))
-        self.pred_transform_ = bytes.decode(pred_transform.value)
+        self.pred_transform_ = py_str(pred_transform.value)
         # save # of sigmoid alpha
         sigmoid_alpha = ctypes.c_float()
         _check_call(_LIB.TreelitePredictorQuerySigmoidAlpha(
@@ -304,125 +129,62 @@ class Predictor(object):
             self.handle,
             ctypes.byref(global_bias)))
         self.global_bias_ = global_bias.value
+        threshold_type = ctypes.c_char_p()
+        _check_call(_LIB.TreelitePredictorQueryThresholdType(
+            self.handle,
+            ctypes.byref(threshold_type)))
+        self.threshold_type_ = py_str(threshold_type.value)
+        leaf_output_type = ctypes.c_char_p()
+        _check_call(_LIB.TreelitePredictorQueryLeafOutputType(
+            self.handle,
+            ctypes.byref(leaf_output_type)))
+        self.leaf_output_type_ = py_str(leaf_output_type.value)
 
         if verbose:
             log_info(__file__, lineno(),
                      f'Dynamic shared library {path} has been successfully loaded into memory')
 
-    def predict_instance(self, inst, missing=None, pred_margin=False):
-        """
-        Perform single-instance prediction. Prediction is run by the calling thread.
-
-        Parameters
-        ----------
-        inst: :py:class:`numpy.ndarray` / :py:class:`scipy.sparse.csr_matrix` /\
-              :py:class:`dict <python:dict>`
-            Data instance for which a prediction will be made. If ``inst`` is of
-            type :py:class:`scipy.sparse.csr_matrix`, its first dimension must be 1
-            (``shape[0]==1``). If ``inst`` is of type :py:class:`numpy.ndarray`,
-            it must be one-dimensional. If ``inst`` is of type
-            :py:class:`dict <python:dict>`, it must be a dictionary where the keys
-            indicate feature indices (0-based) and the values corresponding
-            feature values.
-        missing : :py:class:`float <python:float>`, optional
-            Value in the data instance that represents a missing value. If set to
-            ``None``, ``numpy.nan`` will be used. Only applicable if ``inst`` is
-            of type :py:class:`numpy.ndarray`.
-        pred_margin: :py:class:`bool <python:bool>`, optional
-            Whether to produce raw margins rather than transformed probabilities
-        """
-        entry = (PredictorEntry * self.num_feature_)()
-        for i in range(self.num_feature_):
-            entry[i].missing = -1
-
-        if isinstance(inst, scipy.sparse.csr_matrix):
-            if inst.shape[0] != 1:
-                raise ValueError('inst cannot have more than one row')
-            if inst.shape[1] > self.num_feature_:
-                raise ValueError('Too many features. This model was trained with only ' +
-                                 f'{self.num_feature_} features')
-            for i in range(inst.nnz):
-                entry[inst.indices[i]].fvalue = inst.data[i]
-        elif isinstance(inst, scipy.sparse.csc_matrix):
-            raise TypeError('inst must be csr_matrix')
-        elif isinstance(inst, np.ndarray):
-            if len(inst.shape) > 1:
-                raise ValueError('inst must be 1D')
-            if inst.shape[0] > self.num_feature_:
-                raise ValueError('Too many features. This model was trained with only ' +
-                                 f'{self.num_feature_} features')
-            if missing is None or np.isnan(missing):
-                for i in range(inst.shape[0]):
-                    if not np.isnan(inst[i]):
-                        entry[i].fvalue = inst[i]
-            else:
-                for i in range(inst.shape[0]):
-                    if inst[i] != missing:
-                        entry[i].fvalue = inst[i]
-        elif isinstance(inst, dict):
-            for k, v in inst.items():
-                entry[k].fvalue = v
-        else:
-            raise TypeError('inst must be NumPy array, SciPy CSR matrix, or a dictionary')
-
-        result_size = ctypes.c_size_t()
-        _check_call(_LIB.TreelitePredictorQueryResultSizeSingleInst(
-            self.handle,
-            ctypes.byref(result_size)))
-        out_result = np.zeros(result_size.value, dtype=np.float32, order='C')
-        out_result_size = ctypes.c_size_t()
-        _check_call(_LIB.TreelitePredictorPredictInst(
-            self.handle,
-            ctypes.byref(entry),
-            ctypes.c_int(1 if pred_margin else 0),
-            out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            ctypes.byref(out_result_size)))
-        idx = int(out_result_size.value)
-        res = out_result[0:idx].reshape((1, -1)).squeeze()
-        if self.num_output_group_ > 1:
-            res = res.reshape((-1, self.num_output_group_))
-        return res
-
-    def predict(self, batch, verbose=False, pred_margin=False):
+    def predict(self, dmat, verbose=False, pred_margin=False):
         """
         Perform batch prediction with a 2D sparse data matrix. Worker threads will
         internally divide up work for batch prediction. **Note that this function
-        may be called by only one thread at a time.** In order to use multiple
-        threads to process multiple prediction requests simultaneously, use
-        :py:meth:`predict_instance` instead.
+        may be called by only one thread at a time.**
 
         Parameters
         ----------
-        batch: object of type :py:class:`Batch`
+        dmat: object of type :py:class:`DMatrix`
             batch of rows for which predictions will be made
         verbose : :py:class:`bool <python:bool>`, optional
             Whether to print extra messages during prediction
         pred_margin: :py:class:`bool <python:bool>`, optional
             whether to produce raw margins rather than transformed probabilities
         """
-        if not isinstance(batch, Batch):
-            raise TreeliteRuntimeError('batch must be of type Batch')
-        if batch.handle is None or batch.kind is None:
-            raise TreeliteRuntimeError('batch cannot be empty')
+        if not isinstance(dmat, DMatrix):
+            raise TreeliteRuntimeError('dmat must be of type DMatrix')
         result_size = ctypes.c_size_t()
         _check_call(_LIB.TreelitePredictorQueryResultSize(
             self.handle,
-            batch.handle,
-            ctypes.c_int(1 if batch.kind == 'sparse' else 0),
+            dmat.handle,
             ctypes.byref(result_size)))
-        out_result = np.zeros(result_size.value, dtype=np.float32, order='C')
+        result_type = ctypes.c_char_p()
+        _check_call(_LIB.TreelitePredictorQueryLeafOutputType(
+            self.handle,
+            ctypes.byref(result_type)))
+        result_type = py_str(result_type.value)
+        out_result = np.zeros(result_size.value,
+                              dtype=type_info_to_numpy_type(result_type),
+                              order='C')
         out_result_size = ctypes.c_size_t()
         _check_call(_LIB.TreelitePredictorPredictBatch(
             self.handle,
-            batch.handle,
-            ctypes.c_int(1 if batch.kind == 'sparse' else 0),
+            dmat.handle,
             ctypes.c_int(1 if verbose else 0),
             ctypes.c_int(1 if pred_margin else 0),
-            out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            out_result.ctypes.data_as(ctypes.POINTER(type_info_to_ctypes_type(result_type))),
             ctypes.byref(out_result_size)))
         idx = int(out_result_size.value)
-        res = out_result[0:idx].reshape((batch.shape()[0], -1)).squeeze()
-        if self.num_output_group_ > 1 and batch.shape()[0] != idx:
+        res = out_result[0:idx].reshape((dmat.shape[0], -1)).squeeze()
+        if self.num_output_group_ > 1 and dmat.shape[0] != idx:
             res = res.reshape((-1, self.num_output_group_))
         return res
 
@@ -455,3 +217,173 @@ class Predictor(object):
     def sigmoid_alpha(self):
         """Query sigmoid alpha of the model"""
         return self.sigmoid_alpha_
+
+    @property
+    def threshold_type(self):
+        """Query threshold type of the model"""
+        return self.threshold_type_
+
+    @property
+    def leaf_output_type(self):
+        """Query threshold type of the model"""
+        return self.leaf_output_type_
+
+class DMatrix:
+    """Data matrix used in Treelite.
+
+    Parameters
+    ----------
+    data : :py:class:`str <python:str>` / :py:class:`numpy.ndarray` /\
+           :py:class:`scipy.sparse.csr_matrix` / :py:class:`pandas.DataFrame`
+        Data source. When data is :py:class:`str <python:str>` type, it indicates
+        that data should be read from a file.
+    data_format : :py:class:`str <python:str>`, optional
+        Format of input data file. Applicable only when data is read from a
+        file. If missing, the svmlight (.libsvm) format is assumed.
+    dtype : :py:class:`str <python:str>`, optional
+        If specified, the data will be casted into the corresponding data type.
+    missing : :py:class:`float <python:float>`, optional
+        Value in the data that represents a missing entry. If set to ``None``,
+        ``numpy.nan`` will be used.
+    verbose : :py:class:`bool <python:bool>`, optional
+        Whether to print extra messages during construction
+    feature_names : :py:class:`list <python:list>`, optional
+        Human-readable names for features
+    feature_types : :py:class:`list <python:list>`, optional
+        Types for features
+    nthread : :py:class:`int <python:int>`, optional
+        Number of threads
+    """
+
+    # pylint: disable=R0902,R0903,R0913
+
+    def __init__(self, data, data_format=None, dtype=None, missing=None,
+                 feature_names=None, feature_types=None,
+                 verbose=False, nthread=None):
+        if data is None:
+            raise TreeliteRuntimeError('\'data\' argument cannot be None')
+
+        self.handle = ctypes.c_void_p()
+
+        if isinstance(data, (str,)):
+            nthread = nthread if nthread is not None else 0
+            data_format = data_format if data_format is not None else "libsvm"
+            data_type = ctypes.c_char_p(None) if dtype is None else c_str(dtype)
+            _check_call(_LIB.TreeliteDMatrixCreateFromFile(
+                c_str(data),
+                c_str(data_format),
+                data_type,
+                ctypes.c_int(nthread),
+                ctypes.c_int(1 if verbose else 0),
+                ctypes.byref(self.handle)))
+        elif isinstance(data, scipy.sparse.csr_matrix):
+            self._init_from_csr(data, dtype=dtype)
+        elif isinstance(data, scipy.sparse.csc_matrix):
+            self._init_from_csr(data.tocsr(), dtype=dtype)
+        elif isinstance(data, np.ndarray):
+            self._init_from_npy2d(data, missing, dtype=dtype)
+        else:  # any type that's convertible to CSR matrix is O.K.
+            try:
+                csr = scipy.sparse.csr_matrix(data)
+                self._init_from_csr(csr, dtype=dtype)
+            except Exception as e:
+                raise TypeError(f'Cannot initialize DMatrix from {type(data).__name__}') from e
+        self.feature_names = feature_names
+        self.feature_types = feature_types
+        num_row, num_col, nelem = self._get_dims()
+        self.shape = (num_row, num_col)
+        self.size = nelem
+
+    def _init_from_csr(self, csr, dtype=None):
+        """Initialize data from a CSR (Compressed Sparse Row) matrix"""
+        if len(csr.indices) != len(csr.data):
+            raise ValueError('indices and data not of same length: {} vs {}'
+                             .format(len(csr.indices), len(csr.data)))
+        if len(csr.indptr) != csr.shape[0] + 1:
+            raise ValueError('len(indptr) must be equal to 1 + [number of rows]' \
+                             + 'len(indptr) = {} vs 1 + [number of rows] = {}'
+                             .format(len(csr.indptr), 1 + csr.shape[0]))
+        if csr.indptr[-1] != len(csr.data):
+            raise ValueError('last entry of indptr must be equal to len(data)' \
+                             + 'indptr[-1] = {} vs len(data) = {}'
+                             .format(csr.indptr[-1], len(csr.data)))
+
+        if dtype is None:
+            data_type = csr.data.dtype
+        else:
+            data_type = type_info_to_numpy_type(dtype)
+        data_type_code = numpy_type_to_type_info(data_type)
+        data_ptr_type = ctypes.POINTER(type_info_to_ctypes_type(data_type_code))
+        if data_type_code not in ['float32', 'float64']:
+            raise ValueError('data should be either float32 or float64 type')
+
+        data = np.array(csr.data, copy=False, dtype=data_type, order='C')
+        indices = np.array(csr.indices, copy=False, dtype=np.uintc, order='C')
+        indptr = np.array(csr.indptr, copy=False, dtype=np.uintp, order='C')
+        _check_call(_LIB.TreeliteDMatrixCreateFromCSR(
+            data.ctypes.data_as(data_ptr_type),
+            c_str(data_type_code),
+            indices.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+            indptr.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t)),
+            ctypes.c_size_t(csr.shape[0]),
+            ctypes.c_size_t(csr.shape[1]),
+            ctypes.byref(self.handle)))
+
+    def _init_from_npy2d(self, mat, missing, dtype=None):
+        """
+        Initialize data from a 2-D numpy matrix.
+        If ``mat`` does not have ``order='C'`` (also known as row-major) or is not
+        contiguous, a temporary copy will be made.
+        If ``mat`` does not have ``dtype=numpy.float32``, a temporary copy will be
+        made also.
+        Thus, as many as two temporary copies of data can be made. One should set
+        input layout and type judiciously to conserve memory.
+        """
+        if len(mat.shape) != 2:
+            raise ValueError('Input numpy.ndarray must be two-dimensional')
+        if dtype is None:
+            data_type = mat.dtype
+        else:
+            data_type = type_info_to_numpy_type(dtype)
+        data_type_code = numpy_type_to_type_info(data_type)
+        data_ptr_type = ctypes.POINTER(type_info_to_ctypes_type(data_type_code))
+        if data_type_code not in ['float32', 'float64']:
+            raise ValueError('data should be either float32 or float64 type')
+        # flatten the array by rows and ensure it is float32.
+        # we try to avoid data copies if possible
+        # (reshape returns a view when possible and we explicitly tell np.array to
+        #  avoid copying)
+        data = np.array(mat.reshape(mat.size), copy=False, dtype=data_type)
+        missing = missing if missing is not None else np.nan
+        missing = np.array([missing], dtype=data_type, order='C')
+        _check_call(_LIB.TreeliteDMatrixCreateFromMat(
+            data.ctypes.data_as(data_ptr_type),
+            c_str(data_type_code),
+            ctypes.c_size_t(mat.shape[0]),
+            ctypes.c_size_t(mat.shape[1]),
+            missing.ctypes.data_as(data_ptr_type),
+            ctypes.byref(self.handle)))
+
+    def _get_dims(self):
+        num_row = ctypes.c_size_t()
+        num_col = ctypes.c_size_t()
+        nelem = ctypes.c_size_t()
+        _check_call(_LIB.TreeliteDMatrixGetDimension(self.handle,
+                                                     ctypes.byref(num_row),
+                                                     ctypes.byref(num_col),
+                                                     ctypes.byref(nelem)))
+        return (num_row.value, num_col.value, nelem.value)
+
+    def __del__(self):
+        if self.handle:
+            _check_call(_LIB.TreeliteDMatrixFree(self.handle))
+            self.handle = None
+
+    def __repr__(self):
+        return '<{}x{} sparse matrix of type treelite.DMatrix\n' \
+                   .format(self.shape[0], self.shape[1]) \
+               + '        with {} stored elements in Compressed Sparse Row format>' \
+                   .format(self.size)
+
+
+__all__ = ['Predictor', 'DMatrix']

@@ -13,8 +13,7 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(load_data_counts);
 
-static void load_data_counts(ASTNode* node,
-                             const std::vector<std::vector<size_t>>& counts) {
+static void load_data_counts(ASTNode* node, const std::vector<std::vector<size_t>>& counts) {
   if (node->tree_id >= 0 && node->node_id >= 0) {
     node->data_count = counts[node->tree_id][node->node_id];
   }
@@ -23,10 +22,17 @@ static void load_data_counts(ASTNode* node,
   }
 }
 
+template <typename ThresholdType, typename LeafOutputType>
 void
-ASTBuilder::LoadDataCounts(const std::vector<std::vector<size_t>>& counts) {
+ASTBuilder<ThresholdType, LeafOutputType>::LoadDataCounts(
+    const std::vector<std::vector<size_t>>& counts) {
   load_data_counts(this->main_node, counts);
 }
+
+template void ASTBuilder<float, uint32_t>::LoadDataCounts(const std::vector<std::vector<size_t>>&);
+template void ASTBuilder<float, float>::LoadDataCounts(const std::vector<std::vector<size_t>>&);
+template void ASTBuilder<double, uint32_t>::LoadDataCounts(const std::vector<std::vector<size_t>>&);
+template void ASTBuilder<double, double>::LoadDataCounts(const std::vector<std::vector<size_t>>&);
 
 }  // namespace compiler
 }  // namespace treelite

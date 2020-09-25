@@ -174,6 +174,13 @@ class Predictor {
     return threshold_type_;
   }
   /*!
+   * \brief Get the type of the leaf outputs
+   * \return type of the leaf outputs
+   */
+  inline TypeInfo QueryLeafOutputType() const {
+    return leaf_output_type_;
+  }
+  /*!
    * \brief Create an output vector suitable to hold prediction result for a given data matrix
    * \param dmat a data matrix
    * \return Opaque handle to the allocated output vector
@@ -184,13 +191,6 @@ class Predictor {
    * \param output_vector Opaque handle to the output vector
    */
   void DeleteOutputVector(PredictorOutputHandle output_vector) const;
-  /*!
-   * \brief Get the type of the leaf outputs
-   * \return type of the leaf outputs
-   */
-  inline TypeInfo QueryLeafOutputType() const {
-    return leaf_output_type_;
-  }
 
  private:
   SharedLibrary lib_;

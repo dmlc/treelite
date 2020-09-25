@@ -13,14 +13,13 @@ namespace compiler {
 
 DMLC_REGISTRY_FILE_TAG(quantize);
 
+template <typename ThresholdType>
 static void
-scan_thresholds(ASTNode* node,
-                std::vector<std::set<tl_float>>* cut_pts) {
-  NumericalConditionNode* num_cond;
-  CategoricalConditionNode* cat_cond;
-  if ( (num_cond = dynamic_cast<NumericalConditionNode*>(node)) ) {
+scan_thresholds(ASTNode* node, std::vector<std::set<ThresholdType>>* cut_pts) {
+  NumericalConditionNode<ThresholdType>* num_cond;
+  if ( (num_cond = dynamic_cast<NumericalConditionNode<ThresholdType>*>(node)) ) {
     CHECK(!num_cond->quantized) << "should not be already quantized";
-    const tl_float threshold = num_cond->threshold.float_val;
+    const ThresholdType threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       (*cut_pts)[num_cond->split_index].insert(threshold);
     }
@@ -30,13 +29,13 @@ scan_thresholds(ASTNode* node,
   }
 }
 
+template <typename ThresholdType>
 static void
-rewrite_thresholds(ASTNode* node,
-                   const std::vector<std::vector<tl_float>>& cut_pts) {
-  NumericalConditionNode* num_cond;
-  if ( (num_cond = dynamic_cast<NumericalConditionNode*>(node)) ) {
+rewrite_thresholds(ASTNode* node, const std::vector<std::vector<ThresholdType>>& cut_pts) {
+  NumericalConditionNode<ThresholdType>* num_cond;
+  if ( (num_cond = dynamic_cast<NumericalConditionNode<ThresholdType>*>(node)) ) {
     CHECK(!num_cond->quantized) << "should not be already quantized";
-    const tl_float threshold = num_cond->threshold.float_val;
+    const ThresholdType threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       const auto& v = cut_pts[num_cond->split_index];
       auto loc = math::binary_search(v.begin(), v.end(), threshold);
@@ -50,17 +49,18 @@ rewrite_thresholds(ASTNode* node,
   }
 }
 
-void ASTBuilder::QuantizeThresholds() {
+template <typename ThresholdType, typename LeafOutputType>
+void
+ASTBuilder<ThresholdType, LeafOutputType>::QuantizeThresholds() {
   this->quantize_threshold_flag = true;
-  std::vector<std::set<tl_float>> cut_pts;
-  std::vector<std::vector<tl_float>> cut_pts_vec;
+  std::vector<std::set<ThresholdType>> cut_pts;
+  std::vector<std::vector<ThresholdType>> cut_pts_vec;
   cut_pts.resize(this->num_feature);
   cut_pts_vec.resize(this->num_feature);
   scan_thresholds(this->main_node, &cut_pts);
   // convert cut_pts into std::vector
   for (int i = 0; i < this->num_feature; ++i) {
-    std::copy(cut_pts[i].begin(), cut_pts[i].end(),
-              std::back_inserter(cut_pts_vec[i]));
+    std::copy(cut_pts[i].begin(), cut_pts[i].end(), std::back_inserter(cut_pts_vec[i]));
   }
 
   /* revise all numerical splits by quantizing thresholds */
@@ -72,12 +72,17 @@ void ASTBuilder::QuantizeThresholds() {
   /* dynamic_cast<> is used here to check node types. This is to ensure
      that we don't accidentally call QuantizeThresholds() twice. */
 
-  ASTNode* quantizer_node = AddNode<QuantizerNode>(this->main_node,
-                                                   std::move(cut_pts_vec));
+  ASTNode* quantizer_node
+    = AddNode<QuantizerNode<ThresholdType>>(this->main_node, std::move(cut_pts_vec));
   quantizer_node->children.push_back(top_ac_node);
   top_ac_node->parent = quantizer_node;
   this->main_node->children[0] = quantizer_node;
 }
+
+template void ASTBuilder<float, uint32_t>::QuantizeThresholds();
+template void ASTBuilder<float, float>::QuantizeThresholds();
+template void ASTBuilder<double, uint32_t>::QuantizeThresholds();
+template void ASTBuilder<double, double>::QuantizeThresholds();
 
 }  // namespace compiler
 }  // namespace treelite

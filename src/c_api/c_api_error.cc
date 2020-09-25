@@ -5,7 +5,7 @@
  * \brief C error handling
  */
 #include <dmlc/thread_local.h>
-#include "./c_api_error.h"
+#include <treelite/c_api_error.h>
 
 struct TreeliteAPIErrorEntry {
   std::string last_error;

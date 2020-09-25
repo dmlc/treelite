@@ -1,7 +1,7 @@
 package ml.dmlc.treelite4j.scala.spark
 
 import ml.dmlc.treelite4j.DataPoint
-import ml.dmlc.treelite4j.java.BatchBuilder
+import ml.dmlc.treelite4j.java.DMatrixBuilder
 import ml.dmlc.treelite4j.scala.Predictor
 import org.apache.spark.ml.PredictionModel
 import org.apache.spark.ml.linalg._
@@ -70,15 +70,15 @@ class TreeLiteModel private[spark](
         }
         val result = batchRow.head.getAs[Vector]($(featuresCol)) match {
           case _: SparseVector =>
-            val batch = BatchBuilder.CreateSparseBatch(dataPoints.asJava)
-            val ret = broadcastModel.value.predictSparseBatch(batch, $(predictMargin), $(verbose))
+            val batch = DMatrixBuilder.createSparseCSRDMatrix(dataPoints.asJava)
+            val ret = broadcastModel.value.predictBatch(batch, $(predictMargin), $(verbose))
             batch.dispose()
-            ret.map(Row.apply(_))
+            ret.toFloatMatrix.map(Row.apply(_))
           case _: DenseVector =>
-            val batch = BatchBuilder.CreateDenseBatch(dataPoints.asJava)
-            val ret = broadcastModel.value.predictDenseBatch(batch, $(predictMargin), $(verbose))
+            val batch = DMatrixBuilder.createDenseDMatrix(dataPoints.asJava)
+            val ret = broadcastModel.value.predictBatch(batch, $(predictMargin), $(verbose))
             batch.dispose()
-            ret.map(Row.apply(_))
+            ret.toFloatMatrix.map(Row.apply(_))
         }
         batchRow.zip(result).map { case (origin, ret) =>
           Row.merge(origin, ret)
@@ -87,7 +87,7 @@ class TreeLiteModel private[spark](
     }
     // append result columns to schema
     val schema = StructType(dataset.schema.fields ++ Seq(
-      StructField($(predictionCol), ArrayType(FloatType, false), nullable = false)))
+      StructField($(predictionCol), ArrayType(FloatType, containsNull = false), nullable = false)))
 
     dataset.sparkSession.createDataFrame(resultRDD, schema)
   }

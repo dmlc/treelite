@@ -24,11 +24,18 @@ scan_thresholds(ASTNode* node, std::vector<bool>* is_categorical) {
   }
 }
 
-std::vector<bool> ASTBuilder::GenerateIsCategoricalArray() {
+template <typename ThresholdType, typename LeafOutputType>
+std::vector<bool>
+ASTBuilder<ThresholdType, LeafOutputType>::GenerateIsCategoricalArray() {
   this->is_categorical = std::vector<bool>(this->num_feature, false);
   scan_thresholds(this->main_node, &this->is_categorical);
   return this->is_categorical;
 }
+
+template std::vector<bool> ASTBuilder<float, uint32_t>::GenerateIsCategoricalArray();
+template std::vector<bool> ASTBuilder<float, float>::GenerateIsCategoricalArray();
+template std::vector<bool> ASTBuilder<double, uint32_t>::GenerateIsCategoricalArray();
+template std::vector<bool> ASTBuilder<double, double>::GenerateIsCategoricalArray();
 
 }  // namespace compiler
 }  // namespace treelite

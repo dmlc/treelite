@@ -11,10 +11,10 @@ class SKLRFMultiClassifierMixin:
         """Process a RandomForestClassifier (multi-class classifier) to convert it into a
            Treelite model"""
         # Must specify num_output_group and pred_transform
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        num_output_group=sklearn_model.n_classes_,
-                                        random_forest=True,
-                                        pred_transform='identity_multiclass')
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, num_output_group=sklearn_model.n_classes_,
+            random_forest=True, pred_transform='identity_multiclass',
+            threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder
             builder.append(cls.process_tree(sklearn_model.estimators_[i].tree_,
@@ -31,4 +31,4 @@ class SKLRFMultiClassifierMixin:
         # Compute the probability distribution over label classes
         prob_distribution = leaf_count / leaf_count.sum()
         # The leaf output is the probability distribution
-        treelite_tree[node_id].set_leaf_node(prob_distribution)
+        treelite_tree[node_id].set_leaf_node(prob_distribution, leaf_value_type='float64')

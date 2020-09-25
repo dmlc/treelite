@@ -2,10 +2,12 @@
  * Copyright (c) 2017-2020 by Contributors
  * \file optable.cc
  * \author Hyunsu Cho
- * \brief Conversion table from string to Operator
+ * \brief Conversion tables to obtain Operator from string
  */
 
 #include <treelite/base.h>
+#include <string>
+#include <unordered_map>
 
 namespace treelite {
 

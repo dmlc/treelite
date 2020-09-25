@@ -6,6 +6,12 @@ FetchContent_Declare(
   GIT_TAG         v0.4
 )
 FetchContent_MakeAvailable(dmlccore)
+target_compile_options(dmlc PRIVATE
+                       -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+if (TARGET dmlc_unit_tests)
+  target_compile_options(dmlc_unit_tests PRIVATE
+                         -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+endif (TARGET dmlc_unit_tests)
 
 # fmtlib
 find_package(fmt)

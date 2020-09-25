@@ -5,6 +5,7 @@ import tempfile
 
 import pytest
 import treelite
+import treelite_runtime
 from .metadata import dataset_db
 
 
@@ -17,7 +18,7 @@ def annotation():
                                         model_format=dataset_db[dataset].format)
             if dataset_db[dataset].dtrain is None:
                 return None
-            dtrain = treelite.DMatrix(dataset_db[dataset].dtrain)
+            dtrain = treelite_runtime.DMatrix(dataset_db[dataset].dtrain)
             annotator = treelite.Annotator()
             annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
             annotation_path = os.path.join(tmpdir, f'{dataset}.json')

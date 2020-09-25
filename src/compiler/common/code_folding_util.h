@@ -24,7 +24,8 @@ namespace treelite {
 namespace compiler {
 namespace common_util {
 
-template <typename OutputFormatFunc>
+
+template <typename ThresholdType, typename LeafOutputType, typename OutputFormatFunc>
 inline void
 RenderCodeFolderArrays(const CodeFolderNode* node,
                        bool quantize,
@@ -41,7 +42,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   // list of descendants, with newly assigned ID's
   std::unordered_map<ASTNode*, int> descendants;
   // list of all OutputNode's among the descendants
-  std::vector<OutputNode*> output_nodes;
+  std::vector<OutputNode<LeafOutputType>*> output_nodes;
   // two arrays used to store categorical split info
   std::vector<uint64_t> cat_bitmap;
   std::vector<size_t> cat_begin{0};
@@ -60,13 +61,13 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
       CHECK_EQ(e->tree_id, tree_id);
       // sanity check: all descendants must be ConditionNode or OutputNode
       ConditionNode* t1 = dynamic_cast<ConditionNode*>(e);
-      OutputNode* t2 = dynamic_cast<OutputNode*>(e);
-      NumericalConditionNode* t3;
+      OutputNode<LeafOutputType>* t2 = dynamic_cast<OutputNode<LeafOutputType>*>(e);
+      NumericalConditionNode<ThresholdType>* t3;
       CHECK(t1 || t2);
       if (t2) {  // e is OutputNode
         descendants[e] = new_leaf_id--;
       } else {
-        if ( (t3 = dynamic_cast<NumericalConditionNode*>(t1)) ) {
+        if ( (t3 = dynamic_cast<NumericalConditionNode<ThresholdType>*>(t1)) ) {
           ops.insert(t3->op);
         }
         descendants[e] = new_node_id++;
@@ -89,22 +90,22 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
     std::string threshold;
     int left_child_id, right_child_id;
     unsigned int split_index;
-    OutputNode* t1;
-    NumericalConditionNode* t2;
+    OutputNode<LeafOutputType>* t1;
+    NumericalConditionNode<ThresholdType>* t2;
     CategoricalConditionNode* t3;
 
     std::queue<ASTNode*> Q;
     Q.push(node->children[0]);
     while (!Q.empty()) {
       ASTNode* e = Q.front(); Q.pop();
-      if ( (t1 = dynamic_cast<OutputNode*>(e)) ) {
+      if ( (t1 = dynamic_cast<OutputNode<LeafOutputType>*>(e)) ) {
         output_nodes.push_back(t1);
         // don't render OutputNode but save it for later
       } else {
         CHECK_EQ(e->children.size(), 2U);
         left_child_id = descendants[ e->children[0] ];
         right_child_id = descendants[ e->children[1] ];
-        if ( (t2 = dynamic_cast<NumericalConditionNode*>(e)) ) {
+        if ( (t2 = dynamic_cast<NumericalConditionNode<ThresholdType>*>(e)) ) {
           default_left = t2->default_left;
           split_index = t2->split_index;
           threshold
@@ -165,7 +166,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   }
   // 4. Render switch statement to associate each node ID with an output
   *output_switch_statements = "switch (nid) {\n";
-  for (OutputNode* e : output_nodes) {
+  for (OutputNode<LeafOutputType>* e : output_nodes) {
     const int node_id = descendants[static_cast<ASTNode*>(e)];
     *output_switch_statements
       += fmt::format(" case {node_id}:\n"

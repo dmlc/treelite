@@ -12,7 +12,7 @@ namespace treelite {
 namespace compiler {
 namespace native {
 
-const char* qnode_template =
+const char* const qnode_template =
 R"TREELITETEMPLATE(
 #include <stdlib.h>
 
@@ -22,14 +22,14 @@ R"TREELITETEMPLATE(
  * \param fid feature identifier
  * \return bin index corresponding to given feature value
  */
-static inline int quantize(float val, unsigned fid) {{
+static inline int quantize({threshold_type} val, unsigned fid) {{
   const size_t offset = th_begin[fid];
-  const float* array = &threshold[offset];
+  const {threshold_type}* array = &threshold[offset];
   int len = th_len[fid];
   int low = 0;
   int high = len;
   int mid;
-  float mval;
+  {threshold_type} mval;
   // It is possible th_begin[i] == [total_num_threshold]. This means that
   // all features i, (i+1), ... are not used for any of the splits in the model.
   // So in this case, just return something
@@ -57,7 +57,7 @@ static inline int quantize(float val, unsigned fid) {{
 }}
 )TREELITETEMPLATE";
 
-const char* quantize_loop_template =
+const char* const quantize_loop_template =
 R"TREELITETEMPLATE(
 for (int i = 0; i < {num_feature}; ++i) {{
   if (data[i].missing != -1 && !is_categorical[i]) {{

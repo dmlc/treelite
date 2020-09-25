@@ -105,7 +105,8 @@ def test_srcpkg_cmake(tmpdir, dataset):  # pylint: disable=R0914
     build_dir = os.path.join(tmpdir, dataset_db[dataset].libname, 'build')
     os.mkdir(build_dir)
     nproc = os.cpu_count()
-    subprocess.check_call(['cmake', '..'], cwd=build_dir)
+    win_opts = ['-A', 'x64'] if os_platform() == 'windows' else []
+    subprocess.check_call(['cmake', '..'] + win_opts, cwd=build_dir)
     subprocess.check_call(['cmake', '--build', '.', '--config', 'Release',
                            '--parallel', str(nproc)], cwd=build_dir)
 
@@ -122,10 +123,10 @@ def test_deficient_matrix(tmpdir):
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
 
     X = csr_matrix(([], ([], [])), shape=(3, 3))
-    batch = treelite_runtime.Batch.from_csr(X)
+    dmat = treelite_runtime.DMatrix(X, dtype='float32')
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == 127
-    predictor.predict(batch)  # should not crash
+    predictor.predict(dmat)  # should not crash
 
 
 def test_too_wide_matrix(tmpdir):
@@ -137,10 +138,10 @@ def test_too_wide_matrix(tmpdir):
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
 
     X = csr_matrix(([], ([], [])), shape=(3, 1000))
-    batch = treelite_runtime.Batch.from_csr(X)
+    dmat = treelite_runtime.DMatrix(X, dtype='float32')
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == 127
-    pytest.raises(treelite_runtime.TreeliteRuntimeError, predictor.predict, batch)
+    pytest.raises(treelite_runtime.TreeliteRuntimeError, predictor.predict, dmat)
 
 
 def test_set_tree_limit():

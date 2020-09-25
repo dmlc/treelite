@@ -9,7 +9,8 @@ class SKLConverterBase:
     @classmethod
     def process_tree(cls, sklearn_tree, sklearn_model):
         """Process a scikit-learn Tree object"""
-        treelite_tree = treelite.ModelBuilder.Tree()
+        treelite_tree = treelite.ModelBuilder.Tree(
+            threshold_type='float64', leaf_output_type='float64')
 
         # Iterate over each node: node ID ranges from 0 to [node_count]-1
         for node_id in range(sklearn_tree.node_count):
@@ -38,9 +39,10 @@ class SKLConverterBase:
             feature_id=sklearn_tree.feature[node_id],
             opname='<=',
             threshold=sklearn_tree.threshold[node_id],
+            threshold_type='float64',
             default_left=True,
             left_child_key=sklearn_tree.children_left[node_id],
-            right_child_key=sklearn_tree.children_right[node_id])
+            right_child_key=sklearn_tree.children_right[node_id],)
 
     @classmethod
     def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id, sklearn_model):

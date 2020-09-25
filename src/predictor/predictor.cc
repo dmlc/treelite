@@ -232,13 +232,13 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredFunctionImpl(
 template <typename ThresholdType, typename LeafOutputType>
 TypeInfo
 PredFunctionImpl<ThresholdType, LeafOutputType>::GetThresholdType() const {
-  return InferTypeInfoOf<ThresholdType>();
+  return TypeToInfo<ThresholdType>();
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 TypeInfo
 PredFunctionImpl<ThresholdType, LeafOutputType>::GetLeafOutputType() const {
-  return InferTypeInfoOf<LeafOutputType>();
+  return TypeToInfo<LeafOutputType>();
 }
 
 template <typename ThresholdType, typename LeafOutputType>

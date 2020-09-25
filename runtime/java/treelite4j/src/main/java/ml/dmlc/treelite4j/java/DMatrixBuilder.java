@@ -13,20 +13,20 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Collection of utility functions to create batch objects
+ * Collection of utility functions to create data matrices
  *
  * @author Hyunsu Cho
  */
-public class BatchBuilder {
+public class DMatrixBuilder {
   /**
-   * Assemble a sparse batch from a list of data points
+   * Build a sparse (CSR layout) matrix from a list of data points (float32)
    *
    * @param dIter Iterator of data points
-   * @return Created sparse batch
+   * @return Created sparse data matrix
    * @throws TreeliteError Treelite error
    * @throws IOException   IO error
    */
-  public static SparseBatch CreateSparseBatch(Iterator<DataPoint> dIter)
+  public static DMatrix createSparseCSRDMatrix(Iterator<DataPoint> dIter)
       throws TreeliteError, IOException {
     ArrayList<Float> data = new ArrayList<>();
     ArrayList<Integer> col_ind = new ArrayList<>();
@@ -37,8 +37,8 @@ public class BatchBuilder {
     while (dIter.hasNext()) {
       ++num_row;
       DataPoint inst = dIter.next();
-      int nnz = 0; // count number of nonzero feature values for current row
-      for (float e : inst.values()) {
+      int nnz = 0;  // count number of nonzero feature values for current row
+      for (Float e : inst.values()) {
         data.add(e);
         ++nnz;
       }
@@ -57,24 +57,21 @@ public class BatchBuilder {
       }
       row_ptr.add(row_ptr.get(row_ptr.size() - 1) + (long) nnz);
     }
-    float[] data_arr
-        = ArrayUtils.toPrimitive(data.toArray(new Float[0]));
-    int[] col_ind_arr
-        = ArrayUtils.toPrimitive(col_ind.toArray(new Integer[0]));
-    long[] row_ptr_arr
-        = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[0]));
-    return new SparseBatch(data_arr, col_ind_arr, row_ptr_arr, num_row, num_col);
+    float[] data_arr = ArrayUtils.toPrimitive(data.toArray(new Float[0]));
+    int[] col_ind_arr = ArrayUtils.toPrimitive(col_ind.toArray(new Integer[0]));
+    long[] row_ptr_arr = ArrayUtils.toPrimitive(row_ptr.toArray(new Long[0]));
+    return new DMatrix(data_arr, col_ind_arr, row_ptr_arr, num_row, num_col);
   }
 
   /**
-   * Assemble a dense batch from a list of data points
+   * Assemble a dense matrix from a list of data points (float32)
    *
    * @param dIter Iterator of data points
    * @return Created dense batch
    * @throws TreeliteError Treelite error
    * @throws IOException   IO error
    */
-  public static DenseBatch CreateDenseBatch(Iterator<DataPoint> dIter)
+  public static DMatrix createDenseDMatrix(Iterator<DataPoint> dIter)
       throws TreeliteError, IOException {
     int num_row = 0;
     int num_col = 0;
@@ -117,7 +114,7 @@ public class BatchBuilder {
     }
     assert row_id == num_row;
 
-    return new DenseBatch(data, Float.NaN, num_row, num_col);
+    return new DMatrix(data, Float.NaN, num_row, num_col);
   }
 
   /**
@@ -132,7 +129,7 @@ public class BatchBuilder {
       throws TreeliteError, IOException {
     File file = new File(filename);
     LineIterator it = FileUtils.lineIterator(file, "UTF-8");
-    ArrayList<DataPoint> dmat = new ArrayList<DataPoint>();
+    ArrayList<DataPoint> dmat = new ArrayList<>();
     try {
       while (it.hasNext()) {
         String line = it.nextLine();

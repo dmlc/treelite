@@ -18,6 +18,8 @@
 #include "./pred_transform.h"
 #include "./common/format_util.h"
 #include "./elf/elf_formatter.h"
+#include "./native/main_template.h"
+#include "./native/header_template.h"
 
 #if defined(_MSC_VER) || defined(_WIN32)
 #define DLLEXPORT_KEYWORD "__declspec(dllexport) "
@@ -36,7 +38,7 @@ struct NodeStructValue {
   int cright;
 };
 
-const char* header_template = R"TREELITETEMPLATE(
+const char* const header_template = R"TREELITETEMPLATE(
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -62,23 +64,16 @@ struct Node {{
 extern const struct Node nodes[];
 extern const int nodes_row_ptr[];
 
-{dllexport}size_t get_num_output_group(void);
-{dllexport}size_t get_num_feature(void);
+{query_functions_prototype}
 {dllexport}{predict_function_signature};
 )TREELITETEMPLATE";
 
-const char* main_template = R"TREELITETEMPLATE(
+const char* const main_template = R"TREELITETEMPLATE(
 #include "header.h"
 
 {nodes_row_ptr}
 
-size_t get_num_output_group(void) {{
-  return {num_output_group};
-}}
-
-size_t get_num_feature(void) {{
-  return {num_feature};
-}}
+{query_functions_definition}
 
 {pred_transform_function}
 
@@ -104,7 +99,7 @@ size_t get_num_feature(void) {{
 }}
 )TREELITETEMPLATE";
 
-const char* return_multiclass_template =
+const char* const return_multiclass_template =
 R"TREELITETEMPLATE(
   for (int i = 0; i < {num_output_group}; ++i) {{
     result[i] = sum[i] + (float)({global_bias});
@@ -116,7 +111,7 @@ R"TREELITETEMPLATE(
   }}
 )TREELITETEMPLATE";  // only for multiclass classification
 
-const char* return_template =
+const char* const return_template =
 R"TREELITETEMPLATE(
   sum += (float)({global_bias});
   if (!pred_margin) {{
@@ -126,7 +121,7 @@ R"TREELITETEMPLATE(
   }}
 )TREELITETEMPLATE";
 
-const char* arrays_template = R"TREELITETEMPLATE(
+const char* const arrays_template = R"TREELITETEMPLATE(
 #include "header.h"
 
 {nodes}
@@ -136,7 +131,8 @@ const char* arrays_template = R"TREELITETEMPLATE(
 // nodes[]: stores nodes from all decision trees
 // nodes_row_ptr[]: marks bounaries between decision trees. The nodes belonging to Tree [i] are
 //                  found in nodes[nodes_row_ptr[i]:nodes_row_ptr[i+1]]
-inline std::pair<std::string, std::string> FormatNodesArray(const treelite::ModelImpl& model) {
+inline std::pair<std::string, std::string> FormatNodesArray(
+    const treelite::ModelImpl<float, float>& model) {
   treelite::compiler::common_util::ArrayFormatter nodes(100, 2);
   treelite::compiler::common_util::ArrayFormatter nodes_row_ptr(100, 2);
   int node_count = 0;
@@ -173,7 +169,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(const treelite::Mode
 
 // Variant of FormatNodesArray(), where nodes[] array is dumped as an ELF binary
 inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
-    const treelite::ModelImpl& model) {
+    const treelite::ModelImpl<float, float>& model) {
   std::vector<char> nodes_elf;
   treelite::compiler::AllocateELFHeader(&nodes_elf);
 
@@ -209,7 +205,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
 
 // Get the comparison op used in the tree ensemble model
 // If splits have more than one op, throw an error
-inline std::string GetCommonOp(const treelite::ModelImpl& model) {
+inline std::string GetCommonOp(const treelite::ModelImpl<float, float>& model) {
   std::set<treelite::Operator> ops;
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
@@ -264,7 +260,10 @@ class FailSafeCompiler : public Compiler {
   }
 
   CompiledModel Compile(const Model& model_ptr) override {
-    const auto& model = dynamic_cast<const ModelImpl&>(model_ptr);
+    CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
+          && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
+      << "Failsafe compiler only supports models with float32 thresholds and float32 leaf outputs";
+    const auto& model = dynamic_cast<const ModelImpl<float, float>&>(model_ptr);
 
     CompiledModel cm;
     cm.backend = "native";
@@ -273,7 +272,7 @@ class FailSafeCompiler : public Compiler {
     num_output_group_ = model.num_output_group;
     CHECK(!model.random_forest_flag)
       << "Only gradient boosted trees supported in FailSafeCompiler";
-    pred_tranform_func_ = PredTransformFunction("native", model);
+    pred_tranform_func_ = PredTransformFunction("native", model_ptr);
     files_.clear();
 
     const char* predict_function_signature
@@ -316,12 +315,22 @@ class FailSafeCompiler : public Compiler {
       std::tie(nodes, nodes_row_ptr) = FormatNodesArray(model);
     }
 
+    const ModelParam model_param = model.param;
+    const std::string query_functions_definition
+      = fmt::format(native::query_functions_definition_template,
+          "num_output_group"_a = num_output_group_,
+          "num_feature"_a = num_feature_,
+          "pred_transform"_a = model_param.pred_transform,
+          "sigmoid_alpha"_a = model_param.sigmoid_alpha,
+          "global_bias"_a = model_param.global_bias,
+          "threshold_type_str"_a = TypeInfoToString(TypeToInfo<float>()),
+          "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<float>()));
+
     main_program << fmt::format(main_template,
       "nodes_row_ptr"_a = nodes_row_ptr,
+      "query_functions_definition"_a = query_functions_definition,
       "pred_transform_function"_a = pred_tranform_func_,
       "predict_function_signature"_a = predict_function_signature,
-      "num_output_group"_a = num_output_group_,
-      "num_feature"_a = num_feature_,
       "num_tree"_a = model.trees.size(),
       "compare_op"_a = GetCommonOp(model),
       "accumulator_definition"_a = accumulator_definition,
@@ -337,8 +346,12 @@ class FailSafeCompiler : public Compiler {
         "nodes"_a = nodes));
     }
 
+    const std::string query_functions_prototype
+        = fmt::format(native::query_functions_prototype_template,
+                      "dllexport"_a = DLLEXPORT_KEYWORD);
     files_["header.h"] = CompiledModel::FileEntry(fmt::format(header_template,
       "dllexport"_a = DLLEXPORT_KEYWORD,
+      "query_functions_prototype"_a = query_functions_prototype,
       "predict_function_signature"_a = predict_function_signature));
 
     {

@@ -31,6 +31,7 @@ foreach(lib objtreelite objtreelite_runtime objtreelite_common)
   if(MSVC)
     target_compile_options(${lib} PRIVATE /MP)
     target_compile_definitions(${lib} PRIVATE -DNOMINMAX)
+    target_compile_options(${lib} PRIVATE /utf-8 -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
   else()
     target_compile_options(${lib} PRIVATE -funroll-loops)
   endif()
@@ -75,6 +76,7 @@ target_sources(objtreelite
     compiler/native/main_template.h
     compiler/native/pred_transform.h
     compiler/native/qnode_template.h
+    compiler/native/typeinfo_ctypes.h
     compiler/ast_native.cc
     compiler/compiler.cc
     compiler/failsafe.cc
@@ -95,6 +97,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/compiler_param.h
     ${PROJECT_SOURCE_DIR}/include/treelite/filesystem.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h

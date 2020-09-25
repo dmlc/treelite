@@ -7,8 +7,9 @@ import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -47,11 +48,9 @@ public class Predictor implements Serializable, KryoSerializable {
    *                CPU cores. Setting ``nthread=1`` indicates that the main
    *                thread should be exclusively used.
    * @param verbose Whether to print extra diagnostic messages
-   * @return Created Predictor
-   * @throws TreeliteError
+   * @throws TreeliteError error during loading the shared lib
    */
-  public Predictor(
-          String libpath, int nthread, boolean verbose) throws TreeliteError {
+  public Predictor(String libpath, int nthread, boolean verbose) throws TreeliteError {
     this.num_thread = nthread;
     this.verbose = verbose;
     initNativeLibrary(libpath);
@@ -170,122 +169,92 @@ public class Predictor implements Serializable, KryoSerializable {
   }
 
   /**
-   * Perform single-instance prediction. Prediction is run by the calling thread.
-   *
-   * @param inst        array of data entires comprising the instance
-   * @param pred_margin whether to predict a probability or a raw margin score
-   * @return Resulting predictions, of dimension ``[num_output_group]``
-   */
-  public float[] predict(Data[] inst, boolean pred_margin)
-          throws TreeliteError, IOException {
-
-    assert inst.length > 0;
-
-    // query result size
-    long[] out = new long[1];
-    TreeliteJNI.checkCall(
-            TreeliteJNI.TreelitePredictorQueryResultSizeSingleInst(this.handle, out));
-    int result_size = (int) out[0];
-    float[] out_result = new float[result_size];
-
-    // serialize instance as byte array
-    ByteArrayOutputStream os = new ByteArrayOutputStream();
-    for (int i = 0; i < inst.length; ++i) {
-      inst[i].write(os);
-    }
-    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictInst(
-            this.handle, os.toByteArray(), pred_margin, out_result, out));
-    int actual_result_size = (int) out[0];
-    float[] result = new float[actual_result_size];
-    for (int i = 0; i < actual_result_size; ++i) {
-      result[i] = out_result[i];
-    }
-    return result;
-  }
-
-  /**
-   * Perform batch prediction with a 2D sparse data matrix. Worker threads
+   * Perform batch prediction with a 2D data matrix. Worker threads
    * will internally divide up work for batch prediction. **Note that this
-   * function will be blocked by mutex when worker_thread > 1.** In order to use
-   * multiple threads to process multiple prediction requests simultaneously,
-   * use :java:meth:`Predictor.predict(Data[], boolean)` instead or keep worker_thread = 1.
+   * function will be blocked by mutex when worker_thread > 1.**
    *
-   * @param batch       a :java:ref:`SparseBatch`, representing a slice of a 2D
-   *                    sparse matrix
+   * @param batch       a data matrix of type :java:ref:`DMatrix`
    * @param verbose     whether to print extra diagnostic messages
    * @param pred_margin whether to predict probabilities or raw margin scores
    * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
    */
-  public float[][] predict(
-          SparseBatch batch, boolean verbose, boolean pred_margin)
-          throws TreeliteError {
+  public INDArray predict(DMatrix batch, boolean verbose, boolean pred_margin)
+      throws TreeliteError {
     long[] out = new long[1];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryResultSize(
-            this.handle, batch.getHandle(), true, out));
-    int result_size = (int) out[0];
-    float[] out_result = new float[result_size];
-    if (num_thread == 1) {
-      TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatch(
-              this.handle, batch.getHandle(), true, verbose, pred_margin,
-              out_result, out));
-    } else {
-      synchronized (this) {
-        TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatch(
-                this.handle, batch.getHandle(), true, verbose, pred_margin,
+        this.handle, batch.getHandle(), out));
+    int result_size = (int)out[0];
+
+    String[] s_out = new String[1];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryLeafOutputType(this.handle, s_out));
+    String leaf_output_type = s_out[0];
+    switch (leaf_output_type) {
+      case "float32": {
+        float[] out_result = new float[result_size];
+        if (num_thread == 1) {
+          TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithFloat32Out(
+              this.handle, batch.getHandle(), verbose, pred_margin, out_result, out));
+        } else {
+          synchronized (this) {
+            TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithFloat32Out(
+                this.handle, batch.getHandle(), verbose, pred_margin,
                 out_result, out));
+          }
+        }
+        int actual_result_size = (int) out[0];
+        return reshape(out_result, actual_result_size, this.num_output_group);
       }
+      case "float64": {
+        double[] out_result = new double[result_size];
+        if (num_thread == 1) {
+          TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithFloat64Out(
+              this.handle, batch.getHandle(), verbose, pred_margin, out_result, out));
+        } else {
+          synchronized (this) {
+            TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithFloat64Out(
+                this.handle, batch.getHandle(), verbose, pred_margin,
+                out_result, out));
+          }
+        }
+        int actual_result_size = (int) out[0];
+        return reshape(out_result, actual_result_size, this.num_output_group);
+      }
+      case "uint32": {
+        int[] out_result = new int[result_size];
+        if (num_thread == 1) {
+          TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithUInt32Out(
+              this.handle, batch.getHandle(), verbose, pred_margin, out_result, out));
+        } else {
+          synchronized (this) {
+            TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatchWithUInt32Out(
+                this.handle, batch.getHandle(), verbose, pred_margin,
+                out_result, out));
+          }
+        }
+        int actual_result_size = (int) out[0];
+        return reshape(out_result, actual_result_size, this.num_output_group);
+      }
+      default:
+        throw new TreeliteError("Unknown leaf output type: " + leaf_output_type);
     }
-    int actual_result_size = (int) out[0];
-    return reshape(out_result, actual_result_size, this.num_output_group);
   }
 
-  /**
-   * Perform batch prediction with a 2D dense data matrix. Worker threads
-   * will internally divide up work for batch prediction. **Note that this
-   * function will be blocked by mutex when worker_thread > 1.** In order to use
-   * multiple threads to process multiple prediction requests simultaneously,
-   * use :java:meth:`Predictor.predict(Data[], boolean)` instead or keep worker_thread = 1.
-   *
-   * @param batch       a :java:ref:`DenseBatch`, representing a slice of a 2D dense
-   *                    matrix
-   * @param verbose     whether to print extra diagnostic messages
-   * @param pred_margin whether to predict probabilities or raw margin scores
-   * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
-   */
-  public float[][] predict(
-          DenseBatch batch, boolean verbose, boolean pred_margin)
-          throws TreeliteError {
-    long[] out = new long[1];
-    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryResultSize(
-            this.handle, batch.getHandle(), false, out));
-    int result_size = (int) out[0];
-    float[] out_result = new float[result_size];
-    if (num_thread == 1) {
-      TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatch(
-              this.handle, batch.getHandle(), false, verbose, pred_margin,
-              out_result, out));
-    } else {
-      synchronized (this) {
-        TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorPredictBatch(
-                this.handle, batch.getHandle(), false, verbose, pred_margin,
-                out_result, out));
-      }
-    }
-    int actual_result_size = (int) out[0];
-    return reshape(out_result, actual_result_size, this.num_output_group);
-  }
-
-  private float[][] reshape(float[] array, int rend, int num_col) {
+  private INDArray reshape(float[] array, int rend, int num_col) {
     assert rend <= array.length;
     assert rend % num_col == 0;
-    float[][] res;
-    res = new float[rend / num_col][num_col];
-    for (int i = 0; i < rend; ++i) {
-      int r = i / num_col;
-      int c = i % num_col;
-      res[r][c] = array[i];
-    }
-    return res;
+    return Nd4j.create(array, new int[]{rend / num_col, num_col}, 'c');
+  }
+
+  private INDArray reshape(double[] array, int rend, int num_col) {
+    assert rend <= array.length;
+    assert rend % num_col == 0;
+    return Nd4j.create(array, new int[]{rend / num_col, num_col}, 'c');
+  }
+
+  private INDArray reshape(int[] array, int rend, int num_col) {
+    assert rend <= array.length;
+    assert rend % num_col == 0;
+    return Nd4j.create(array, new int[]{rend / num_col, num_col}, 'c');
   }
 
   @Override
@@ -338,40 +307,40 @@ public class Predictor implements Serializable, KryoSerializable {
 
   @Override
   public void write(Kryo kryo, Output out) {
-      out.writeInt(this.num_thread);
-      out.writeBoolean(this.verbose);
-      byte[] libext = this.libext.getBytes();
-      out.writeShort(libext.length);
-      out.write(libext);
-      try {
-          byte[] lib_data = Files.readAllBytes(Paths.get(libpath));
-          out.writeInt(lib_data.length);
-          out.write(lib_data);
-      } catch (IOException e) {
-          logger.error("Error while loading TreeLite dynamic shared library!");
-      }
+    out.writeInt(this.num_thread);
+    out.writeBoolean(this.verbose);
+    byte[] libext = this.libext.getBytes();
+    out.writeShort(libext.length);
+    out.write(libext);
+    try {
+      byte[] lib_data = Files.readAllBytes(Paths.get(libpath));
+      out.writeInt(lib_data.length);
+      out.write(lib_data);
+    } catch (IOException e) {
+      logger.error("Error while loading TreeLite dynamic shared library!");
+    }
   }
 
   @Override
   public void read(Kryo kryo, Input in) {
-      this.num_thread = in.readInt();
-      this.verbose = in.readBoolean();
-      byte[] libext = new byte[in.readShort()];
-      in.read(libext);
-      File libpath = null;
-      try {
-          libpath = File.createTempFile("TreeLite_", new String(libext));
-          byte[] lib_data = new byte[in.readInt()];
-          in.read(lib_data);
-          FileUtils.writeByteArrayToFile(libpath, lib_data);
-          initNativeLibrary(libpath.getAbsolutePath());
-      } catch (Exception ex) {
-          ex.printStackTrace();
-          logger.error("Error while loading TreeLite dynamic shared library!");
-      } finally {
-          if (libpath != null) {
-              libpath.delete();
-          }
+    this.num_thread = in.readInt();
+    this.verbose = in.readBoolean();
+    byte[] libext = new byte[in.readShort()];
+    in.read(libext);
+    File libpath = null;
+    try {
+      libpath = File.createTempFile("TreeLite_", new String(libext));
+      byte[] lib_data = new byte[in.readInt()];
+      in.read(lib_data);
+      FileUtils.writeByteArrayToFile(libpath, lib_data);
+      initNativeLibrary(libpath.getAbsolutePath());
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      logger.error("Error while loading TreeLite dynamic shared library!");
+    } finally {
+      if (libpath != null) {
+        libpath.delete();
       }
+    }
   }
 }

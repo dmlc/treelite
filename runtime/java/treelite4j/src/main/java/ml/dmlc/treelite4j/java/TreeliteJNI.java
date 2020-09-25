@@ -29,56 +29,65 @@ class TreeliteJNI {
     }
   }
 
-  public final static native String TreeliteGetLastError();
+  public static native String TreeliteGetLastError();
 
-  public final static native int TreeliteAssembleSparseBatch(
-    float[] data, int[] col_ind, long[] row_ptr, long num_row, long num_col,
-    long[] out);
+  public static native int TreeliteDMatrixCreateFromCSRWithFloat32In(
+      float[] data, int[] col_ind, long[] row_ptr, long num_row, long num_col, long[] out);
 
-  public final static native int TreeliteDeleteSparseBatch(
-    long handle, float[] data, int[] col_ind, long[] row_ptr);
+  public static native int TreeliteDMatrixCreateFromCSRWithFloat64In(
+      double[] data, int[] col_ind, long[] row_ptr, long num_row, long num_col, long[] out);
 
-  public final static native int TreeliteAssembleDenseBatch(
-    float[] data, float missing_value, long num_row, long num_col, long[] out);
+  public static native int TreeliteDMatrixCreateFromMatWithFloat32In(
+      float[] data, long num_row, long num_col, float missing_value, long[] out);
 
-  public final static native int TreeliteDeleteDenseBatch(
-    long handle, float[] data);
+  public static native int TreeliteDMatrixCreateFromMatWithFloat64In(
+      double[] data, long num_row, long num_col, double missing_value, long[] out);
 
-  public final static native int TreeliteBatchGetDimension(
-    long handle, boolean batch_sparse, long[] out_num_row, long[] out_num_col);
+  public static native int TreeliteDMatrixGetDimension(
+      long handle, long[] out_num_row, long[] out_num_col, long[] out_nelem);
 
-  public final static native int TreelitePredictorLoad(
-    String library_path, int num_worker_thread, long[] out);
+  public static native int TreeliteDMatrixFree(
+      long handle);
 
-  public final static native int TreelitePredictorPredictBatch(
-    long handle, long batch, boolean batch_sparse, boolean verbose,
-    boolean pred_margin, float[] out_result, long[] out_result_size);
+  public static native int TreelitePredictorLoad(
+      String library_path, int num_worker_thread, long[] out);
 
-  public final static native int TreelitePredictorPredictInst(
-    long handle, byte[] inst, boolean pred_margin, float[] out_result,
-    long[] out_result_size);
+  public static native int TreelitePredictorPredictBatchWithFloat32Out(
+      long handle, long batch, boolean verbose, boolean pred_margin, float[] out_result,
+      long[] out_result_size);
 
-  public final static native int TreelitePredictorQueryResultSize(
-    long handle, long batch, boolean batch_sparse, long[] out);
+  public static native int TreelitePredictorPredictBatchWithFloat64Out(
+      long handle, long batch, boolean verbose, boolean pred_margin, double[] out_result,
+      long[] out_result_size);
 
-  public final static native int TreelitePredictorQueryResultSizeSingleInst(
-    long handle, long[] out);
+  public static native int TreelitePredictorPredictBatchWithUInt32Out(
+      long handle, long batch, boolean verbose, boolean pred_margin, int[] out_result,
+      long[] out_result_size);
 
-  public final static native int TreelitePredictorQueryNumOutputGroup(
-    long handle, long[] out);
+  public static native int TreelitePredictorQueryResultSize(
+      long handle, long batch, long[] out);
 
-  public final static native int TreelitePredictorQueryNumFeature(
-    long handle, long[] out);
+  public static native int TreelitePredictorQueryNumOutputGroup(
+      long handle, long[] out);
 
-  public final static native int TreelitePredictorQueryPredTransform(
-    long handle, String[] out);
+  public static native int TreelitePredictorQueryNumFeature(
+      long handle, long[] out);
 
-  public final static native int TreelitePredictorQuerySigmoidAlpha(
-    long handle, float[] out);
+  public static native int TreelitePredictorQueryPredTransform(
+      long handle, String[] out);
 
-  public final static native int TreelitePredictorQueryGlobalBias(
-    long handle, float[] out);
+  public static native int TreelitePredictorQuerySigmoidAlpha(
+      long handle, float[] out);
 
-  public final static native int TreelitePredictorFree(long handle);
+  public static native int TreelitePredictorQueryGlobalBias(
+      long handle, float[] out);
+
+  public static native int TreelitePredictorQueryThresholdType(
+      long handle, String[] out);
+
+  public static native int TreelitePredictorQueryLeafOutputType(
+      long handle, String[] out);
+
+  public static native int TreelitePredictorFree(long handle);
 
 }

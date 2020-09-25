@@ -66,7 +66,7 @@ class ArrayFormatter {
    */
   ArrayFormatter(size_t text_width, size_t indent, char delimiter = ',')
     : oss_(), text_width_(text_width), indent_(indent), delimiter_(delimiter),
-      default_precision_(oss_.precision()), line_length_(indent),
+      default_precision_(static_cast<int>(oss_.precision())), line_length_(indent),
       is_empty_(true) {}
 
   /*!

@@ -10,6 +10,7 @@
 #include <dmlc/memory_io.h>
 #include <string>
 #include <memory>
+#include <stdexcept>
 
 namespace {
 
@@ -32,18 +33,60 @@ inline void TestRoundTrip(treelite::Model* model) {
 
 namespace treelite {
 
-TEST(PyBufferInterfaceRoundTrip, TreeStump) {
+template <typename ThresholdType, typename LeafOutputType>
+void PyBufferInterfaceRoundTrip_TreeStump() {
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
-    new frontend::ModelBuilder(2, 1, false)
+      new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
-  std::unique_ptr<frontend::TreeBuilder> tree{new frontend::TreeBuilder()};
+  std::unique_ptr<frontend::TreeBuilder> tree{
+      new frontend::TreeBuilder(threshold_type, leaf_output_type)
+  };
   tree->CreateNode(0);
   tree->CreateNode(1);
   tree->CreateNode(2);
-  tree->SetNumericalTestNode(0, 0, "<", 0.0f, true, 1, 2);
+  tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<ThresholdType>(0), true, 1, 2);
   tree->SetRootNode(0);
-  tree->SetLeafNode(1, -1.0f);
-  tree->SetLeafNode(2, 1.0f);
+  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(-1));
+  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
+  builder->InsertTree(tree.get());
+
+  std::unique_ptr<Model> model = builder->CommitModel();
+  TestRoundTrip(model.get());
+}
+
+TEST(PyBufferInterfaceRoundTrip, TreeStump) {
+  PyBufferInterfaceRoundTrip_TreeStump<float, float>();
+  PyBufferInterfaceRoundTrip_TreeStump<float, uint32_t>();
+  PyBufferInterfaceRoundTrip_TreeStump<double, double>();
+  PyBufferInterfaceRoundTrip_TreeStump<double, uint32_t>();
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStump<float, double>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStump<double, float>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStump<uint32_t, uint32_t>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStump<uint32_t, float>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStump<uint32_t, double>()), std::runtime_error);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
+  std::unique_ptr<frontend::ModelBuilder> builder{
+      new frontend::ModelBuilder(2, 2, true, threshold_type, leaf_output_type)
+  };
+  std::unique_ptr<frontend::TreeBuilder> tree{
+      new frontend::TreeBuilder(threshold_type, leaf_output_type)
+  };
+  tree->CreateNode(0);
+  tree->CreateNode(1);
+  tree->CreateNode(2);
+  tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<ThresholdType>(0), true, 1, 2);
+  tree->SetRootNode(0);
+  tree->SetLeafVectorNode(1, {frontend::Value::Create<LeafOutputType>(-1),
+                              frontend::Value::Create<LeafOutputType>(1)});
+  tree->SetLeafVectorNode(2, {frontend::Value::Create<LeafOutputType>(1),
+                              frontend::Value::Create<LeafOutputType>(-1)});
   builder->InsertTree(tree.get());
 
   std::unique_ptr<Model> model = builder->CommitModel();
@@ -51,17 +94,39 @@ TEST(PyBufferInterfaceRoundTrip, TreeStump) {
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
+  PyBufferInterfaceRoundTrip_TreeStumpLeafVec<float, float>();
+  PyBufferInterfaceRoundTrip_TreeStumpLeafVec<float, uint32_t>();
+  PyBufferInterfaceRoundTrip_TreeStumpLeafVec<double, double>();
+  PyBufferInterfaceRoundTrip_TreeStumpLeafVec<double, uint32_t>();
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpLeafVec<float, double>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpLeafVec<double, float>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpLeafVec<uint32_t, uint32_t>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpLeafVec<uint32_t, float>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpLeafVec<uint32_t, double>()),
+               std::runtime_error);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
-      new frontend::ModelBuilder(2, 2, true)
+      new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
-  std::unique_ptr<frontend::TreeBuilder> tree{new frontend::TreeBuilder()};
+  std::unique_ptr<frontend::TreeBuilder> tree{
+      new frontend::TreeBuilder(threshold_type, leaf_output_type)
+  };
   tree->CreateNode(0);
   tree->CreateNode(1);
   tree->CreateNode(2);
-  tree->SetNumericalTestNode(0, 0, "<", 0.0f, true, 1, 2);
+  tree->SetCategoricalTestNode(0, 0, {0, 1}, true, 1, 2);
   tree->SetRootNode(0);
-  tree->SetLeafVectorNode(1, {-1.0f, 1.0f});
-  tree->SetLeafVectorNode(2, {1.0f, -1.0f});
+  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(-1));
+  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
   builder->InsertTree(tree.get());
 
   std::unique_ptr<Model> model = builder->CommitModel();
@@ -69,42 +134,46 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStumpCategoricalSplit) {
-  std::unique_ptr<frontend::ModelBuilder> builder{
-      new frontend::ModelBuilder(2, 1, false)
-  };
-  std::unique_ptr<frontend::TreeBuilder> tree{new frontend::TreeBuilder()};
-  tree->CreateNode(0);
-  tree->CreateNode(1);
-  tree->CreateNode(2);
-  tree->SetCategoricalTestNode(0, 0, {0, 1}, true, 1, 2);
-  tree->SetRootNode(0);
-  tree->SetLeafNode(1, -1.0f);
-  tree->SetLeafNode(2, 1.0f);
-  builder->InsertTree(tree.get());
-
-  std::unique_ptr<Model> model = builder->CommitModel();
-  TestRoundTrip(model.get());
+  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, float>();
+  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, uint32_t>();
+  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, double>();
+  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, uint32_t>();
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, double>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, float>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, uint32_t>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, float>()),
+               std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, double>()),
+               std::runtime_error);
 }
 
-TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {
+template <typename ThresholdType, typename LeafOutputType>
+void PyBufferInterfaceRoundTrip_TreeDepth2() {
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
-      new frontend::ModelBuilder(2, 1, false)
+      new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
   };
   builder->SetModelParam("pred_transform", "sigmoid");
   builder->SetModelParam("global_bias", "0.5");
   for (int tree_id = 0; tree_id < 2; ++tree_id) {
-    std::unique_ptr<frontend::TreeBuilder> tree{new frontend::TreeBuilder()};
+    std::unique_ptr<frontend::TreeBuilder> tree{
+        new frontend::TreeBuilder(threshold_type, leaf_output_type)
+    };
     for (int i = 0; i < 7; ++i) {
       tree->CreateNode(i);
     }
-    tree->SetNumericalTestNode(0, 0, "<", 0.0f, true, 1, 2);
+    tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<ThresholdType>(0), true, 1, 2);
     tree->SetCategoricalTestNode(1, 0, {0, 1}, true, 3, 4);
     tree->SetCategoricalTestNode(2, 1, {0}, true, 5, 6);
     tree->SetRootNode(0);
-    tree->SetLeafNode(3, -2.0f);
-    tree->SetLeafNode(4, 1.0f);
-    tree->SetLeafNode(5, -1.0f);
-    tree->SetLeafNode(6, 2.0f);
+    tree->SetLeafNode(3, frontend::Value::Create<LeafOutputType>(-2));
+    tree->SetLeafNode(4, frontend::Value::Create<LeafOutputType>(1));
+    tree->SetLeafNode(5, frontend::Value::Create<LeafOutputType>(-1));
+    tree->SetLeafNode(6, frontend::Value::Create<LeafOutputType>(2));
     builder->InsertTree(tree.get());
   }
 
@@ -112,13 +181,30 @@ TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {
   TestRoundTrip(model.get());
 }
 
-TEST(PyBufferInterfaceRoundTrip, DeepFullTree) {
+TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {
+  PyBufferInterfaceRoundTrip_TreeDepth2<float, float>();
+  PyBufferInterfaceRoundTrip_TreeDepth2<float, uint32_t>();
+  PyBufferInterfaceRoundTrip_TreeDepth2<double, double>();
+  PyBufferInterfaceRoundTrip_TreeDepth2<double, uint32_t>();
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeDepth2<float, double>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeDepth2<double, float>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeDepth2<uint32_t, uint32_t>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeDepth2<uint32_t, float>()), std::runtime_error);
+  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeDepth2<uint32_t, double>()), std::runtime_error);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+void PyBufferInterfaceRoundTrip_DeepFullTree() {
+  TypeInfo threshold_type = TypeToInfo<ThresholdType>();
+  TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   const int depth = 19;
 
   std::unique_ptr<frontend::ModelBuilder> builder{
-      new frontend::ModelBuilder(3, 1, false)
+      new frontend::ModelBuilder(3, 1, false, threshold_type, leaf_output_type)
   };
-  std::unique_ptr<frontend::TreeBuilder> tree{new frontend::TreeBuilder()};
+  std::unique_ptr<frontend::TreeBuilder> tree{
+      new frontend::TreeBuilder(threshold_type, leaf_output_type)
+  };
   for (int level = 0; level <= depth; ++level) {
     for (int i = 0; i < (1 << level); ++i) {
       const int nid = (1 << level) - 1 + i;
@@ -128,11 +214,11 @@ TEST(PyBufferInterfaceRoundTrip, DeepFullTree) {
   for (int level = 0; level <= depth; ++level) {
     for (int i = 0; i < (1 << level); ++i) {
       const int nid = (1 << level) - 1 + i;
-      const float leaf_value = 0.5;
       if (level == depth) {
-        tree->SetLeafNode(nid, leaf_value);
+        tree->SetLeafNode(nid, frontend::Value::Create<LeafOutputType>(1));
       } else {
-        tree->SetNumericalTestNode(nid, (level % 2), "<", 0.0, true, 2 * nid + 1, 2 * nid + 2);
+        tree->SetNumericalTestNode(nid, (level % 2), "<", frontend::Value::Create<ThresholdType>(0),
+                                   true, 2 * nid + 1, 2 * nid + 2);
       }
     }
   }
@@ -141,6 +227,13 @@ TEST(PyBufferInterfaceRoundTrip, DeepFullTree) {
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+}
+
+TEST(PyBufferInterfaceRoundTrip, DeepFullTree) {
+  PyBufferInterfaceRoundTrip_DeepFullTree<float, float>();
+  PyBufferInterfaceRoundTrip_DeepFullTree<float, uint32_t>();
+  PyBufferInterfaceRoundTrip_DeepFullTree<double, double>();
+  PyBufferInterfaceRoundTrip_DeepFullTree<double, uint32_t>();
 }
 
 }  // namespace treelite

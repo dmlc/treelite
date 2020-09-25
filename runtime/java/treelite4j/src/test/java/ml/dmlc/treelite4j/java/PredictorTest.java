@@ -48,22 +48,18 @@ public class PredictorTest {
   @Test
   public void testPredict() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    List<DataPoint> dmat
-        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat.iterator());
-    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat.iterator());
-    float[] expected_result
-        = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+    List<DataPoint> dmat = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix sparse_dmat = DMatrixBuilder.createSparseCSRDMatrix(dmat.iterator());
+    DMatrix dense_dmat = DMatrixBuilder.createDenseDMatrix(dmat.iterator());
+    float[] expected_result = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
 
-    /* sparse batch */
-    float[][] result = predictor.predict(sparse_batch, true, false);
+    float[][] result = predictor.predict(sparse_dmat, true, false).toFloatMatrix();
     for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
     }
 
-    /* dense batch */
-    result = predictor.predict(dense_batch, true, false);
+    result = predictor.predict(dense_dmat, true, false).toFloatMatrix();
     for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
@@ -73,32 +69,25 @@ public class PredictorTest {
   @Test
   public void testPredictMargin() throws TreeliteError, IOException {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    List<DataPoint> dmat
-        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    SparseBatch sparse_batch = BatchBuilder.CreateSparseBatch(dmat.iterator());
-    DenseBatch dense_batch = BatchBuilder.CreateDenseBatch(dmat.iterator());
+    List<DataPoint> dmat = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix sparse_batch = DMatrixBuilder.createSparseCSRDMatrix(dmat.iterator());
+    DMatrix dense_batch = DMatrixBuilder.createDenseDMatrix(dmat.iterator());
     float[] expected_result
         = LoadArrayFromText(mushroomTestDataPredMarginResultLocation);
 
     /* sparse batch */
-    float[][] result = predictor.predict(sparse_batch, true, true);
+    float[][] result = predictor.predict(sparse_batch, true, true).toFloatMatrix();
     for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
     }
 
     /* dense batch */
-    result = predictor.predict(dense_batch, true, true);
+    result = predictor.predict(dense_batch, true, true).toFloatMatrix();
     for (int i = 0; i < result.length; ++i) {
       TestCase.assertEquals(1, result[i].length);
       TestCase.assertEquals(expected_result[i], result[i][0]);
     }
-  }
-
-  @Test
-  public void testPredictInst() throws TreeliteError, IOException {
-    Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    mushroomLibPredictionTest(predictor);
   }
 
   @Test
@@ -110,34 +99,14 @@ public class PredictorTest {
     TestCase.assertEquals(predictor.GetPredTransform(), predictor2.GetPredTransform());
     TestCase.assertEquals(predictor.GetSigmoidAlpha(), predictor2.GetSigmoidAlpha());
     TestCase.assertEquals(predictor.GetGlobalBias(), predictor2.GetGlobalBias());
-    mushroomLibPredictionTest(predictor2);
-  }
 
-  private void mushroomLibPredictionTest(Predictor predictor) throws IOException, TreeliteError {
-    Entry[] inst_arr = new Entry[predictor.GetNumFeature()];
-    for (int i = 0; i < inst_arr.length; ++i) {
-      inst_arr[i] = new Entry();
-      inst_arr[i].setMissing();
-    }
-
-    float[] expected_result
-        = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
-
-    List<DataPoint> dmat
-        = BatchBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
-    int row_id = 0;
-    for (DataPoint inst : dmat) {
-      int[] indices = inst.indices();
-      float[] values = inst.values();
-      for (int i = 0; i < indices.length; ++i) {
-        inst_arr[indices[i]].setFValue(values[i]);
-      }
-      float[] result = predictor.predict(inst_arr, false);
-      TestCase.assertEquals(1, result.length);
-      TestCase.assertEquals(expected_result[row_id++], result[0]);
-      for (int i = 0; i < inst_arr.length; ++i) {
-        inst_arr[i].setMissing();
-      }
+    List<DataPoint> dataset = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);
+    DMatrix dmat = DMatrixBuilder.createSparseCSRDMatrix(dataset.iterator());
+    float[] expected_result = LoadArrayFromText(mushroomTestDataPredProbResultLocation);
+    float[][] result = predictor.predict(dmat, true, false).toFloatMatrix();
+    for (int i = 0; i < result.length; ++i) {
+      TestCase.assertEquals(1, result[i].length);
+      TestCase.assertEquals(expected_result[i], result[i][0]);
     }
   }
 

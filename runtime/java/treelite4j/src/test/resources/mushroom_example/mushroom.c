@@ -29,6 +29,14 @@ float get_global_bias(void) {
   return -0;
 }
 
+const char* get_threshold_type(void) {
+  return "float32";
+}
+
+const char* get_leaf_output_type(void) {
+  return "float32";
+}
+
 static inline float pred_transform(float margin) {
   const float alpha = (float)1;
   return 1.0f / (1 + expf(-alpha * margin));

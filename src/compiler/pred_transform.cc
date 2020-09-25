@@ -95,8 +95,9 @@ pred_transform_multiclass_db = {
 std::string
 treelite::compiler::PredTransformFunction(const std::string& backend,
                                           const Model& model) {
+  ModelParam param = model.param;
   if (model.num_output_group > 1) {  // multi-class classification
-    auto it = pred_transform_multiclass_db.find(model.param.pred_transform);
+    auto it = pred_transform_multiclass_db.find(param.pred_transform);
     if (it == pred_transform_multiclass_db.end()) {
       std::ostringstream oss;
       for (const auto& e : pred_transform_multiclass_db) {
@@ -109,7 +110,7 @@ treelite::compiler::PredTransformFunction(const std::string& backend,
     }
     return (it->second)(backend, model);
   } else {
-    auto it = pred_transform_db.find(model.param.pred_transform);
+    auto it = pred_transform_db.find(param.pred_transform);
     if (it == pred_transform_db.end()) {
       std::ostringstream oss;
       for (const auto& e : pred_transform_db) {

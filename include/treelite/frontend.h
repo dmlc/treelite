@@ -61,14 +61,48 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally
 //--------------------------------------------------------------------------
-struct TreeBuilderImpl;   // forward declaration
-struct ModelBuilderImpl;  // ditto
-class ModelBuilder;       // ditto
+
+/* forward declarations */
+struct TreeBuilderImpl;
+struct ModelBuilderImpl;
+class ModelBuilder;
+
+class Value {
+ private:
+  std::shared_ptr<void> handle_;
+  TypeInfo type_;
+ public:
+  Value();
+  ~Value() = default;
+  Value(const Value&) = default;
+  Value(Value&&) noexcept = default;
+  Value& operator=(const Value&) = default;
+  Value& operator=(Value&&) noexcept = default;
+  template <typename T>
+  static Value Create(T init_value);
+  static Value Create(const void* init_value, TypeInfo type);
+  template <typename T>
+  T& Get();
+  template <typename T>
+  const T& Get() const;
+  template <typename Func>
+  inline auto Dispatch(Func func);
+  template <typename Func>
+  inline auto Dispatch(Func func) const;
+  TypeInfo GetValueType() const;
+};
 
 /*! \brief tree builder class */
 class TreeBuilder {
  public:
-  TreeBuilder();  // constructor
+  /*!
+   * \brief Constructor
+   * \param threshold_type Type of thresholds in numerical splits. All thresholds in a given model
+   *                       must have the same type.
+   * \param leaf_output_type Type of leaf outputs. All leaf outputs in a given model must have the
+   *                         same type.
+   */
+  TreeBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type);  // constructor
   ~TreeBuilder();  // destructor
   // this class is only move-constructible and move-assignable
   TreeBuilder(const TreeBuilder&) = delete;
@@ -103,12 +137,10 @@ class TreeBuilder {
    * \param left_child_key unique integer key to identify the left child node
    * \param right_child_key unique integer key to identify the right child node
    */
-  void SetNumericalTestNode(int node_key, unsigned feature_id,
-                            const char* op, tl_float threshold, bool default_left,
-                            int left_child_key, int right_child_key);
-  void SetNumericalTestNode(int node_key, unsigned feature_id,
-                            Operator op, tl_float threshold, bool default_left,
-                            int left_child_key, int right_child_key);
+  void SetNumericalTestNode(int node_key, unsigned feature_id, const char* op, Value threshold,
+                            bool default_left, int left_child_key, int right_child_key);
+  void SetNumericalTestNode(int node_key, unsigned feature_id, Operator op, Value threshold,
+                            bool default_left, int left_child_key, int right_child_key);
   /*!
    * \brief Turn an empty node into a categorical test node.
    * A list defines all categories that would be classified as the left side.
@@ -122,18 +154,16 @@ class TreeBuilder {
    * \param left_child_key unique integer key to identify the left child node
    * \param right_child_key unique integer key to identify the right child node
    */
-  void SetCategoricalTestNode(int node_key,
-                              unsigned feature_id,
-                              const std::vector<uint32_t>& left_categories,
-                              bool default_left, int left_child_key,
-                              int right_child_key);
+  void SetCategoricalTestNode(int node_key, unsigned feature_id,
+                              const std::vector<uint32_t>& left_categories, bool default_left,
+                              int left_child_key, int right_child_key);
   /*!
    * \brief Turn an empty node into a leaf node
    * \param node_key unique integer key to identify the node being modified;
    *                 this node needs to be empty
    * \param leaf_value leaf value (weight) of the leaf node
    */
-  void SetLeafNode(int node_key, tl_float leaf_value);
+  void SetLeafNode(int node_key, Value leaf_value);
   /*!
   * \brief Turn an empty node into a leaf vector node
   * The leaf vector (collection of multiple leaf weights per leaf node) is
@@ -142,13 +172,13 @@ class TreeBuilder {
   *                 this node needs to be empty
   * \param leaf_vector leaf vector of the leaf node
   */
-  void SetLeafVectorNode(int node_key,
-                         const std::vector<tl_float>& leaf_vector);
+  void SetLeafVectorNode(int node_key, const std::vector<Value>& leaf_vector);
 
  private:
-  std::unique_ptr<TreeBuilderImpl> pimpl;  // Pimpl pattern
-  void* ensemble_id;  // id of ensemble (nullptr if not part of any)
+  std::unique_ptr<TreeBuilderImpl> pimpl_;  // Pimpl pattern
+  ModelBuilder* ensemble_id_;  // id of ensemble (nullptr if not part of any)
   friend class ModelBuilder;
+  friend struct ModelBuilderImpl;
 };
 
 /*! \brief model builder class */
@@ -164,8 +194,13 @@ class ModelBuilder {
    *                         classification
    * \param random_forest_flag whether the model is a random forest (true) or
    *                           gradient boosted trees (false)
+   * \param threshold_type Type of thresholds in numerical splits. All thresholds in a given model
+   *                       must have the same type.
+   * \param leaf_output_type Type of leaf outputs. All leaf outputs in a given model must have the
+   *                         same type.
    */
-  ModelBuilder(int num_feature, int num_output_group, bool random_forest_flag);
+  ModelBuilder(int num_feature, int num_output_group, bool random_forest_flag,
+               TypeInfo threshold_type, TypeInfo leaf_output_type);
   ~ModelBuilder();  // destructor
   /*!
    * \brief Set a model parameter
@@ -205,9 +240,12 @@ class ModelBuilder {
   std::unique_ptr<Model> CommitModel();
 
  private:
-  std::unique_ptr<ModelBuilderImpl> pimpl;  // Pimpl pattern
+  std::unique_ptr<ModelBuilderImpl> pimpl_;  // Pimpl pattern
 };
 
 }  // namespace frontend
 }  // namespace treelite
+
+#include "frontend_impl.h"
+
 #endif  // TREELITE_FRONTEND_H_

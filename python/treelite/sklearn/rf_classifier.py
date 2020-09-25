@@ -10,8 +10,9 @@ class SKLRFClassifierMixin:
     def process_model(cls, sklearn_model):
         """Process a RandomForestClassifier (binary classifier) to convert it into a
            Treelite model"""
-        builder = treelite.ModelBuilder(num_feature=sklearn_model.n_features_,
-                                        random_forest=True)
+        builder = treelite.ModelBuilder(
+            num_feature=sklearn_model.n_features_, random_forest=True,
+            threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder
             builder.append(cls.process_tree(sklearn_model.estimators_[i].tree_,
@@ -28,4 +29,4 @@ class SKLRFClassifierMixin:
         # Compute the fraction of positive data points at this leaf node
         fraction_positive = float(leaf_count[1]) / leaf_count.sum()
         # The fraction above is now the leaf output
-        treelite_tree[node_id].set_leaf_node(fraction_positive)
+        treelite_tree[node_id].set_leaf_node(fraction_positive, leaf_value_type='float64')

@@ -11,33 +11,30 @@
 #include <memory>
 #include <queue>
 
-/* data structures with underscore prefixes are internal use only and
-   do not have external linkage */
+/* data structures with underscore prefixes are internal use only and don't have external linkage */
 namespace {
 
-struct _Node {
-  enum class _Status : int8_t {
+struct NodeDraft {
+  enum class Status : int8_t {
     kEmpty, kNumericalTest, kCategoricalTest, kLeaf
-  };
-  union _Info {
-    treelite::tl_float leaf_value;  // for leaf nodes
-    treelite::tl_float threshold;   // for non-leaf nodes
   };
   /*
    * leaf vector: only used for random forests with multi-class classification
    */
-  std::vector<treelite::tl_float> leaf_vector;
-  _Status status;
+  std::vector<treelite::frontend::Value> leaf_vector;
+  Status status;
   /* pointers to parent, left and right children */
-  _Node* parent;
-  _Node* left_child;
-  _Node* right_child;
+  NodeDraft* parent;
+  NodeDraft* left_child;
+  NodeDraft* right_child;
   // split feature index
   unsigned feature_id;
   // default direction for missing values
   bool default_left;
-  // extra info: leaf value or threshold
-  _Info info;
+  // leaf value (only for leaf nodes)
+  treelite::frontend::Value leaf_value;
+  // threshold (only for non-leaf nodes)
+  treelite::frontend::Value threshold;
   // (for numerical split)
   // operator to use for expression of form [fval] OP [threshold]
   // If the expression evaluates to true, take the left child;
@@ -50,15 +47,17 @@ struct _Node {
   // categories in that particular feature. Let's assume n <= 64.
   std::vector<uint32_t> left_categories;
 
-  inline _Node()
-    : status(_Status::kEmpty),
-      parent(nullptr), left_child(nullptr), right_child(nullptr) {}
+  inline NodeDraft()
+    : status(Status::kEmpty), parent(nullptr), left_child(nullptr), right_child(nullptr) {}
 };
 
-struct _Tree {
-  _Node* root;
-  std::unordered_map<int, std::unique_ptr<_Node>> nodes;
-  inline _Tree() : root(nullptr), nodes() {}
+struct TreeDraft {
+  NodeDraft* root;
+  std::unordered_map<int, std::unique_ptr<NodeDraft>> nodes;
+  treelite::TypeInfo threshold_type;
+  treelite::TypeInfo leaf_output_type;
+  inline TreeDraft(treelite::TypeInfo threshold_type, treelite::TypeInfo leaf_output_type)
+    : root(nullptr), nodes(), threshold_type(threshold_type), leaf_output_type(leaf_output_type) {}
 };
 
 }  // anonymous namespace
@@ -69,8 +68,9 @@ namespace frontend {
 DMLC_REGISTRY_FILE_TAG(builder);
 
 struct TreeBuilderImpl {
-  _Tree tree;
-  inline TreeBuilderImpl() : tree() {}
+  TreeDraft tree;
+  inline TreeBuilderImpl(TypeInfo threshold_type, TypeInfo leaf_output_type)
+    : tree(threshold_type, leaf_output_type) {}
 };
 
 struct ModelBuilderImpl {
@@ -78,35 +78,115 @@ struct ModelBuilderImpl {
   int num_feature;
   int num_output_group;
   bool random_forest_flag;
+  TypeInfo threshold_type;
+  TypeInfo leaf_output_type;
   std::vector<std::pair<std::string, std::string>> cfg;
-  inline ModelBuilderImpl(int num_feature, int num_output_group,
-                          bool random_forest_flag)
-    : trees(), num_feature(num_feature),
-      num_output_group(num_output_group),
-      random_forest_flag(random_forest_flag), cfg() {
+  inline ModelBuilderImpl(int num_feature, int num_output_group, bool random_forest_flag,
+                          TypeInfo threshold_type, TypeInfo leaf_output_type)
+    : trees(), num_feature(num_feature), num_output_group(num_output_group),
+      random_forest_flag(random_forest_flag), threshold_type(threshold_type),
+      leaf_output_type(leaf_output_type), cfg() {
     CHECK_GT(num_feature, 0) << "ModelBuilder: num_feature must be positive";
-    CHECK_GT(num_output_group, 0)
-      << "ModelBuilder: num_output_group must be positive";
+    CHECK_GT(num_output_group, 0) << "ModelBuilder: num_output_group must be positive";
+    CHECK(threshold_type != TypeInfo::kInvalid)
+      << "ModelBuilder: threshold_type can't be invalid";
+    CHECK(leaf_output_type != TypeInfo::kInvalid)
+      << "ModelBuilder: leaf_output_type can't be invalid";
+  }
+  // Templatized implementation of CommitModel()
+  template <typename ThresholdType, typename LeafOutputType>
+  void CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_model);
+};
+
+template <typename ThresholdType, typename LeafOutputType>
+void SetLeafVector(Tree<ThresholdType, LeafOutputType>* tree, int nid,
+                   const std::vector<Value>& leaf_vector) {
+  const size_t leaf_vector_size = leaf_vector.size();
+  const TypeInfo expected_leaf_type = TypeToInfo<LeafOutputType>();
+  std::vector<LeafOutputType> out_leaf_vector;
+  for (size_t i = 0; i < leaf_vector_size; ++i) {
+    const Value& leaf_value = leaf_vector[i];
+    CHECK(leaf_value.GetValueType() == expected_leaf_type)
+      << "Leaf value at index " << i << " has incorrect type. Expected: "
+      << TypeInfoToString(expected_leaf_type) << ", Given: "
+      << TypeInfoToString(leaf_value.GetValueType());
+    out_leaf_vector.push_back(leaf_value.Get<LeafOutputType>());
+  }
+  tree->SetLeafVector(nid, out_leaf_vector);
+}
+
+Value::Value() : handle_(nullptr), type_(TypeInfo::kInvalid) {}
+
+template <typename T>
+Value
+Value::Create(T init_value) {
+  Value value;
+  std::unique_ptr<T> ptr = std::make_unique<T>(init_value);
+  value.handle_.reset(ptr.release());
+  value.type_ = TypeToInfo<T>();
+  return value;
+}
+
+template <typename ValueType>
+class CreateHandle {
+ public:
+  inline static std::shared_ptr<void> Dispatch(const void* init_value) {
+    const auto* v_ptr = static_cast<const ValueType*>(init_value);
+    CHECK(v_ptr);
+    ValueType v = *v_ptr;
+    return std::make_shared<ValueType>(v);
   }
 };
 
-TreeBuilder::TreeBuilder()
-  : pimpl(new TreeBuilderImpl()), ensemble_id(nullptr) {}
-TreeBuilder::~TreeBuilder() {}
+Value
+Value::Create(const void* init_value, TypeInfo type) {
+  Value value;
+  CHECK(type != TypeInfo::kInvalid) << "Type must be valid";
+  value.type_ = type;
+  value.handle_ = DispatchWithTypeInfo<CreateHandle>(type, init_value);
+  return value;
+}
+
+template <typename T>
+T&
+Value::Get() {
+  CHECK(handle_);
+  T* out = static_cast<T*>(handle_.get());
+  CHECK(out);
+  return *out;
+}
+
+template <typename T>
+const T&
+Value::Get() const {
+  CHECK(handle_);
+  const T* out = static_cast<const T*>(handle_.get());
+  CHECK(out);
+  return *out;
+}
+
+TypeInfo
+Value::GetValueType() const {
+  return type_;
+}
+
+TreeBuilder::TreeBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type)
+  : pimpl_(new TreeBuilderImpl(threshold_type, leaf_output_type)), ensemble_id_(nullptr) {}
+TreeBuilder::~TreeBuilder() = default;
 
 void
 TreeBuilder::CreateNode(int node_key) {
-  auto& nodes = pimpl->tree.nodes;
+  auto& nodes = pimpl_->tree.nodes;
   CHECK_EQ(nodes.count(node_key), 0) << "CreateNode: nodes with duplicate keys are not allowed";
-  nodes[node_key].reset(new _Node());
+  nodes[node_key] = std::make_unique<NodeDraft>();
 }
 
 void
 TreeBuilder::DeleteNode(int node_key) {
-  auto& tree = pimpl->tree;
+  auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
   CHECK_GT(nodes.count(node_key), 0) << "DeleteNode: no node found with node_key";
-  _Node* node = nodes[node_key].get();
+  NodeDraft* node = nodes[node_key].get();
   if (tree.root == node) {  // deleting root
     tree.root = nullptr;
   }
@@ -126,43 +206,42 @@ TreeBuilder::DeleteNode(int node_key) {
 
 void
 TreeBuilder::SetRootNode(int node_key) {
-  auto& tree = pimpl->tree;
+  auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
   CHECK_GT(nodes.count(node_key), 0) << "SetRootNode: no node found with node_key";
-  _Node* node = nodes[node_key].get();
+  NodeDraft* node = nodes[node_key].get();
   CHECK(!node->parent) << "SetRootNode: a root node cannot have a parent";
   tree.root = node;
 }
 
 void
-TreeBuilder::SetNumericalTestNode(int node_key,
-                                  unsigned feature_id,
-                                  const char* opname, tl_float threshold,
-                                  bool default_left, int left_child_key,
+TreeBuilder::SetNumericalTestNode(int node_key, unsigned feature_id, const char* opname,
+                                  Value threshold, bool default_left, int left_child_key,
                                   int right_child_key) {
   CHECK_GT(optable.count(opname), 0) << "No operator \"" << opname << "\" exists";
   Operator op = optable.at(opname);
-  SetNumericalTestNode(node_key, feature_id, op, threshold, default_left,
+  SetNumericalTestNode(node_key, feature_id, op, std::move(threshold), default_left,
                        left_child_key, right_child_key);
 }
 
 void
-TreeBuilder::SetNumericalTestNode(int node_key,
-                                  unsigned feature_id,
-                                  Operator op, tl_float threshold,
-                                  bool default_left, int left_child_key,
-                                  int right_child_key) {
-  auto& tree = pimpl->tree;
+TreeBuilder::SetNumericalTestNode(int node_key, unsigned feature_id, Operator op, Value threshold,
+                                  bool default_left, int left_child_key, int right_child_key) {
+  auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
+  CHECK(tree.threshold_type == threshold.GetValueType())
+    << "SetNumericalTestNode: threshold has an incorrect type. "
+    << "Expected: " << TypeInfoToString(tree.threshold_type)
+    << ", Given: " << TypeInfoToString(threshold.GetValueType());
   CHECK_GT(nodes.count(node_key), 0) << "SetNumericalTestNode: no node found with node_key";
   CHECK_GT(nodes.count(left_child_key), 0)
     << "SetNumericalTestNode: no node found with left_child_key";
   CHECK_GT(nodes.count(right_child_key), 0)
     << "SetNumericalTestNode: no node found with right_child_key";
-  _Node* node = nodes[node_key].get();
-  _Node* left_child = nodes[left_child_key].get();
-  _Node* right_child = nodes[right_child_key].get();
-  CHECK(node->status == _Node::_Status::kEmpty)
+  NodeDraft* node = nodes[node_key].get();
+  NodeDraft* left_child = nodes[left_child_key].get();
+  NodeDraft* right_child = nodes[right_child_key].get();
+  CHECK(node->status == NodeDraft::Status::kEmpty)
     << "SetNumericalTestNode: cannot modify a non-empty node";
   CHECK(!left_child->parent)
     << "SetNumericalTestNode: node designated as left child already has a parent";
@@ -170,34 +249,32 @@ TreeBuilder::SetNumericalTestNode(int node_key,
     << "SetNumericalTestNode: node designated as right child already has a parent";
   CHECK(left_child != tree.root && right_child != tree.root)
     << "SetNumericalTestNode: the root node cannot be a child";
-  node->status = _Node::_Status::kNumericalTest;
+  node->status = NodeDraft::Status::kNumericalTest;
   node->left_child = nodes[left_child_key].get();
   node->left_child->parent = node;
   node->right_child = nodes[right_child_key].get();
   node->right_child->parent = node;
   node->feature_id = feature_id;
   node->default_left = default_left;
-  node->info.threshold = threshold;
+  node->threshold = std::move(threshold);
   node->op = op;
 }
 
 void
-TreeBuilder::SetCategoricalTestNode(int node_key,
-                                    unsigned feature_id,
-                                    const std::vector<uint32_t>& left_categories,
-                                    bool default_left, int left_child_key,
-                                    int right_child_key) {
-  auto &tree = pimpl->tree;
+TreeBuilder::SetCategoricalTestNode(int node_key, unsigned feature_id,
+                                    const std::vector<uint32_t>& left_categories, bool default_left,
+                                    int left_child_key, int right_child_key) {
+  auto &tree = pimpl_->tree;
   auto &nodes = tree.nodes;
   CHECK_GT(nodes.count(node_key), 0) << "SetCategoricalTestNode: no node found with node_key";
   CHECK_GT(nodes.count(left_child_key), 0)
     << "SetCategoricalTestNode: no node found with left_child_key";
   CHECK_GT(nodes.count(right_child_key), 0)
     << "SetCategoricalTestNode: no node found with right_child_key";
-  _Node* node = nodes[node_key].get();
-  _Node* left_child = nodes[left_child_key].get();
-  _Node* right_child = nodes[right_child_key].get();
-  CHECK(node->status == _Node::_Status::kEmpty)
+  NodeDraft* node = nodes[node_key].get();
+  NodeDraft* left_child = nodes[left_child_key].get();
+  NodeDraft* right_child = nodes[right_child_key].get();
+  CHECK(node->status == NodeDraft::Status::kEmpty)
     << "SetCategoricalTestNode: cannot modify a non-empty node";
   CHECK(!left_child->parent)
     << "SetCategoricalTestNode: node designated as left child already has a parent";
@@ -205,7 +282,7 @@ TreeBuilder::SetCategoricalTestNode(int node_key,
     << "SetCategoricalTestNode: node designated as right child already has a parent";
   CHECK(left_child != tree.root && right_child != tree.root)
     << "SetCategoricalTestNode: the root node cannot be a child";
-  node->status = _Node::_Status::kCategoricalTest;
+  node->status = NodeDraft::Status::kCategoricalTest;
   node->left_child = nodes[left_child_key].get();
   node->left_child->parent = node;
   node->right_child = nodes[right_child_key].get();
@@ -216,38 +293,49 @@ TreeBuilder::SetCategoricalTestNode(int node_key,
 }
 
 void
-TreeBuilder::SetLeafNode(int node_key, tl_float leaf_value) {
-  auto& tree = pimpl->tree;
+TreeBuilder::SetLeafNode(int node_key, Value leaf_value) {
+  auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
+  CHECK(tree.leaf_output_type == leaf_value.GetValueType())
+    << "SetLeafNode: leaf_value has an incorrect type. "
+    << "Expected: " << TypeInfoToString(tree.leaf_output_type)
+    << ", Given: " << TypeInfoToString(leaf_value.GetValueType());
   CHECK_GT(nodes.count(node_key), 0) << "SetLeafNode: no node found with node_key";
-  _Node* node = nodes[node_key].get();
-  CHECK(node->status == _Node::_Status::kEmpty) << "SetLeafNode: cannot modify a non-empty node";
-  node->status = _Node::_Status::kLeaf;
-  node->info.leaf_value = leaf_value;
+  NodeDraft* node = nodes[node_key].get();
+  CHECK(node->status == NodeDraft::Status::kEmpty) << "SetLeafNode: cannot modify a non-empty node";
+  node->status = NodeDraft::Status::kLeaf;
+  node->leaf_value = std::move(leaf_value);
 }
 
 void
-TreeBuilder::SetLeafVectorNode(int node_key, const std::vector<tl_float>& leaf_vector) {
-  auto& tree = pimpl->tree;
+TreeBuilder::SetLeafVectorNode(int node_key, const std::vector<Value>& leaf_vector) {
+  auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
+  const size_t leaf_vector_len = leaf_vector.size();
+  for (size_t i = 0; i < leaf_vector_len; ++i) {
+    const Value& leaf_value = leaf_vector[i];
+    CHECK(tree.leaf_output_type == leaf_value.GetValueType())
+      << "SetLeafVectorNode: the element " << i << " in leaf_vector has an incorrect type. "
+      << "Expected: " << TypeInfoToString(tree.leaf_output_type)
+      << ", Given: " << TypeInfoToString(leaf_value.GetValueType());
+  }
   CHECK_GT(nodes.count(node_key), 0) << "SetLeafVectorNode: no node found with node_key";
-  _Node* node = nodes[node_key].get();
-  CHECK(node->status == _Node::_Status::kEmpty)
+  NodeDraft* node = nodes[node_key].get();
+  CHECK(node->status == NodeDraft::Status::kEmpty)
     << "SetLeafVectorNode: cannot modify a non-empty node";
-  node->status = _Node::_Status::kLeaf;
+  node->status = NodeDraft::Status::kLeaf;
   node->leaf_vector = leaf_vector;
 }
 
-ModelBuilder::ModelBuilder(int num_feature, int num_output_group,
-                           bool random_forest_flag)
-  : pimpl(new ModelBuilderImpl(num_feature,
-                               num_output_group,
-                               random_forest_flag)) {}
+ModelBuilder::ModelBuilder(int num_feature, int num_output_group, bool random_forest_flag,
+                           TypeInfo threshold_type, TypeInfo leaf_output_type)
+  : pimpl_(new ModelBuilderImpl(num_feature, num_output_group, random_forest_flag,
+                                threshold_type, leaf_output_type)) {}
 ModelBuilder::~ModelBuilder() = default;
 
 void
 ModelBuilder::SetModelParam(const char* name, const char* value) {
-  pimpl->cfg.emplace_back(name, value);
+  pimpl_->cfg.emplace_back(name, value);
 }
 
 int
@@ -256,18 +344,34 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
     LOG(FATAL) << "InsertTree: not a valid tree builder";
     return -1;
   }
-  if (tree_builder->ensemble_id != nullptr) {
+  if (tree_builder->ensemble_id_ != nullptr) {
     LOG(FATAL) << "InsertTree: tree is already part of another ensemble";
+    return -1;
+  }
+  if (tree_builder->pimpl_->tree.threshold_type != this->pimpl_->threshold_type) {
+    LOG(FATAL)
+      << "InsertTree: cannot insert the tree into the ensemble, because the ensemble requires all "
+      << "member trees to use " << TypeInfoToString(this->pimpl_->threshold_type)
+      << " type for split thresholds whereas the tree is using "
+      << TypeInfoToString(tree_builder->pimpl_->tree.threshold_type);
+    return -1;
+  }
+  if (tree_builder->pimpl_->tree.leaf_output_type != this->pimpl_->leaf_output_type) {
+    LOG(FATAL)
+      << "InsertTree: cannot insert the tree into the ensemble, because the ensemble requires all "
+      << "member trees to use " << TypeInfoToString(this->pimpl_->leaf_output_type)
+      << " type for leaf outputs whereas the tree is using "
+      << TypeInfoToString(tree_builder->pimpl_->tree.leaf_output_type);
     return -1;
   }
 
   // check bounds for feature indices
-  for (const auto& kv : tree_builder->pimpl->tree.nodes) {
-    const _Node::_Status status = kv.second->status;
-    if (status == _Node::_Status::kNumericalTest ||
-      status == _Node::_Status::kCategoricalTest) {
+  for (const auto& kv : tree_builder->pimpl_->tree.nodes) {
+    const NodeDraft::Status status = kv.second->status;
+    if (status == NodeDraft::Status::kNumericalTest ||
+        status == NodeDraft::Status::kCategoricalTest) {
       const int fid = static_cast<int>(kv.second->feature_id);
-      if (fid < 0 || fid >= pimpl->num_feature) {
+      if (fid < 0 || fid >= this->pimpl_->num_feature) {
         LOG(FATAL) << "InsertTree: tree has an invalid split at node "
                    << kv.first << ": feature id " << kv.second->feature_id << " is out of bound";
         return -1;
@@ -276,18 +380,18 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
   }
 
   // perform insertion
-  auto& trees = pimpl->trees;
+  auto& trees = pimpl_->trees;
   if (index == -1) {
     trees.push_back(std::move(*tree_builder));
-    tree_builder->ensemble_id = static_cast<void*>(this);
+    tree_builder->ensemble_id_ = this;
     return static_cast<int>(trees.size());
   } else {
     if (static_cast<size_t>(index) <= trees.size()) {
       trees.insert(trees.begin() + index, std::move(*tree_builder));
-      tree_builder->ensemble_id = static_cast<void*>(this);
+      tree_builder->ensemble_id_ = this;
       return index;
     } else {
-      LOG(FATAL) << "CreateTree: index out of bound";
+      LOG(FATAL) << "InsertTree: index out of bound";
       return -1;
     }
   }
@@ -295,30 +399,40 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
 
 TreeBuilder*
 ModelBuilder::GetTree(int index) {
-  return &pimpl->trees.at(index);
+  return &pimpl_->trees.at(index);
 }
 
 const TreeBuilder*
 ModelBuilder::GetTree(int index) const {
-  return &pimpl->trees.at(index);
+  return &pimpl_->trees.at(index);
 }
 
 void
 ModelBuilder::DeleteTree(int index) {
-  auto& trees = pimpl->trees;
+  auto& trees = pimpl_->trees;
   CHECK_LT(static_cast<size_t>(index), trees.size()) << "DeleteTree: index out of bound";
   trees.erase(trees.begin() + index);
 }
 
 std::unique_ptr<Model>
 ModelBuilder::CommitModel() {
-  std::unique_ptr<Model> model_ptr = Model::Create();
-  ModelImpl& model = *dynamic_cast<ModelImpl*>(model_ptr.get());
-  model.num_feature = pimpl->num_feature;
-  model.num_output_group = pimpl->num_output_group;
-  model.random_forest_flag = pimpl->random_forest_flag;
+  std::unique_ptr<Model> model_ptr = Model::Create(pimpl_->threshold_type,
+                                                   pimpl_->leaf_output_type);
+  model_ptr->Dispatch([this](auto& model) {
+    this->pimpl_->CommitModelImpl(&model);
+  });
+  return model_ptr;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+void
+ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_model) {
+  ModelImpl<ThresholdType, LeafOutputType>& model = *out_model;
+  model.num_feature = this->num_feature;
+  model.num_output_group = this->num_output_group;
+  model.random_forest_flag = this->random_forest_flag;
   // extra parameters
-  InitParamAndCheck(&model.param, pimpl->cfg);
+  InitParamAndCheck(&model.param, this->cfg);
 
   // flag to check consistent use of leaf vector
   // 0: no leaf should use leaf vector
@@ -326,44 +440,48 @@ ModelBuilder::CommitModel() {
   // -1: indeterminate
   int8_t flag_leaf_vector = -1;
 
-  for (const auto& _tree_builder : pimpl->trees) {
-    const auto& _tree = _tree_builder.pimpl->tree;
+  for (const auto& tree_builder : this->trees) {
+    const auto& _tree = tree_builder.pimpl_->tree;
     CHECK(_tree.root) << "CommitModel: a tree has no root node";
-    CHECK(_tree.root->status != _Node::_Status::kEmpty)
+    CHECK(_tree.root->status != NodeDraft::Status::kEmpty)
       << "SetRootNode: cannot set an empty node as root";
     model.trees.emplace_back();
-    Tree& tree = model.trees.back();
+    Tree<ThresholdType, LeafOutputType>& tree = model.trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
-    std::queue<std::pair<const _Node*, int>> Q;  // (internal pointer, ID)
+    std::queue<std::pair<const NodeDraft*, int>> Q;  // (internal pointer, ID)
     Q.push({_tree.root, 0});  // assign 0 to root
     while (!Q.empty()) {
-      const _Node* node;
+      const NodeDraft* node;
       int nid;
       std::tie(node, nid) = Q.front();
       Q.pop();
-      CHECK(node->status != _Node::_Status::kEmpty)
+      CHECK(node->status != NodeDraft::Status::kEmpty)
         << "CommitModel: encountered an empty node in the middle of a tree";
-      if (node->status == _Node::_Status::kNumericalTest) {
+      if (node->status == NodeDraft::Status::kNumericalTest) {
         CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
         CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
         CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
         CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
-        tree.SetNumericalSplit(nid, node->feature_id, node->info.threshold,
-                               node->default_left, node->op);
+        CHECK(node->threshold.GetValueType() == TypeToInfo<ThresholdType>())
+          << "CommitModel: The specified threshold has incorrect type. Expected: "
+          << TypeInfoToString(TypeToInfo<ThresholdType>())
+          << " Given: " << TypeInfoToString(node->threshold.GetValueType());
+        ThresholdType threshold = node->threshold.Get<ThresholdType>();
+        tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
         Q.push({node->left_child, tree.LeftChild(nid)});
         Q.push({node->right_child, tree.RightChild(nid)});
-      } else if (node->status == _Node::_Status::kCategoricalTest) {
+      } else if (node->status == NodeDraft::Status::kCategoricalTest) {
         CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
         CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
         CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
         CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
-        tree.SetCategoricalSplit(nid, node->feature_id, node->default_left,
-                                 false, node->left_categories);
+        tree.SetCategoricalSplit(nid, node->feature_id, node->default_left, false,
+                                 node->left_categories);
         Q.push({node->left_child, tree.LeftChild(nid)});
         Q.push({node->right_child, tree.RightChild(nid)});
       } else {  // leaf node
@@ -377,13 +495,18 @@ ModelBuilder::CommitModel() {
           CHECK_EQ(node->leaf_vector.size(), model.num_output_group)
             << "CommitModel: The length of leaf vector must be identical to the number of output "
             << "groups";
-          tree.SetLeafVector(nid, node->leaf_vector);
+          SetLeafVector(&tree, nid, node->leaf_vector);
         } else {  // ordinary leaf
           CHECK_NE(flag_leaf_vector, 1)
             << "CommitModel: Inconsistent use of leaf vector: if one leaf node does not use a leaf "
             << "vector, *no other* leaf node can use a leaf vector";
           flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          tree.SetLeaf(nid, node->info.leaf_value);
+          CHECK(node->leaf_value.GetValueType() == TypeToInfo<LeafOutputType>())
+            << "CommitModel: The specified leaf value has incorrect type. Expected: "
+            << TypeInfoToString(TypeToInfo<LeafOutputType>())
+            << " Given: " << TypeInfoToString(node->leaf_value.GetValueType());
+          LeafOutputType leaf_value = node->leaf_value.Get<LeafOutputType>();
+          tree.SetLeaf(nid, leaf_value);
         }
       }
     }
@@ -394,7 +517,7 @@ ModelBuilder::CommitModel() {
       CHECK(!model.random_forest_flag)
         << "To use a random forest for multi-class classification, each leaf node must output a "
         << "leaf vector specifying a probability distribution";
-      CHECK_EQ(pimpl->trees.size() % model.num_output_group, 0)
+      CHECK_EQ(this->trees.size() % model.num_output_group, 0)
         << "For multi-class classifiers with gradient boosted trees, the number of trees must be "
         << "evenly divisible by the number of output groups";
     }
@@ -406,8 +529,11 @@ ModelBuilder::CommitModel() {
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
-  return model_ptr;
 }
+
+template Value Value::Create(uint32_t init_value);
+template Value Value::Create(float init_value);
+template Value Value::Create(double init_value);
 
 }  // namespace frontend
 }  // namespace treelite

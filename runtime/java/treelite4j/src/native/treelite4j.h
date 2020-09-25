@@ -17,43 +17,57 @@ JNIEXPORT jstring JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteGetLa
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreeliteAssembleSparseBatch
+ * Method:    TreeliteDMatrixCreateFromCSRWithFloat32In
  * Signature: ([F[I[JJJ[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteAssembleSparseBatch
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromCSRWithFloat32In
   (JNIEnv *, jclass, jfloatArray, jintArray, jlongArray, jlong, jlong, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreeliteDeleteSparseBatch
- * Signature: (J[F[I[J)I
+ * Method:    TreeliteDMatrixCreateFromCSRWithFloat64In
+ * Signature: ([D[I[JJJ[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDeleteSparseBatch
-  (JNIEnv *, jclass, jlong, jfloatArray, jintArray, jlongArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromCSRWithFloat64In
+  (JNIEnv *, jclass, jdoubleArray, jintArray, jlongArray, jlong, jlong, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreeliteAssembleDenseBatch
- * Signature: ([FFJJ[J)I
+ * Method:    TreeliteDMatrixCreateFromMatWithFloat32In
+ * Signature: ([FJJF[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteAssembleDenseBatch
-  (JNIEnv *, jclass, jfloatArray, jfloat, jlong, jlong, jlongArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromMatWithFloat32In
+  (JNIEnv *, jclass, jfloatArray, jlong, jlong, jfloat, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreeliteDeleteDenseBatch
- * Signature: (J[F)I
+ * Method:    TreeliteDMatrixCreateFromMatWithFloat64In
+ * Signature: ([DJJD[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDeleteDenseBatch
-  (JNIEnv *, jclass, jlong, jfloatArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromMatWithFloat64In
+  (JNIEnv *, jclass, jdoubleArray, jlong, jlong, jdouble, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreeliteBatchGetDimension
- * Signature: (JZ[J[J)I
+ * Method:    TreeliteDMatrixGetDimension
+ * Signature: (J[J[J[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteBatchGetDimension
-  (JNIEnv *, jclass, jlong, jboolean, jlongArray, jlongArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixGetDimension
+  (JNIEnv *, jclass, jlong, jlongArray, jlongArray, jlongArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreeliteDMatrixFree
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixFree
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
@@ -65,35 +79,38 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredicto
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreelitePredictorPredictBatch
- * Signature: (JJZZZ[F[J)I
+ * Method:    TreelitePredictorPredictBatchWithFloat32Out
+ * Signature: (JJZZ[F[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatch
-  (JNIEnv *, jclass, jlong, jlong, jboolean, jboolean, jboolean, jfloatArray, jlongArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithFloat32Out
+  (JNIEnv *, jclass, jlong, jlong, jboolean, jboolean, jfloatArray, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreelitePredictorPredictInst
- * Signature: (J[BZ[F[J)I
+ * Method:    TreelitePredictorPredictBatchWithFloat64Out
+ * Signature: (JJZZ[D[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictInst
-  (JNIEnv *, jclass, jlong, jbyteArray, jboolean, jfloatArray, jlongArray);
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithFloat64Out
+  (JNIEnv *, jclass, jlong, jlong, jboolean, jboolean, jdoubleArray, jlongArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreelitePredictorPredictBatchWithUInt32Out
+ * Signature: (JJZZ[I[J)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithUInt32Out
+  (JNIEnv *, jclass, jlong, jlong, jboolean, jboolean, jintArray, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryResultSize
- * Signature: (JJZ[J)I
+ * Signature: (JJ[J)I
  */
 JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSize
-  (JNIEnv *, jclass, jlong, jlong, jboolean, jlongArray);
-
-/*
- * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreelitePredictorQueryResultSizeSingleInst
- * Signature: (J[J)I
- */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSizeSingleInst
-  (JNIEnv *, jclass, jlong, jlongArray);
+  (JNIEnv *, jclass, jlong, jlong, jlongArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
@@ -134,6 +151,22 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredicto
  */
 JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryGlobalBias
   (JNIEnv *, jclass, jlong, jfloatArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreelitePredictorQueryThresholdType
+ * Signature: (J[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryThresholdType
+  (JNIEnv *, jclass, jlong, jobjectArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreelitePredictorQueryLeafOutputType
+ * Signature: (J[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryLeafOutputType
+  (JNIEnv *, jclass, jlong, jobjectArray);
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI

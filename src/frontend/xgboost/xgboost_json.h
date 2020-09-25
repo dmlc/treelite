@@ -236,9 +236,9 @@ class TreeParamHandler : public OutputHandler<int> {
 };
 
 /*! \brief handler for RegTree objects from XGBoost schema*/
-class RegTreeHandler : public OutputHandler<treelite::Tree> {
+class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
  public:
-  using OutputHandler<treelite::Tree>::OutputHandler;
+  using OutputHandler<treelite::Tree<float, float>>::OutputHandler;
   bool StartArray() override;
 
   bool StartObject() override;
@@ -262,16 +262,16 @@ class RegTreeHandler : public OutputHandler<treelite::Tree> {
 };
 
 /*! \brief handler for GBTreeModel objects from XGBoost schema*/
-class GBTreeModelHandler : public OutputHandler<treelite::ModelImpl> {
-  using OutputHandler<treelite::ModelImpl>::OutputHandler;
+class GBTreeModelHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
+  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
 };
 
 /*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
-class GradientBoosterHandler : public OutputHandler<treelite::ModelImpl> {
+class GradientBoosterHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
  public:
-  using OutputHandler<treelite::ModelImpl>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
   bool StartObject() override;
 };
@@ -286,16 +286,16 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
-class LearnerParamHandler : public OutputHandler<treelite::ModelImpl> {
+class LearnerParamHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
  public:
-  using OutputHandler<treelite::ModelImpl>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
 };
 
 /*! \brief handler for Learner objects from XGBoost schema*/
-class LearnerHandler : public OutputHandler<treelite::ModelImpl> {
+class LearnerHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
  public:
-  using OutputHandler<treelite::ModelImpl>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
 
@@ -304,9 +304,9 @@ class LearnerHandler : public OutputHandler<treelite::ModelImpl> {
 };
 
 /*! \brief handler for XGBoostModel objects from XGBoost schema*/
-class XGBoostModelHandler : public OutputHandler<treelite::ModelImpl> {
+class XGBoostModelHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
  public:
-  using OutputHandler<treelite::ModelImpl>::OutputHandler;
+  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;

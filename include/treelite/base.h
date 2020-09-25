@@ -8,9 +8,11 @@
 #define TREELITE_BASE_H_
 
 #include <cstdint>
+#include <typeinfo>
 #include <string>
 #include <unordered_map>
 #include <stdexcept>
+#include "./typeinfo.h"
 
 namespace treelite {
 
@@ -33,7 +35,7 @@ enum class Operator : int8_t {
 extern const std::unordered_map<std::string, Operator> optable;
 
 /*!
- * \brief get string representation of comparsion operator
+ * \brief get string representation of comparison operator
  * \param op comparison operator
  * \return string representation
  */
@@ -56,7 +58,8 @@ inline std::string OpName(Operator op) {
  * \param rhs float on the right hand side
  * \return whether [lhs] [op] [rhs] is true or not
  */
-inline bool CompareWithOp(tl_float lhs, Operator op, tl_float rhs) {
+template <typename ElementType, typename ThresholdType>
+inline bool CompareWithOp(ElementType lhs, Operator op, ThresholdType rhs) {
   switch (op) {
     case Operator::kEQ: return lhs == rhs;
     case Operator::kLT: return lhs <  rhs;

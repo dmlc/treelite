@@ -212,9 +212,9 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
  * GBTreeHandler
  * ***************************************************************************/
 bool GBTreeModelHandler::StartArray() {
-  return (push_key_handler<ArrayHandler<treelite::Tree, RegTreeHandler>,
-                           std::vector<treelite::Tree>>("trees",
-                                                        output.trees) ||
+  return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
+                           std::vector<treelite::Tree<float, float>>>(
+                               "trees", output.trees) ||
           push_key_handler<IgnoreHandler>("tree_info"));
 }
 
@@ -240,7 +240,7 @@ bool GradientBoosterHandler::String(const char *str,
   }
 }
 bool GradientBoosterHandler::StartObject() {
-  if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl>("model", output)) {
+  if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl<float, float>>("model", output)) {
     return true;
   } else {
     LOG(ERROR) << "Key \"" << get_cur_key()
@@ -283,9 +283,9 @@ bool LearnerParamHandler::String(const char *str,
  * ***************************************************************************/
 bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
-  return (push_key_handler<LearnerParamHandler, treelite::ModelImpl>(
+  return (push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
               "learner_model_param", output) ||
-          push_key_handler<GradientBoosterHandler, treelite::ModelImpl>(
+          push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>(
               "gradient_booster", output) ||
           push_key_handler<ObjectiveHandler, std::string>("objective",
                                                           objective) ||
@@ -322,7 +322,7 @@ bool XGBoostModelHandler::StartArray() {
 }
 
 bool XGBoostModelHandler::StartObject() {
-  return push_key_handler<LearnerHandler, treelite::ModelImpl>("learner", output);
+  return push_key_handler<LearnerHandler, treelite::ModelImpl<float, float>>("learner", output);
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
@@ -349,8 +349,8 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  return push_handler<XGBoostModelHandler, treelite::ModelImpl>(
-      *dynamic_cast<ModelImpl*>(output.get()));
+  return push_handler<XGBoostModelHandler, treelite::ModelImpl<float, float>>(
+      *dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()));
 }
 
 /******************************************************************************

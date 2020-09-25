@@ -312,7 +312,7 @@ TEST(RegTreeHandlerSuite, RegTreeHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  Tree output;
+  Tree<float, float> output;
   details::RegTreeHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -377,7 +377,7 @@ TEST(GBTreeModelHandlerSuite, GBTreeModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl output;
+  ModelImpl<float, float> output;
   details::GBTreeModelHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -397,7 +397,7 @@ TEST(GradientBoosterHandlerSuite, GradientBoosterHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl output;
+  ModelImpl<float, float> output;
   details::GradientBoosterHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -440,7 +440,7 @@ TEST(LearnerParamHandlerSuite, LearnerParamHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl output;
+  ModelImpl<float, float> output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -464,7 +464,7 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl output;
+  ModelImpl<float, float> output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -485,7 +485,7 @@ TEST(RootHandlerSuite, RootHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl output;
+  ModelImpl<float, float> output;
   details::LearnerParamHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 

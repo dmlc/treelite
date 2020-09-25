@@ -6,8 +6,7 @@ ifndef NPROC
 	NPROC=1
 endif
 lint:
-	wget -nc https://raw.githubusercontent.com/dmlc/dmlc-core/9db4b20c868341abe2a9fe52b652f7d9447ed406/scripts/lint.py
-	PYTHONPATH=./python:./runtime/python python lint.py treelite $(LINT_LANG) include src python tests/python \
+	PYTHONPATH=./python:./runtime/python python tests/ci_build/lint.py treelite $(LINT_LANG) include src python tests/python \
 		--pylint-rc $(PWD)/python/.pylintrc
 
 doxygen:

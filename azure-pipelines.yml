@@ -1,5 +1,6 @@
 trigger:
 - mainline
+- multi_type_support_refactor
 
 jobs:
 - job: formatting_check

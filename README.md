@@ -8,7 +8,7 @@
 [![PyPI version](https://badge.fury.io/py/treelite.svg)](https://pypi.python.org/pypi/treelite/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/treelite.svg)](https://anaconda.org/conda-forge/treelite)
 
-[Documentation](http://treelite.io) |
+[Documentation](https://treelite.readthedocs.io/en/latest) |
 [Installation](http://treelite.readthedocs.io/en/latest/install.html) |
 [Release Notes](NEWS.md) |
 [Acknowledgements](ACKNOWLEDGMENTS.md) |

@@ -90,6 +90,7 @@ class BaseHandler
 };
 
 class IgnoreHandler : public BaseHandler {
+ public:
   using BaseHandler::BaseHandler;
   bool Null();
   bool Bool(bool b);

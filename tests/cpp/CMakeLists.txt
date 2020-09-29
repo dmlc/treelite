@@ -4,8 +4,8 @@ set_target_properties(treelite_cpp_test
     CXX_STANDARD 11
     CXX_STANDARD_REQUIRED ON)
 target_link_libraries(treelite_cpp_test
-    PRIVATE objtreelite objtreelite_runtime objtreelite_common GTest::GTest
-    GTest::gmock)
+    PRIVATE objtreelite objtreelite_runtime objtreelite_common rapidjson
+    GTest::GTest GTest::gmock)
 set_output_directory(treelite_cpp_test ${PROJECT_BINARY_DIR})
 
 if(TEST_COVERAGE)

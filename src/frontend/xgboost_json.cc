@@ -105,6 +105,13 @@ bool BaseHandler::assign_value(const std::string &key,
   }
 }
 
+template <typename ValueType>
+bool BaseHandler::assign_value(const std::string &key,
+                  const ValueType &value,
+                  ValueType &output) {
+  return assign_value(key, std::forward<ValueType>(value), output);
+}
+
 /******************************************************************************
  * IgnoreHandler
  * ***************************************************************************/

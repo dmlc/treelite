@@ -133,7 +133,7 @@ bool IgnoreHandler::StartArray() { return push_handler<IgnoreHandler>(); }
  * TreeParamHandler
  * ***************************************************************************/
 bool TreeParamHandler::String(const char *str, std::size_t length, bool copy) {
-  // Key "num_deleted" not documented in schema
+  // Key "num_deleted" deprecated but still present in some xgboost output
   return (check_cur_key("num_feature") ||
           assign_value("num_nodes", atoi(str), m_output) ||
           check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
@@ -143,8 +143,8 @@ bool TreeParamHandler::String(const char *str, std::size_t length, bool copy) {
  * RegTreeHandler
  * ***************************************************************************/
 bool RegTreeHandler::StartArray() {
-  // Key "categories" not documented in schema
-  // Key "split_type" not documented in schema
+  /* Keys "categories" and "split_type" not currently documented in schema but
+   * will be used for upcoming categorical split feature */
   return (
       push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes) ||
       push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian) ||

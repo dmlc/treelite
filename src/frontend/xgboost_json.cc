@@ -59,9 +59,10 @@ void LoadXGBoostJSONModel(const char* filename, Model* out) {
   fclose(fp);
 }
 
-void LoadXGBoostJSONModelString(const std::string &json_str, Model *out) {
+void LoadXGBoostJSONModelString(const char* json_str,
+                                size_t length, Model *out) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(
-      json_str.c_str(), json_str.size());
+      json_str, length);
   *out = std::move(ParseStream(std::move(input_stream)));
 }
 

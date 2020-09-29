@@ -250,6 +250,17 @@ TREELITE_DLL int TreeliteLoadXGBoostModel(const char* filename,
 TREELITE_DLL int TreeliteLoadXGBoostJSON(const char* filename,
                                          ModelHandle* out);
 /*!
+ * \brief load a model stored as JSON stringby XGBoost (dmlc/xgboost). The model
+ *        json must contain a decision tree ensemble.
+ * \param json_str the string containing the JSON model specification
+ * \param length the length of the JSON string
+ * \param out loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadXGBoostJSONString(const char* json_str,
+                                               size_t length,
+                                               ModelHandle* out);
+/*!
  * \brief load an XGBoost model from a memory buffer.
  * \param buf memory buffer
  * \param len size of memory buffer

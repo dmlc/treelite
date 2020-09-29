@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for XGBoost integration"""
-# pylint: disable=R0201
+# pylint: disable=R0201, R0915
 import math
 import os
 

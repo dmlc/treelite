@@ -20,15 +20,23 @@ namespace details {
 
 class BaseHandler;
 
+/*! \brief class for handling delegation of JSON handling*/
 class Delegator {
  public:
+  /*! \brief pop stack of delegate handlers*/
   virtual void pop_delegate() = 0;
+  /*! \brief push new delegate handler onto stack*/
   virtual void push_delegate(std::shared_ptr<BaseHandler> new_delegate) = 0;
 };
 
+/*! \brief base class for parsing all JSON objects*/
 class BaseHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, BaseHandler> {
  public:
+  /*! 
+   * \brief construct handler to be added to given delegator's stack
+   * \param parent_delegator pointer to Delegator for this handler
+   */
   explicit BaseHandler(std::weak_ptr<Delegator> parent_delegator) :
     delegator{parent_delegator} {};
 
@@ -52,6 +60,9 @@ class BaseHandler
   virtual bool EndArray(std::size_t elementCount) { return pop_handler(); }
 
  protected:
+  /* \brief build handler of indicated type and push it onto delegator's stack
+   * \param args ... any args required to build handler
+   */
   template <typename HandlerType, typename... ArgsTypes>
   bool push_handler(ArgsTypes &... args) {
     if (auto parent = BaseHandler::delegator.lock()) {
@@ -62,6 +73,11 @@ class BaseHandler
     }
   }
 
+  /* \brief if current JSON key is the indicated string, build handler of
+   *        indicated type and push it onto delegator's stack
+   * \param key the expected key
+   * \param args ... any args required to build handler
+   */
   template <typename HandlerType, typename... ArgsTypes>
   bool push_key_handler(std::string key, ArgsTypes &... args) {
     if (check_cur_key(key)) {
@@ -71,10 +87,24 @@ class BaseHandler
       return false;
     }
   }
+  /* \brief pop handler off of delegator's stack, relinquishing parsing */
   bool pop_handler();
+  /* \brief store current JSON key
+   * \param str the key to store
+   * \param length the length of the str char array
+   */
   void set_cur_key(const char *str, std::size_t length);
+  /* \brief retrieve current JSON key */
   const std::string &get_cur_key();
+  /* \brief check if current JSON key is indicated key
+   * \param query_key the value to compare against current JSON key
+   */
   bool check_cur_key(const std::string &query_key);
+  /* \brief if current JSON key is the indicated string, assign value to output
+   * \param key the JSON key for this output
+   * \param value the value to be assigned
+   * \param output reference to object to which the value should be assigned
+   */
   template <typename ValueType>
   bool assign_value(const std::string &key,
                     ValueType &&value,
@@ -85,10 +115,13 @@ class BaseHandler
                     ValueType &output);
 
  private:
+  /* \brief the delegator which delegated parsing responsibility to this handler */
   std::weak_ptr<Delegator> delegator;
+  /* \brief the JSON key for the object currently being parsed */
   std::string cur_key;
 };
 
+/*! \brief JSON handler that ignores all delegated input*/
 class IgnoreHandler : public BaseHandler {
  public:
   using BaseHandler::BaseHandler;
@@ -105,8 +138,14 @@ class IgnoreHandler : public BaseHandler {
   bool StartArray();
 };
 
+/*! \brief base handler for updating some output object*/
 template <typename OutputType> class OutputHandler : public BaseHandler {
  public:
+  /*! 
+   * \brief construct handler to be added to given delegator's stack
+   * \param parent_delegator pointer to Delegator for this handler
+   * \param output the object to be modified during parsing
+   */
   OutputHandler(std::weak_ptr<Delegator> parent_delegator,
                 OutputType &output)
       : BaseHandler{parent_delegator}, m_output{output} {};
@@ -114,9 +153,11 @@ template <typename OutputType> class OutputHandler : public BaseHandler {
                 OutputType &&output) = delete;
 
  protected:
+  /* \brief the output value constructed or modified during parsing */
   OutputType &m_output;
 };
 
+/*! \brief handler for array of objects of given type*/
 template <typename ElemType, typename HandlerType = BaseHandler>
 class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
  public:
@@ -180,6 +221,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   }
 };
 
+/*! \brief handler for TreeParam objects from XGBoost schema*/
 class TreeParamHandler : public OutputHandler<int> {
  public:
   using OutputHandler<int>::OutputHandler;
@@ -187,6 +229,7 @@ class TreeParamHandler : public OutputHandler<int> {
   bool String(const char *str, std::size_t length, bool copy);
 };
 
+/*! \brief handler for RegTree objects from XGBoost schema*/
 class RegTreeHandler : public OutputHandler<treelite::Tree> {
  public:
   using OutputHandler<treelite::Tree>::OutputHandler;
@@ -212,12 +255,14 @@ class RegTreeHandler : public OutputHandler<treelite::Tree> {
   int num_nodes;
 };
 
+/*! \brief handler for GBTreeModel objects from XGBoost schema*/
 class GBTreeModelHandler : public OutputHandler<treelite::Model> {
   using OutputHandler<treelite::Model>::OutputHandler;
   bool StartArray();
   bool StartObject();
 };
 
+/*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
@@ -226,6 +271,7 @@ class GradientBoosterHandler : public OutputHandler<treelite::Model> {
   bool StartObject();
 };
 
+/*! \brief handler for ObjectiveHandler objects from XGBoost schema*/
 class ObjectiveHandler : public OutputHandler<std::string> {
   using OutputHandler<std::string>::OutputHandler;
 
@@ -234,12 +280,14 @@ class ObjectiveHandler : public OutputHandler<std::string> {
   bool String(const char *str, std::size_t length, bool copy);
 };
 
+/*! \brief handler for LearnerParam objects from XGBoost schema*/
 class LearnerParamHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy);
 };
 
+/*! \brief handler for Learner objects from XGBoost schema*/
 class LearnerHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
@@ -251,6 +299,7 @@ class LearnerHandler : public OutputHandler<treelite::Model> {
   std::string objective;
 };
 
+/*! \brief handler for XGBoostModel objects from XGBoost schema*/
 class XGBoostModelHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
@@ -262,17 +311,20 @@ class XGBoostModelHandler : public OutputHandler<treelite::Model> {
   std::vector<unsigned> version;
 };
 
+/*! \brief handler for root object of XGBoost schema*/
 class RootHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
   bool StartObject();
 };
 
+/*! \brief handler which delegates JSON parsing to stack of delegates*/
 class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
       public Delegator {
 
  public:
+  /*! \brief create DelegatedHandler with initial RootHandler on stack */
   static std::shared_ptr<DelegatedHandler> create() {
     struct make_shared_enabler : public DelegatedHandler {};
 
@@ -284,10 +336,16 @@ class DelegatedHandler
     return new_handler;
   }
 
+  /*! \brief push new handler onto stack, delegating ongoing parsing to it
+   *  \param new_delegate the delegate to push onto stack
+   */
   void push_delegate(
       std::shared_ptr<BaseHandler> new_delegate) override {
     delegates.push(new_delegate);
   }
+  /*! \brief pop handler off of stack, returning parsing responsibility to
+   *         previous handler on stack
+   */
   void pop_delegate() override {
     delegates.pop();
   }

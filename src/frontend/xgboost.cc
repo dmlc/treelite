@@ -399,7 +399,8 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
       model.param.global_bias = treelite::details::ProbToMargin::Sigmoid(model.param.global_bias);
     } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
                != exponential_family.cend()) {
-      model.param.global_bias = treelite::details::ProbToMargin::Exponential(model.param.global_bias);
+      model.param.global_bias = treelite::details::ProbToMargin::Exponential(
+        model.param.global_bias);
     }
   }
 

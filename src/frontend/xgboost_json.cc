@@ -109,7 +109,12 @@ template <typename ValueType>
 bool BaseHandler::assign_value(const std::string &key,
                   const ValueType &value,
                   ValueType &output) {
-  return assign_value(key, std::forward<ValueType>(value), output);
+  if (check_cur_key(key)) {
+    output = value;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /******************************************************************************

@@ -109,10 +109,6 @@ class BaseHandler
   bool assign_value(const std::string &key,
                     ValueType &&value,
                     ValueType &output);
-  template <typename ValueType>
-  bool assign_value(const std::string &key,
-                    const ValueType &value,
-                    ValueType &output);
 
  private:
   /* \brief the delegator which delegated parsing responsibility to this handler */

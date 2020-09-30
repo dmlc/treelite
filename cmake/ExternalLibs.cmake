@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   dmlccore
   GIT_REPOSITORY  https://github.com/dmlc/dmlc-core
-  GIT_TAG         v0.4
+  GIT_TAG         5df8305fe699d3b503d10c60a231ab0223142407
 )
 FetchContent_MakeAvailable(dmlccore)
 

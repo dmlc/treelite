@@ -34,7 +34,7 @@ namespace frontend {
 DMLC_REGISTRY_FILE_TAG(xgboost);
 
 void LoadXGBoostModel(const char* filename, Model* out) {
-  std::ifstream fs(filename);
+  std::ifstream fs(filename, std::ios_base::in | std::ios_base::binary);
   *out = std::move(ParseStream(fs));
 }
 

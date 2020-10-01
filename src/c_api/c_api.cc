@@ -325,7 +325,7 @@ int TreeliteLoadXGBoostModel(const char* filename,
   API_END();
 }
 
-int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len,
+int TreeliteLoadXGBoostModelFromMemoryBuffer(void* buf, size_t len,
                                              ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model{new Model()};

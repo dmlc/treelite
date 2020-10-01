@@ -41,7 +41,7 @@ void LoadXGBoostModel(const char* filename, Model* out);
  * \param len size of memory buffer
  * \param out reference to loaded model
  */
-void LoadXGBoostModel(const void* buf, size_t len, Model* out);
+void LoadXGBoostModel(void* buf, size_t len, Model* out);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

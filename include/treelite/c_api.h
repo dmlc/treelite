@@ -247,7 +247,7 @@ TREELITE_DLL int TreeliteLoadXGBoostModel(const char* filename,
  * \param out loaded model
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
+TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(void* buf,
                                                           size_t len,
                                                           ModelHandle* out);
 /*!

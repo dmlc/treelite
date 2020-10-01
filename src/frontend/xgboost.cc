@@ -13,10 +13,18 @@
 #include <memory>
 #include <queue>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 
 namespace {
 
-treelite::Model ParseStream(dmlc::Stream* fi);
+treelite::Model ParseStream(std::istream& fi);
+
+struct Membuf : std::streambuf {
+  Membuf(char* buf, size_t length) {
+    this->setg(buf, buf, buf + length);
+  }
+};
 
 }  // anonymous namespace
 
@@ -26,13 +34,15 @@ namespace frontend {
 DMLC_REGISTRY_FILE_TAG(xgboost);
 
 void LoadXGBoostModel(const char* filename, Model* out) {
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  *out = std::move(ParseStream(fi.get()));
+  std::ifstream fs(filename);
+  *out = std::move(ParseStream(fs));
 }
 
-void LoadXGBoostModel(const void* buf, size_t len, Model* out) {
-  dmlc::MemoryFixedSizeStream fs(const_cast<void*>(buf), len);
-  *out = std::move(ParseStream(&fs));
+void LoadXGBoostModel(void* buf, size_t len, Model* out) {
+  char* p_buffer = reinterpret_cast<char*>(buf);
+  Membuf stream_buf{p_buffer, len};
+  std::istream fs(&stream_buf);
+  *out = std::move(ParseStream(fs));
 }
 
 }  // namespace frontend
@@ -57,7 +67,7 @@ class PeekableInputStream {
  public:
   const size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
 
-  explicit PeekableInputStream(dmlc::Stream* fi)
+  explicit PeekableInputStream(std::istream& fi)
     : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
 
   inline size_t Read(void* ptr, size_t size) {
@@ -85,8 +95,9 @@ class PeekableInputStream {
                     bytes_buffered + begin_ptr_ - MAX_PEEK_WINDOW - 1);
       }
       begin_ptr_ = end_ptr_;
-      return bytes_buffered
-             + istm_->Read(cptr + bytes_buffered, bytes_to_read);
+      istm_.read(cptr + bytes_buffered, bytes_to_read);
+
+      return bytes_buffered + istm_.gcount();
     }
   }
 
@@ -100,15 +111,15 @@ class PeekableInputStream {
     if (size > bytes_buffered) {
       const size_t bytes_to_read = size - bytes_buffered;
       if (end_ptr_ + bytes_to_read < MAX_PEEK_WINDOW + 1) {
-        CHECK_EQ(istm_->Read(&buf_[end_ptr_], bytes_to_read), bytes_to_read)
+        istm_.read(&buf_[end_ptr_], bytes_to_read);
+        CHECK_EQ(istm_.gcount(), bytes_to_read)
           << "Failed to peek " << size << " bytes";
         end_ptr_ += bytes_to_read;
       } else {
-        CHECK_EQ(istm_->Read(&buf_[end_ptr_],
-                             MAX_PEEK_WINDOW + 1 - end_ptr_)
-                 + istm_->Read(&buf_[0],
-                               bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1),
-                 bytes_to_read)
+        istm_.read(&buf_[end_ptr_], MAX_PEEK_WINDOW + 1 - end_ptr_);
+        auto read_count = istm_.gcount();
+        istm_.read(&buf_[0], bytes_to_read + end_ptr_ + MAX_PEEK_WINDOW - 1);
+        CHECK_EQ(read_count + istm_.gcount(), bytes_to_read)
           << "Ill-formed XGBoost model: Failed to peek " << size << " bytes";
         end_ptr_ = bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1;
       }
@@ -125,7 +136,7 @@ class PeekableInputStream {
   }
 
  private:
-  dmlc::Stream* istm_;
+  std::istream& istm_;
   std::vector<char> buf_;
   size_t begin_ptr_, end_ptr_;
 
@@ -330,7 +341,7 @@ class XGBTree {
   }
 };
 
-inline treelite::Model ParseStream(dmlc::Stream* fi) {
+inline treelite::Model ParseStream(std::istream& fi) {
   std::vector<XGBTree> xgb_trees_;
   LearnerModelParam mparam_;    // model parameter
   GBTreeModelParam gbm_param_;  // GBTree training parameter
@@ -338,7 +349,7 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   std::string name_obj_;
 
   /* 1. Parse input stream */
-  std::unique_ptr<PeekableInputStream> fp(new PeekableInputStream(fi));
+  std::unique_ptr<PeekableInputStream> fp = std::make_unique<PeekableInputStream>(fi);
   // backward compatible header check.
   std::string header;
   header.resize(4);

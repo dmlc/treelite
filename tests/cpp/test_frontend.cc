@@ -470,6 +470,9 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
 
   rapidjson::Reader reader;
   reader.Parse(input_stream, handler);
+  /* Merely testing that parsing does not error out. No non-trivial isolated
+   * assertions are useful here. Full behavior tested in Python integration
+   * test. */
 }
 
 /******************************************************************************
@@ -488,6 +491,9 @@ TEST(RootHandlerSuite, RootHandler) {
 
   rapidjson::Reader reader;
   reader.Parse(input_stream, handler);
+  /* Merely testing that parsing does not error out. No non-trivial isolated
+   * assertions are useful here. Full behavior tested in Python integration
+   * test. */
 }
 
 }  // namespace treelite

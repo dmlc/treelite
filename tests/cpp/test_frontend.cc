@@ -469,7 +469,7 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
   MockObjectStarter handler {delegator, wrapped_handler};
 
   rapidjson::Reader reader;
-  auto result = reader.Parse(input_stream, handler);
+  reader.Parse(input_stream, handler);
 }
 
 /******************************************************************************
@@ -487,7 +487,7 @@ TEST(RootHandlerSuite, RootHandler) {
   MockObjectStarter handler {delegator, wrapped_handler};
 
   rapidjson::Reader reader;
-  auto result = reader.Parse(input_stream, handler);
+  reader.Parse(input_stream, handler);
 }
 
 }  // namespace treelite

@@ -336,6 +336,8 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
     return false;
   }
   m_output.random_forest_flag = false;
+  // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
+  // 1.0 it's the original value provided by user.
   if (version[0] >= 1) {
     if (std::strcmp(m_output.param.pred_transform, "sigmoid") == 0) {
       m_output.param.global_bias =

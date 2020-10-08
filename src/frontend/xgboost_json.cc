@@ -391,7 +391,7 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 namespace {
 template<typename StreamType>
 treelite::Model ParseStream(std::unique_ptr<StreamType> input_stream) {
-  std::shared_ptr<treelite::details::DelegatedHandler> handler = \
+  std::shared_ptr<treelite::details::DelegatedHandler> handler =
     treelite::details::DelegatedHandler::create();
   rapidjson::Reader reader;
 

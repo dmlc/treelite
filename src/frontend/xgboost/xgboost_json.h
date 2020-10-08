@@ -328,7 +328,7 @@ class DelegatedHandler
   static std::shared_ptr<DelegatedHandler> create() {
     struct make_shared_enabler : public DelegatedHandler {};
 
-    std::shared_ptr<DelegatedHandler> new_handler = \
+    std::shared_ptr<DelegatedHandler> new_handler =
       std::make_shared<make_shared_enabler>();
     new_handler->push_delegate(std::make_shared<RootHandler>(
       new_handler,

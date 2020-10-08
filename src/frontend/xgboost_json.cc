@@ -226,9 +226,6 @@ bool GBTreeModelHandler::StartObject() {
 /******************************************************************************
  * GradientBoosterHandler
  * ***************************************************************************/
-bool GradientBoosterHandler::Uint(unsigned u) {
-  return check_cur_key("num_boosting_round");
-}
 bool GradientBoosterHandler::String(const char *str,
                                     std::size_t length,
                                     bool copy) {
@@ -286,9 +283,6 @@ bool LearnerParamHandler::String(const char *str,
 /******************************************************************************
  * LearnerHandler
  * ***************************************************************************/
-bool LearnerHandler::StartArray() {
-  return push_key_handler<IgnoreHandler>("eval_metrics"); }
-
 bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
   return (push_key_handler<LearnerParamHandler, treelite::Model>(

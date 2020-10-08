@@ -266,7 +266,6 @@ class GBTreeModelHandler : public OutputHandler<treelite::Model> {
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool Uint(unsigned u);
   bool String(const char *str, std::size_t length, bool copy);
   bool StartObject();
 };
@@ -291,7 +290,6 @@ class LearnerParamHandler : public OutputHandler<treelite::Model> {
 class LearnerHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool StartArray();
   bool StartObject();
   bool EndObject(std::size_t memberCount);
 

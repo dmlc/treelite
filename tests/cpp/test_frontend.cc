@@ -316,60 +316,51 @@ TEST(RegTreeHandlerSuite, RegTreeHandler) {
   details::RegTreeHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
+  EXPECT_CALL(*delegator, push_delegate).Times(10);
 
   rapidjson::Reader reader;
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"sum_hessian\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"base_weights\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"leaf_child_counts\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"left_children\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"right_children\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"parents\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"split_indices\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"split_conditions\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
   reader.Parse(input_stream, handler);
 
-  EXPECT_CALL(*delegator, push_delegate).Times(1);
   json_str = "{\"default_left\": []}";
   input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                          json_str.size());
@@ -400,7 +391,7 @@ TEST(GBTreeModelHandlerSuite, GBTreeModelHandler) {
  * GradientBoosterHandler
  * ***************************************************************************/
 TEST(GradientBoosterHandlerSuite, GradientBoosterHandler) {
-  std::string json_str = "{\"num_boosting_round\": 3, \"name\": \"gbtree\"}";
+  std::string json_str = "{\"name\": \"gbtree\"}";
   auto input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                               json_str.size());
   std::shared_ptr<MockDelegator> delegator =

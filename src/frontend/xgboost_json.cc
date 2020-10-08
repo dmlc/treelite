@@ -399,8 +399,7 @@ treelite::Model ParseStream(std::unique_ptr<StreamType> input_stream) {
   if (!result) {
     LOG(ERROR) << "Parsing error " << result.Code() << " at offset "
                << result.Offset();
-    throw std::runtime_error(
-        "Provided JSON could not be parsed as XGBoost model");
+    LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model";
   }
   return handler->get_result();
 }

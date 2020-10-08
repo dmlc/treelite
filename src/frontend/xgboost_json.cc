@@ -232,6 +232,9 @@ bool GradientBoosterHandler::Uint(unsigned u) {
 bool GradientBoosterHandler::String(const char *str,
                                     std::size_t length,
                                     bool copy) {
+  if (!check_cur_key("name")) {
+    return false;
+  }
   fmt::string_view name{str, length};
   if (name != "gbtree") {
     LOG(ERROR) << "Only GBTree-type boosters are currently supported.";

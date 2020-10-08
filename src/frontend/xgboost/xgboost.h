@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2020 by Contributors
- * \file xgboost_json.h
- * \brief Methods for loading XGBoost models
+ * \file xgboost.h
+ * \brief Helper functions for loading XGBoost models
  * \author William Hicks
  */
 #ifndef TREELITE_FRONTEND_XGBOOST_XGBOOST_H_

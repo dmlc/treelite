@@ -140,7 +140,7 @@ bool IgnoreHandler::StartArray() { return push_handler<IgnoreHandler>(); }
 bool TreeParamHandler::String(const char *str, std::size_t length, bool copy) {
   // Key "num_deleted" deprecated but still present in some xgboost output
   return (check_cur_key("num_feature") ||
-          assign_value("num_nodes", atoi(str), m_output) ||
+          assign_value("num_nodes", atoi(str), output) ||
           check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
 }
 
@@ -174,7 +174,7 @@ bool RegTreeHandler::StartObject() {
 bool RegTreeHandler::Uint(unsigned u) { return check_cur_key("id"); }
 
 bool RegTreeHandler::EndObject(std::size_t memberCount) {
-  m_output.Init();
+  output.Init();
   if (num_nodes != loss_changes.size() || num_nodes != sum_hessian.size() ||
       num_nodes != base_weights.size() ||
       num_nodes != leaf_child_counts.size() ||
@@ -194,17 +194,17 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
     Q.pop();
 
     if (left_children[old_id] == -1) {
-      m_output.SetLeaf(new_id, base_weights[old_id]);
+      output.SetLeaf(new_id, base_weights[old_id]);
     } else {
-      m_output.AddChilds(new_id);
-      m_output.SetNumericalSplit(
+      output.AddChilds(new_id);
+      output.SetNumericalSplit(
           new_id, split_indices[old_id], split_conditions[old_id],
           default_left[old_id], treelite::Operator::kLT);
-      m_output.SetGain(new_id, loss_changes[old_id]);
-      Q.push({left_children[old_id], m_output.LeftChild(new_id)});
-      Q.push({right_children[old_id], m_output.RightChild(new_id)});
+      output.SetGain(new_id, loss_changes[old_id]);
+      Q.push({left_children[old_id], output.LeftChild(new_id)});
+      Q.push({right_children[old_id], output.RightChild(new_id)});
     }
-    m_output.SetSumHess(new_id, sum_hessian[old_id]);
+    output.SetSumHess(new_id, sum_hessian[old_id]);
   }
   return pop_handler();
 }
@@ -215,7 +215,7 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
 bool GBTreeModelHandler::StartArray() {
   return (push_key_handler<ArrayHandler<treelite::Tree, RegTreeHandler>,
                            std::vector<treelite::Tree>>("trees",
-                                                        m_output.trees) ||
+                                                        output.trees) ||
           push_key_handler<IgnoreHandler>("tree_info"));
 }
 
@@ -242,7 +242,7 @@ bool GradientBoosterHandler::String(const char *str,
 }
 bool GradientBoosterHandler::StartObject() {
   if (push_key_handler<GBTreeModelHandler, treelite::Model>("model",
-                                                            m_output)) {
+                                                            output)) {
     return true;
   } else {
     LOG(ERROR) << "Key \"" << get_cur_key()
@@ -264,7 +264,7 @@ bool ObjectiveHandler::StartObject() {
 }
 
 bool ObjectiveHandler::String(const char *str, std::size_t length, bool copy) {
-  return assign_value("name", std::string{str, length}, m_output);
+  return assign_value("name", std::string{str, length}, output);
 }
 
 /******************************************************************************
@@ -274,10 +274,10 @@ bool LearnerParamHandler::String(const char *str,
                                  std::size_t length,
                                  bool copy) {
   return (assign_value("base_score", strtof(str, nullptr),
-                       m_output.param.global_bias) ||
+                       output.param.global_bias) ||
           assign_value("num_class", static_cast<int>(std::max(atoi(str), 1)),
-                       m_output.num_output_group) ||
-          assign_value("num_feature", atoi(str), m_output.num_feature));
+                       output.num_output_group) ||
+          assign_value("num_feature", atoi(str), output.num_feature));
 }
 
 /******************************************************************************
@@ -286,9 +286,9 @@ bool LearnerParamHandler::String(const char *str,
 bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
   return (push_key_handler<LearnerParamHandler, treelite::Model>(
-              "learner_model_param", m_output) ||
+              "learner_model_param", output) ||
           push_key_handler<GradientBoosterHandler, treelite::Model>(
-              "gradient_booster", m_output) ||
+              "gradient_booster", output) ||
           push_key_handler<ObjectiveHandler, std::string>("objective",
                                                           objective) ||
           push_key_handler<IgnoreHandler>("attributes"));
@@ -296,21 +296,21 @@ bool LearnerHandler::StartObject() {
 
 bool LearnerHandler::EndObject(std::size_t memberCount) {
   if (objective == "multi:softmax") {
-    std::strncpy(m_output.param.pred_transform, "max_index",
-                 sizeof(m_output.param.pred_transform));
+    std::strncpy(output.param.pred_transform, "max_index",
+                 sizeof(output.param.pred_transform));
   } else if (objective == "multi:softprob") {
-    std::strncpy(m_output.param.pred_transform, "softmax",
-                 sizeof(m_output.param.pred_transform));
+    std::strncpy(output.param.pred_transform, "softmax",
+                 sizeof(output.param.pred_transform));
   } else if (objective == "reg:logistic" || objective == "binary:logistic") {
-    std::strncpy(m_output.param.pred_transform, "sigmoid",
-                 sizeof(m_output.param.pred_transform));
+    std::strncpy(output.param.pred_transform, "sigmoid",
+                 sizeof(output.param.pred_transform));
   } else if (objective == "count:poisson" || objective == "reg:gamma" ||
              objective == "reg:tweedie") {
-    std::strncpy(m_output.param.pred_transform, "exponential",
-                 sizeof(m_output.param.pred_transform));
+    std::strncpy(output.param.pred_transform, "exponential",
+                 sizeof(output.param.pred_transform));
   } else {
-    std::strncpy(m_output.param.pred_transform, "identity",
-                 sizeof(m_output.param.pred_transform));
+    std::strncpy(output.param.pred_transform, "identity",
+                 sizeof(output.param.pred_transform));
   }
   return pop_handler();
 }
@@ -325,24 +325,24 @@ bool XGBoostModelHandler::StartArray() {
 
 bool XGBoostModelHandler::StartObject() {
   return push_key_handler<LearnerHandler, treelite::Model>("learner",
-                                                           m_output);
+                                                           output);
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
     return false;
   }
-  m_output.random_forest_flag = false;
+  output.random_forest_flag = false;
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   if (version[0] >= 1) {
-    if (std::strcmp(m_output.param.pred_transform, "sigmoid") == 0) {
-      m_output.param.global_bias =
-          ProbToMargin::Sigmoid(m_output.param.global_bias);
-    } else if (std::strcmp(m_output.param.pred_transform, "exponential") ==
+    if (std::strcmp(output.param.pred_transform, "sigmoid") == 0) {
+      output.param.global_bias =
+          ProbToMargin::Sigmoid(output.param.global_bias);
+    } else if (std::strcmp(output.param.pred_transform, "exponential") ==
                0) {
-      m_output.param.global_bias =
-          ProbToMargin::Exponential(m_output.param.global_bias);
+      output.param.global_bias =
+          ProbToMargin::Exponential(output.param.global_bias);
     }
   }
   return pop_handler();
@@ -352,7 +352,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  return push_handler<XGBoostModelHandler, treelite::Model>(m_output);
+  return push_handler<XGBoostModelHandler, treelite::Model>(output);
 }
 
 /******************************************************************************

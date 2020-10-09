@@ -146,15 +146,15 @@ template <typename OutputType> class OutputHandler : public BaseHandler {
    * \param parent_delegator pointer to Delegator for this handler
    * \param output the object to be modified during parsing
    */
-  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
-                OutputType &output)
-      : BaseHandler{parent_delegator}, m_output{output} {};
-  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
-                OutputType &&output) = delete;
+   OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                 OutputType &output_param)
+       : BaseHandler{parent_delegator}, output{output_param} {};
+   OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                 OutputType &&output) = delete;
 
  protected:
   /* \brief the output value constructed or modified during parsing */
-  OutputType &m_output;
+   OutputType &output;
 };
 
 /*! \brief handler for array of objects of given type*/
@@ -163,13 +163,13 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
  public:
   using OutputHandler<std::vector<ElemType>>::OutputHandler;
   bool Bool(ElemType b) {
-    this->m_output.push_back(b);
+    this->output.push_back(b);
     return true;
   }
   template <typename ArgType, typename IntType = ElemType>
   typename std::enable_if<std::is_integral<IntType>::value, bool>::type
   store_int(ArgType i) {
-    this->m_output.push_back(static_cast<ElemType>(i));
+    this->output.push_back(static_cast<ElemType>(i));
     return true;
   }
 
@@ -184,7 +184,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   bool Int64(int64_t i) override { return store_int<int64_t>(i); }
   bool Uint64(uint64_t u) override { return store_int<uint64_t>(u); }
   bool Double(ElemType d) {
-    this->m_output.push_back(d);
+    this->output.push_back(d);
     return true;
   }
 
@@ -192,7 +192,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   typename std::enable_if<std::is_same<StringType, std::string>::value,
                           bool>::type
   store_string(const char *str, std::size_t length, bool copy) {
-    this->m_output.push_back(ElemType{str, length});
+    this->output.push_back(ElemType{str, length});
     return true;
   }
   template <typename StringType = ElemType>
@@ -207,9 +207,9 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   }
 
   bool StartObject(std::true_type) {
-    this->m_output.emplace_back();
+    this->output.emplace_back();
     return this->template push_handler<HandlerType, ElemType>(
-        this->m_output.back());
+        this->output.back());
   }
 
   bool StartObject(std::false_type) { return false; }

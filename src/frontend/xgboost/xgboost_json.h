@@ -125,17 +125,17 @@ class BaseHandler
 class IgnoreHandler : public BaseHandler {
  public:
   using BaseHandler::BaseHandler;
-  bool Null();
-  bool Bool(bool b);
-  bool Int(int i);
-  bool Uint(unsigned u);
-  bool Int64(int64_t i);
-  bool Uint64(uint64_t u);
-  bool Double(double d);
-  bool String(const char *str, std::size_t length, bool copy);
-  bool StartObject();
-  bool Key(const char *str, std::size_t length, bool copy);
-  bool StartArray();
+  bool Null() override;
+  bool Bool(bool b) override;
+  bool Int(int i) override;
+  bool Uint(unsigned u) override;
+  bool Int64(int64_t i) override;
+  bool Uint64(uint64_t u) override;
+  bool Double(double d) override;
+  bool String(const char *str, std::size_t length, bool copy) override;
+  bool StartObject() override;
+  bool Key(const char *str, std::size_t length, bool copy) override;
+  bool StartArray() override;
 };
 
 /*! \brief base handler for updating some output object*/
@@ -179,10 +179,10 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
     return false;
   }
 
-  bool Int(int i) { return store_int<int>(i); }
-  bool Uint(unsigned u) { return store_int<unsigned>(u); }
-  bool Int64(int64_t i) { return store_int<int64_t>(i); }
-  bool Uint64(uint64_t u) { return store_int<uint64_t>(u); }
+  bool Int(int i) override { return store_int<int>(i); }
+  bool Uint(unsigned u) override { return store_int<unsigned>(u); }
+  bool Int64(int64_t i) override { return store_int<int64_t>(i); }
+  bool Uint64(uint64_t u) override { return store_int<uint64_t>(u); }
   bool Double(ElemType d) {
     this->m_output.push_back(d);
     return true;
@@ -202,7 +202,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
     return false;
   }
 
-  bool String(const char *str, std::size_t length, bool copy) {
+  bool String(const char *str, std::size_t length, bool copy) override {
     return store_string(str, length, copy);
   }
 
@@ -214,7 +214,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
   bool StartObject(std::false_type) { return false; }
 
-  bool StartObject() {
+  bool StartObject() override {
     return StartObject(
         std::integral_constant<bool, std::is_base_of<OutputHandler<ElemType>,
                                                      HandlerType>::value>{});
@@ -226,20 +226,20 @@ class TreeParamHandler : public OutputHandler<int> {
  public:
   using OutputHandler<int>::OutputHandler;
 
-  bool String(const char *str, std::size_t length, bool copy);
+  bool String(const char *str, std::size_t length, bool copy) override;
 };
 
 /*! \brief handler for RegTree objects from XGBoost schema*/
 class RegTreeHandler : public OutputHandler<treelite::Tree> {
  public:
   using OutputHandler<treelite::Tree>::OutputHandler;
-  bool StartArray();
+  bool StartArray() override;
 
-  bool StartObject();
+  bool StartObject() override;
 
-  bool Uint(unsigned u);
+  bool Uint(unsigned u) override;
 
-  bool EndObject(std::size_t memberCount);
+  bool EndObject(std::size_t memberCount) override;
 
  private:
   std::vector<double> loss_changes;
@@ -258,40 +258,40 @@ class RegTreeHandler : public OutputHandler<treelite::Tree> {
 /*! \brief handler for GBTreeModel objects from XGBoost schema*/
 class GBTreeModelHandler : public OutputHandler<treelite::Model> {
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool StartArray();
-  bool StartObject();
+  bool StartArray() override;
+  bool StartObject() override;
 };
 
 /*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
 class GradientBoosterHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool String(const char *str, std::size_t length, bool copy);
-  bool StartObject();
+  bool String(const char *str, std::size_t length, bool copy) override;
+  bool StartObject() override;
 };
 
 /*! \brief handler for ObjectiveHandler objects from XGBoost schema*/
 class ObjectiveHandler : public OutputHandler<std::string> {
   using OutputHandler<std::string>::OutputHandler;
 
-  bool StartObject();
+  bool StartObject() override;
 
-  bool String(const char *str, std::size_t length, bool copy);
+  bool String(const char *str, std::size_t length, bool copy) override;
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
 class LearnerParamHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool String(const char *str, std::size_t length, bool copy);
+  bool String(const char *str, std::size_t length, bool copy) override;
 };
 
 /*! \brief handler for Learner objects from XGBoost schema*/
 class LearnerHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool StartObject();
-  bool EndObject(std::size_t memberCount);
+  bool StartObject() override;
+  bool EndObject(std::size_t memberCount) override;
 
  private:
   std::string objective;
@@ -301,9 +301,9 @@ class LearnerHandler : public OutputHandler<treelite::Model> {
 class XGBoostModelHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool StartArray();
-  bool StartObject();
-  bool EndObject(std::size_t memberCount);
+  bool StartArray() override;
+  bool StartObject() override;
+  bool EndObject(std::size_t memberCount) override;
 
  private:
   std::vector<unsigned> version;
@@ -313,7 +313,7 @@ class XGBoostModelHandler : public OutputHandler<treelite::Model> {
 class RootHandler : public OutputHandler<treelite::Model> {
  public:
   using OutputHandler<treelite::Model>::OutputHandler;
-  bool StartObject();
+  bool StartObject() override;
 };
 
 /*! \brief handler which delegates JSON parsing to stack of delegates*/

@@ -5,6 +5,7 @@
  * \author Hyunsu Cho
  */
 
+#include "xgboost/xgboost.h"
 #include <dmlc/data.h>
 #include <dmlc/memory_io.h>
 #include <treelite/frontend.h>
@@ -42,15 +43,6 @@ void LoadXGBoostModel(const void* buf, size_t len, Model* out) {
 namespace {
 
 typedef float bst_float;
-
-struct ProbToMargin {
-  static float Sigmoid(float global_bias) {
-    return -logf(1.0f / global_bias - 1.0f);
-  }
-  static float Exponential(float global_bias) {
-    return logf(global_bias);
-  }
-};
 
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
@@ -404,10 +396,11 @@ inline treelite::Model ParseStream(dmlc::Stream* fi) {
   };
   if (need_transform_to_margin) {
     if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-      model.param.global_bias = ProbToMargin::Sigmoid(model.param.global_bias);
+      model.param.global_bias = treelite::details::ProbToMargin::Sigmoid(model.param.global_bias);
     } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
                != exponential_family.cend()) {
-      model.param.global_bias = ProbToMargin::Exponential(model.param.global_bias);
+      model.param.global_bias = treelite::details::ProbToMargin::Exponential(
+        model.param.global_bias);
     }
   }
 

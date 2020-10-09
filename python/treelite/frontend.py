@@ -332,6 +332,41 @@ class Model():
         return Model(handle)
 
     @classmethod
+    def from_xgboost_json(cls, json_str):
+        """
+        Load a tree ensemble model from a string containing XGBoost JSON
+
+        Parameters
+        ----------
+        json_str : a string specifying an XGBoost model in the XGBoost JSON
+            format
+
+        Returns
+        -------
+        model : :py:class:`Model` object
+            loaded model
+
+        Example
+        -------
+
+        .. code-block:: python
+           :emphasize-lines: 5
+
+           bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
+           bst.save_model('model.json')
+           with open('model.json') as file_:
+               json_str = file_.read()
+           xgb_model = Model.from_xgboost_json(json_str)
+        """
+        handle = ctypes.c_void_p()
+        length = ctypes.c_size_t(len(json_str))
+        _check_call(_LIB.TreeliteLoadXGBoostJSONString(
+            c_str(json_str),
+            length,
+            ctypes.byref(handle)))
+        return Model(handle)
+
+    @classmethod
     def load(cls, filename, model_format):
         """
         Load a tree ensemble model from a file
@@ -365,9 +400,12 @@ class Model():
         elif model_format == 'xgboost':
             _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
                                                       ctypes.byref(handle)))
+        elif model_format == 'xgboost_json':
+            _check_call(_LIB.TreeliteLoadXGBoostJSON(c_str(filename),
+                                                     ctypes.byref(handle)))
         else:
             raise ValueError('Unknown model_format: must be one of ' \
-                             + '{lightgbm, xgboost}')
+                             + '{lightgbm, xgboost, xgboost_json}')
         return Model(handle)
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for XGBoost integration"""
-# pylint: disable=R0201
+# pylint: disable=R0201, R0915
 import math
 import os
 
@@ -155,11 +155,19 @@ def test_xgb_deserializers(tmpdir, toolchain):
     # Serialize xgboost model
     model_bin_path = os.path.join(tmpdir, 'serialized.model')
     bst.save_model(model_bin_path)
+    model_json_path = os.path.join(tmpdir, 'serialized.json')
+    bst.save_model(model_json_path)
 
     # Construct Treelite models from xgboost serializations
     model_bin = treelite.Model.load(
         model_bin_path, model_format='xgboost'
     )
+    model_json = treelite.Model.load(
+        model_json_path, model_format='xgboost_json'
+    )
+    with open(model_json_path) as file_:
+        json_str = file_.read()
+    model_json_str = treelite.Model.from_xgboost_json(json_str)
 
     # Compile models to libraries
     model_bin_lib = os.path.join(tmpdir, 'bin{}'.format(_libext()))
@@ -167,6 +175,18 @@ def test_xgb_deserializers(tmpdir, toolchain):
         toolchain=toolchain,
         libpath=model_bin_lib,
         params={'parallel_comp': model_bin.num_tree}
+    )
+    model_json_lib = os.path.join(tmpdir, 'json{}'.format(_libext()))
+    model_json.export_lib(
+        toolchain=toolchain,
+        libpath=model_json_lib,
+        params={'parallel_comp': model_json.num_tree}
+    )
+    model_json_str_lib = os.path.join(tmpdir, 'json_str{}'.format(_libext()))
+    model_json_str.export_lib(
+        toolchain=toolchain,
+        libpath=model_json_str_lib,
+        params={'parallel_comp': model_json_str.num_tree}
     )
 
     # Generate predictors from compiled libraries
@@ -177,9 +197,27 @@ def test_xgb_deserializers(tmpdir, toolchain):
     assert predictor_bin.global_bias == pytest.approx(0.5)
     assert predictor_bin.sigmoid_alpha == pytest.approx(1.0)
 
+    predictor_json = treelite_runtime.Predictor(model_json_lib)
+    assert predictor_json.num_feature == dtrain.num_col()
+    assert predictor_json.num_output_group == 1
+    assert predictor_json.pred_transform == 'identity'
+    assert predictor_json.global_bias == pytest.approx(0.5)
+    assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
+
+    predictor_json_str = treelite_runtime.Predictor(model_json_str_lib)
+    assert predictor_json_str.num_feature == dtrain.num_col()
+    assert predictor_json_str.num_output_group == 1
+    assert predictor_json_str.pred_transform == 'identity'
+    assert predictor_json_str.global_bias == pytest.approx(0.5)
+    assert predictor_json_str.sigmoid_alpha == pytest.approx(1.0)
+
     # Run inference with each predictor
     batch = treelite_runtime.Batch.from_npy2d(X_test)
     bin_pred = predictor_bin.predict(batch)
+    json_pred = predictor_json.predict(batch)
+    json_str_pred = predictor_json_str.predict(batch)
 
     expected_pred = bst.predict(dtest)
     np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=5)
+    np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)
+    np.testing.assert_almost_equal(json_str_pred, expected_pred, decimal=5)

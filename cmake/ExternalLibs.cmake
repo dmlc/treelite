@@ -45,7 +45,7 @@ add_library(RapidJSON::rapidjson ALIAS rapidjson)
 
 # Google C++ tests
 if(BUILD_CPP_TEST)
-  find_package(GTest)
+  find_package(GTest CONFIG)
   if(NOT GTEST_FOUND)
     message(STATUS "Did not find Google Test in the system root. Fetching Google Test now...")
     FetchContent_Declare(
@@ -55,5 +55,6 @@ if(BUILD_CPP_TEST)
     )
     FetchContent_MakeAvailable(googletest)
     add_library(GTest::GTest ALIAS gtest)
+    add_library(GTest::gmock ALIAS gmock)
   endif()
 endif()

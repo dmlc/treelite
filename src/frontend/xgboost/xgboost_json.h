@@ -162,6 +162,9 @@ template <typename ElemType, typename HandlerType = BaseHandler>
 class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
  public:
   using OutputHandler<std::vector<ElemType>>::OutputHandler;
+
+  /* Note: This method will only be instantiated (and therefore override the
+   * base `bool Bool(bool)` method) if ElemType is bool. */
   bool Bool(ElemType b) {
     this->output.push_back(b);
     return true;
@@ -183,6 +186,9 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   bool Uint(unsigned u) override { return store_int<unsigned>(u); }
   bool Int64(int64_t i) override { return store_int<int64_t>(i); }
   bool Uint64(uint64_t u) override { return store_int<uint64_t>(u); }
+
+  /* Note: This method will only be instantiated (and therefore override the
+   * base `bool Double(double)` method) if ElemType is double. */
   bool Double(ElemType d) {
     this->output.push_back(d);
     return true;

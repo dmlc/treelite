@@ -146,11 +146,11 @@ template <typename OutputType> class OutputHandler : public BaseHandler {
    * \param parent_delegator pointer to Delegator for this handler
    * \param output the object to be modified during parsing
    */
-   OutputHandler(std::weak_ptr<Delegator> parent_delegator,
-                 OutputType &output_param)
-       : BaseHandler{parent_delegator}, output{output_param} {};
-   OutputHandler(std::weak_ptr<Delegator> parent_delegator,
-                 OutputType &&output) = delete;
+  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                OutputType &output_param)
+      : BaseHandler{parent_delegator}, output{output_param} {};
+  OutputHandler(std::weak_ptr<Delegator> parent_delegator,
+                OutputType &&output) = delete;
 
  protected:
   /* \brief the output value constructed or modified during parsing */

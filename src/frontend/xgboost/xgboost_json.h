@@ -154,7 +154,7 @@ template <typename OutputType> class OutputHandler : public BaseHandler {
 
  protected:
   /* \brief the output value constructed or modified during parsing */
-   OutputType &output;
+  OutputType &output;
 };
 
 /*! \brief handler for array of objects of given type*/

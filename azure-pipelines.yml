@@ -97,20 +97,23 @@ jobs:
       cmake .. -DTEST_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
       ninja
     displayName: 'Building Treelite...'
-  - script: python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
-    displayName: 'Setting up Python environment...'
   - script: |
-      ./build/treelite_cpp_test
+      python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm
+      python -m pip install --pre xgboost
+    displayName: 'Setting up Python environment...'
+  - script: ./build/treelite_cpp_test
+    displayName: 'Running C++ integration tests...'
+  - script:
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
-      lcov --directory . --capture --output-file coverage.info
-      lcov --remove coverage.info '*dmlccore*' --output-file coverage.info
-      lcov --remove coverage.info '*fmtlib*' --output-file coverage.info
-      lcov --remove coverage.info '*/usr/*' --output-file coverage.info
-      lcov --remove coverage.info '*googletest*' --output-file coverage.info
-    displayName: 'Running integration tests...'
+    displayName: 'Running Python integration tests...'
     env:
       PYTHONPATH: ./python:./runtime/python
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - script: |
+      lcov --directory . --capture --output-file coverage.info
+      lcov --remove coverage.info '*/usr/*' --output-file coverage.info
+      lcov --remove coverage.info '*/build/_deps/*' --output-file coverage.info
+    displayName: 'Collecting coverage data...'
+  - script: bash <(curl -s https://codecov.io/bash) -X gcov || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

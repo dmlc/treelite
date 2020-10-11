@@ -108,7 +108,7 @@ jobs:
     displayName: 'Running integration tests...'
     env:
       PYTHONPATH: ./python:./runtime/python
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - script: bash <(curl -s https://codecov.io/bash) -X gcov || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting code coverage data to CodeCov...'
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255

@@ -108,7 +108,7 @@ jobs:
     displayName: 'Running Python integration tests...'
     env:
       PYTHONPATH: ./python:./runtime/python
-  - script:
+  - script: |
       lcov --directory . --capture --output-file coverage.info
       lcov --remove coverage.info '*/usr/*' --output-file coverage.info
       lcov --remove coverage.info '*/build/_deps/*' --output-file coverage.info

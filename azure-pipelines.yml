@@ -97,13 +97,15 @@ jobs:
       cmake .. -DTEST_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
       ninja
     displayName: 'Building Treelite...'
-  - script: python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn xgboost lightgbm
+  - script: |
+      python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - script: ./build/treelite_cpp_test
     displayName: 'Running C++ integration tests...'
   - script:
       python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
-    displayName: 'Running integration tests...'
+    displayName: 'Running Python integration tests...'
     env:
       PYTHONPATH: ./python:./runtime/python
   - script:

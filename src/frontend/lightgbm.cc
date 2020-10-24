@@ -514,9 +514,26 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   } else if (obj_name_ == "xentlambda" || obj_name_ == "cross_entropy_lambda") {
     std::strncpy(model->param.pred_transform, "logarithm_one_plus_exp",
                  sizeof(model->param.pred_transform));
-  } else {
+  } else if (obj_name_ == "poisson" || obj_name_ == "gamma" || obj_name_ == "tweedie") {
+    std::strncpy(model->param.pred_transform, "exponential",
+                 sizeof(model->param.pred_transform));
+  } else if (obj_name_ == "regression" || obj_name_ == "regression_l1" || obj_name_ == "huber"
+             || obj_name_ == "fair" || obj_name_ == "quantile" || obj_name_ == "mape") {
+    // Regression family
+    bool sqrt = (std::find(obj_param_.cbegin(), obj_param_.cend(), "sqrt") != obj_param_.cend());
+    if (sqrt) {
+      std::strncpy(model->param.pred_transform, "signed_square",
+                   sizeof(model->param.pred_transform));
+    } else {
+      std::strncpy(model->param.pred_transform, "identity",
+                   sizeof(model->param.pred_transform));
+    }
+  } else if (obj_name_ == "lambdarank" || obj_name_ == "rank_xendcg" || obj_name_ == "custom") {
+    // Ranking family, or a custom user-defined objective
     std::strncpy(model->param.pred_transform, "identity",
                  sizeof(model->param.pred_transform));
+  } else {
+    LOG(FATAL) << "Unrecognized objective: " << obj_name_;
   }
 
   // traverse trees

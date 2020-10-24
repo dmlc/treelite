@@ -32,6 +32,7 @@ FUNC_NAME(const std::string& backend, const Model& model) { \
 }
 
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(identity)
+TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(signed_square)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(sigmoid)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(exponential)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(logarithm_one_plus_exp)
@@ -43,23 +44,27 @@ TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(multiclass_ova)
 const std::unordered_map<std::string, PredTransformFuncGenerator>
 pred_transform_db = {
   PRED_TRANSFORM_FUNC(identity),
+  PRED_TRANSFORM_FUNC(signed_square),
   PRED_TRANSFORM_FUNC(sigmoid),
   PRED_TRANSFORM_FUNC(exponential),
   PRED_TRANSFORM_FUNC(logarithm_one_plus_exp)
 };
 /*! [pred_transform_db]
   - identity
-    do not transform. The output will be a vector of length
+    Do not transform. The output will be a vector of length
     [number of data points] that contains the margin score for every data point.
+  - signed_square
+    Apply the function f(x) = sign(x) * (x**2) element-wise to the margin vector. The
+    output will be a vector of length [number of data points].
   - sigmoid
-    apply the sigmoid function element-wise to the margin vector. The output
+    Apply the sigmoid function element-wise to the margin vector. The output
     will be a vector of length [number of data points] that contains the
     probability of each data point belonging to the positive class.
   - exponential
-    apply the exponential function (exp) element-wise to the margin vector. The
+    Apply the exponential function (exp) element-wise to the margin vector. The
     output will be a vector of length [number of data points].
   - logarithm_one_plus_exp
-    apply the function f(x) = log(1 + exp(x)) element-wise to the margin vector.
+    Apply the function f(x) = log(1 + exp(x)) element-wise to the margin vector.
     The output will be a vector of length [number of data points].
     [pred_transform_db] */
 

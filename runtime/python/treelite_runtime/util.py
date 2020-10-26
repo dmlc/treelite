@@ -34,7 +34,7 @@ def type_info_to_numpy_type(type_info):
 def numpy_type_to_type_info(type_info):
     """Obtain TypeInfo corresponding to a given NumPy type"""
     if type_info == np.uint32:
-        return 'unit32'
+        return 'uint32'
     elif type_info == np.float32:
         return 'float32'
     elif type_info == np.float64:

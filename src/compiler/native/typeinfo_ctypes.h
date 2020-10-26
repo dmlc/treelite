@@ -62,6 +62,28 @@ inline std::string CExpForTypeInfo(TypeInfo type) {
 }
 
 /*!
+ * \brief Look up the correct variant of copysign() in C that should be used with a given type
+ * \param info a type info
+ * \return string representation
+ */
+inline std::string CCopySignForTypeInfo(TypeInfo type) {
+  switch (type) {
+  case TypeInfo::kInvalid:
+  case TypeInfo::kUInt32:
+    throw std::runtime_error(std::string("Invalid type: ") + TypeInfoToString(type));
+    return "";
+  case TypeInfo::kFloat32:
+    return "copysignf";
+  case TypeInfo::kFloat64:
+    return "copysign";
+  default:
+    throw std::runtime_error(std::string("Unrecognized type: ")
+                             + std::to_string(static_cast<int>(type)));
+    return "";
+  }
+}
+
+/*!
  * \brief Look up the correct variant of log1p() in C that should be used with a given type
  * \param info a type info
  * \return string representation

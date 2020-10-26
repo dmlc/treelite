@@ -28,6 +28,16 @@ R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type
 "threshold_type"_a = native::TypeInfoToCTypeString(model.GetThresholdType()));
 }
 
+inline std::string signed_square(const Model& model) {
+  const TypeInfo threshold_type = model.GetThresholdType();
+  return fmt::format(
+      R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type} margin) {{
+  return {copysign}(margin * margin, margin);
+}})TREELITETEMPLATE",
+      "threshold_type"_a = native::TypeInfoToCTypeString(threshold_type),
+      "copysign"_a = native::CCopySignForTypeInfo(threshold_type));
+}
+
 inline std::string sigmoid(const Model& model) {
   const float alpha = model.param.sigmoid_alpha;
   const TypeInfo threshold_type = model.GetThresholdType();

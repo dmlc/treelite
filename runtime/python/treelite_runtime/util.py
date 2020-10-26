@@ -20,12 +20,6 @@ _NUMPY_TYPE_TABLE = {
     'float64': np.float64
 }
 
-_NUMPY_TYPE_TABLE_INV = {
-    np.uint32: 'unit32',
-    np.float32: 'float32',
-    np.float64: 'float64'
-}
-
 
 def type_info_to_ctypes_type(type_info):
     """Obtain ctypes type corresponding to a given TypeInfo"""
@@ -39,7 +33,14 @@ def type_info_to_numpy_type(type_info):
 
 def numpy_type_to_type_info(type_info):
     """Obtain TypeInfo corresponding to a given NumPy type"""
-    return _NUMPY_TYPE_TABLE_INV[type_info]
+    if type_info == np.uint32:
+        return 'uint32'
+    elif type_info == np.float32:
+        return 'float32'
+    elif type_info == np.float64:
+        return 'float64'
+    else:
+        raise ValueError('Unrecognized NumPy type: {type_info}')
 
 
 class TreeliteRuntimeError(Exception):

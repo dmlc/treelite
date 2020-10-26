@@ -20,6 +20,39 @@ except ImportError:
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('objective', ['regression', 'regression_l1', 'huber'])
+@pytest.mark.parametrize('reg_sqrt', [True, False])
+def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
+    # pylint: disable=too-many-locals
+    """Test a regressor"""
+    model_path = os.path.join(tmpdir, 'boston_lightgbm.txt')
+
+    from sklearn.datasets import load_boston
+    from sklearn.model_selection import train_test_split
+
+    X, y = load_boston(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    dtrain = lightgbm.Dataset(X_train, y_train, free_raw_data=False)
+    dtest = lightgbm.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
+    param = {'task': 'train', 'boosting_type': 'gbdt', 'objective': objective, 'reg_sqrt': reg_sqrt,
+             'metric': 'rmse', 'num_leaves': 31, 'learning_rate': 0.05}
+    bst = lightgbm.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
+                         valid_names=['train', 'test'])
+    bst.save_model(model_path)
+
+    model = treelite.Model.load(model_path, model_format='lightgbm')
+    libpath = os.path.join(tmpdir, f'boston_{objective}' + _libext())
+    model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+
+    dmat = treelite_runtime.DMatrix(X_test, dtype='float64')
+    out_pred = predictor.predict(dmat)
+    expected_pred = bst.predict(X_test)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
 def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
     # pylint: disable=too-many-locals

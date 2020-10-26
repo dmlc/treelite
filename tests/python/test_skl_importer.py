@@ -8,7 +8,7 @@ import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from treelite.util import has_sklearn
-from .util import os_compatible_toolchains, check_predictor
+from .util import os_compatible_toolchains
 
 
 if has_sklearn():

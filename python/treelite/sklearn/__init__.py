@@ -50,9 +50,9 @@ def import_model(sklearn_model):
     if module_name != 'sklearn':
         raise Exception('Not a scikit-learn model')
 
-    if class_name == 'RandomForestRegressor' or class_name == 'ExtraTreesRegressor':
+    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
         return SKLRFRegressorConverter.process_model(sklearn_model)
-    if class_name == 'RandomForestClassifier' or class_name == 'ExtraTreesClassifier':
+    if class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
         if sklearn_model.n_classes_ == 2:
             return SKLRFClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:
@@ -66,8 +66,9 @@ def import_model(sklearn_model):
         if sklearn_model.n_classes_ > 2:
             return SKLGBMMultiClassifierConverter.process_model(sklearn_model)
         raise TreeliteError('n_classes_ must be at least 2')
-    raise TreeliteError('Unsupported model type: only '
-                        'random forests and gradient boosted trees are supported')
+    raise TreeliteError('Unsupported model type: currently ' +
+                        'random forests, extremely randomized trees, and gradient boosted trees ' +
+                        'are supported')
 
 
 class SKLGBMRegressorConverter(SKLGBMRegressorMixin, SKLConverterBase):  # pylint: disable=C0111

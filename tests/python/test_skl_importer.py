@@ -13,7 +13,8 @@ from .util import os_compatible_toolchains, check_predictor
 
 if has_sklearn():
     from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
-        RandomForestRegressor, GradientBoostingRegressor
+        ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, \
+        ExtraTreesRegressor
     from sklearn.datasets import load_iris, load_breast_cancer, load_boston
 else:
     class RandomForestClassifier:  # pylint: disable=missing-class-docstring, R0903
@@ -24,9 +25,18 @@ else:
         pass
 
 
+    class ExtraTreesClassifier:  # pylint: disable=missing-class-docstring, R0903
+        pass
+
+
+    class ExtraTreesRegressor:  # pylint: disable=missing-class-docstring, R0903
+        pass
+
+
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('clazz', [RandomForestClassifier, GradientBoostingClassifier])
+@pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
+                                   GradientBoostingClassifier])
 def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn multi-class classifier"""
@@ -66,7 +76,8 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('clazz', [RandomForestClassifier, GradientBoostingClassifier])
+@pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
+                                   GradientBoostingClassifier])
 def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn binary classifier"""
@@ -105,7 +116,8 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('clazz', [RandomForestRegressor, GradientBoostingRegressor])
+@pytest.mark.parametrize('clazz', [RandomForestRegressor, ExtraTreesRegressor,
+                                   GradientBoostingRegressor])
 def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
     X, y = load_boston(return_X_y=True)

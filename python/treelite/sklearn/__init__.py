@@ -50,9 +50,9 @@ def import_model(sklearn_model):
     if module_name != 'sklearn':
         raise Exception('Not a scikit-learn model')
 
-    if class_name == 'RandomForestRegressor':
+    if class_name == 'RandomForestRegressor' or class_name == 'ExtraTreesRegressor':
         return SKLRFRegressorConverter.process_model(sklearn_model)
-    if class_name == 'RandomForestClassifier':
+    if class_name == 'RandomForestClassifier' or class_name == 'ExtraTreesClassifier':
         if sklearn_model.n_classes_ == 2:
             return SKLRFClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:

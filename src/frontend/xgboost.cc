@@ -386,6 +386,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   model->num_output_group = std::max(mparam_.num_class, 1);
   model->random_forest_flag = false;
 
+  // set correct prediction transform function, depending on objective function
+  treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);
+
   // set global bias
   model->param.global_bias = static_cast<float>(mparam_.base_score);
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
@@ -394,9 +397,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   if (need_transform_to_margin) {
     treelite::details::xgboost::TransformGlobalBiasToMargin(&model->param);
   }
-
-  // set correct prediction transform function, depending on objective function
-  treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);
 
   // traverse trees
   for (const auto& xgb_tree : xgb_trees_) {

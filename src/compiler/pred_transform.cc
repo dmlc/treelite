@@ -33,6 +33,7 @@ FUNC_NAME(const std::string& backend, const Model& model) { \
 
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(identity)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(signed_square)
+TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(hinge)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(sigmoid)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(exponential)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(logarithm_one_plus_exp)
@@ -45,6 +46,7 @@ const std::unordered_map<std::string, PredTransformFuncGenerator>
 pred_transform_db = {
   PRED_TRANSFORM_FUNC(identity),
   PRED_TRANSFORM_FUNC(signed_square),
+  PRED_TRANSFORM_FUNC(hinge),
   PRED_TRANSFORM_FUNC(sigmoid),
   PRED_TRANSFORM_FUNC(exponential),
   PRED_TRANSFORM_FUNC(logarithm_one_plus_exp)
@@ -56,6 +58,9 @@ pred_transform_db = {
   - signed_square
     Apply the function f(x) = sign(x) * (x**2) element-wise to the margin vector. The
     output will be a vector of length [number of data points].
+  - hinge
+    Apply the function f(x) = (1 if x > 0 else 0) element-wise to the margin vector. The
+    output will be a vector of length [number of data points], filled with 0's and 1's.
   - sigmoid
     Apply the sigmoid function element-wise to the margin vector. The output
     will be a vector of length [number of data points] that contains the

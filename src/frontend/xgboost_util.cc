@@ -6,6 +6,7 @@
  */
 
 #include <treelite/tree.h>
+#include <dmlc/logging.h>
 #include <cstring>
 #include "xgboost/xgboost.h"
 
@@ -22,7 +23,7 @@ namespace details {
 namespace xgboost {
 
 const std::vector<std::string> exponential_objectives{
-    "count:poisson", "reg:gamma", "reg:tweedie"
+    "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"
 };
 
 // set correct prediction transform function, depending on objective function
@@ -37,8 +38,18 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param) {
   } else if (std::find(exponential_objectives.cbegin(), exponential_objectives.cend(),
                        objective_name) != exponential_objectives.cend()) {
     SetPredTransformString("exponential", param);
-  } else {
+  } else if (objective_name == "binary:hinge") {
+    SetPredTransformString("hinge", param);
+  } else if (objective_name == "reg:squarederror" || objective_name == "reg:linear"
+             || objective_name == "reg:squaredlogerror"
+             || objective_name == "reg:pseudohubererror"
+             || objective_name == "binary:logitraw"
+             || objective_name == "rank:pairwise"
+             || objective_name == "rank:ndcg"
+             || objective_name == "rank:map") {
     SetPredTransformString("identity", param);
+  } else {
+    LOG(FATAL) << "Unrecognized XGBoost objective: " << objective_name;
   }
 }
 

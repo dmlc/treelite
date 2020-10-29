@@ -86,6 +86,7 @@ target_sources(objtreelite
     frontend/lightgbm.cc
     frontend/xgboost.cc
     frontend/xgboost_json.cc
+    frontend/xgboost_util.cc
     annotator.cc
     filesystem.cc
     optable.cc

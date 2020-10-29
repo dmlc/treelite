@@ -293,23 +293,7 @@ bool LearnerHandler::StartObject() {
 }
 
 bool LearnerHandler::EndObject(std::size_t memberCount) {
-  if (objective == "multi:softmax") {
-    std::strncpy(output.param.pred_transform, "max_index",
-                 sizeof(output.param.pred_transform));
-  } else if (objective == "multi:softprob") {
-    std::strncpy(output.param.pred_transform, "softmax",
-                 sizeof(output.param.pred_transform));
-  } else if (objective == "reg:logistic" || objective == "binary:logistic") {
-    std::strncpy(output.param.pred_transform, "sigmoid",
-                 sizeof(output.param.pred_transform));
-  } else if (objective == "count:poisson" || objective == "reg:gamma" ||
-             objective == "reg:tweedie") {
-    std::strncpy(output.param.pred_transform, "exponential",
-                 sizeof(output.param.pred_transform));
-  } else {
-    std::strncpy(output.param.pred_transform, "identity",
-                 sizeof(output.param.pred_transform));
-  }
+  xgboost::SetPredTransform(objective, &output.param);
   return pop_handler();
 }
 
@@ -332,15 +316,9 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   output.random_forest_flag = false;
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
-  if (version[0] >= 1) {
-    if (std::strcmp(output.param.pred_transform, "sigmoid") == 0) {
-      output.param.global_bias =
-          ProbToMargin::Sigmoid(output.param.global_bias);
-    } else if (std::strcmp(output.param.pred_transform, "exponential") ==
-               0) {
-      output.param.global_bias =
-          ProbToMargin::Exponential(output.param.global_bias);
-    }
+  const bool need_transform_to_margin = (version[0] >= 1);
+  if (need_transform_to_margin) {
+    treelite::details::xgboost::TransformGlobalBiasToMargin(&output.param);
   }
   return pop_handler();
 }

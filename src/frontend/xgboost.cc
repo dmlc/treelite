@@ -379,10 +379,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   }
   CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
 
-  // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
-  // 1.0 it's the original value provided by user.
-  bool need_transform_to_margin = mparam_.major_version >= 1;
-
   /* 2. Export model */
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
   auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
@@ -390,37 +386,16 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   model->num_output_group = std::max(mparam_.num_class, 1);
   model->random_forest_flag = false;
 
+  // set correct prediction transform function, depending on objective function
+  treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);
+
   // set global bias
   model->param.global_bias = static_cast<float>(mparam_.base_score);
-  std::vector<std::string> exponential_family {
-    "count:poisson", "reg:gamma", "reg:tweedie"
-  };
+  // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
+  // 1.0 it's the original value provided by user.
+  const bool need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
-    if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-      model->param.global_bias = treelite::details::ProbToMargin::Sigmoid(model->param.global_bias);
-    } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
-               != exponential_family.cend()) {
-      model->param.global_bias = treelite::details::ProbToMargin::Exponential(
-          model->param.global_bias);
-    }
-  }
-
-  // set correct prediction transform function, depending on objective function
-  if (name_obj_ == "multi:softmax") {
-    std::strncpy(model->param.pred_transform, "max_index",
-                 sizeof(model->param.pred_transform));
-  } else if (name_obj_ == "multi:softprob") {
-    std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
-  } else if (name_obj_ == "reg:logistic" || name_obj_ == "binary:logistic") {
-    std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
-    model->param.sigmoid_alpha = 1.0f;
-  } else if (std::find(exponential_family.cbegin() , exponential_family.cend(), name_obj_)
-             != exponential_family.cend()) {
-    std::strncpy(model->param.pred_transform, "exponential",
-                 sizeof(model->param.pred_transform));
-  } else {
-    std::strncpy(model->param.pred_transform, "identity",
-                 sizeof(model->param.pred_transform));
+    treelite::details::xgboost::TransformGlobalBiasToMargin(&model->param);
   }
 
   // traverse trees

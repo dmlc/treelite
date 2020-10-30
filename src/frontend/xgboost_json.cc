@@ -193,7 +193,7 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
     Q.pop();
 
     if (left_children[old_id] == -1) {
-      output.SetLeaf(new_id, base_weights[old_id]);
+      output.SetLeaf(new_id, split_conditions[old_id]);
     } else {
       output.AddChilds(new_id);
       output.SetNumericalSplit(

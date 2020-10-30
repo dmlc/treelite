@@ -93,10 +93,12 @@ def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
 
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('objective,max_label,global_bias',
+@pytest.mark.parametrize('model_format', ['binary', 'json'])
+@pytest.mark.parametrize('objective,max_label,expected_global_bias',
                          [('binary:logistic', 2, 0), ('count:poisson', 4, math.log(0.5))],
                          ids=['binary:logistic', 'count:poisson'])
-def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchain):
+def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
+                             model_format):
     # pylint: disable=too-many-locals
     """Test non-linear objectives with dummy data"""
     np.random.seed(0)
@@ -109,13 +111,24 @@ def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchai
 
     num_round = 4
     dtrain = xgboost.DMatrix(X, y)
-    bst = xgboost.train({'objective': objective}, dtrain=dtrain, num_boost_round=num_round)
+    bst = xgboost.train({'objective': objective, 'base_score': 0.5, 'seed': 0},
+                        dtrain=dtrain, num_boost_round=num_round)
 
-    model = treelite.Model.from_xgboost(bst)
+    objective_tag = objective.replace(':', '_')
+    if model_format == 'json':
+        model_name = f'nonlinear_{objective_tag}.json'
+    else:
+        model_name = f'nonlinear_{objective_tag}.bin'
+    model_path = os.path.join(tmpdir, model_name)
+    bst.save_model(model_path)
+
+    model = treelite.Model.load(
+        filename=model_path,
+        model_format=('xgboost_json' if model_format == 'json' else 'xgboost'))
     assert model.num_feature == dtrain.num_col()
     assert model.num_output_group == 1
     assert model.num_tree == num_round
-    libpath = os.path.join(tmpdir, f'{objective.replace(":", "_")}' + _libext())
+    libpath = os.path.join(tmpdir, objective_tag + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 
     expected_pred_transform = {'binary:logistic': 'sigmoid', 'count:poisson': 'exponential'}
@@ -124,7 +137,7 @@ def test_nonlinear_objective(tmpdir, objective, max_label, global_bias, toolchai
     assert predictor.num_feature == dtrain.num_col()
     assert predictor.num_output_group == 1
     assert predictor.pred_transform == expected_pred_transform[objective]
-    np.testing.assert_almost_equal(predictor.global_bias, global_bias, decimal=5)
+    np.testing.assert_almost_equal(predictor.global_bias, expected_global_bias, decimal=5)
     assert predictor.sigmoid_alpha == 1.0
     dmat = treelite_runtime.DMatrix(X, dtype='float32')
     out_pred = predictor.predict(dmat)

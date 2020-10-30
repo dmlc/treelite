@@ -20,8 +20,9 @@ except ImportError:
 
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
+@pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_boston(tmpdir, toolchain):  # pylint: disable=too-many-locals
+def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     from sklearn.datasets import load_boston
     from sklearn.model_selection import train_test_split
@@ -34,8 +35,14 @@ def test_xgb_boston(tmpdir, toolchain):  # pylint: disable=too-many-locals
     num_round = 10
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
+    if model_format == 'json':
+        model_name = 'boston.json'
+        model_path = os.path.join(tmpdir, model_name)
+        bst.save_model(model_path)
+        model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
+    else:
+        model = treelite.Model.from_xgboost(bst)
 
-    model = treelite.Model.from_xgboost(bst)
     assert model.num_feature == dtrain.num_col()
     assert model.num_output_group == 1
     assert model.num_tree == num_round
@@ -56,8 +63,12 @@ def test_xgb_boston(tmpdir, toolchain):  # pylint: disable=too-many-locals
 
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
+@pytest.mark.parametrize('model_format', ['binary', 'json'])
+@pytest.mark.parametrize('objective,expected_pred_transform',
+                         [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
+def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform):
+    # pylint: disable=too-many-locals
     """Test Iris data (multi-class classification)"""
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
@@ -69,11 +80,17 @@ def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
     num_class = 3
     num_round = 10
     param = {'max_depth': 6, 'eta': 0.05, 'num_class': num_class, 'verbosity': 0,
-             'objective': 'multi:softmax', 'metric': 'mlogloss'}
+             'objective': objective, 'metric': 'mlogloss'}
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
 
-    model = treelite.Model.from_xgboost(bst)
+    if model_format == 'json':
+        model_name = 'iris.json'
+        model_path = os.path.join(tmpdir, model_name)
+        bst.save_model(model_path)
+        model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
+    else:
+        model = treelite.Model.from_xgboost(bst)
     assert model.num_feature == dtrain.num_col()
     assert model.num_output_group == num_class
     assert model.num_tree == num_round * num_class
@@ -83,7 +100,7 @@ def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()
     assert predictor.num_output_group == num_class
-    assert predictor.pred_transform == 'max_index'
+    assert predictor.pred_transform == expected_pred_transform
     assert predictor.global_bias == 0.5
     assert predictor.sigmoid_alpha == 1.0
     dmat = treelite_runtime.DMatrix(X_test, dtype='float32')
@@ -99,7 +116,7 @@ def test_xgb_iris(tmpdir, toolchain):  # pylint: disable=too-many-locals
                          ids=['binary:logistic', 'count:poisson'])
 def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
                              model_format):
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-arguments
     """Test non-linear objectives with dummy data"""
     np.random.seed(0)
     nrow = 16

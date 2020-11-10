@@ -21,8 +21,11 @@ except ImportError:
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
+@pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',
+                                       'reg:pseudohubererror'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-many-locals
+def test_xgb_boston(tmpdir, toolchain, objective, model_format):
+    # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     from sklearn.datasets import load_boston
     from sklearn.model_selection import train_test_split
@@ -31,7 +34,7 @@ def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-man
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
     dtest = xgboost.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': 'reg:linear'}
+    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': objective}
     num_round = 10
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
@@ -65,7 +68,8 @@ def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-man
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,expected_pred_transform',
-                         [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')])
+                         [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')],
+                         ids=['multi:softmax', 'multi:softprob'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform):
     # pylint: disable=too-many-locals

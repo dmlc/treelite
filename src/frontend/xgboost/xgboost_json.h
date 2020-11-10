@@ -292,10 +292,15 @@ class LearnerParamHandler : public OutputHandler<treelite::ModelImpl<float, floa
   bool String(const char *str, std::size_t length, bool copy) override;
 };
 
+struct XGBoostModelHandle {
+  treelite::ModelImpl<float, float>* model;
+  std::string objective_name;
+};
+
 /*! \brief handler for Learner objects from XGBoost schema*/
-class LearnerHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
+class LearnerHandler : public OutputHandler<XGBoostModelHandle> {
  public:
-  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
+  using OutputHandler<XGBoostModelHandle>::OutputHandler;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
 
@@ -303,10 +308,10 @@ class LearnerHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
   std::string objective;
 };
 
-/*! \brief handler for XGBoostModel objects from XGBoost schema*/
-class XGBoostModelHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
+/*! \brief handler for XGBoostModel objects from XGBoost schema */
+class XGBoostModelHandler : public OutputHandler<XGBoostModelHandle> {
  public:
-  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
+  using OutputHandler<XGBoostModelHandle>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
@@ -320,6 +325,8 @@ class RootHandler : public OutputHandler<std::unique_ptr<treelite::Model>> {
  public:
   using OutputHandler<std::unique_ptr<treelite::Model>>::OutputHandler;
   bool StartObject() override;
+ private:
+  XGBoostModelHandle handle;
 };
 
 /*! \brief handler which delegates JSON parsing to stack of delegates*/

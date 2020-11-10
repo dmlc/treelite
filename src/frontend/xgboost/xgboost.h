@@ -33,7 +33,7 @@ extern const std::vector<std::string> exponential_objectives;
 void SetPredTransform(const std::string& objective_name, ModelParam* param);
 
 // Transform the global bias parameter from probability into margin score
-void TransformGlobalBiasToMargin(ModelParam* param);
+void TransformGlobalBiasToMargin(const std::string& objective_name, ModelParam* param);
 
 }  // namespace xgboost
 }  // namespace details

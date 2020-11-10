@@ -21,8 +21,11 @@ except ImportError:
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
+@pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',
+                                       'reg:pseudohubererror'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-many-locals
+def test_xgb_boston(tmpdir, toolchain, objective, model_format):
+    # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     from sklearn.datasets import load_boston
     from sklearn.model_selection import train_test_split
@@ -31,7 +34,7 @@ def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-man
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
     dtest = xgboost.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': 'reg:linear'}
+    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': objective}
     num_round = 10
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
@@ -65,7 +68,8 @@ def test_xgb_boston(tmpdir, toolchain, model_format):  # pylint: disable=too-man
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,expected_pred_transform',
-                         [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')])
+                         [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')],
+                         ids=['multi:softmax', 'multi:softprob'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform):
     # pylint: disable=too-many-locals
@@ -112,8 +116,15 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,max_label,expected_global_bias',
-                         [('binary:logistic', 2, 0), ('count:poisson', 4, math.log(0.5))],
-                         ids=['binary:logistic', 'count:poisson'])
+                         [('binary:logistic', 2, 0),
+                          ('binary:hinge', 2, 0.5),
+                          ('binary:logitraw', 2, 0),
+                          ('count:poisson', 4, math.log(0.5)),
+                          ('rank:pairwise', 5, 0.5),
+                          ('rank:ndcg', 5, 0.5),
+                          ('rank:map', 5, 0.5)],
+                         ids=['binary:logistic', 'binary:hinge', 'binary:logitraw',
+                              'count:poisson', 'rank:pairwise', 'rank:ndcg', 'rank:map'])
 def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
                              model_format):
     # pylint: disable=too-many-locals,too-many-arguments
@@ -127,7 +138,9 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     assert np.max(y) == max_label - 1
 
     num_round = 4
-    dtrain = xgboost.DMatrix(X, y)
+    dtrain = xgboost.DMatrix(X, label=y)
+    if objective.startswith('rank:'):
+        dtrain.set_group([nrow])
     bst = xgboost.train({'objective': objective, 'base_score': 0.5, 'seed': 0},
                         dtrain=dtrain, num_boost_round=num_round)
 
@@ -148,7 +161,13 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     libpath = os.path.join(tmpdir, objective_tag + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 
-    expected_pred_transform = {'binary:logistic': 'sigmoid', 'count:poisson': 'exponential'}
+    expected_pred_transform = {'binary:logistic': 'sigmoid',
+                               'binary:hinge': 'hinge',
+                               'binary:logitraw': 'identity',
+                               'count:poisson': 'exponential',
+                               'rank:pairwise': 'identity',
+                               'rank:ndcg': 'identity',
+                               'rank:map': 'identity'}
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()

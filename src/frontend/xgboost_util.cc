@@ -6,6 +6,7 @@
  */
 
 #include <treelite/tree.h>
+#include <dmlc/logging.h>
 #include <cstring>
 #include "xgboost/xgboost.h"
 
@@ -22,7 +23,7 @@ namespace details {
 namespace xgboost {
 
 const std::vector<std::string> exponential_objectives{
-    "count:poisson", "reg:gamma", "reg:tweedie"
+    "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"
 };
 
 // set correct prediction transform function, depending on objective function
@@ -37,16 +38,34 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param) {
   } else if (std::find(exponential_objectives.cbegin(), exponential_objectives.cend(),
                        objective_name) != exponential_objectives.cend()) {
     SetPredTransformString("exponential", param);
-  } else {
+  } else if (objective_name == "binary:hinge") {
+    SetPredTransformString("hinge", param);
+  } else if (objective_name == "reg:squarederror" || objective_name == "reg:linear"
+             || objective_name == "reg:squaredlogerror"
+             || objective_name == "reg:pseudohubererror"
+             || objective_name == "binary:logitraw"
+             || objective_name == "rank:pairwise"
+             || objective_name == "rank:ndcg"
+             || objective_name == "rank:map") {
     SetPredTransformString("identity", param);
+  } else {
+    LOG(FATAL) << "Unrecognized XGBoost objective: " << objective_name;
   }
 }
 
 // Transform the global bias parameter from probability into margin score
-void TransformGlobalBiasToMargin(ModelParam* param) {
-  if (std::strcmp(param->pred_transform, "sigmoid") == 0) {
+void TransformGlobalBiasToMargin(const std::string& objective_name, ModelParam* param) {
+  std::string bias_transform{param->pred_transform};
+  if (objective_name == "binary:logitraw") {
+    // Special handling for 'logitraw', where the global bias is transformed with 'sigmoid',
+    // but the prediction is returned un-transformed.
+    CHECK_EQ(bias_transform, "identity");
+    bias_transform = "sigmoid";
+  }
+
+  if (bias_transform == "sigmoid") {
     param->global_bias = ProbToMargin::Sigmoid(param->global_bias);
-  } else if (std::strcmp(param->pred_transform, "exponential") == 0) {
+  } else if (bias_transform == "exponential") {
     param->global_bias = ProbToMargin::Exponential(param->global_bias);
   }
 }

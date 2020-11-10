@@ -119,9 +119,12 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
                          [('binary:logistic', 2, 0),
                           ('binary:hinge', 2, 0.5),
                           ('binary:logitraw', 2, 0),
-                          ('count:poisson', 4, math.log(0.5))],
+                          ('count:poisson', 4, math.log(0.5)),
+                          ('rank:pairwise', 5, 0.5),
+                          ('rank:ndcg', 5, 0.5),
+                          ('rank:map', 5, 0.5)],
                          ids=['binary:logistic', 'binary:hinge', 'binary:logitraw',
-                              'count:poisson'])
+                              'count:poisson', 'rank:pairwise', 'rank:ndcg', 'rank:map'])
 def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
                              model_format):
     # pylint: disable=too-many-locals,too-many-arguments
@@ -135,7 +138,9 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     assert np.max(y) == max_label - 1
 
     num_round = 4
-    dtrain = xgboost.DMatrix(X, y)
+    dtrain = xgboost.DMatrix(X, label=y)
+    if objective.startswith('rank:'):
+        dtrain.set_group([nrow])
     bst = xgboost.train({'objective': objective, 'base_score': 0.5, 'seed': 0},
                         dtrain=dtrain, num_boost_round=num_round)
 
@@ -159,7 +164,10 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     expected_pred_transform = {'binary:logistic': 'sigmoid',
                                'binary:hinge': 'hinge',
                                'binary:logitraw': 'identity',
-                               'count:poisson': 'exponential'}
+                               'count:poisson': 'exponential',
+                               'rank:pairwise': 'identity',
+                               'rank:ndcg': 'identity',
+                               'rank:map': 'identity'}
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()

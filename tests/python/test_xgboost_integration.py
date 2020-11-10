@@ -112,8 +112,12 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,max_label,expected_global_bias',
-                         [('binary:logistic', 2, 0), ('count:poisson', 4, math.log(0.5))],
-                         ids=['binary:logistic', 'count:poisson'])
+                         [('binary:logistic', 2, 0),
+                          ('binary:hinge', 2, 0.5),
+                          ('binary:logitraw', 2, 0),
+                          ('count:poisson', 4, math.log(0.5))],
+                         ids=['binary:logistic', 'binary:hinge', 'binary:logitraw',
+                              'count:poisson'])
 def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
                              model_format):
     # pylint: disable=too-many-locals,too-many-arguments
@@ -148,7 +152,10 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     libpath = os.path.join(tmpdir, objective_tag + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 
-    expected_pred_transform = {'binary:logistic': 'sigmoid', 'count:poisson': 'exponential'}
+    expected_pred_transform = {'binary:logistic': 'sigmoid',
+                               'binary:hinge': 'hinge',
+                               'binary:logitraw': 'identity',
+                               'count:poisson': 'exponential'}
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()

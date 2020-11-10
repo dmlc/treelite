@@ -284,16 +284,16 @@ bool LearnerParamHandler::String(const char *str,
 bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
   return (push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
-              "learner_model_param", output) ||
+              "learner_model_param", *output.model) ||
           push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>(
-              "gradient_booster", output) ||
-          push_key_handler<ObjectiveHandler, std::string>("objective",
-                                                          objective) ||
+              "gradient_booster", *output.model) ||
+          push_key_handler<ObjectiveHandler, std::string>("objective", objective) ||
           push_key_handler<IgnoreHandler>("attributes"));
 }
 
 bool LearnerHandler::EndObject(std::size_t memberCount) {
-  xgboost::SetPredTransform(objective, &output.param);
+  xgboost::SetPredTransform(objective, &output.model->param);
+  output.objective_name = objective;
   return pop_handler();
 }
 
@@ -306,19 +306,20 @@ bool XGBoostModelHandler::StartArray() {
 }
 
 bool XGBoostModelHandler::StartObject() {
-  return push_key_handler<LearnerHandler, treelite::ModelImpl<float, float>>("learner", output);
+  return push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output);
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
     return false;
   }
-  output.random_forest_flag = false;
+  output.model->random_forest_flag = false;
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   const bool need_transform_to_margin = (version[0] >= 1);
   if (need_transform_to_margin) {
-    treelite::details::xgboost::TransformGlobalBiasToMargin(&output.param);
+    treelite::details::xgboost::TransformGlobalBiasToMargin(
+        output.objective_name, &output.model->param);
   }
   return pop_handler();
 }
@@ -327,8 +328,8 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  return push_handler<XGBoostModelHandler, treelite::ModelImpl<float, float>>(
-      *dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()));
+  handle = {dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()), ""};
+  return push_handler<XGBoostModelHandler, XGBoostModelHandle>(handle);
 }
 
 /******************************************************************************

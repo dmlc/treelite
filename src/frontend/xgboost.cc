@@ -395,7 +395,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   // 1.0 it's the original value provided by user.
   const bool need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
-    treelite::details::xgboost::TransformGlobalBiasToMargin(&model->param);
+    treelite::details::xgboost::TransformGlobalBiasToMargin(name_obj_, &model->param);
   }
 
   // traverse trees

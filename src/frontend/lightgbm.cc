@@ -288,11 +288,13 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
 
   {
     auto it = global_dict.find("objective");
-    CHECK(it != global_dict.end())
-      << "Ill-formed LightGBM model file: need objective";
-    auto obj_strs = Split(it->second, ' ');
-    obj_name_ = obj_strs[0];
-    obj_param_ = std::vector<std::string>(obj_strs.begin() + 1, obj_strs.end());
+    if (it == global_dict.end()) {  // custom objective (fobj)
+      obj_name_ = "custom";
+    } else {
+      auto obj_strs = Split(it->second, ' ');
+      obj_name_ = obj_strs[0];
+      obj_param_ = std::vector<std::string>(obj_strs.begin() + 1, obj_strs.end());
+    }
 
     it = global_dict.find("max_feature_idx");
     CHECK(it != global_dict.end())

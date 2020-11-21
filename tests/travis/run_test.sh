@@ -19,7 +19,7 @@ then
   ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm codecov
   ./build/treelite_cpp_test
   export GCC_PATH=gcc-7

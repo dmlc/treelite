@@ -73,7 +73,7 @@ then
   rm -rfv python/dist python/build
   cd python/
   python setup.py bdist_wheel --universal
-  TAG=macosx_10_13_x86_64.macosx_10_14_x86_64.macosx_10_15_x86_64
+  TAG=macosx_10_14_x86_64.macosx_10_15_x86_64.macosx_11_0_x86_64
   python ../tests/ci_build/rename_whl.py dist/*.whl ${TRAVIS_COMMIT} ${TAG}
   cd ..
   rm -rfv runtime/python/dist runtime/python/build

@@ -19,7 +19,7 @@ then
   ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm codecov
   ./build/treelite_cpp_test
   export GCC_PATH=gcc-7
@@ -73,7 +73,7 @@ then
   rm -rfv python/dist python/build
   cd python/
   python setup.py bdist_wheel --universal
-  TAG=macosx_10_13_x86_64.macosx_10_14_x86_64.macosx_10_15_x86_64
+  TAG=macosx_10_14_x86_64.macosx_10_15_x86_64.macosx_11_0_x86_64
   python ../tests/ci_build/rename_whl.py dist/*.whl ${TRAVIS_COMMIT} ${TAG}
   cd ..
   rm -rfv runtime/python/dist runtime/python/build
@@ -90,7 +90,7 @@ then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
@@ -122,7 +122,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python

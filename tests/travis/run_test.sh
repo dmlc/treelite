@@ -90,7 +90,7 @@ then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
@@ -122,7 +122,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
+  python -m pip install xgboost
   python -m pip install lightgbm
   export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python

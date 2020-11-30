@@ -155,6 +155,7 @@ def test_categorical_data(tmpdir, quantize, parallel_comp, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('quantize', [True, False])
 def test_sparse_ranking_model(tmpdir, quantize, toolchain):
+    # pylint: disable=too-many-locals
     """Generate a LightGBM ranking model with highly sparse data.
     This example is inspired by https://github.com/dmlc/treelite/issues/222. It verifies that
     Treelite is able to accommodate the unique behavior of LightGBM when it comes to handling
@@ -187,7 +188,7 @@ def test_sparse_ranking_model(tmpdir, quantize, toolchain):
     }
 
     model_path = os.path.join(tmpdir, 'sparse_ranking_lightgbm.txt')
-    libpath = os.path.join(tmpdir, f'sparse_ranking_lgb' + _libext())
+    libpath = os.path.join(tmpdir, 'sparse_ranking_lgb' + _libext())
 
     dtrain = lightgbm.Dataset(X, label=y, group=[X.shape[0]])
 
@@ -196,7 +197,8 @@ def test_sparse_ranking_model(tmpdir, quantize, toolchain):
     bst.save_model(model_path)
 
     model = treelite.Model.load(model_path, model_format='lightgbm')
-    model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
+    params = {'quantize': (1 if quantize else 0)}
+    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
 
     predictor = treelite_runtime.Predictor(libpath, verbose=True)
 

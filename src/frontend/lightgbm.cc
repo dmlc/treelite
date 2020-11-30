@@ -568,6 +568,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
         }
       } else {  // non-leaf
         const auto split_index = static_cast<unsigned>(lgb_tree.split_feature[old_id]);
+        const auto missing_type = GetMissingType(lgb_tree.decision_type[old_id]);
 
         tree.AddChilds(new_id);
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
@@ -578,8 +579,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
-          const auto missing_type
-            = GetMissingType(lgb_tree.decision_type[old_id]);
           tree.SetCategoricalSplit(new_id, split_index, false, (missing_type != MissingType::kNaN),
                                    left_categories);
         } else {
@@ -588,7 +587,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
           const bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;
-          tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
+          tree.SetNumericalSplit(new_id, split_index, threshold, default_left,
+                                 (missing_type != MissingType::kNaN), cmp_op);
         }
         if (!lgb_tree.internal_count.empty()) {
           const int data_count = lgb_tree.internal_count[old_id];

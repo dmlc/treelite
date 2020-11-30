@@ -288,18 +288,28 @@ class ASTNativeCompiler : public Compiler {
                       const std::string& dest,
                       size_t indent) {
     const NumericalConditionNode<ThresholdType>* t;
-    std::string condition, condition_with_na_check;
+    std::string condition_with_na_check;
     if ( (t = dynamic_cast<const NumericalConditionNode<ThresholdType>*>(node)) ) {
       /* numerical split */
-      condition = ExtractNumericalCondition(t);
-      const char* condition_with_na_check_template
-        = (node->default_left) ?
-            "!(data[{split_index}].missing != -1) || ({condition})"
-          : " (data[{split_index}].missing != -1) && ({condition})";
-      condition_with_na_check
-        = fmt::format(condition_with_na_check_template,
-            "split_index"_a = node->split_index,
-            "condition"_a = condition);
+      std::string condition = ExtractNumericalCondition(t);
+      if (node->convert_missing_to_zero) {
+        std::string condition_for_na = ExtractNumericalCondition(t, /* use_zero_threshold */ true);
+        condition_with_na_check
+          = fmt::format("(!(data[{split_index}].missing != -1) && {condition_for_na}) ||"
+                        "( (data[{split_index}].missing != -1) && {condition})",
+              "split_index"_a = node->split_index,
+              "condition_for_na"_a = condition_for_na,
+              "condition"_a = condition);
+      } else {
+        const char* condition_with_na_check_template
+          = (node->default_left) ?
+              "!(data[{split_index}].missing != -1) || ({condition})"
+            : " (data[{split_index}].missing != -1) && ({condition})";
+        condition_with_na_check
+          = fmt::format(condition_with_na_check_template,
+              "split_index"_a = node->split_index,
+              "condition"_a = condition);
+      }
     } else {   /* categorical split */
       const CategoricalConditionNode* t2 = dynamic_cast<const CategoricalConditionNode*>(node);
       CHECK(t2);
@@ -553,13 +563,21 @@ class ASTNativeCompiler : public Compiler {
 
   template <typename ThresholdType>
   inline std::string
-  ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node) {
+  ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node,
+                            bool use_zero_threshold = false) {
     const std::string threshold_type
         = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     std::string result;
     if (node->quantized) {  // quantized threshold
-      result = fmt::format("data[{split_index}].qvalue {opname} {threshold}",
-                 "split_index"_a = node->split_index,
+      std::string lhs;
+      if (use_zero_threshold) {
+        lhs = fmt::format("{}", node->zero_quantized);
+      } else {
+        lhs = fmt::format("data[{split_index}].qvalue",
+                          "split_index"_a = node->split_index);
+      }
+      result = fmt::format("{lhs} {opname} {threshold}",
+                 "lhs"_a = lhs,
                  "opname"_a = OpName(node->op),
                  "threshold"_a = node->threshold.int_val);
     } else if (std::isinf(node->threshold.float_val)) {  // infinite threshold
@@ -568,9 +586,16 @@ class ASTNativeCompiler : public Compiler {
       result = (CompareWithOp(static_cast<ThresholdType>(0), node->op, node->threshold.float_val)
           ? "1" : "0");
     } else {  // finite threshold
+      std::string lhs;
+      if (use_zero_threshold) {
+        lhs = fmt::format("{}", common_util::ToStringHighPrecision(static_cast<ThresholdType>(0)));
+      } else {
+        lhs = fmt::format("data[{split_index}].fvalue",
+                          "split_index"_a = node->split_index);
+      }
       result
-        = fmt::format("data[{split_index}].fvalue {opname} ({threshold_type}){threshold}",
-            "split_index"_a = node->split_index,
+        = fmt::format("{lhs} {opname} ({threshold_type}){threshold}",
+            "lhs"_a = lhs,
             "opname"_a = OpName(node->op),
             "threshold_type"_a = threshold_type,
             "threshold"_a = common_util::ToStringHighPrecision(node->threshold.float_val));

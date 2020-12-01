@@ -471,7 +471,8 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
           << TypeInfoToString(TypeToInfo<ThresholdType>())
           << " Given: " << TypeInfoToString(node->threshold.GetValueType());
         ThresholdType threshold = node->threshold.Get<ThresholdType>();
-        tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
+        tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, false,
+                               node->op);
         Q.push({node->left_child, tree.LeftChild(nid)});
         Q.push({node->right_child, tree.RightChild(nid)});
       } else if (node->status == NodeDraft::Status::kCategoricalTest) {

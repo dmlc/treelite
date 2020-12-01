@@ -125,10 +125,9 @@ class Tree {
      */
     Operator cmp_;
     /* \brief Whether to convert missing value to zero.
-     * Only applicable when split_type_ is set to kCategorical.
      * When this flag is set, it overrides the behavior of default_left().
      */
-    bool missing_category_to_zero_;
+    bool missing_value_to_zero_;
     /*! \brief whether data_count_ field is present */
     bool data_count_present_;
     /*! \brief whether sum_hess_ field is present */
@@ -342,12 +341,11 @@ class Tree {
     return nodes_[nid].gain_;
   }
   /*!
-   * \brief test whether missing values should be converted into zero; only applicable for
-   *        categorical splits
+   * \brief test whether missing values should be converted into zero
    * \param nid ID of node being queried
    */
-  inline bool MissingCategoryToZero(int nid) const {
-    return nodes_[nid].missing_category_to_zero_;
+  inline bool MissingValueToZero(int nid) const {
+    return nodes_[nid].missing_value_to_zero_;
   }
 
   /** Setters **/
@@ -357,22 +355,24 @@ class Tree {
    * \param split_index feature index to split
    * \param threshold threshold value
    * \param default_left the default direction when feature is unknown
+   * \param missing_value_to_zero whether missing values should be converted into zero
    * \param cmp comparison operator to compare between feature value and
    *            threshold
    */
   inline void SetNumericalSplit(int nid, unsigned split_index, ThresholdType threshold,
-                                bool default_left, Operator cmp);
+                                bool default_left, bool missing_value_to_zero, Operator cmp);
   /*!
    * \brief create a categorical split
    * \param nid ID of node being updated
    * \param split_index feature index to split
    * \param threshold threshold value
    * \param default_left the default direction when feature is unknown
+   * \param missing_value_to_zero whether missing values should be converted into zero
    * \param cmp comparison operator to compare between feature value and
    *            threshold
    */
   inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                                  bool missing_category_to_zero,
+                                  bool missing_value_to_zero,
                                   const std::vector<uint32_t>& left_categories);
   /*!
    * \brief set the leaf value of the node

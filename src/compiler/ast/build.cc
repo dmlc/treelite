@@ -50,15 +50,17 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildASTFromTree(
           parent,
           tree.SplitIndex(nid),
           tree.DefaultLeft(nid),
+          tree.MissingValueToZero(nid),
           false,
           tree.ComparisonOp(nid),
           ThresholdVariant<ThresholdType>(tree.Threshold(nid)));
     } else {
-      ast_node = AddNode<CategoricalConditionNode>(parent,
-                                                   tree.SplitIndex(nid),
-                                                   tree.DefaultLeft(nid),
-                                                   tree.LeftCategories(nid),
-                                                   tree.MissingCategoryToZero(nid));
+      ast_node = AddNode<CategoricalConditionNode>(
+          parent,
+          tree.SplitIndex(nid),
+          tree.DefaultLeft(nid),
+          tree.MissingValueToZero(nid),
+          tree.LeftCategories(nid));
     }
     if (tree.HasGain(nid)) {
       dynamic_cast<ConditionNode*>(ast_node)->gain = tree.Gain(nid);

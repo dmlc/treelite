@@ -38,9 +38,19 @@ rewrite_thresholds(ASTNode* node, const std::vector<std::vector<ThresholdType>>&
     const ThresholdType threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       const auto& v = cut_pts[num_cond->split_index];
-      auto loc = math::binary_search(v.begin(), v.end(), threshold);
-      CHECK(loc != v.end());
-      num_cond->threshold.int_val = static_cast<int>(loc - v.begin()) * 2;
+      {
+        auto loc = math::binary_search(v.begin(), v.end(), threshold);
+        CHECK(loc != v.end());
+        num_cond->threshold.int_val = static_cast<int>(loc - v.begin()) * 2;
+      }
+      {
+        ThresholdType zero = static_cast<ThresholdType>(0);
+        auto loc = std::lower_bound(v.begin(), v.end(), zero);
+        num_cond->zero_quantized = static_cast<int>(loc - v.begin()) * 2;
+        if (loc != v.end() && zero != *loc) {
+          --num_cond->zero_quantized;
+        }
+      }
       num_cond->quantized = true;
     }  // splits with infinite thresholds will not be quantized
   }

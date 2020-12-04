@@ -105,12 +105,12 @@ class Predictor:
             self.handle,
             ctypes.byref(num_feature)))
         self.num_feature_ = num_feature.value
-        # save # of output groups
-        num_output_group = ctypes.c_size_t()
-        _check_call(_LIB.TreelitePredictorQueryNumOutputGroup(
+        # save # of classes
+        num_class = ctypes.c_size_t()
+        _check_call(_LIB.TreelitePredictorQueryNumClass(
             self.handle,
-            ctypes.byref(num_output_group)))
-        self.num_output_group_ = num_output_group.value
+            ctypes.byref(num_class)))
+        self.num_class_ = num_class.value
         # save # of pred transform
         pred_transform = ctypes.c_char_p()
         _check_call(_LIB.TreelitePredictorQueryPredTransform(
@@ -184,8 +184,8 @@ class Predictor:
             ctypes.byref(out_result_size)))
         idx = int(out_result_size.value)
         res = out_result[0:idx].reshape((dmat.shape[0], -1)).squeeze()
-        if self.num_output_group_ > 1 and dmat.shape[0] != idx:
-            res = res.reshape((-1, self.num_output_group_))
+        if self.num_class_ > 1 and dmat.shape[0] != idx:
+            res = res.reshape((-1, self.num_class_))
         return res
 
     def __del__(self):
@@ -199,9 +199,9 @@ class Predictor:
         return self.num_feature_
 
     @property
-    def num_output_group(self):
+    def num_class(self):
         """Query number of output groups of the model"""
-        return self.num_output_group_
+        return self.num_class_
 
     @property
     def pred_transform(self):

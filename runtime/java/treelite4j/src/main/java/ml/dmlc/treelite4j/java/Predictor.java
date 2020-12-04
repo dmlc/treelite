@@ -23,7 +23,7 @@ import java.nio.file.Paths;
 public class Predictor implements Serializable, KryoSerializable {
   private static final Log logger = LogFactory.getLog(Predictor.class);
   private transient long handle = 0;
-  private transient int num_output_group;
+  private transient int num_class;
   private transient int num_feature;
   private transient String pred_transform;
   private transient float sigmoid_alpha;
@@ -95,9 +95,9 @@ public class Predictor implements Serializable, KryoSerializable {
     handle = long_out[0];
 
     // Fetch meta information from model
-    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumOutputGroup(
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumClass(
             handle, long_out));
-    num_output_group = (int) long_out[0];
+    num_class = (int) long_out[0];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryNumFeature(
             handle, long_out));
     num_feature = (int) long_out[0];
@@ -121,14 +121,13 @@ public class Predictor implements Serializable, KryoSerializable {
   }
 
   /**
-   * Get the number of output groups for the compiled model. This number is
-   * 1 for tasks other than multi-class classification. For multi-class
-   * classification task, the number is equal to the number of classes.
+   * Get the number of classes for the compiled model. This number is
+   * 1 for tasks other than multi-class classification.
    *
-   * @return Number of output groups
+   * @return Number of classes
    */
-  public int GetNumOutputGroup() {
-    return this.num_output_group;
+  public int GetNumClass() {
+    return this.num_class;
   }
 
   /**
@@ -176,7 +175,7 @@ public class Predictor implements Serializable, KryoSerializable {
    * @param batch       a data matrix of type :java:ref:`DMatrix`
    * @param verbose     whether to print extra diagnostic messages
    * @param pred_margin whether to predict probabilities or raw margin scores
-   * @return Resulting predictions, of dimension ``[num_row]*[num_output_group]``
+   * @return Resulting predictions, of dimension ``[num_row]*[num_class]``
    */
   public INDArray predict(DMatrix batch, boolean verbose, boolean pred_margin)
       throws TreeliteError {
@@ -202,7 +201,7 @@ public class Predictor implements Serializable, KryoSerializable {
           }
         }
         int actual_result_size = (int) out[0];
-        return reshape(out_result, actual_result_size, this.num_output_group);
+        return reshape(out_result, actual_result_size, this.num_class);
       }
       case "float64": {
         double[] out_result = new double[result_size];
@@ -217,7 +216,7 @@ public class Predictor implements Serializable, KryoSerializable {
           }
         }
         int actual_result_size = (int) out[0];
-        return reshape(out_result, actual_result_size, this.num_output_group);
+        return reshape(out_result, actual_result_size, this.num_class);
       }
       case "uint32": {
         int[] out_result = new int[result_size];
@@ -232,7 +231,7 @@ public class Predictor implements Serializable, KryoSerializable {
           }
         }
         int actual_result_size = (int) out[0];
-        return reshape(out_result, actual_result_size, this.num_output_group);
+        return reshape(out_result, actual_result_size, this.num_class);
       }
       default:
         throw new TreeliteError("Unknown leaf output type: " + leaf_output_type);

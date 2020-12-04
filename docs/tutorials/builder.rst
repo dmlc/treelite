@@ -717,8 +717,8 @@ all possible classes. Each leaf node thus will store the probability
 distribution of possible class outcomes.
 
 The ``process_model()`` function is also similar to what we had before. The
-crucial difference is the existence of parameters ``num_output_group`` and
-``pred_transform``. The ``num_output_group`` parameter is used only for
+crucial difference is the existence of parameters ``num_class`` and
+``pred_transform``. The ``num_class`` parameter is used only for
 multi-class classification: it should store the number of classes (in this
 example, 4). The ``pred_transform`` parameter should be set to
 ``'identity_multiclass'``, to indicate

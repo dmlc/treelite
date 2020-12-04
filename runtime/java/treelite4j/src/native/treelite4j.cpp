@@ -293,18 +293,18 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSize(
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreelitePredictorQueryNumOutputGroup
+ * Method:    TreelitePredictorQueryNumClass
  * Signature: (J[J)I
  */
 JNIEXPORT jint JNICALL
-Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumOutputGroup(
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumClass(
     JNIEnv* jenv, jclass jcls, jlong jpredictor, jlongArray jout) {
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
-  size_t num_output_group = 0;
-  const int ret = TreelitePredictorQueryNumOutputGroup(predictor, &num_output_group);
+  size_t num_class = 0;
+  const int ret = TreelitePredictorQueryNumClass(predictor, &num_class);
   // store dimension
   jlong* out = jenv->GetLongArrayElements(jout, nullptr);
-  out[0] = static_cast<jlong>(num_output_group);
+  out[0] = static_cast<jlong>(num_class);
   jenv->ReleaseLongArrayElements(jout, out, 0);
 
   return static_cast<jint>(ret);

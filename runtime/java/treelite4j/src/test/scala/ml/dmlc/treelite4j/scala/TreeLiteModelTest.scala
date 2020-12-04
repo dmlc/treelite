@@ -93,7 +93,7 @@ class TreeLiteModelTest extends FunSuite with Matchers with BeforeAndAfterEach {
     model.setVerbose(true)
     model.getVerbose shouldEqual true
     val predictor = model.nativePredictor
-    predictor.numOutputGroup shouldEqual 1
+    predictor.numClass shouldEqual 1
     predictor.numFeature shouldEqual 127
     predictor.predTransform shouldEqual "sigmoid"
     predictor.sigmoidAlpha shouldEqual 1.0f

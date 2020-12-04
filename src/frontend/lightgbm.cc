@@ -256,7 +256,7 @@ inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
 inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::vector<LGBTree> lgb_trees_;
   int max_feature_idx_;
-  int num_tree_per_iteration_;
+  int num_class_;
   bool average_output_;
   std::string obj_name_;
   std::vector<std::string> obj_param_;
@@ -300,10 +300,10 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
     CHECK(it != global_dict.end())
       << "Ill-formed LightGBM model file: need max_feature_idx";
     max_feature_idx_ = TextToNumber<int>(it->second);
-    it = global_dict.find("num_tree_per_iteration");
+    it = global_dict.find("num_class");
     CHECK(it != global_dict.end())
-      << "Ill-formed LightGBM model file: need num_tree_per_iteration";
-    num_tree_per_iteration_ = TextToNumber<int>(it->second);
+      << "Ill-formed LightGBM model file: need num_class";
+    num_class_ = TextToNumber<int>(it->second);
 
     it = global_dict.find("average_output");
     average_output_ = (it != global_dict.end());
@@ -440,16 +440,19 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
   auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
   model->num_feature = max_feature_idx_ + 1;
-  model->num_output_group = num_tree_per_iteration_;
-  if (model->num_output_group > 1) {
-    // multiclass classification with gradient boosted trees
-    CHECK(!average_output_)
-      << "Ill-formed LightGBM model file: cannot use random forest mode "
-      << "for multi-class classification";
-    model->random_forest_flag = false;
+  model->average_tree_output = average_output_;
+  if (num_class_ > 1) {
+    // multi-class classifier
+    model->task_type = treelite::TaskType::kMultiClfGrovePerClass;
+    model->task_param.grove_per_class = true;
   } else {
-    model->random_forest_flag = average_output_;
+    // binary classifier or regressor
+    model->task_type = treelite::TaskType::kBinaryClfRegr;
+    model->task_param.grove_per_class = false;
   }
+  model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+  model->task_param.num_class = num_class_;
+  model->task_param.leaf_vector_size = 1;
 
   // set correct prediction transform function, depending on objective function
   if (obj_name_ == "multiclass") {
@@ -464,7 +467,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
         break;
       }
     }
-    CHECK(num_class >= 0 && num_class == model->num_output_group)
+    CHECK(num_class >= 0 && num_class == model->task_param.num_class)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
@@ -486,8 +489,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
         }
       }
     }
-    CHECK(num_class >= 0 && num_class == model->num_output_group
-          && alpha > 0.0f)
+    CHECK(num_class >= 0 && num_class == model->task_param.num_class && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
     std::strncpy(model->param.pred_transform, "multiclass_ova",

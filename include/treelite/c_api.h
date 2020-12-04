@@ -186,12 +186,13 @@ TREELITE_DLL int TreeliteQueryNumTree(ModelHandle handle, size_t* out);
  */
 TREELITE_DLL int TreeliteQueryNumFeature(ModelHandle handle, size_t* out);
 /*!
- * \brief Query the number of output groups of the model
+ * \brief Query the number of classes of the model. (1 if the model is binary classifier or
+ *        regressor)
  * \param handle model to query
  * \param out number of output groups
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out);
+TREELITE_DLL int TreeliteQueryNumClass(ModelHandle handle, size_t* out);
 
 /*!
  * \brief keep first N trees of model, limit must smaller than number of trees.
@@ -333,11 +334,10 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(
  * \brief Create a new model builder
  * \param num_feature number of features used in model being built. We assume that all feature
  *                    indices are between 0 and (num_feature - 1).
- * \param num_output_group number of output groups. Set to 1 for binary classification and
- *                         regression; >1 for multiclass classification
- * \param random_forest_flag whether the model is a random forest. Set to 0 if the model is
- *                           gradient boosted trees. Any nonzero value shall indicate that the
- *                           model is a random forest.
+ * \param num_class number of output groups. Set to 1 for binary classification and
+ *                  regression; >1 for multiclass classification
+ * \param average_tree_output whether the outputs from the trees should be averaged
+ *                            (!=0 yes, =0 no)
  * \param threshold_type Type of thresholds in numerical splits. All thresholds in a given model
  *                       must have the same type.
  * \param leaf_output_type Type of leaf outputs. All leaf outputs in a given model must have the
@@ -346,7 +346,7 @@ TREELITE_DLL int TreeliteTreeBuilderSetLeafVectorNode(
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteCreateModelBuilder(
-    int num_feature, int num_output_group, int random_forest_flag, const char* threshold_type,
+    int num_feature, int num_class, int average_tree_output, const char* threshold_type,
     const char* leaf_output_type, ModelBuilderHandle* out);
 /*!
  * \brief Set a model parameter

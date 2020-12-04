@@ -18,7 +18,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
     """A simple model"""
     num_feature = 127
     pred_transform = 'sigmoid'
-    builder = treelite.ModelBuilder(num_feature=num_feature, random_forest=False,
+    builder = treelite.ModelBuilder(num_feature=num_feature, average_tree_output=False,
                                     pred_transform=pred_transform)
 
     # Build mushroom model
@@ -78,7 +78,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
 
     model = builder.commit()
     assert model.num_feature == num_feature
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == 2
 
     annotation_path = os.path.join(tmpdir, 'annotation.json')
@@ -125,14 +125,14 @@ def test_node_insert_delete(tmpdir, toolchain):
 
     model = builder.commit()
     assert model.num_feature == num_feature
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == 1
 
     libpath = os.path.join(tmpdir, 'libtest' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
     assert predictor.num_feature == num_feature
-    assert predictor.num_output_group == 1
+    assert predictor.num_class == 1
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.0
     assert predictor.sigmoid_alpha == 1.0

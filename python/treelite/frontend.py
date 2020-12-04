@@ -72,12 +72,12 @@ class Model:
         return out.value
 
     @property
-    def num_output_group(self):
-        """Number of output groups of the model"""
+    def num_class(self):
+        """Number of classes of the model (1 if the model is not a multi-class classifier"""
         if self.handle is None:
             raise AttributeError('Model not loaded yet')
         out = ctypes.c_size_t()
-        _check_call(_LIB.TreeliteQueryNumOutputGroups(self.handle, ctypes.byref(out)))
+        _check_call(_LIB.TreeliteQueryNumClass(self.handle, ctypes.byref(out)))
         return out.value
 
     # pylint: disable=R0913
@@ -421,9 +421,9 @@ class ModelBuilder:
     num_feature : :py:class:`int <python:int>`
         number of features used in model being built. We assume that all
         feature indices are between ``0`` and (``num_feature - 1``)
-    num_output_group : :py:class:`int <python:int>`, optional
+    num_class : :py:class:`int <python:int>`, optional
         number of output groups; ``>1`` indicates multiclass classification
-    random_forest : :py:class:`bool <python:bool>`, optional
+    average_tree_output : :py:class:`bool <python:bool>`, optional
         whether the model is a random forest; ``True`` indicates a random forest
         and ``False`` indicates gradient boosted trees
     **kwargs
@@ -720,21 +720,21 @@ class ModelBuilder:
                 .format(len(self.nodes))
 
     # pylint: disable=R0913
-    def __init__(self, num_feature, num_output_group=1, random_forest=False,
+    def __init__(self, num_feature, num_class=1, average_tree_output=False,
                  threshold_type='float32', leaf_output_type='float32', **kwargs):
         if not isinstance(num_feature, int):
             raise ValueError('num_feature must be of int type')
         if num_feature <= 0:
             raise ValueError('num_feature must be strictly positive')
-        if not isinstance(num_output_group, int):
-            raise ValueError('num_output_group must be of int type')
-        if num_output_group <= 0:
-            raise ValueError('num_output_group must be strictly positive')
+        if not isinstance(num_class, int):
+            raise ValueError('num_class must be of int type')
+        if num_class <= 0:
+            raise ValueError('num_class must be strictly positive')
         self.handle = ctypes.c_void_p()
         _check_call(_LIB.TreeliteCreateModelBuilder(
             ctypes.c_int(num_feature),
-            ctypes.c_int(num_output_group),
-            ctypes.c_int(1 if random_forest else 0),
+            ctypes.c_int(num_class),
+            ctypes.c_int(1 if average_tree_output else 0),
             c_str(threshold_type),
             c_str(leaf_output_type),
             ctypes.byref(self.handle)))

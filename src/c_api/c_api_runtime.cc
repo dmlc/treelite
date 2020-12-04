@@ -76,10 +76,10 @@ int TreelitePredictorQueryResultSize(PredictorHandle handle, DMatrixHandle batch
   API_END();
 }
 
-int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle, size_t* out) {
+int TreelitePredictorQueryNumClass(PredictorHandle handle, size_t* out) {
   API_BEGIN();
   const auto* predictor = static_cast<const predictor::Predictor*>(handle);
-  *out = predictor->QueryNumOutputGroup();
+  *out = predictor->QueryNumClass();
   API_END();
 }
 

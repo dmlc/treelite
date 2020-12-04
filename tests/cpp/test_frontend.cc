@@ -450,7 +450,7 @@ TEST(LearnerParamHandlerSuite, LearnerParamHandler) {
   ASSERT_TRUE(result);
 
   ASSERT_FLOAT_EQ(output.param.global_bias, 0.5);
-  ASSERT_EQ(output.num_output_group, 5);
+  ASSERT_EQ(output.task_param.num_class, 5);
   ASSERT_EQ(output.num_feature, 12);
 }
 

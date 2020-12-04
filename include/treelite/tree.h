@@ -16,6 +16,7 @@
 #include <utility>
 #include <type_traits>
 #include <limits>
+#include <cstdint>
 #include <cstring>
 #include <cstdio>
 
@@ -76,6 +77,23 @@ class ContiguousArray {
   size_t capacity_;
   bool owned_buffer_;
 };
+
+enum class TaskType : uint8_t {
+  kBinaryClfRegr = 0,          // Binary classifier, regressor
+  kMultiClfGrovePerClass = 1,  // XGBoost, LightGBM multi-class classifier
+  kMultiClfProbDistLeaf = 2,   // Scikit-learn RF multi-class classifier
+  kMultiClfCategLeaf = 3       // cuML RF multi-class classifier
+};
+
+struct TaskParameter {
+  enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
+  OutputType output_type;
+  bool grove_per_class;
+  unsigned int num_class;
+  unsigned int leaf_vector_size;
+};
+
+static_assert(std::is_pod<TaskParameter>::value, "TaskParameter must be POD type");
 
 /*! \brief in-memory representation of a decision tree */
 template <typename ThresholdType, typename LeafOutputType>
@@ -519,12 +537,12 @@ class Model {
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
   int num_feature;
-  /*! \brief number of output groups -- for multi-class classification
-   *  Set to 1 for everything else */
-  int num_output_group;
-  /*! \brief flag for random forest;
-   *  True for random forests and False for gradient boosted trees */
-  bool random_forest_flag;
+  /*! \brief Task type */
+  TaskType task_type;
+  /*! \brief whether to average tree outputs */
+  bool average_tree_output;
+  /*! \brief Group of parameters that are specific to the particular task type */
+  TaskParameter task_param;
   /*! \brief extra parameters */
   ModelParam param;
 

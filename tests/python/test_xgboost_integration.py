@@ -47,7 +47,7 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
         model = treelite.Model.from_xgboost(bst)
 
     assert model.num_feature == dtrain.num_col()
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == num_round
     libpath = os.path.join(tmpdir, 'boston' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'parallel_comp': model.num_tree},
@@ -55,7 +55,7 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_output_group == 1
+    assert predictor.num_class == 1
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.5
     assert predictor.sigmoid_alpha == 1.0
@@ -96,14 +96,14 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
     else:
         model = treelite.Model.from_xgboost(bst)
     assert model.num_feature == dtrain.num_col()
-    assert model.num_output_group == num_class
+    assert model.num_class == num_class
     assert model.num_tree == num_round * num_class
     libpath = os.path.join(tmpdir, 'iris' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_output_group == num_class
+    assert predictor.num_class == num_class
     assert predictor.pred_transform == expected_pred_transform
     assert predictor.global_bias == 0.5
     assert predictor.sigmoid_alpha == 1.0
@@ -156,7 +156,7 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
         filename=model_path,
         model_format=('xgboost_json' if model_format == 'json' else 'xgboost'))
     assert model.num_feature == dtrain.num_col()
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == num_round
     libpath = os.path.join(tmpdir, objective_tag + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
@@ -171,7 +171,7 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
 
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_output_group == 1
+    assert predictor.num_class == 1
     assert predictor.pred_transform == expected_pred_transform[objective]
     np.testing.assert_almost_equal(predictor.global_bias, expected_global_bias, decimal=5)
     assert predictor.sigmoid_alpha == 1.0
@@ -241,21 +241,21 @@ def test_xgb_deserializers(tmpdir, toolchain):
     # Generate predictors from compiled libraries
     predictor_bin = treelite_runtime.Predictor(model_bin_lib)
     assert predictor_bin.num_feature == dtrain.num_col()
-    assert predictor_bin.num_output_group == 1
+    assert predictor_bin.num_class == 1
     assert predictor_bin.pred_transform == 'identity'
     assert predictor_bin.global_bias == pytest.approx(0.5)
     assert predictor_bin.sigmoid_alpha == pytest.approx(1.0)
 
     predictor_json = treelite_runtime.Predictor(model_json_lib)
     assert predictor_json.num_feature == dtrain.num_col()
-    assert predictor_json.num_output_group == 1
+    assert predictor_json.num_class == 1
     assert predictor_json.pred_transform == 'identity'
     assert predictor_json.global_bias == pytest.approx(0.5)
     assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
 
     predictor_json_str = treelite_runtime.Predictor(model_json_str_lib)
     assert predictor_json_str.num_feature == dtrain.num_col()
-    assert predictor_json_str.num_output_group == 1
+    assert predictor_json_str.num_class == 1
     assert predictor_json_str.pred_transform == 'identity'
     assert predictor_json_str.global_bias == pytest.approx(0.5)
     assert predictor_json_str.sigmoid_alpha == pytest.approx(1.0)

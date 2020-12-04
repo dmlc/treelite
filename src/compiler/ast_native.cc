@@ -56,7 +56,7 @@ class ASTNativeCompiler : public Compiler {
     cm.backend = "native";
 
     num_feature_ = model.num_feature;
-    num_output_group_ = model.num_output_group;
+    num_class_ = model.task_param.num_class;
     pred_transform_ = model.param.pred_transform;
     sigmoid_alpha_ = model.param.sigmoid_alpha;
     global_bias_ = model.param.global_bias;
@@ -131,7 +131,7 @@ class ASTNativeCompiler : public Compiler {
  private:
   CompilerParam param;
   int num_feature_;
-  int num_output_group_;
+  int num_class_;
   std::string pred_transform_;
   float sigmoid_alpha_;
   float global_bias_;
@@ -193,10 +193,10 @@ class ASTNativeCompiler : public Compiler {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     const std::string predict_function_signature
-      = (num_output_group_ > 1) ?
+      = (num_class_ > 1) ?
           fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
                       leaf_output_type)
-        : fmt::format("{} predict(union Entry* data, int pred_margin)",
+                         : fmt::format("{} predict(union Entry* data, int pred_margin)",
                       leaf_output_type);
 
     if (!array_is_categorical_.empty()) {
@@ -207,7 +207,7 @@ class ASTNativeCompiler : public Compiler {
 
     const std::string query_functions_definition
       = fmt::format(native::query_functions_definition_template,
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = num_class_,
           "num_feature"_a = num_feature_,
           "pred_transform"_a = pred_transform_,
           "sigmoid_alpha"_a = sigmoid_alpha_,
@@ -239,10 +239,10 @@ class ASTNativeCompiler : public Compiler {
 
     const std::string optional_average_field
       = (node->average_result) ? fmt::format(" / {}", node->num_tree) : std::string("");
-    if (num_output_group_ > 1) {
+    if (num_class_ > 1) {
       AppendToBuffer(dest,
         fmt::format(native::main_end_multiclass_template,
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = num_class_,
           "optional_average_field"_a = optional_average_field,
           "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias),
           "leaf_output_type"_a = leaf_output_type),
@@ -263,12 +263,12 @@ class ASTNativeCompiler : public Compiler {
                     size_t indent) {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
-    if (num_output_group_ > 1) {
+    if (num_class_ > 1) {
       AppendToBuffer(dest,
-        fmt::format("{leaf_output_type} sum[{num_output_group}] = {{0}};\n"
+        fmt::format("{leaf_output_type} sum[{num_class}] = {{0}};\n"
                     "unsigned int tmp;\n"
                     "int nid, cond, fid;  /* used for folded subtrees */\n",
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = num_class_,
           "leaf_output_type"_a = leaf_output_type), indent);
     } else {
       AppendToBuffer(dest,
@@ -351,7 +351,7 @@ class ASTNativeCompiler : public Compiler {
 
     std::string unit_function_name, unit_function_signature,
                 unit_function_call_signature;
-    if (num_output_group_ > 1) {
+    if (num_class_ > 1) {
       unit_function_name
         = fmt::format("predict_margin_multiclass_unit{}", unit_id);
       unit_function_signature
@@ -376,13 +376,13 @@ class ASTNativeCompiler : public Compiler {
                                "{} {{\n", unit_function_signature), 0);
     CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], new_file, 2);
-    if (num_output_group_ > 1) {
+    if (num_class_ > 1) {
       AppendToBuffer(new_file,
-        fmt::format("  for (int i = 0; i < {num_output_group}; ++i) {{\n"
+                     fmt::format("  for (int i = 0; i < {num_class}; ++i) {{\n"
                     "    result[i] += sum[i];\n"
                     "  }}\n"
                     "}}\n",
-          "num_output_group"_a = num_output_group_), 0);
+          "num_class"_a = num_class_), 0);
     } else {
       AppendToBuffer(new_file, "  return sum;\n}\n", 0);
     }
@@ -661,12 +661,12 @@ class ASTNativeCompiler : public Compiler {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     std::string output_statement;
-    if (num_output_group_ > 1) {
+    if (num_class_ > 1) {
       if (node->is_vector) {
         // multi-class classification with random forest
-        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_output_group_))
-          << "Ill-formed model: leaf vector must be of length [num_output_group]";
-        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
+        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_class_))
+          << "Ill-formed model: leaf vector must be of length [num_class]";
+        for (int group_id = 0; group_id < num_class_; ++group_id) {
           output_statement
             += fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
                  "group_id"_a = group_id,
@@ -677,7 +677,7 @@ class ASTNativeCompiler : public Compiler {
         // multi-class classification with gradient boosted trees
         output_statement
           = fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
-              "group_id"_a = node->tree_id % num_output_group_,
+              "group_id"_a = node->tree_id % num_class_,
               "output"_a = common_util::ToStringHighPrecision(node->scalar),
               "leaf_output_type"_a = leaf_output_type);
       }

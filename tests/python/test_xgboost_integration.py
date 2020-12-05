@@ -42,7 +42,9 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
         model_name = 'boston.json'
         model_path = os.path.join(tmpdir, model_name)
         bst.save_model(model_path)
-        model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
+        with open(model_path, 'r') as f:
+            json_str = f.read()
+        model = treelite.Model.from_xgboost_json(json_str)
     else:
         model = treelite.Model.from_xgboost(bst)
 

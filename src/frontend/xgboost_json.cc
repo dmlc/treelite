@@ -128,8 +128,22 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
-  auto error_handler = [](size_t offset) -> std::string {
-    return "";
+  auto error_handler = [json_str](size_t offset) -> std::string {
+    size_t cur = (offset >= 50 ? (offset - 50) : 0);
+    std::ostringstream oss, oss2;
+    for (int i = 0; i < 100; ++i) {
+      if (!json_str[cur]) {
+        break;
+      }
+      oss << json_str[cur];
+      if (cur == offset) {
+        oss2 << "^";
+      } else {
+        oss2 << "~";
+      }
+      ++cur;
+    }
+    return oss.str() + "\n" + oss2.str();
   };
   return ParseStream(std::move(input_stream), error_handler);
 }

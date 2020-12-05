@@ -38,10 +38,13 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
         result = treelite::CompareWithOp(fvalue, op, threshold);
       } else {
         const auto fvalue = data[split_index].fvalue;
-        const auto left_categories = tree.LeftCategories(nid);
-        result = (std::binary_search(left_categories.begin(),
-                                     left_categories.end(),
+        const auto matching_categories = tree.MatchingCategories(nid);
+        result = (std::binary_search(matching_categories.begin(),
+                                     matching_categories.end(),
                                      static_cast<uint32_t>(fvalue)));
+        if(tree.CategoriesListRightChild(nid)) {
+          result = !result;
+        }
       }
       if (result) {  // left child
         Traverse_(tree, data, tree.LeftChild(nid), out_counts);

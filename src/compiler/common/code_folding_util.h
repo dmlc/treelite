@@ -121,7 +121,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
             << "is supposed to convert missing values into zeros, and this "
             << "is not possible with current code folding implementation.";
           std::vector<uint64_t> bitmap
-            = GetCategoricalBitmap(t3->left_categories);
+            = GetCategoricalBitmap(t3->matching_categories);
           cat_bitmap.insert(cat_bitmap.end(), bitmap.begin(), bitmap.end());
           cat_begin.push_back(cat_bitmap.size());
         }

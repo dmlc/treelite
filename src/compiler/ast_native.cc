@@ -607,7 +607,7 @@ class ASTNativeCompiler : public Compiler {
   ExtractCategoricalCondition(const CategoricalConditionNode* node) {
     std::string result;
     std::vector<uint64_t> bitmap
-      = common_util::GetCategoricalBitmap(node->left_categories);
+      = common_util::GetCategoricalBitmap(node->matching_categories);
     CHECK_GE(bitmap.size(), 1);
     bool all_zeros = true;
     for (uint64_t e : bitmap) {
@@ -623,14 +623,19 @@ class ASTNativeCompiler : public Compiler {
           "((tmp = (data[{0}].missing == -1 ? 0U "
           ": (unsigned int)(data[{0}].fvalue) )), ", node->split_index);
       } else {
+        const std::string right_categories_flag = (node->categories_list_right_child ? "!" : "");
         if (node->default_left) {
           oss << fmt::format(
-            "data[{0}].missing == -1 || ("
-            "(tmp = (unsigned int)(data[{0}].fvalue) ), ", node->split_index);
+            "data[{split_index}].missing == -1 || {right_categories_flag}("
+            "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
+            "split_index"_a = node->split_index,
+            "right_categories_flag"_a = right_categories_flag);
         } else {
           oss << fmt::format(
-            "data[{0}].missing != -1 && ("
-            "(tmp = (unsigned int)(data[{0}].fvalue) ), ", node->split_index);
+            "data[{split_index}].missing != -1 && {right_categories_flag}("
+            "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
+            "split_index"_a = node->split_index,
+            "right_categories_flag"_a = right_categories_flag);
         }
       }
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"

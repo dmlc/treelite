@@ -35,6 +35,11 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param);
 // Transform the global bias parameter from probability into margin score
 void TransformGlobalBiasToMargin(const std::string& objective_name, ModelParam* param);
 
+enum FeatureType {
+  kNumerical = 0,
+  kCategorical = 1
+};
+
 }  // namespace xgboost
 }  // namespace details
 }  // namespace treelite

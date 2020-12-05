@@ -158,7 +158,7 @@ bool RegTreeHandler::StartArray() {
       push_key_handler<ArrayHandler<int>>("categories_sizes", categories_sizes) ||
       push_key_handler<ArrayHandler<int>>("categories_nodes", categories_nodes) ||
       push_key_handler<ArrayHandler<int>>("categories", categories) ||
-      push_key_handler<ArrayHandler<int>>("leaf_child_counts", leaf_child_counts) ||
+      push_key_handler<IgnoreHandler>("leaf_child_counts") ||
       push_key_handler<ArrayHandler<int>>("left_children", left_children) ||
       push_key_handler<ArrayHandler<int>>("right_children", right_children) ||
       push_key_handler<ArrayHandler<int>>("parents", parents) ||
@@ -177,19 +177,56 @@ bool RegTreeHandler::Uint(unsigned u) { return check_cur_key("id"); }
 bool RegTreeHandler::EndObject(std::size_t memberCount) {
   output.Init();
   if (split_type.empty()) {
-    CHECK(categories_segments.empty());
     split_type.resize(num_nodes, details::xgboost::FeatureType::kNumerical);
-    categories_segments.resize(num_nodes, 0);
   }
-  if (num_nodes != loss_changes.size() || num_nodes != sum_hessian.size() ||
-      num_nodes != base_weights.size() ||
-      num_nodes != leaf_child_counts.size() ||
-      num_nodes != left_children.size() ||
-      num_nodes != right_children.size() || num_nodes != parents.size() ||
-      num_nodes != split_indices.size() || num_nodes != split_type.size() ||
-      num_nodes != categories_segments.size() ||
-      num_nodes != split_conditions.size() ||
-      num_nodes != default_left.size()) {
+  if (num_nodes != loss_changes.size()) {
+    LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << loss_changes.size();
+    return false;
+  }
+  if (num_nodes != sum_hessian.size()) {
+    LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << sum_hessian.size();
+    return false;
+  }
+  if (num_nodes != base_weights.size()) {
+    LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << base_weights.size();
+    return false;
+  }
+  if (num_nodes != left_children.size()) {
+    LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << left_children.size();
+    return false;
+  }
+  if (num_nodes != right_children.size()) {
+    LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << right_children.size();
+    return false;
+  }
+  if (num_nodes != parents.size()) {
+    LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << parents.size();
+    return false;
+  }
+  if (num_nodes != split_indices.size()) {
+    LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_indices.size();
+    return false;
+  }
+  if (num_nodes != split_type.size()) {
+    LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_type.size();
+    return false;
+  }
+  if (num_nodes != split_conditions.size()) {
+    LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_conditions.size();
+    return false;
+  }
+  if (num_nodes != default_left.size()) {
+    LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << default_left.size();
     return false;
   }
 
@@ -338,6 +375,7 @@ bool XGBoostModelHandler::StartObject() {
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
+    LOG(ERROR) << "Expected two members in XGBoostModel";
     return false;
   }
   output.model->random_forest_flag = false;

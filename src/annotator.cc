@@ -42,7 +42,7 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
         result = (std::binary_search(matching_categories.begin(),
                                      matching_categories.end(),
                                      static_cast<uint32_t>(fvalue)));
-        if(tree.CategoriesListRightChild(nid)) {
+        if (tree.CategoriesListRightChild(nid)) {
           result = !result;
         }
       }

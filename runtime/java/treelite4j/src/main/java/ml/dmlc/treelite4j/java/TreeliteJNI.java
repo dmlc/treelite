@@ -67,7 +67,7 @@ class TreeliteJNI {
   public static native int TreelitePredictorQueryResultSize(
       long handle, long batch, long[] out);
 
-  public static native int TreelitePredictorQueryNumOutputGroup(
+  public static native int TreelitePredictorQueryNumClass(
       long handle, long[] out);
 
   public static native int TreelitePredictorQueryNumFeature(

@@ -38,7 +38,7 @@ public class PredictorTest {
   @Test
   public void testPredictorBasic() throws TreeliteError {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
-    TestCase.assertEquals(1, predictor.GetNumOutputGroup());
+    TestCase.assertEquals(1, predictor.GetNumClass());
     TestCase.assertEquals(127, predictor.GetNumFeature());
     TestCase.assertEquals("sigmoid", predictor.GetPredTransform());
     TestCase.assertEquals(1.0f, predictor.GetSigmoidAlpha());
@@ -95,7 +95,7 @@ public class PredictorTest {
     Predictor predictor = new Predictor(mushroomLibLocation, -1, true);
     Predictor predictor2 = (Predictor) fromByteArray(toByteArray(predictor));
     TestCase.assertEquals(predictor.GetNumFeature(), predictor2.GetNumFeature());
-    TestCase.assertEquals(predictor.GetNumOutputGroup(), predictor2.GetNumOutputGroup());
+    TestCase.assertEquals(predictor.GetNumClass(), predictor2.GetNumClass());
     TestCase.assertEquals(predictor.GetPredTransform(), predictor2.GetPredTransform());
     TestCase.assertEquals(predictor.GetSigmoidAlpha(), predictor2.GetSigmoidAlpha());
     TestCase.assertEquals(predictor.GetGlobalBias(), predictor2.GetGlobalBias());

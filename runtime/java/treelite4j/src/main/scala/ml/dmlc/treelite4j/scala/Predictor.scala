@@ -21,7 +21,7 @@ class Predictor private[treelite4j](private[treelite4j] val pred: JPredictor)
   def numFeature: Int = pred.GetNumFeature()
 
   @throws(classOf[TreeliteError])
-  def numOutputGroup: Int = pred.GetNumOutputGroup()
+  def numClass: Int = pred.GetNumClass()
 
   @throws(classOf[TreeliteError])
   def predTransform: String = pred.GetPredTransform()

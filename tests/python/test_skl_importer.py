@@ -50,7 +50,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
 
     model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
-    assert model.num_output_group == clf.n_classes_
+    assert model.num_class == clf.n_classes_
     assert (model.num_tree ==
             clf.n_estimators * (clf.n_classes_ if clazz == GradientBoostingClassifier else 1))
 
@@ -65,7 +65,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
     assert predictor.num_feature == clf.n_features_
-    assert predictor.num_output_group == clf.n_classes_
+    assert predictor.num_class == clf.n_classes_
     assert (predictor.pred_transform ==
             ('softmax' if clazz == GradientBoostingClassifier else 'identity_multiclass'))
     assert predictor.global_bias == 0.0
@@ -91,7 +91,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
 
     model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
 
     dtrain = treelite_runtime.DMatrix(X, dtype='float64')
@@ -105,7 +105,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
     assert predictor.num_feature == clf.n_features_
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert (predictor.pred_transform
             == ('sigmoid' if clazz == GradientBoostingClassifier else 'identity'))
     assert predictor.global_bias == 0.0
@@ -130,7 +130,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
 
     model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
 
     dtrain = treelite_runtime.DMatrix(X, dtype='float32')
@@ -144,7 +144,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
     assert predictor.num_feature == clf.n_features_
-    assert model.num_output_group == 1
+    assert model.num_class == 1
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.0
     assert predictor.sigmoid_alpha == 1.0

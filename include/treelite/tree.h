@@ -77,6 +77,12 @@ class ContiguousArray {
   bool owned_buffer_;
 };
 
+struct TaskParameter {
+  unsigned int num_class;
+};
+
+static_assert(std::is_pod<TaskParameter>::value, "TaskParameter must be POD type");
+
 /*! \brief in-memory representation of a decision tree */
 template <typename ThresholdType, typename LeafOutputType>
 class Tree {
@@ -519,12 +525,9 @@ class Model {
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
   int num_feature;
-  /*! \brief number of output groups -- for multi-class classification
-   *  Set to 1 for everything else */
-  int num_output_group;
-  /*! \brief flag for random forest;
-   *  True for random forests and False for gradient boosted trees */
-  bool random_forest_flag;
+  /*! \brief whether to average tree outputs */
+  bool average_tree_output;
+  TaskParameter task_param;
   /*! \brief extra parameters */
   ModelParam param;
 

@@ -10,8 +10,8 @@
 
 #include <dmlc/registry.h>
 #include <dmlc/io.h>
-#include <dmlc/memory_io.h>
 #include <fmt/format.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
 #include <treelite/tree.h>
@@ -23,7 +23,6 @@
 #include <iostream>
 #include <memory>
 #include <queue>
-#include <stack>
 #include <string>
 #include <utility>
 
@@ -31,8 +30,9 @@
 
 namespace {
 
-template <typename StreamType>
-std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream);
+template <typename StreamType, typename ErrorHandlerFunc>
+std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
+                                             ErrorHandlerFunc error_handler);
 
 }  // anonymous namespace
 
@@ -42,27 +42,62 @@ namespace frontend {
 DMLC_REGISTRY_FILE_TAG(xgboost_json);
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
-  char readBuffer[65536];
+  char read_buffer[65536];
 
 #ifdef _WIN32
-  FILE * fp = fopen(filename, "rb");
+  FILE* fp = std::fopen(filename, "rb");
 #else
-  FILE * fp = fopen(filename, "r");
+  FILE* fp = std::fopen(filename, "r");
 #endif
 
-  auto input_stream = std::make_unique<rapidjson::FileReadStream> (
-      fp,
-      readBuffer,
-      sizeof(readBuffer));
-  auto parsed_model = ParseStream(std::move(input_stream));
-  fclose(fp);
+  auto input_stream = std::make_unique<rapidjson::FileReadStream>(
+      fp, read_buffer, sizeof(read_buffer));
+  auto error_handler = [fp](size_t offset) -> std::string {
+    size_t cur = (offset >= 50 ? (offset - 50) : 0);
+    std::fseek(fp, cur, SEEK_SET);
+    int c;
+    std::ostringstream oss, oss2;
+    for (int i = 0; i < 100; ++i) {
+      c = std::fgetc(fp);
+      if (c == EOF) {
+        break;
+      }
+      oss << static_cast<char>(c);
+      if (cur == offset) {
+        oss2 << "^";
+      } else {
+        oss2 << "~";
+      }
+      ++cur;
+    }
+    std::fclose(fp);
+    return oss.str() + "\n" + oss2.str();
+  };
+  auto parsed_model = ParseStream(std::move(input_stream), error_handler);
+  std::fclose(fp);
   return parsed_model;
 }
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length) {
-  auto input_stream = std::make_unique<rapidjson::MemoryStream>(
-      json_str, length);
-  return ParseStream(std::move(input_stream));
+  auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
+  auto error_handler = [json_str](size_t offset) -> std::string {
+    size_t cur = (offset >= 50 ? (offset - 50) : 0);
+    std::ostringstream oss, oss2;
+    for (int i = 0; i < 100; ++i) {
+      if (!json_str[cur]) {
+        break;
+      }
+      oss << json_str[cur];
+      if (cur == offset) {
+        oss2 << "^";
+      } else {
+        oss2 << "~";
+      }
+      ++cur;
+    }
+    return oss.str() + "\n" + oss2.str();
+  };
+  return ParseStream(std::move(input_stream), error_handler);
 }
 
 }  // namespace frontend
@@ -363,17 +398,21 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 }  // namespace treelite
 
 namespace {
-template<typename StreamType>
-std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream) {
+template <typename StreamType, typename ErrorHandlerFunc>
+std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
+                                             ErrorHandlerFunc error_handler) {
   std::shared_ptr<treelite::details::DelegatedHandler> handler =
     treelite::details::DelegatedHandler::create();
   rapidjson::Reader reader;
 
   rapidjson::ParseResult result = reader.Parse(*input_stream, *handler);
   if (!result) {
-    LOG(ERROR) << "Parsing error " << result.Code() << " at offset "
-               << result.Offset();
-    LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model";
+    const auto error_code = result.Code();
+    const size_t offset = result.Offset();
+    std::string diagnostic = error_handler(offset);
+    LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. Parsing error at offset "
+               << offset << ": " << rapidjson::GetParseError_En(error_code) << "\n"
+               << diagnostic;
   }
   return handler->get_result();
 }

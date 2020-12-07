@@ -34,63 +34,6 @@ template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
                                              ErrorHandlerFunc error_handler);
 
-inline FILE* OpenFile(const char* filename) {
-#ifdef _WIN32
-  FILE* fp = std::fopen(filename, "rb");
-#else
-  FILE* fp = std::fopen(filename, "r");
-#endif
-  CHECK(fp) << "Failed to open file '" << filename << "': " << std::strerror(errno);
-  return fp;
-}
-
-class OwningFileReadStream {
- public:
-  explicit OwningFileReadStream(const char* filename)
-      : fp_(OpenFile(filename)), file_stream_(nullptr), read_buffer_("") {
-    file_stream_ = std::make_unique<rapidjson::FileReadStream>(
-        fp_, read_buffer_, sizeof(read_buffer_));
-  }
-  virtual ~OwningFileReadStream() {
-    if (fp_) {
-      LOG(INFO) << "Closing file";
-      std::fclose(fp_);
-    }
-  }
-
-  using Ch = rapidjson::FileReadStream::Ch;
-
-  Ch Peek() const {
-    return file_stream_->Peek();
-  }
-  Ch Take() {
-    return file_stream_->Take();
-  }
-  size_t Tell() const {
-    return file_stream_->Tell();
-  }
-  void Put(Ch c) {
-    file_stream_->Put(c);
-  }
-  void Flush() {
-    file_stream_->Flush();
-  }
-  Ch* PutBegin() {
-    return file_stream_->PutBegin();
-  }
-  size_t PutEnd(Ch* c) {
-    return file_stream_->PutEnd(c);
-  }
-  const Ch* Peek4() const {
-    return file_stream_->Peek4();
-  }
-
- private:
-  FILE* fp_;
-  std::unique_ptr<rapidjson::FileReadStream> file_stream_;
-  char read_buffer_[65536];
-};
-
 }  // anonymous namespace
 
 namespace treelite {
@@ -99,9 +42,17 @@ namespace frontend {
 DMLC_REGISTRY_FILE_TAG(xgboost_json);
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
-  auto input_stream = std::make_unique<OwningFileReadStream>(filename);
-  auto error_handler = [filename](size_t offset) -> std::string {
-    FILE* fp = OpenFile(filename);
+  char read_buffer[65536];
+
+#ifdef _WIN32
+  FILE* fp = std::fopen(filename, "rb");
+#else
+  FILE* fp = std::fopen(filename, "r");
+#endif
+
+  auto input_stream = std::make_unique<rapidjson::FileReadStream>(
+      fp, read_buffer, sizeof(read_buffer));
+  auto error_handler = [fp](size_t offset) -> std::string {
     size_t cur = (offset >= 50 ? (offset - 50) : 0);
     std::fseek(fp, cur, SEEK_SET);
     int c;
@@ -123,6 +74,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
     return oss.str() + "\n" + oss2.str();
   };
   auto parsed_model = ParseStream(std::move(input_stream), error_handler);
+  std::fclose(fp);
   return parsed_model;
 }
 
@@ -457,10 +409,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
   if (!result) {
     const auto error_code = result.Code();
     const size_t offset = result.Offset();
-    input_stream.reset();
-
     std::string diagnostic = error_handler(offset);
-
     LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. Parsing error at offset "
                << offset << ": " << rapidjson::GetParseError_En(error_code) << "\n"
                << diagnostic;

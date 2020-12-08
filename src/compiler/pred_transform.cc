@@ -106,7 +106,7 @@ std::string
 treelite::compiler::PredTransformFunction(const std::string& backend,
                                           const Model& model) {
   ModelParam param = model.param;
-  if (model.num_output_group > 1) {  // multi-class classification
+  if (model.task_param.num_class > 1) {  // multi-class classification
     auto it = pred_transform_multiclass_db.find(param.pred_transform);
     if (it == pred_transform_multiclass_db.end()) {
       std::ostringstream oss;

@@ -58,8 +58,8 @@ void Tree<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) c
 template <typename ThresholdType, typename LeafOutputType>
 void ModelImpl<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) const {
   fo->Write(num_feature);
-  fo->Write(num_output_group);
-  fo->Write(random_forest_flag);
+  fo->Write(task_param.num_class);
+  fo->Write(average_tree_output);
   fo->Write(&param, sizeof(param));
   uint64_t sz = static_cast<uint64_t>(trees.size());
   fo->Write(sz);

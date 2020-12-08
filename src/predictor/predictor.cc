@@ -202,31 +202,31 @@ template <typename ThresholdType, typename LeafOutputType>
 class PredFunctionInitDispatcher {
  public:
   inline static std::unique_ptr<PredFunction> Dispatch(
-      const SharedLibrary& library, int num_feature, int num_output_group) {
+      const SharedLibrary& library, int num_feature, int num_class) {
     return std::make_unique<PredFunctionImpl<ThresholdType, LeafOutputType>>(
-        library, num_feature, num_output_group);
+        library, num_feature, num_class);
   }
 };
 
 std::unique_ptr<PredFunction>
 PredFunction::Create(
     TypeInfo threshold_type, TypeInfo leaf_output_type, const SharedLibrary& library,
-    int num_feature, int num_output_group) {
+    int num_feature, int num_class) {
   return DispatchWithModelTypes<PredFunctionInitDispatcher>(
-      threshold_type, leaf_output_type, library, num_feature, num_output_group);
+      threshold_type, leaf_output_type, library, num_feature, num_class);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 PredFunctionImpl<ThresholdType, LeafOutputType>::PredFunctionImpl(
-    const SharedLibrary& library, int num_feature, int num_output_group) {
-  CHECK_GT(num_output_group, 0) << "num_output_group cannot be zero";
-  if (num_output_group > 1) {  // multi-class classification
+    const SharedLibrary& library, int num_feature, int num_class) {
+  CHECK_GT(num_class, 0) << "num_class cannot be zero";
+  if (num_class > 1) {  // multi-class classification
     handle_ = library.LoadFunction("predict_multiclass");
   } else {  // everything else
     handle_ = library.LoadFunction("predict");
   }
   num_feature_ = num_feature;
-  num_output_group_ = num_output_group;
+  num_class_ = num_class;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -255,15 +255,15 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
   // when pred_function is set to "max_index").
   CHECK(rbegin < rend && rend <= dmat->GetNumRow());
   size_t num_row = rend - rbegin;
-  if (num_output_group_ > 1) {  // multi-class classification
+  if (num_class_ > 1) {  // multi-class classification
     using PredFunc = size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
     CHECK(pred_func) << "The predict_multiclass() function has incorrect signature.";
     auto pred_func_wrapper
-      = [pred_func, num_output_group = num_output_group_, pred_margin]
+      = [pred_func, num_class = num_class_, pred_margin]
             (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
           return pred_func(inst, static_cast<int>(pred_margin),
-                           &out_pred[rid * num_output_group]);
+                           &out_pred[rid * num_class]);
         };
     result_size = PredLoop(dmat, static_cast<ThresholdType>(0), num_feature_, rbegin, rend,
                            static_cast<LeafOutputType*>(out_pred), pred_func_wrapper);
@@ -286,7 +286,7 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
 Predictor::Predictor(int num_worker_thread)
                        : pred_func_(nullptr),
                          thread_pool_handle_(nullptr),
-                         num_output_group_(0),
+                         num_class_(0),
                          num_feature_(0),
                          sigmoid_alpha_(std::numeric_limits<float>::quiet_NaN()),
                          global_bias_(std::numeric_limits<float>::quiet_NaN()),
@@ -308,9 +308,9 @@ Predictor::Load(const char* libpath) {
   using FloatQueryFunc = float (*)();
 
   /* 1. query # of output groups */
-  auto* num_output_group_query_func
-    = lib_.LoadFunctionWithSignature<UnsignedQueryFunc>("get_num_output_group");
-  num_output_group_ = num_output_group_query_func();
+  auto* num_class_query_func
+    = lib_.LoadFunctionWithSignature<UnsignedQueryFunc>("get_num_class");
+  num_class_ = num_class_query_func();
 
   /* 2. query # of features */
   auto* num_feature_query_func
@@ -341,10 +341,10 @@ Predictor::Load(const char* libpath) {
   leaf_output_type_ = typeinfo_table.at(leaf_output_type_query_func());
 
   /* 7. load appropriate function for margin prediction */
-  CHECK_GT(num_output_group_, 0) << "num_output_group cannot be zero";
+  CHECK_GT(num_class_, 0) << "num_class cannot be zero";
   pred_func_ = PredFunction::Create(
       threshold_type_, leaf_output_type_, lib_,
-      static_cast<int>(num_feature_), static_cast<int>(num_output_group_));
+      static_cast<int>(num_feature_), static_cast<int>(num_class_));
 
   if (num_worker_thread_ == -1) {
     num_worker_thread_ = static_cast<int>(std::thread::hardware_concurrency());
@@ -396,7 +396,7 @@ template <typename LeafOutputType>
 class ShrinkResultToFit {
  public:
   inline static void Dispatch(
-      size_t num_row, size_t query_size_per_instance, size_t num_output_group,
+      size_t num_row, size_t query_size_per_instance, size_t num_class,
       PredictorOutputHandle out_result);
 };
 
@@ -445,13 +445,13 @@ Predictor::PredictBatch(
   }
   // re-shape output if total_size < dimension of out_result
   if (total_size < QueryResultSize(dmat, 0, num_row)) {
-    CHECK_GT(num_output_group_, 1);
+    CHECK_GT(num_class_, 1);
     CHECK_EQ(total_size % num_row, 0);
     const size_t query_size_per_instance = total_size / num_row;
     CHECK_GT(query_size_per_instance, 0);
-    CHECK_LT(query_size_per_instance, num_output_group_);
+    CHECK_LT(query_size_per_instance, num_class_);
     DispatchWithTypeInfo<ShrinkResultToFit>(
-        leaf_output_type_, num_row, query_size_per_instance, num_output_group_, out_result);
+        leaf_output_type_, num_row, query_size_per_instance, num_class_, out_result);
   }
   const double tend = dmlc::GetTime();
   if (verbose > 0) {
@@ -474,12 +474,12 @@ Predictor::DeleteOutputVector(PredictorOutputHandle output_vector) const {
 template <typename LeafOutputType>
 void
 ShrinkResultToFit<LeafOutputType>::Dispatch(
-    size_t num_row, size_t query_size_per_instance, size_t num_output_group,
+    size_t num_row, size_t query_size_per_instance, size_t num_class,
     PredictorOutputHandle out_result) {
   auto* out_result_ = static_cast<LeafOutputType*>(out_result);
   for (size_t rid = 0; rid < num_row; ++rid) {
     for (size_t k = 0; k < query_size_per_instance; ++k) {
-      out_result_[rid * query_size_per_instance + k] = out_result_[rid * num_output_group + k];
+      out_result_[rid * query_size_per_instance + k] = out_result_[rid * num_class + k];
     }
   }
 }

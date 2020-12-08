@@ -196,10 +196,10 @@ int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_END();
 }
 
-int TreeliteQueryNumOutputGroups(ModelHandle handle, size_t* out) {
+int TreeliteQueryNumClass(ModelHandle handle, size_t* out) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(handle);
-  *out = static_cast<size_t>(model_->num_output_group);
+  *out = static_cast<size_t>(model_->task_param.num_class);
   API_END();
 }
 
@@ -319,11 +319,11 @@ int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle, int node_key,
 }
 
 int TreeliteCreateModelBuilder(
-    int num_feature, int num_output_group, int random_forest_flag, const char* threshold_type,
+    int num_feature, int num_class, int average_tree_output, const char* threshold_type,
     const char* leaf_output_type, ModelBuilderHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::ModelBuilder> builder{new frontend::ModelBuilder(
-      num_feature, num_output_group, (random_forest_flag != 0), typeinfo_table.at(threshold_type),
+      num_feature, num_class, (average_tree_output != 0), typeinfo_table.at(threshold_type),
       typeinfo_table.at(leaf_output_type))};
   *out = static_cast<ModelBuilderHandle>(builder.release());
   API_END();

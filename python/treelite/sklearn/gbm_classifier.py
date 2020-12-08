@@ -15,11 +15,11 @@ class SKLGBMClassifierMixin:
             raise treelite.TreeliteError("Gradient boosted trees must be trained with "
                                          "the option init='zero'")
         # Initialize Treelite model builder
-        # Set random_forest=False for gradient boosted trees
+        # Set average_tree_output=False for gradient boosted trees
         # Set pred_transform='sigmoid' to obtain probability predictions
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, random_forest=False, pred_transform='sigmoid',
-            threshold_type='float64', leaf_output_type='float64')
+            num_feature=sklearn_model.n_features_, average_tree_output=False,
+            pred_transform='sigmoid', threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder
             builder.append(cls.process_tree(sklearn_model.estimators_[i][0].tree_,

@@ -383,8 +383,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
   auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
   model->num_feature = static_cast<int>(mparam_.num_feature);
-  model->num_output_group = std::max(mparam_.num_class, 1);
-  model->random_forest_flag = false;
+  model->task_param.num_class = std::max(mparam_.num_class, 1);
+  model->average_tree_output = false;
 
   // set correct prediction transform function, depending on objective function
   treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);

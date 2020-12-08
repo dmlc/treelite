@@ -118,14 +118,14 @@ TREELITE_DLL int TreeliteDeletePredictorOutputVector(
 TREELITE_DLL int TreelitePredictorQueryResultSize(
     PredictorHandle handle, DMatrixHandle batch, size_t* out);
 /*!
- * \brief Get the number of output groups in the loaded model
+ * \brief Get the number classes in the loaded model
  * The number is 1 for most tasks;
- * it is greater than 1 for multiclass classifcation.
+ * it is greater than 1 for multiclass classification.
  * \param handle predictor
  * \param out length of prediction array
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreelitePredictorQueryNumOutputGroup(PredictorHandle handle, size_t* out);
+TREELITE_DLL int TreelitePredictorQueryNumClass(PredictorHandle handle, size_t* out);
 /*!
  * \brief Get the width (number of features) of each instance used to train
  *        the loaded model

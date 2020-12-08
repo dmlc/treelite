@@ -308,9 +308,9 @@ bool LearnerParamHandler::String(const char *str,
                                  bool copy) {
   return (assign_value("base_score", strtof(str, nullptr),
                        output.param.global_bias) ||
-          assign_value("num_class", static_cast<int>(std::max(atoi(str), 1)),
-                       output.num_output_group) ||
-          assign_value("num_feature", atoi(str), output.num_feature));
+          assign_value("num_class", static_cast<unsigned int>(std::max(std::atoi(str), 1)),
+                       output.task_param.num_class) ||
+          assign_value("num_feature", std::atoi(str), output.num_feature));
 }
 
 /******************************************************************************
@@ -348,7 +348,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
     return false;
   }
-  output.model->random_forest_flag = false;
+  output.model->average_tree_output = false;
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   const bool need_transform_to_margin = (version[0] >= 1);

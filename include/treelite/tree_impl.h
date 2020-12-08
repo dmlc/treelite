@@ -667,8 +667,8 @@ inline void
 ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
   /* Header */
   dest->push_back(GetPyBufferFromScalar(&num_feature));
-  dest->push_back(GetPyBufferFromScalar(&num_output_group));
-  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
+  dest->push_back(GetPyBufferFromScalar(&average_tree_output));
+  dest->push_back(GetPyBufferFromScalar(&task_param, "T{=I}"));
   dest->push_back(GetPyBufferFromScalar(
       &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
 
@@ -689,8 +689,8 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     throw std::runtime_error("Wrong number of frames");
   }
   InitScalarFromPyBuffer(&num_feature, *begin++);
-  InitScalarFromPyBuffer(&num_output_group, *begin++);
-  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
+  InitScalarFromPyBuffer(&average_tree_output, *begin++);
+  InitScalarFromPyBuffer(&task_param, *begin++);
   InitScalarFromPyBuffer(&param, *begin++);
   /* Body */
   if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {

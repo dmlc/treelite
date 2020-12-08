@@ -49,7 +49,7 @@ class PredFunction {
  public:
   static std::unique_ptr<PredFunction> Create(TypeInfo threshold_type, TypeInfo leaf_output_type,
                                               const SharedLibrary& library, int num_feature,
-                                              int num_output_group);
+                                              int num_class);
   PredFunction() = default;
   virtual ~PredFunction() = default;
   virtual TypeInfo GetThresholdType() const = 0;
@@ -62,7 +62,7 @@ template<typename ThresholdType, typename LeafOutputType>
 class PredFunctionImpl : public PredFunction {
  public:
   using PredFuncHandle = void*;
-  PredFunctionImpl(const SharedLibrary& library, int num_feature, int num_output_group);
+  PredFunctionImpl(const SharedLibrary& library, int num_feature, int num_class);
   TypeInfo GetThresholdType() const override;
   TypeInfo GetLeafOutputType() const override;
   size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
@@ -71,7 +71,7 @@ class PredFunctionImpl : public PredFunction {
  private:
   PredFuncHandle handle_;
   int num_feature_;
-  int num_output_group_;
+  int num_class_;
 };
 
 /*! \brief predictor class: wrapper for optimized prediction code */
@@ -113,7 +113,7 @@ class Predictor {
    */
   inline size_t QueryResultSize(const DMatrix* dmat) const {
     CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
-    return dmat->GetNumRow() * num_output_group_;
+    return dmat->GetNumRow() * num_class_;
   }
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
@@ -126,16 +126,16 @@ class Predictor {
   inline size_t QueryResultSize(const DMatrix* dmat, size_t rbegin, size_t rend) const {
     CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
     CHECK(rbegin < rend && rend <= dmat->GetNumRow());
-    return (rend - rbegin) * num_output_group_;
+    return (rend - rbegin) * num_class_;
   }
   /*!
-   * \brief Get the number of output groups in the loaded model
+   * \brief Get the number of classes in the loaded model
    * The number is 1 for most tasks;
-   * it is greater than 1 for multiclass classifcation.
+   * it is greater than 1 for multiclass classification.
    * \return length of prediction array
    */
-  inline size_t QueryNumOutputGroup() const {
-    return num_output_group_;
+  inline size_t QueryNumClass() const {
+    return num_class_;
   }
   /*!
    * \brief Get the width (number of features) of each instance used to train
@@ -196,7 +196,7 @@ class Predictor {
   SharedLibrary lib_;
   std::unique_ptr<PredFunction> pred_func_;
   ThreadPoolHandle thread_pool_handle_;
-  size_t num_output_group_;
+  size_t num_class_;
   size_t num_feature_;
   std::string pred_transform_;
   float sigmoid_alpha_;

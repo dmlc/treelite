@@ -10,10 +10,10 @@ class SKLRFMultiClassifierMixin:
     def process_model(cls, sklearn_model):
         """Process a RandomForestClassifier (multi-class classifier) to convert it into a
            Treelite model"""
-        # Must specify num_output_group and pred_transform
+        # Must specify num_class and pred_transform
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, num_output_group=sklearn_model.n_classes_,
-            random_forest=True, pred_transform='identity_multiclass',
+            num_feature=sklearn_model.n_features_, num_class=sklearn_model.n_classes_,
+            average_tree_output=True, pred_transform='identity_multiclass',
             threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder

@@ -203,7 +203,7 @@ class ASTNativeCompiler : public Compiler {
       = (task_param_.num_class > 1) ?
           fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
                       leaf_output_type)
-                         : fmt::format("{} predict(union Entry* data, int pred_margin)",
+        : fmt::format("{} predict(union Entry* data, int pred_margin)",
                       leaf_output_type);
 
     if (!array_is_categorical_.empty()) {
@@ -401,7 +401,7 @@ class ASTNativeCompiler : public Compiler {
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], new_file, 2);
     if (task_param_.num_class > 1) {
       AppendToBuffer(new_file,
-                     fmt::format("  for (int i = 0; i < {num_class}; ++i) {{\n"
+        fmt::format("  for (int i = 0; i < {num_class}; ++i) {{\n"
                     "    result[i] += sum[i];\n"
                     "  }}\n"
                     "}}\n",

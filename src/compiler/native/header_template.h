@@ -14,7 +14,7 @@ namespace native {
 
 const char* const query_functions_prototype_template =
 R"TREELITETEMPLATE(
-{dllexport}size_t get_num_output_group(void);
+{dllexport}size_t get_num_class(void);
 {dllexport}size_t get_num_feature(void);
 {dllexport}const char* get_pred_transform(void);
 {dllexport}float get_sigmoid_alpha(void);

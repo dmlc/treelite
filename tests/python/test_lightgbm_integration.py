@@ -54,8 +54,9 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
 
 @pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+@pytest.mark.parametrize('boosting_type', ['gbdt', 'rf'])
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
-def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
+def test_lightgbm_multiclass_classification(tmpdir, objective, boosting_type, toolchain):
     # pylint: disable=too-many-locals
     """Test a multi-class classifier"""
     model_path = os.path.join(tmpdir, 'iris_lightgbm.txt')
@@ -67,8 +68,10 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, toolchain):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = lightgbm.Dataset(X_train, y_train, free_raw_data=False)
     dtest = lightgbm.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
-    param = {'task': 'train', 'boosting_type': 'gbdt', 'objective': objective,
+    param = {'task': 'train', 'boosting': boosting_type, 'objective': objective,
              'metric': 'multi_logloss', 'num_class': 3, 'num_leaves': 31, 'learning_rate': 0.05}
+    if boosting_type == 'rf':
+        param.update({'bagging_fraction': 0.8, 'bagging_freq': 1})
     bst = lightgbm.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
                          valid_names=['train', 'test'])
     bst.save_model(model_path)

@@ -16,12 +16,12 @@ class SKLGBMMultiClassifierMixin:
             raise treelite.TreeliteError("Gradient boosted trees must be trained with "
                                          "the option init='zero'")
         # Initialize Treelite model builder
-        # Set random_forest=False for gradient boosted trees
-        # Set num_output_group for multi-class classification
+        # Set average_tree_output=False for gradient boosted trees
+        # Set num_class for multi-class classification
         # Set pred_transform='softmax' to obtain probability predictions
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, num_output_group=sklearn_model.n_classes_,
-            random_forest=False, pred_transform='softmax',
+            num_feature=sklearn_model.n_features_, num_class=sklearn_model.n_classes_,
+            average_tree_output=False, pred_transform='softmax',
             threshold_type='float64', leaf_output_type='float64')
         # Process [number of iterations] * [number of classes] trees
         for i in range(sklearn_model.n_estimators):

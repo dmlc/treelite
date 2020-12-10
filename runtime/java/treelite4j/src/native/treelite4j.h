@@ -114,10 +114,10 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredicto
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
- * Method:    TreelitePredictorQueryNumOutputGroup
+ * Method:    TreelitePredictorQueryNumClass
  * Signature: (J[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumOutputGroup
+JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumClass
   (JNIEnv *, jclass, jlong, jlongArray);
 
 /*

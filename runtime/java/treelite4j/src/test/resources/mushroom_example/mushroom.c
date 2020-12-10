@@ -9,7 +9,7 @@ union Entry {
   int qvalue;
 };
 
-size_t get_num_output_group(void) {
+size_t get_num_class(void) {
   return 1;
 }
 

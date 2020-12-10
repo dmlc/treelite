@@ -76,18 +76,18 @@ struct TreeBuilderImpl {
 struct ModelBuilderImpl {
   std::vector<TreeBuilder> trees;
   int num_feature;
-  int num_output_group;
-  bool random_forest_flag;
+  int num_class;
+  bool average_tree_output;
   TypeInfo threshold_type;
   TypeInfo leaf_output_type;
   std::vector<std::pair<std::string, std::string>> cfg;
-  inline ModelBuilderImpl(int num_feature, int num_output_group, bool random_forest_flag,
+  inline ModelBuilderImpl(int num_feature, int num_class, bool average_tree_output,
                           TypeInfo threshold_type, TypeInfo leaf_output_type)
-    : trees(), num_feature(num_feature), num_output_group(num_output_group),
-      random_forest_flag(random_forest_flag), threshold_type(threshold_type),
+    : trees(), num_feature(num_feature), num_class(num_class),
+      average_tree_output(average_tree_output), threshold_type(threshold_type),
       leaf_output_type(leaf_output_type), cfg() {
     CHECK_GT(num_feature, 0) << "ModelBuilder: num_feature must be positive";
-    CHECK_GT(num_output_group, 0) << "ModelBuilder: num_output_group must be positive";
+    CHECK_GT(num_class, 0) << "ModelBuilder: num_class must be positive";
     CHECK(threshold_type != TypeInfo::kInvalid)
       << "ModelBuilder: threshold_type can't be invalid";
     CHECK(leaf_output_type != TypeInfo::kInvalid)
@@ -327,9 +327,9 @@ TreeBuilder::SetLeafVectorNode(int node_key, const std::vector<Value>& leaf_vect
   node->leaf_vector = leaf_vector;
 }
 
-ModelBuilder::ModelBuilder(int num_feature, int num_output_group, bool random_forest_flag,
+ModelBuilder::ModelBuilder(int num_feature, int num_class, bool average_tree_output,
                            TypeInfo threshold_type, TypeInfo leaf_output_type)
-  : pimpl_(new ModelBuilderImpl(num_feature, num_output_group, random_forest_flag,
+  : pimpl_(new ModelBuilderImpl(num_feature, num_class, average_tree_output,
                                 threshold_type, leaf_output_type)) {}
 ModelBuilder::~ModelBuilder() = default;
 
@@ -429,8 +429,9 @@ void
 ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_model) {
   ModelImpl<ThresholdType, LeafOutputType>& model = *out_model;
   model.num_feature = this->num_feature;
-  model.num_output_group = this->num_output_group;
-  model.random_forest_flag = this->random_forest_flag;
+  model.average_tree_output = this->average_tree_output;
+  model.task_param.output_type = TaskParameter::OutputType::kFloat;
+  model.task_param.num_class = this->num_class;
   // extra parameters
   InitParamAndCheck(&model.param, this->cfg);
 
@@ -493,7 +494,7 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
             << "CommitModel: Inconsistent use of leaf vector: if one leaf node uses a leaf vector, "
             << "*every* leaf node must use a leaf vector";
           flag_leaf_vector = 1;  // now every leaf must use leaf vector
-          CHECK_EQ(node->leaf_vector.size(), model.num_output_group)
+          CHECK_EQ(node->leaf_vector.size(), model.task_param.num_class)
             << "CommitModel: The length of leaf vector must be identical to the number of output "
             << "groups";
           SetLeafVector(&tree, nid, node->leaf_vector);
@@ -513,20 +514,25 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
     }
   }
   if (flag_leaf_vector == 0) {
-    if (model.num_output_group > 1) {
-      // multi-class classification with gradient boosted trees
-      CHECK(!model.random_forest_flag)
-        << "To use a random forest for multi-class classification, each leaf node must output a "
-        << "leaf vector specifying a probability distribution";
-      CHECK_EQ(this->trees.size() % model.num_output_group, 0)
+    model.task_param.leaf_vector_size = 1;
+    if (model.task_param.num_class > 1) {
+      // multi-class classifier, XGBoost/LightGBM style
+      model.task_type = TaskType::kMultiClfGrovePerClass;
+      model.task_param.grove_per_class = true;
+      CHECK_EQ(this->trees.size() % model.task_param.num_class, 0)
         << "For multi-class classifiers with gradient boosted trees, the number of trees must be "
         << "evenly divisible by the number of output groups";
+    } else {
+      // binary classifier or regressor
+      model.task_type = TaskType::kBinaryClfRegr;
+      model.task_param.grove_per_class = false;
     }
   } else if (flag_leaf_vector == 1) {
-    // multi-class classification with a random forest
-    CHECK(model.random_forest_flag)
-      << "In multi-class classifiers with gradient boosted trees, each leaf node must output a "
-      << "single floating-point value.";
+    // multi-class classifier, sklearn RF style
+    model.task_type = TaskType::kMultiClfProbDistLeaf;
+    model.task_param.grove_per_class = false;
+    CHECK_GT(model.task_param.num_class, 1) << "Expected leaf vectors with length exceeding 1";
+    model.task_param.leaf_vector_size = model.task_param.num_class;
   } else {
     LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }

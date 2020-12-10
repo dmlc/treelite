@@ -18,7 +18,7 @@ class PredictorTest extends FunSuite with Matchers {
 
   test("Basic") {
     val predictor = Predictor(mushroomLibLocation)
-    predictor.numOutputGroup shouldEqual 1
+    predictor.numClass shouldEqual 1
     predictor.numFeature shouldEqual 127
     predictor.predTransform shouldEqual "sigmoid"
     predictor.sigmoidAlpha shouldEqual 1.0f

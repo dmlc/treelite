@@ -339,6 +339,11 @@ inline PyBufferFrame GetPyBufferFromScalar(TypeInfo* scalar) {
   return GetPyBufferFromScalar(reinterpret_cast<T*>(scalar), InferFormatString<T>());
 }
 
+inline PyBufferFrame GetPyBufferFromScalar(TaskType* scalar) {
+  using T = std::underlying_type<TaskType>::type;
+  return GetPyBufferFromScalar(reinterpret_cast<T*>(scalar), InferFormatString<T>());
+}
+
 template <typename T>
 inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
   static_assert(std::is_arithmetic<T>::value,
@@ -365,6 +370,18 @@ inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TypeInfo>(*t);
+}
+
+inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
+  using T = std::underlying_type<TaskType>::type;
+  if (sizeof(T) != buffer.itemsize) {
+    throw std::runtime_error("Incorrect itemsize");
+  }
+  if (buffer.nitem != 1) {
+    throw std::runtime_error("nitem must be 1 for a scalar");
+  }
+  T* t = static_cast<T*>(buffer.buf);
+  *scalar = static_cast<TaskType>(*t);
 }
 
 template <typename T>
@@ -670,8 +687,9 @@ inline void
 ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
   /* Header */
   dest->push_back(GetPyBufferFromScalar(&num_feature));
-  dest->push_back(GetPyBufferFromScalar(&num_output_group));
-  dest->push_back(GetPyBufferFromScalar(&random_forest_flag));
+  dest->push_back(GetPyBufferFromScalar(&task_type));
+  dest->push_back(GetPyBufferFromScalar(&average_tree_output));
+  dest->push_back(GetPyBufferFromScalar(&task_param, "T{=B=?xx=I=I}"));
   dest->push_back(GetPyBufferFromScalar(
       &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
 
@@ -687,13 +705,14 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
   const size_t num_frame = std::distance(begin, end);
   /* Header */
-  constexpr size_t kNumFrameInHeader = 4;
+  constexpr size_t kNumFrameInHeader = 5;
   if (num_frame < kNumFrameInHeader) {
     throw std::runtime_error("Wrong number of frames");
   }
   InitScalarFromPyBuffer(&num_feature, *begin++);
-  InitScalarFromPyBuffer(&num_output_group, *begin++);
-  InitScalarFromPyBuffer(&random_forest_flag, *begin++);
+  InitScalarFromPyBuffer(&task_type, *begin++);
+  InitScalarFromPyBuffer(&average_tree_output, *begin++);
+  InitScalarFromPyBuffer(&task_param, *begin++);
   InitScalarFromPyBuffer(&param, *begin++);
   /* Body */
   if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {

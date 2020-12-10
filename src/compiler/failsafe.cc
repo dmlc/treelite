@@ -101,13 +101,13 @@ const char* const main_template = R"TREELITETEMPLATE(
 
 const char* const return_multiclass_template =
 R"TREELITETEMPLATE(
-  for (int i = 0; i < {num_output_group}; ++i) {{
+  for (int i = 0; i < {num_class}; ++i) {{
     result[i] = sum[i] + (float)({global_bias});
   }}
   if (!pred_margin) {{
     return pred_transform(result);
   }} else {{
-    return {num_output_group};
+    return {num_class};
   }}
 )TREELITETEMPLATE";  // only for multiclass classification
 
@@ -269,35 +269,39 @@ class FailSafeCompiler : public Compiler {
     cm.backend = "native";
 
     num_feature_ = model.num_feature;
-    num_output_group_ = model.num_output_group;
-    CHECK(!model.random_forest_flag)
-      << "Only gradient boosted trees supported in FailSafeCompiler";
+    num_class_ = model.task_param.num_class;
+    CHECK(!model.average_tree_output)
+      << "Averaging tree output is not supported in FailSafeCompiler";
+    CHECK(model.task_type == TaskType::kBinaryClfRegr
+          || model.task_type == TaskType::kMultiClfGrovePerClass)
+      << "Model task type unsupported by FailSafeCompiler";
+    CHECK_EQ(model.task_param.leaf_vector_size, 1)
+      << "Model with leaf vectors is not support by FailSafeCompiler";
     pred_tranform_func_ = PredTransformFunction("native", model_ptr);
     files_.clear();
 
     const char* predict_function_signature
-      = (num_output_group_ > 1) ?
-          "size_t predict_multiclass(union Entry* data, int pred_margin, "
-                                    "float* result)"
-        : "float predict(union Entry* data, int pred_margin)";
+      = (num_class_ > 1) ?
+           "size_t predict_multiclass(union Entry* data, int pred_margin, float* result)"
+         : "float predict(union Entry* data, int pred_margin)";
 
     std::ostringstream main_program;
     std::string accumulator_definition
-      = (num_output_group_ > 1
-         ? fmt::format("float sum[{num_output_group}] = {{0.0f}}",
-             "num_output_group"_a = num_output_group_)
+      = (num_class_ > 1
+         ? fmt::format("float sum[{num_class}] = {{0.0f}}",
+             "num_class"_a = num_class_)
          : std::string("float sum = 0.0f"));
 
     std::string output_statement
-      = (num_output_group_ > 1
-         ? fmt::format("sum[tree_id % {num_output_group}] += tree[nid].info.leaf_value;",
-             "num_output_group"_a = num_output_group_)
+      = (num_class_ > 1
+         ? fmt::format("sum[tree_id % {num_class}] += tree[nid].info.leaf_value;",
+             "num_class"_a = num_class_)
          : std::string("sum += tree[nid].info.leaf_value;"));
 
     std::string return_statement
-      = (num_output_group_ > 1
+      = (num_class_ > 1
          ? fmt::format(return_multiclass_template,
-             "num_output_group"_a = num_output_group_,
+             "num_class"_a = num_class_,
              "global_bias"_a
                 = compiler::common_util::ToStringHighPrecision(model.param.global_bias))
          : fmt::format(return_template,
@@ -318,7 +322,7 @@ class FailSafeCompiler : public Compiler {
     const ModelParam model_param = model.param;
     const std::string query_functions_definition
       = fmt::format(native::query_functions_definition_template,
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = num_class_,
           "num_feature"_a = num_feature_,
           "pred_transform"_a = model_param.pred_transform,
           "sigmoid_alpha"_a = model_param.sigmoid_alpha,
@@ -387,7 +391,7 @@ class FailSafeCompiler : public Compiler {
  private:
   CompilerParam param;
   int num_feature_;
-  int num_output_group_;
+  unsigned int num_class_;
   std::string pred_tranform_func_;
   std::unordered_map<std::string, CompiledModel::FileEntry> files_;
 };

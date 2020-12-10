@@ -55,8 +55,14 @@ class ASTNativeCompiler : public Compiler {
     CompiledModel cm;
     cm.backend = "native";
 
+    CHECK(model.task_type != TaskType::kMultiClfCategLeaf)
+      << "Model task type unsupported by ASTNativeCompiler";
+    CHECK(model.task_param.output_type == TaskParameter::OutputType::kFloat)
+      << "ASTNativeCompiler only supports models with float output";
+
     num_feature_ = model.num_feature;
-    num_output_group_ = model.num_output_group;
+    task_type_ = model.task_type;
+    task_param_ = model.task_param;
     pred_transform_ = model.param.pred_transform;
     sigmoid_alpha_ = model.param.sigmoid_alpha;
     global_bias_ = model.param.global_bias;
@@ -131,7 +137,8 @@ class ASTNativeCompiler : public Compiler {
  private:
   CompilerParam param;
   int num_feature_;
-  int num_output_group_;
+  TaskType task_type_;
+  TaskParameter task_param_;
   std::string pred_transform_;
   float sigmoid_alpha_;
   float global_bias_;
@@ -193,7 +200,7 @@ class ASTNativeCompiler : public Compiler {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     const std::string predict_function_signature
-      = (num_output_group_ > 1) ?
+      = (task_param_.num_class > 1) ?
           fmt::format("size_t predict_multiclass(union Entry* data, int pred_margin, {}* result)",
                       leaf_output_type)
         : fmt::format("{} predict(union Entry* data, int pred_margin)",
@@ -207,7 +214,7 @@ class ASTNativeCompiler : public Compiler {
 
     const std::string query_functions_definition
       = fmt::format(native::query_functions_definition_template,
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = task_param_.num_class,
           "num_feature"_a = num_feature_,
           "pred_transform"_a = pred_transform_,
           "sigmoid_alpha"_a = sigmoid_alpha_,
@@ -237,12 +244,28 @@ class ASTNativeCompiler : public Compiler {
     CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent + 2);
 
-    const std::string optional_average_field
-      = (node->average_result) ? fmt::format(" / {}", node->num_tree) : std::string("");
-    if (num_output_group_ > 1) {
+    std::string optional_average_field;
+    if (node->average_result) {
+      if (task_type_ == TaskType::kMultiClfGrovePerClass) {
+        CHECK(task_param_.grove_per_class);
+        CHECK_EQ(task_param_.leaf_vector_size, 1);
+        CHECK_GT(task_param_.num_class, 1);
+        CHECK_EQ(node->num_tree % task_param_.num_class, 0)
+          << "Expected the number of trees to be divisible by the number of classes";
+        int num_boosting_round = node->num_tree / static_cast<int>(task_param_.num_class);
+        optional_average_field = fmt::format(" / {}", num_boosting_round);
+      } else {
+        CHECK(task_type_ == TaskType::kBinaryClfRegr
+              || task_type_ == TaskType::kMultiClfProbDistLeaf);
+        CHECK_EQ(task_param_.num_class, task_param_.leaf_vector_size);
+        CHECK(!task_param_.grove_per_class);
+        optional_average_field = fmt::format(" / {}", node->num_tree);
+      }
+    }
+    if (task_param_.num_class > 1) {
       AppendToBuffer(dest,
         fmt::format(native::main_end_multiclass_template,
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = task_param_.num_class,
           "optional_average_field"_a = optional_average_field,
           "global_bias"_a = common_util::ToStringHighPrecision(node->global_bias),
           "leaf_output_type"_a = leaf_output_type),
@@ -263,12 +286,12 @@ class ASTNativeCompiler : public Compiler {
                     size_t indent) {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
-    if (num_output_group_ > 1) {
+    if (task_param_.num_class > 1) {
       AppendToBuffer(dest,
-        fmt::format("{leaf_output_type} sum[{num_output_group}] = {{0}};\n"
+        fmt::format("{leaf_output_type} sum[{num_class}] = {{0}};\n"
                     "unsigned int tmp;\n"
                     "int nid, cond, fid;  /* used for folded subtrees */\n",
-          "num_output_group"_a = num_output_group_,
+          "num_class"_a = task_param_.num_class,
           "leaf_output_type"_a = leaf_output_type), indent);
     } else {
       AppendToBuffer(dest,
@@ -351,7 +374,7 @@ class ASTNativeCompiler : public Compiler {
 
     std::string unit_function_name, unit_function_signature,
                 unit_function_call_signature;
-    if (num_output_group_ > 1) {
+    if (task_param_.num_class > 1) {
       unit_function_name
         = fmt::format("predict_margin_multiclass_unit{}", unit_id);
       unit_function_signature
@@ -376,13 +399,13 @@ class ASTNativeCompiler : public Compiler {
                                "{} {{\n", unit_function_signature), 0);
     CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], new_file, 2);
-    if (num_output_group_ > 1) {
+    if (task_param_.num_class > 1) {
       AppendToBuffer(new_file,
-        fmt::format("  for (int i = 0; i < {num_output_group}; ++i) {{\n"
+        fmt::format("  for (int i = 0; i < {num_class}; ++i) {{\n"
                     "    result[i] += sum[i];\n"
                     "  }}\n"
                     "}}\n",
-          "num_output_group"_a = num_output_group_), 0);
+          "num_class"_a = task_param_.num_class), 0);
     } else {
       AppendToBuffer(new_file, "  return sum;\n}\n", 0);
     }
@@ -666,12 +689,12 @@ class ASTNativeCompiler : public Compiler {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     std::string output_statement;
-    if (num_output_group_ > 1) {
+    if (task_param_.num_class > 1) {
       if (node->is_vector) {
         // multi-class classification with random forest
-        CHECK_EQ(node->vector.size(), static_cast<size_t>(num_output_group_))
-          << "Ill-formed model: leaf vector must be of length [num_output_group]";
-        for (int group_id = 0; group_id < num_output_group_; ++group_id) {
+        CHECK_EQ(node->vector.size(), static_cast<size_t>(task_param_.num_class))
+          << "Ill-formed model: leaf vector must be of length [num_class]";
+        for (int group_id = 0; group_id < task_param_.num_class; ++group_id) {
           output_statement
             += fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
                  "group_id"_a = group_id,
@@ -682,7 +705,7 @@ class ASTNativeCompiler : public Compiler {
         // multi-class classification with gradient boosted trees
         output_statement
           = fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
-              "group_id"_a = node->tree_id % num_output_group_,
+              "group_id"_a = node->tree_id % task_param_.num_class,
               "output"_a = common_util::ToStringHighPrecision(node->scalar),
               "leaf_output_type"_a = leaf_output_type);
       }

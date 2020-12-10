@@ -15,13 +15,12 @@ template <typename ThresholdType, typename LeafOutputType>
 void
 ASTBuilder<ThresholdType, LeafOutputType>::BuildAST(
     const ModelImpl<ThresholdType, LeafOutputType>& model) {
-  this->output_vector_flag = (model.num_output_group > 1 && model.random_forest_flag);
+  this->output_vector_flag = (model.task_param.leaf_vector_size > 1);
   this->num_feature = model.num_feature;
-  this->num_output_group = model.num_output_group;
-  this->random_forest_flag = model.random_forest_flag;
+  this->average_output_flag = model.average_tree_output;
 
   this->main_node = AddNode<MainNode>(nullptr, model.param.global_bias,
-                                               model.random_forest_flag,
+                                               model.average_tree_output,
                                                static_cast<int>(model.trees.size()),
                                                model.num_feature);
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);

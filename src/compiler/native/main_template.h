@@ -14,8 +14,8 @@ namespace native {
 
 const char* const query_functions_definition_template =
 R"TREELITETEMPLATE(
-size_t get_num_output_group(void) {{
-  return {num_output_group};
+size_t get_num_class(void) {{
+  return {num_class};
 }}
 
 size_t get_num_feature(void) {{
@@ -57,13 +57,13 @@ R"TREELITETEMPLATE(
 
 const char* const main_end_multiclass_template =
 R"TREELITETEMPLATE(
-  for (int i = 0; i < {num_output_group}; ++i) {{
+  for (int i = 0; i < {num_class}; ++i) {{
     result[i] = sum[i]{optional_average_field} + ({leaf_output_type})({global_bias});
   }}
   if (!pred_margin) {{
     return pred_transform(result);
   }} else {{
-    return {num_output_group};
+    return {num_class};
   }}
 }}
 )TREELITETEMPLATE";  // only for multiclass classification

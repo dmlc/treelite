@@ -24,10 +24,10 @@ Once the compiled model is loaded, we can query it:
   // Get the input dimension, i.e. the number of feature values in the input vector
   int num_feature = predictor.GetNumFeature();
 
-  // Get the size of output per input
+  // Get the number of classes.
   // This number is 1 for tasks other than multi-class classification.
   // For multi-class classification task, the number is equal to the number of classes.
-  int num_output_group = predictor.GetNumOutputGroup();
+  int num_class = predictor.GetNumClass();
 
 Predict with a single input (instance)
 --------------------------------------

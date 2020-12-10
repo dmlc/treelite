@@ -481,7 +481,8 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
     treelite::details::DelegatedHandler::create();
   rapidjson::Reader reader;
 
-  rapidjson::ParseResult result = reader.Parse(*input_stream, *handler);
+  rapidjson::ParseResult result
+    = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
   if (!result) {
     const auto error_code = result.Code();
     const size_t offset = result.Offset();

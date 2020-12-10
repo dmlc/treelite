@@ -90,7 +90,6 @@ class ASTBuilder {
   bool output_vector_flag;
   bool quantize_threshold_flag;
   int num_feature;
-  int num_class;
   bool average_output_flag;
   ASTNode* main_node;
   std::vector<bool> is_categorical;

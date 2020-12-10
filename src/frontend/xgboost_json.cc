@@ -349,6 +349,17 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
     return false;
   }
   output.model->average_tree_output = false;
+  output.model->task_param.output_type = TaskParameter::OutputType::kFloat;
+  output.model->task_param.leaf_vector_size = 1;
+  if (output.model->task_param.num_class > 1) {
+    // multi-class classifier
+    output.model->task_type = TaskType::kMultiClfGrovePerClass;
+    output.model->task_param.grove_per_class = true;
+  } else {
+    // binary classifier or regressor
+    output.model->task_type = TaskType::kBinaryClfRegr;
+    output.model->task_param.grove_per_class = false;
+  }
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   const bool need_transform_to_margin = (version[0] >= 1);

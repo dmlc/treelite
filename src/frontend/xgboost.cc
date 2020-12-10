@@ -383,8 +383,20 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
   auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
   model->num_feature = static_cast<int>(mparam_.num_feature);
-  model->task_param.num_class = std::max(mparam_.num_class, 1);
   model->average_tree_output = false;
+  const int num_class = std::max(mparam_.num_class, 1);
+  if (num_class > 1) {
+    // multi-class classifier
+    model->task_type = treelite::TaskType::kMultiClfGrovePerClass;
+    model->task_param.grove_per_class = true;
+  } else {
+    // binary classifier or regressor
+    model->task_type = treelite::TaskType::kBinaryClfRegr;
+    model->task_param.grove_per_class = false;
+  }
+  model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+  model->task_param.num_class = num_class;
+  model->task_param.leaf_vector_size = 1;
 
   // set correct prediction transform function, depending on objective function
   treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);

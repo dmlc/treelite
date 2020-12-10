@@ -16,6 +16,7 @@
 #include <utility>
 #include <type_traits>
 #include <limits>
+#include <cstdint>
 #include <cstring>
 #include <cstdio>
 
@@ -77,8 +78,103 @@ class ContiguousArray {
   bool owned_buffer_;
 };
 
+/*!
+ * \brief Enum type representing the task type.
+ *
+ * The task type places constraints on the parameters of TaskParameter. See the docstring for each
+ * enum constants for more details.
+ */
+enum class TaskType : uint8_t {
+  /*!
+   * \brief Catch-all task type encoding all tasks that are not multi-class classification, such as
+   *        binary classification, regression, and learning-to-rank.
+   *
+   * The kBinaryClfRegr task type implies the following constraints on the task parameters:
+   * output_type=float, grove_per_class=false, num_class=1, leaf_vector_size=1.
+   */
+  kBinaryClfRegr = 0,
+  /*!
+   * \brief The multi-class classification task, in which the prediction for each class is given
+   *        by the sum of outputs from a subset of the trees. We refer to this method as
+   *        "grove-per-class".
+   *
+   * In this setting, each leaf node in a tree produces a single scalar output. To obtain
+   * predictions for each class, we divide the trees into multiple groups ("groves") and then
+   * compute the sum of outputs of the trees in each group. The prediction for the i-th class is
+   * given by the sum of the outputs of the trees whose index is congruent to [i] modulo
+   * [num_class].
+   *
+   * Examples of "grove-per-class" classifier are found in XGBoost, LightGBM, and
+   * GradientBoostingClassifier of scikit-learn.
+   *
+   * The kMultiClfGrovePerClass task type implies the following constraints on the task parameters:
+   * output_type=float, grove_per_class=true, num_class>1, leaf_vector_size=1. In addition, we
+   * require that the number of trees is evenly divisible by [num_class].
+   */
+  kMultiClfGrovePerClass = 1,
+  /*!
+   * \brief The multi-class classification task, in which each tree produces a vector of
+   *        probability predictions for all the classes.
+   *
+   * In this setting, each leaf node in a tree produces a vector output whose length is [num_class].
+   * The vector represents probability predictions for all the classes. The outputs of the trees
+   * are combined via summing or averaging, depending on the value of the [average_tree_output]
+   * field. In effect, each tree is casting a set of weighted (fractional) votes for the classes.
+   *
+   * An example of kMultiClfProbDistLeaf task type is found in RandomForestClassifier of
+   * scikit-learn.
+   *
+   * The kMultiClfProbDistLeaf task type implies the following constraints on the task parameters:
+   * output_type=float, grove_per_class=false, num_class>1, leaf_vector_size=num_class.
+   */
+  kMultiClfProbDistLeaf = 2,
+  /*!
+   * \brief The multi-class classification task, in which each tree produces a single integer output
+   *        representing an unweighted vote for a particular class.
+   *
+   * In this setting, each leaf node in a tree produces a single integer output between 0 and
+   * [num_class-1] that indicates a vote for a particular class. The outputs of the trees are
+   * combined by summing one_hot(tree(i)), where one_hot(x) represents the one-hot-encoded vector
+   * with 1 in index [x] and 0 everywhere else, and tree(i) is the output from the i-th tree.
+   * Models of type kMultiClfCategLeaf can be converted into the kMultiClfProbDistLeaf type, by
+   * converting the output of every leaf node into the equivalent one-hot-encoded vector.
+   *
+   * An example of kMultiClfCategLeaf task type is found in RandomForestClassifier of cuML.
+   *
+   * The kMultiClfCategLeaf task type implies the following constraints on the task parameters:
+   * output_type=int, grove_per_class=false, num_class>1, leaf_vector_size=1.
+   */
+  kMultiClfCategLeaf = 3
+};
+
+/*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParameter {
+  enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
+  /*! \brief The type of output from each leaf node. */
+  OutputType output_type;
+  /*!
+   * \brief Whether we designate a subset of the trees to compute the prediction for each class.
+   *
+   * If True, the prediction for the i-th class is determined by the trees whose index is congruent
+   * to [i] modulo [num_class]. Only applicable if we are performing classification task with
+   * num_class > 2.
+   */
+  bool grove_per_class;
+  /*!
+   * \brief The number of classes in the target label.
+   *
+   * The num_class field should be >1 only when we're performing multi-class classification.
+   * Otherwise, for tasks such as binary classification, regression, and learning-to-rank, set
+   * num_class=1.
+   */
   unsigned int num_class;
+  /*!
+   * \brief Dimension of the output from each leaf node.
+   *
+   * If >1, each leaf node produces a 1D vector output. If =1, each leaf node produces a single
+   * scalar.
+   */
+  unsigned int leaf_vector_size;
 };
 
 static_assert(std::is_pod<TaskParameter>::value, "TaskParameter must be POD type");
@@ -525,8 +621,11 @@ class Model {
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
   int num_feature;
+  /*! \brief Task type */
+  TaskType task_type;
   /*! \brief whether to average tree outputs */
   bool average_tree_output;
+  /*! \brief Group of parameters that are specific to the particular task type */
   TaskParameter task_param;
   /*! \brief extra parameters */
   ModelParam param;

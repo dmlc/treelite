@@ -271,7 +271,12 @@ class FailSafeCompiler : public Compiler {
     num_feature_ = model.num_feature;
     num_class_ = model.task_param.num_class;
     CHECK(!model.average_tree_output)
-      << "Only gradient boosted trees supported in FailSafeCompiler";
+      << "Averaging tree output is not supported in FailSafeCompiler";
+    CHECK(model.task_type == TaskType::kBinaryClfRegr
+          || model.task_type == TaskType::kMultiClfGrovePerClass)
+      << "Model task type unsupported by FailSafeCompiler";
+    CHECK_EQ(model.task_param.leaf_vector_size, 1)
+      << "Model with leaf vectors is not support by FailSafeCompiler";
     pred_tranform_func_ = PredTransformFunction("native", model_ptr);
     files_.clear();
 

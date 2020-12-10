@@ -15,7 +15,7 @@ template <typename ThresholdType, typename LeafOutputType>
 void
 ASTBuilder<ThresholdType, LeafOutputType>::BuildAST(
     const ModelImpl<ThresholdType, LeafOutputType>& model) {
-  this->output_vector_flag = (model.task_param.num_class > 1 && model.average_tree_output);
+  this->output_vector_flag = (model.task_param.leaf_vector_size > 1);
   this->num_feature = model.num_feature;
   this->average_output_flag = model.average_tree_output;
 

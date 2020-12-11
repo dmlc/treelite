@@ -57,7 +57,8 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildASTFromTree(
           parent,
           tree.SplitIndex(nid),
           tree.DefaultLeft(nid),
-          tree.LeftCategories(nid));
+          tree.MatchingCategories(nid),
+          tree.CategoriesListRightChild(nid));
     }
     if (tree.HasGain(nid)) {
       dynamic_cast<ConditionNode*>(ast_node)->gain = tree.Gain(nid);

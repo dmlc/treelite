@@ -400,9 +400,9 @@ template <typename ThresholdType, typename LeafOutputType>
 inline const char*
 Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {
-    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?xxx}";
+    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
   } else {
-    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?xxx}";
+    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?xx}";
   }
 }
 
@@ -415,8 +415,8 @@ Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* des
   dest->push_back(GetPyBufferFromArray(&nodes_, GetFormatStringForNode()));
   dest->push_back(GetPyBufferFromArray(&leaf_vector_));
   dest->push_back(GetPyBufferFromArray(&leaf_vector_offset_));
-  dest->push_back(GetPyBufferFromArray(&left_categories_));
-  dest->push_back(GetPyBufferFromArray(&left_categories_offset_));
+  dest->push_back(GetPyBufferFromArray(&matching_categories_));
+  dest->push_back(GetPyBufferFromArray(&matching_categories_offset_));
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -433,8 +433,8 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   }
   InitArrayFromPyBuffer(&leaf_vector_, *begin++);
   InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++);
-  InitArrayFromPyBuffer(&left_categories_, *begin++);
-  InitArrayFromPyBuffer(&left_categories_offset_, *begin++);
+  InitArrayFromPyBuffer(&matching_categories_, *begin++);
+  InitArrayFromPyBuffer(&matching_categories_offset_, *begin++);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -446,6 +446,7 @@ inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   data_count_ = 0;
   sum_hess_ = gain_ = 0.0;
   data_count_present_ = sum_hess_present_ = gain_present_ = false;
+  categories_list_right_child_ = false;
   split_type_ = SplitFeatureType::kNone;
   cmp_ = Operator::kNone;
 }
@@ -459,7 +460,7 @@ Tree<ThresholdType, LeafOutputType>::AllocNode() {
   }
   for (int nid = nd; nid < num_nodes; ++nid) {
     leaf_vector_offset_.PushBack(leaf_vector_offset_.Back());
-    left_categories_offset_.PushBack(left_categories_offset_.Back());
+    matching_categories_offset_.PushBack(matching_categories_offset_.Back());
     nodes_.Resize(nodes_.Size() + 1);
     nodes_.Back().Init();
   }
@@ -472,8 +473,8 @@ Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   leaf_vector_.Clear();
   leaf_vector_offset_.Resize(2, 0);
-  left_categories_.Clear();
-  left_categories_offset_.Resize(2, 0);
+  matching_categories_.Clear();
+  matching_categories_offset_.Resize(2, 0);
   nodes_.Resize(1);
   nodes_[0].Init();
   SetLeaf(0, static_cast<LeafOutputType>(0));
@@ -530,39 +531,41 @@ Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
   (node.info_).threshold = threshold;
   node.cmp_ = cmp;
   node.split_type_ = SplitFeatureType::kNumerical;
+  node.categories_list_right_child_ = false;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     int nid, unsigned split_index, bool default_left,
-    const std::vector<uint32_t>& node_left_categories) {
+    const std::vector<uint32_t>& categories_list, bool categories_list_right_child) {
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
   }
 
-  const size_t end_oft = left_categories_offset_.Back();
-  const size_t new_end_oft = end_oft + node_left_categories.size();
-  if (end_oft != left_categories_.Size()) {
+  const size_t end_oft = matching_categories_offset_.Back();
+  const size_t new_end_oft = end_oft + categories_list.size();
+  if (end_oft != matching_categories_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  if (!std::all_of(&left_categories_offset_[nid + 1], left_categories_offset_.End(),
+  if (!std::all_of(&matching_categories_offset_[nid + 1], matching_categories_offset_.End(),
                    [end_oft](size_t x) { return (x == end_oft); })) {
     throw std::runtime_error("Invariant violated");
   }
-  // Hopefully we won't have to move any element as we add node_left_categories for node nid
-  left_categories_.Extend(node_left_categories);
-  if (new_end_oft != left_categories_.Size()) {
+  // Hopefully we won't have to move any element as we add node_matching_categories for node nid
+  matching_categories_.Extend(categories_list);
+  if (new_end_oft != matching_categories_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  std::for_each(&left_categories_offset_[nid + 1], left_categories_offset_.End(),
+  std::for_each(&matching_categories_offset_[nid + 1], matching_categories_offset_.End(),
                 [new_end_oft](size_t& x) { x = new_end_oft; });
-  std::sort(&left_categories_[end_oft], left_categories_.End());
+  std::sort(&matching_categories_[end_oft], matching_categories_.End());
 
   Node& node = nodes_[nid];
   if (default_left) split_index |= (1U << 31U);
   node.sindex_ = split_index;
   node.split_type_ = SplitFeatureType::kCategorical;
+  node.categories_list_right_child_ = categories_list_right_child;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

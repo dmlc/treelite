@@ -153,20 +153,24 @@ class NumericalConditionNode : public ConditionNode {
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           const std::vector<uint32_t>& left_categories)
+                           const std::vector<uint32_t>& matching_categories,
+                           bool categories_list_right_child)
     : ConditionNode(split_index, default_left),
-      left_categories(left_categories) {}
-  std::vector<uint32_t> left_categories;
+      matching_categories(matching_categories),
+      categories_list_right_child(categories_list_right_child) {}
+  std::vector<uint32_t> matching_categories;
+  bool categories_list_right_child;
 
   std::string GetDump() const override {
     std::ostringstream oss;
     oss << "[";
-    for (const auto& e : left_categories) {
+    for (const auto& e : matching_categories) {
       oss << e << ", ";
     }
     oss << "]";
-    return fmt::format("CategoricalConditionNode {{ {}, left_categories: {} }}",
-                       ConditionNode::GetDump(), oss.str());
+    return fmt::format("CategoricalConditionNode {{ {}, matching_categories: {}, "
+                       "categories_list_right_child: {} }}",
+                       ConditionNode::GetDump(), oss.str(), categories_list_right_child);
   }
 };
 

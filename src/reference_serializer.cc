@@ -41,8 +41,8 @@ void Tree<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) c
   fo->Write(num_nodes);
   fo->Write(leaf_vector_);
   fo->Write(leaf_vector_offset_);
-  fo->Write(left_categories_);
-  fo->Write(left_categories_offset_);
+  fo->Write(matching_categories_);
+  fo->Write(matching_categories_offset_);
   uint64_t sz = static_cast<uint64_t>(nodes_.Size());
   fo->Write(sz);
   fo->Write(nodes_.Data(), sz * sizeof(Tree::Node));
@@ -51,8 +51,8 @@ void Tree<ThresholdType, LeafOutputType>::ReferenceSerialize(dmlc::Stream* fo) c
   CHECK_EQ(nodes_.Size(), num_nodes);
   CHECK_EQ(nodes_.Size() + 1, leaf_vector_offset_.Size());
   CHECK_EQ(leaf_vector_offset_.Back(), leaf_vector_.Size());
-  CHECK_EQ(nodes_.Size() + 1, left_categories_offset_.Size());
-  CHECK_EQ(left_categories_offset_.Back(), left_categories_.Size());
+  CHECK_EQ(nodes_.Size() + 1, matching_categories_offset_.Size());
+  CHECK_EQ(matching_categories_offset_.Back(), matching_categories_.Size());
 }
 
 template <typename ThresholdType, typename LeafOutputType>

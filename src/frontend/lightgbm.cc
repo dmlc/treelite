@@ -590,7 +590,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
               = (std::find(left_categories.begin(), left_categories.end(),
                            static_cast<uint32_t>(0)) != left_categories.end());
           }
-          tree.SetCategoricalSplit(new_id, split_index, default_left, left_categories);
+          tree.SetCategoricalSplit(new_id, split_index, default_left, left_categories, false);
         } else {
           // numerical
           const auto threshold = static_cast<double>(lgb_tree.threshold[old_id]);

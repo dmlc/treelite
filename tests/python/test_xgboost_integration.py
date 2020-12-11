@@ -10,7 +10,8 @@ import treelite
 import treelite_runtime
 from treelite.util import has_sklearn
 from treelite.contrib import _libext
-from .util import os_compatible_toolchains
+from .util import os_compatible_toolchains, check_predictor
+from .metadata import dataset_db
 
 try:
     import xgboost
@@ -270,3 +271,22 @@ def test_xgb_deserializers(tmpdir, toolchain):
     np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=5)
     np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)
     np.testing.assert_almost_equal(json_str_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.parametrize('parallel_comp', [None, 5])
+@pytest.mark.parametrize('quantize', [True, False])
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
+    """Test toy XGBoost model with categorical splits"""
+    dataset = 'xgb_toy_categorical'
+    model = treelite.Model.load(dataset_db[dataset].model, model_format='xgboost_json')
+    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
+
+    params = {
+        'quantize': (1 if quantize else 0),
+        'parallel_comp': (parallel_comp if parallel_comp else 0)
+    }
+    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
+
+    predictor = treelite_runtime.Predictor(libpath)
+    check_predictor(predictor, dataset)

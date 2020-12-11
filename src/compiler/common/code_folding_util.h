@@ -116,12 +116,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
           default_left = t3->default_left;
           split_index = t3->split_index;
           threshold = "-1";  // dummy value
-          CHECK(!t3->convert_missing_to_zero)
-            << "Code folding not supported, because a categorical split "
-            << "is supposed to convert missing values into zeros, and this "
-            << "is not possible with current code folding implementation.";
-          std::vector<uint64_t> bitmap
-            = GetCategoricalBitmap(t3->matching_categories);
+          std::vector<uint64_t> bitmap = GetCategoricalBitmap(t3->matching_categories);
           cat_bitmap.insert(cat_bitmap.end(), bitmap.begin(), bitmap.end());
           cat_begin.push_back(cat_bitmap.size());
         }

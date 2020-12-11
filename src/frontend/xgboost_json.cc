@@ -295,11 +295,11 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
           right_categories.push_back(static_cast<uint32_t>(categories[offset + i]));
         }
         output.SetCategoricalSplit(
-            new_id, split_indices[old_id], default_left[old_id], false, right_categories, true);
+            new_id, split_indices[old_id], default_left[old_id], right_categories, true);
       } else {
         output.SetNumericalSplit(
             new_id, split_indices[old_id], split_conditions[old_id],
-            default_left[old_id], false, treelite::Operator::kLT);
+            default_left[old_id], treelite::Operator::kLT);
       }
       output.SetGain(new_id, loss_changes[old_id]);
       Q.push({left_children[old_id], output.LeftChild(new_id)});

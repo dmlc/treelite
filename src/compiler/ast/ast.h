@@ -102,23 +102,19 @@ class CodeFolderNode : public ASTNode {
 
 class ConditionNode : public ASTNode {
  public:
-  ConditionNode(unsigned split_index, bool default_left, bool convert_missing_to_zero)
-    : split_index(split_index), default_left(default_left),
-      convert_missing_to_zero(convert_missing_to_zero) {}
+  ConditionNode(unsigned split_index, bool default_left)
+    : split_index(split_index), default_left(default_left) {}
   unsigned split_index;
   bool default_left;
-  bool convert_missing_to_zero;
   dmlc::optional<double> gain;
 
   std::string GetDump() const override {
     if (gain) {
-      return fmt::format("ConditionNode {{ split_index: {}, default_left: {}, "
-                         "convert_missing_to_zero: {}, gain: {} }}",
-                         split_index, default_left, convert_missing_to_zero, gain.value());
+      return fmt::format("ConditionNode {{ split_index: {}, default_left: {}, gain: {} }}",
+                         split_index, default_left, gain.value());
     } else {
-      return fmt::format("ConditionNode {{ split_index: {}, default_left: {}, "
-                         "convert_missing_to_zero: {} }}",
-                         split_index, default_left, convert_missing_to_zero);
+      return fmt::format("ConditionNode {{ split_index: {}, default_left: {} }}",
+                         split_index, default_left);
     }
   }
 };
@@ -135,10 +131,9 @@ template <typename ThresholdType>
 class NumericalConditionNode : public ConditionNode {
  public:
   NumericalConditionNode(unsigned split_index, bool default_left,
-                         bool convert_missing_to_zero,
                          bool quantized, Operator op,
                          ThresholdVariant<ThresholdType> threshold)
-    : ConditionNode(split_index, default_left, convert_missing_to_zero),
+    : ConditionNode(split_index, default_left),
       quantized(quantized), op(op), threshold(threshold), zero_quantized(-1) {}
   bool quantized;
   Operator op;
@@ -158,10 +153,9 @@ class NumericalConditionNode : public ConditionNode {
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           bool convert_missing_to_zero,
                            const std::vector<uint32_t>& matching_categories,
                            bool categories_list_right_child)
-    : ConditionNode(split_index, default_left, convert_missing_to_zero),
+    : ConditionNode(split_index, default_left),
       matching_categories(matching_categories),
       categories_list_right_child(categories_list_right_child) {}
   std::vector<uint32_t> matching_categories;

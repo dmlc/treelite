@@ -400,9 +400,9 @@ template <typename ThresholdType, typename LeafOutputType>
 inline const char*
 Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {
-    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?=?x}";
+    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
   } else {
-    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?=?x}";
+    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?xx}";
   }
 }
 
@@ -445,7 +445,6 @@ inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   info_.threshold = static_cast<ThresholdType>(0);
   data_count_ = 0;
   sum_hess_ = gain_ = 0.0;
-  missing_value_to_zero_ = false;
   data_count_present_ = sum_hess_present_ = gain_present_ = false;
   categories_list_right_child_ = false;
   split_type_ = SplitFeatureType::kNone;
@@ -522,8 +521,7 @@ Tree<ThresholdType, LeafOutputType>::GetCategoricalFeatures() const {
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
-    int nid, unsigned split_index, ThresholdType threshold, bool default_left,
-    bool missing_value_to_zero, Operator cmp) {
+    int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   Node& node = nodes_[nid];
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
@@ -533,14 +531,13 @@ Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
   (node.info_).threshold = threshold;
   node.cmp_ = cmp;
   node.split_type_ = SplitFeatureType::kNumerical;
-  node.missing_value_to_zero_ = missing_value_to_zero;
   node.categories_list_right_child_ = false;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
-    int nid, unsigned split_index, bool default_left, bool missing_value_to_zero,
+    int nid, unsigned split_index, bool default_left,
     const std::vector<uint32_t>& categories_list, bool categories_list_right_child) {
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
@@ -568,7 +565,6 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   if (default_left) split_index |= (1U << 31U);
   node.sindex_ = split_index;
   node.split_type_ = SplitFeatureType::kCategorical;
-  node.missing_value_to_zero_ = missing_value_to_zero;
   node.categories_list_right_child_ = categories_list_right_child;
 }
 

@@ -315,24 +315,14 @@ class ASTNativeCompiler : public Compiler {
     if ( (t = dynamic_cast<const NumericalConditionNode<ThresholdType>*>(node)) ) {
       /* numerical split */
       std::string condition = ExtractNumericalCondition(t);
-      if (node->convert_missing_to_zero) {
-        std::string condition_for_na = ExtractNumericalCondition(t, /* use_zero_threshold */ true);
-        condition_with_na_check
-          = fmt::format("(!(data[{split_index}].missing != -1) && {condition_for_na}) ||"
-                        "( (data[{split_index}].missing != -1) && {condition})",
-              "split_index"_a = node->split_index,
-              "condition_for_na"_a = condition_for_na,
-              "condition"_a = condition);
-      } else {
-        const char* condition_with_na_check_template
-          = (node->default_left) ?
-              "!(data[{split_index}].missing != -1) || ({condition})"
-            : " (data[{split_index}].missing != -1) && ({condition})";
-        condition_with_na_check
-          = fmt::format(condition_with_na_check_template,
-              "split_index"_a = node->split_index,
-              "condition"_a = condition);
-      }
+      const char* condition_with_na_check_template
+        = (node->default_left) ?
+            "!(data[{split_index}].missing != -1) || ({condition})"
+          : " (data[{split_index}].missing != -1) && ({condition})";
+      condition_with_na_check
+        = fmt::format(condition_with_na_check_template,
+            "split_index"_a = node->split_index,
+            "condition"_a = condition);
     } else {   /* categorical split */
       const CategoricalConditionNode* t2 = dynamic_cast<const CategoricalConditionNode*>(node);
       CHECK(t2);
@@ -586,19 +576,13 @@ class ASTNativeCompiler : public Compiler {
 
   template <typename ThresholdType>
   inline std::string
-  ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node,
-                            bool use_zero_threshold = false) {
+  ExtractNumericalCondition(const NumericalConditionNode<ThresholdType>* node) {
     const std::string threshold_type
         = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     std::string result;
     if (node->quantized) {  // quantized threshold
-      std::string lhs;
-      if (use_zero_threshold) {
-        lhs = fmt::format("{}", node->zero_quantized);
-      } else {
-        lhs = fmt::format("data[{split_index}].qvalue",
-                          "split_index"_a = node->split_index);
-      }
+      std::string lhs = fmt::format("data[{split_index}].qvalue",
+                                    "split_index"_a = node->split_index);
       result = fmt::format("{lhs} {opname} {threshold}",
                  "lhs"_a = lhs,
                  "opname"_a = OpName(node->op),
@@ -609,13 +593,8 @@ class ASTNativeCompiler : public Compiler {
       result = (CompareWithOp(static_cast<ThresholdType>(0), node->op, node->threshold.float_val)
           ? "1" : "0");
     } else {  // finite threshold
-      std::string lhs;
-      if (use_zero_threshold) {
-        lhs = fmt::format("{}", common_util::ToStringHighPrecision(static_cast<ThresholdType>(0)));
-      } else {
-        lhs = fmt::format("data[{split_index}].fvalue",
-                          "split_index"_a = node->split_index);
-      }
+      std::string lhs = fmt::format("data[{split_index}].fvalue",
+                                    "split_index"_a = node->split_index);
       result
         = fmt::format("{lhs} {opname} ({threshold_type}){threshold}",
             "lhs"_a = lhs,
@@ -640,26 +619,19 @@ class ASTNativeCompiler : public Compiler {
       result = "0";
     } else {
       std::ostringstream oss;
-      if (node->convert_missing_to_zero) {
-        // All missing values are converted into zeros
+      const std::string right_categories_flag = (node->categories_list_right_child ? "!" : "");
+      if (node->default_left) {
         oss << fmt::format(
-          "((tmp = (data[{0}].missing == -1 ? 0U "
-          ": (unsigned int)(data[{0}].fvalue) )), ", node->split_index);
+          "data[{split_index}].missing == -1 || {right_categories_flag}("
+          "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
+          "split_index"_a = node->split_index,
+          "right_categories_flag"_a = right_categories_flag);
       } else {
-        const std::string right_categories_flag = (node->categories_list_right_child ? "!" : "");
-        if (node->default_left) {
-          oss << fmt::format(
-            "data[{split_index}].missing == -1 || {right_categories_flag}("
-            "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
-            "split_index"_a = node->split_index,
-            "right_categories_flag"_a = right_categories_flag);
-        } else {
-          oss << fmt::format(
-            "data[{split_index}].missing != -1 && {right_categories_flag}("
-            "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
-            "split_index"_a = node->split_index,
-            "right_categories_flag"_a = right_categories_flag);
-        }
+        oss << fmt::format(
+          "data[{split_index}].missing != -1 && {right_categories_flag}("
+          "(tmp = (unsigned int)(data[{split_index}].fvalue) ), ",
+          "split_index"_a = node->split_index,
+          "right_categories_flag"_a = right_categories_flag);
       }
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
           << bitmap[0] << "U >> tmp) & 1) )";

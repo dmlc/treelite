@@ -226,10 +226,6 @@ class Tree {
      * otherwise, take the right child.
      */
     Operator cmp_;
-    /* \brief Whether to convert missing value to zero.
-     * When this flag is set, it overrides the behavior of default_left().
-     */
-    bool missing_value_to_zero_;
     /*! \brief whether data_count_ field is present */
     bool data_count_present_;
     /*! \brief whether sum_hess_ field is present */
@@ -447,13 +443,6 @@ class Tree {
     return nodes_[nid].gain_;
   }
   /*!
-   * \brief test whether missing values should be converted into zero
-   * \param nid ID of node being queried
-   */
-  inline bool MissingValueToZero(int nid) const {
-    return nodes_[nid].missing_value_to_zero_;
-  }
-  /*!
    * \brief test whether the list given by MatchingCategories(nid) is associated with the right
    *        child node or the left child node
    * \param nid ID of node being queried
@@ -469,18 +458,16 @@ class Tree {
    * \param split_index feature index to split
    * \param threshold threshold value
    * \param default_left the default direction when feature is unknown
-   * \param missing_value_to_zero whether missing values should be converted into zero
    * \param cmp comparison operator to compare between feature value and
    *            threshold
    */
   inline void SetNumericalSplit(int nid, unsigned split_index, ThresholdType threshold,
-                                bool default_left, bool missing_value_to_zero, Operator cmp);
+                                bool default_left, Operator cmp);
   /*!
    * \brief create a categorical split
    * \param nid ID of node being updated
    * \param split_index feature index to split
    * \param default_left the default direction when feature is unknown
-   * \param missing_value_to_zero whether missing values should be converted into zero
    * \param categories_list list of categories to belong to either the right child node or the left
    *                        child node. Set categories_list_right_child parameter to indicate
    *                        which node the category list should represent.
@@ -489,7 +476,6 @@ class Tree {
    *                                    (false)
    */
   inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                                  bool missing_value_to_zero,
                                   const std::vector<uint32_t>& categories_list,
                                   bool categories_list_right_child);
   /*!

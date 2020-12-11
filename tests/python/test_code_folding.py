@@ -8,7 +8,7 @@ import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from .metadata import dataset_db
-from .util import os_compatible_toolchains, os_platform, check_predictor, does_not_raise
+from .util import os_compatible_toolchains, os_platform, check_predictor
 
 
 @pytest.mark.parametrize('code_folding_factor', [0.0, 1.0, 2.0, 3.0])
@@ -37,16 +37,7 @@ def test_code_folding(tmpdir, annotation, dataset, toolchain, code_folding_facto
         'parallel_comp': model.num_tree,
         'code_folding_req': code_folding_factor
     }
-    # For the LightGBM model, we expect this error:
-    # !t3->convert_missing_to_zero: Code folding not supported, because a categorical split is
-    # supposed to convert missing values into zeros, and this is not possible with current code
-    # folding implementation.
-    if dataset == 'toy_categorical' and code_folding_factor < 2.0:
-        expect_raises = pytest.raises(treelite.TreeliteError)
-    else:
-        expect_raises = does_not_raise()
 
-    with expect_raises:
-        model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
-        predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-        check_predictor(predictor, dataset)
+    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    check_predictor(predictor, dataset)

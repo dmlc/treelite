@@ -277,6 +277,7 @@ def test_xgb_deserializers(tmpdir, toolchain):
 @pytest.mark.parametrize('quantize', [True, False])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
+    """Test toy XGBoost model with categorical splits"""
     dataset = 'xgb_toy_categorical'
     model = treelite.Model.load(dataset_db[dataset].model, model_format='xgboost_json')
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())

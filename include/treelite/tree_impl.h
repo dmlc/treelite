@@ -400,9 +400,9 @@ template <typename ThresholdType, typename LeafOutputType>
 inline const char*
 Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {
-    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
+    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?xxx}";
   } else {
-    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?xx}";
+    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?xxx}";
   }
 }
 

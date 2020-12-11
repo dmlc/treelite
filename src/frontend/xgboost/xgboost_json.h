@@ -263,7 +263,7 @@ class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
   std::vector<int> categories;
   std::vector<double> split_conditions;
   std::vector<bool> default_left;
-  int num_nodes;
+  int num_nodes = 0;
 };
 
 /*! \brief handler for GBTreeModel objects from XGBoost schema*/

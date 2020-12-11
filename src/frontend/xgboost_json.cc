@@ -16,6 +16,7 @@
 #include <rapidjson/filereadstream.h>
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
+#include <treelite/math.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -49,6 +50,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
 #else
   FILE* fp = std::fopen(filename, "r");
 #endif
+  if (!fp) {
+    LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
+  }
 
   auto input_stream = std::make_unique<rapidjson::FileReadStream>(
       fp, read_buffer, sizeof(read_buffer));
@@ -188,16 +192,17 @@ bool RegTreeHandler::StartArray() {
       push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes) ||
       push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian) ||
       push_key_handler<ArrayHandler<double>>("base_weights", base_weights) ||
-      push_key_handler<IgnoreHandler>("categories") ||
-      push_key_handler<ArrayHandler<int>>("leaf_child_counts",
-                                          leaf_child_counts) ||
+      push_key_handler<ArrayHandler<int>>("categories_segments", categories_segments) ||
+      push_key_handler<ArrayHandler<int>>("categories_sizes", categories_sizes) ||
+      push_key_handler<ArrayHandler<int>>("categories_nodes", categories_nodes) ||
+      push_key_handler<ArrayHandler<int>>("categories", categories) ||
+      push_key_handler<IgnoreHandler>("leaf_child_counts") ||
       push_key_handler<ArrayHandler<int>>("left_children", left_children) ||
       push_key_handler<ArrayHandler<int>>("right_children", right_children) ||
       push_key_handler<ArrayHandler<int>>("parents", parents) ||
       push_key_handler<ArrayHandler<int>>("split_indices", split_indices) ||
-      push_key_handler<IgnoreHandler>("split_type") ||
-      push_key_handler<ArrayHandler<double>>("split_conditions",
-                                             split_conditions) ||
+      push_key_handler<ArrayHandler<int>>("split_type", split_type) ||
+      push_key_handler<ArrayHandler<double>>("split_conditions", split_conditions) ||
       push_key_handler<ArrayHandler<bool>>("default_left", default_left));
 }
 
@@ -209,19 +214,64 @@ bool RegTreeHandler::Uint(unsigned u) { return check_cur_key("id"); }
 
 bool RegTreeHandler::EndObject(std::size_t memberCount) {
   output.Init();
-  if (num_nodes != loss_changes.size() || num_nodes != sum_hessian.size() ||
-      num_nodes != base_weights.size() ||
-      num_nodes != leaf_child_counts.size() ||
-      num_nodes != left_children.size() ||
-      num_nodes != right_children.size() || num_nodes != parents.size() ||
-      num_nodes != split_indices.size() ||
-      num_nodes != split_conditions.size() ||
-      num_nodes != default_left.size()) {
+  if (split_type.empty()) {
+    split_type.resize(num_nodes, details::xgboost::FeatureType::kNumerical);
+  }
+  if (num_nodes != loss_changes.size()) {
+    LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << loss_changes.size();
+    return false;
+  }
+  if (num_nodes != sum_hessian.size()) {
+    LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << sum_hessian.size();
+    return false;
+  }
+  if (num_nodes != base_weights.size()) {
+    LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << base_weights.size();
+    return false;
+  }
+  if (num_nodes != left_children.size()) {
+    LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << left_children.size();
+    return false;
+  }
+  if (num_nodes != right_children.size()) {
+    LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << right_children.size();
+    return false;
+  }
+  if (num_nodes != parents.size()) {
+    LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << parents.size();
+    return false;
+  }
+  if (num_nodes != split_indices.size()) {
+    LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_indices.size();
+    return false;
+  }
+  if (num_nodes != split_type.size()) {
+    LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_type.size();
+    return false;
+  }
+  if (num_nodes != split_conditions.size()) {
+    LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << split_conditions.size();
+    return false;
+  }
+  if (num_nodes != default_left.size()) {
+    LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
+               << ", Actual: " << default_left.size();
     return false;
   }
 
   std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
-  Q.push({0, 0});
+  if (num_nodes > 0) {
+    Q.push({0, 0});
+  }
   while (!Q.empty()) {
     int old_id, new_id;
     std::tie(old_id, new_id) = Q.front();
@@ -231,9 +281,26 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
       output.SetLeaf(new_id, split_conditions[old_id]);
     } else {
       output.AddChilds(new_id);
-      output.SetNumericalSplit(
-          new_id, split_indices[old_id], split_conditions[old_id],
-          default_left[old_id], false, treelite::Operator::kLT);
+      if (split_type[old_id] == details::xgboost::FeatureType::kCategorical) {
+        auto categorical_split_loc
+          = math::binary_search(categories_nodes.begin(), categories_nodes.end(), old_id);
+        CHECK(categorical_split_loc != categories_nodes.end())
+          << "Could not find record for the categorical split in node " << old_id;
+        auto categorical_split_id = std::distance(categories_nodes.begin(), categorical_split_loc);
+        int offset = categories_segments[categorical_split_id];
+        int num_categories = categories_sizes[categorical_split_id];
+        std::vector<uint32_t> right_categories;
+        right_categories.reserve(num_categories);
+        for (int i = 0; i < num_categories; ++i) {
+          right_categories.push_back(static_cast<uint32_t>(categories[offset + i]));
+        }
+        output.SetCategoricalSplit(
+            new_id, split_indices[old_id], default_left[old_id], false, right_categories, true);
+      } else {
+        output.SetNumericalSplit(
+            new_id, split_indices[old_id], split_conditions[old_id],
+            default_left[old_id], false, treelite::Operator::kLT);
+      }
       output.SetGain(new_id, loss_changes[old_id]);
       Q.push({left_children[old_id], output.LeftChild(new_id)});
       Q.push({right_children[old_id], output.RightChild(new_id)});
@@ -346,6 +413,7 @@ bool XGBoostModelHandler::StartObject() {
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
+    LOG(ERROR) << "Expected two members in XGBoostModel";
     return false;
   }
   output.model->average_tree_output = false;
@@ -416,7 +484,8 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
     treelite::details::DelegatedHandler::create();
   rapidjson::Reader reader;
 
-  rapidjson::ParseResult result = reader.Parse(*input_stream, *handler);
+  rapidjson::ParseResult result
+    = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
   if (!result) {
     const auto error_code = result.Code();
     const size_t offset = result.Offset();

@@ -582,7 +582,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
           tree.SetCategoricalSplit(new_id, split_index, false, (missing_type != MissingType::kNaN),
-                                   left_categories);
+                                   left_categories, false);
         } else {
           // numerical
           const auto threshold = static_cast<double>(lgb_tree.threshold[old_id]);

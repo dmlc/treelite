@@ -236,6 +236,9 @@ class Tree {
     bool sum_hess_present_;
     /*! \brief whether gain_present_ field is present */
     bool gain_present_;
+    /* \brief whether the list given by MatchingCategories(nid) is associated with the right child
+     *        node or the left child node. True if the right child, False otherwise */
+    bool categories_list_right_child_;
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
@@ -270,8 +273,8 @@ class Tree {
   ContiguousArray<Node> nodes_;
   ContiguousArray<LeafOutputType> leaf_vector_;
   ContiguousArray<size_t> leaf_vector_offset_;
-  ContiguousArray<uint32_t> left_categories_;
-  ContiguousArray<size_t> left_categories_offset_;
+  ContiguousArray<uint32_t> matching_categories_;
+  ContiguousArray<size_t> matching_categories_offset_;
 
   // allocate a new node
   inline int AllocNode();
@@ -379,18 +382,19 @@ class Tree {
     return nodes_[nid].cmp_;
   }
   /*!
-   * \brief Get list of all categories belonging to the left child node. Categories not in this
-   *        list will belong to the right child node. Categories are integers ranging from 0 to
+   * \brief Get list of all categories belonging to the left/right child node. See the
+   *        categories_list_right_child_ field of each split to determine whether this list represents
+   *        the right child node or the left child node. Categories are integers ranging from 0 to
    *        (n-1), where n is the number of categories in that particular feature. This list is
    *        assumed to be in ascending order.
    * \param nid ID of node being queried
    */
-  inline std::vector<uint32_t> LeftCategories(int nid) const {
-    if (nid > left_categories_offset_.Size()) {
+  inline std::vector<uint32_t> MatchingCategories(int nid) const {
+    if (nid > matching_categories_offset_.Size()) {
       throw std::runtime_error("nid too large");
     }
-    return std::vector<uint32_t>(&left_categories_[left_categories_offset_[nid]],
-                                 &left_categories_[left_categories_offset_[nid + 1]]);
+    return std::vector<uint32_t>(&matching_categories_[matching_categories_offset_[nid]],
+                                 &matching_categories_[matching_categories_offset_[nid + 1]]);
   }
   /*!
    * \brief get feature split type
@@ -449,6 +453,14 @@ class Tree {
   inline bool MissingValueToZero(int nid) const {
     return nodes_[nid].missing_value_to_zero_;
   }
+  /*!
+   * \brief test whether the list given by MatchingCategories(nid) is associated with the right
+   *        child node or the left child node
+   * \param nid ID of node being queried
+   */
+  inline bool CategoriesListRightChild(int nid) const {
+    return nodes_[nid].categories_list_right_child_;
+  }
 
   /** Setters **/
   /*!
@@ -467,15 +479,19 @@ class Tree {
    * \brief create a categorical split
    * \param nid ID of node being updated
    * \param split_index feature index to split
-   * \param threshold threshold value
    * \param default_left the default direction when feature is unknown
    * \param missing_value_to_zero whether missing values should be converted into zero
-   * \param cmp comparison operator to compare between feature value and
-   *            threshold
+   * \param categories_list list of categories to belong to either the right child node or the left
+   *                        child node. Set categories_list_right_child parameter to indicate
+   *                        which node the category list should represent.
+   * \param categories_list_right_child whether categories_list indicates the list of categories
+   *                                    for the right child node (true) or the left child node
+   *                                    (false)
    */
   inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
                                   bool missing_value_to_zero,
-                                  const std::vector<uint32_t>& left_categories);
+                                  const std::vector<uint32_t>& categories_list,
+                                  bool categories_list_right_child);
   /*!
    * \brief set the leaf value of the node
    * \param nid ID of node being updated

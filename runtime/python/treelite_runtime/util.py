@@ -40,7 +40,7 @@ def numpy_type_to_type_info(type_info):
     elif type_info == np.float64:
         return 'float64'
     else:
-        raise ValueError('Unrecognized NumPy type: {type_info}')
+        raise ValueError(f'Unrecognized NumPy type: {type_info}')
 
 
 class TreeliteRuntimeError(Exception):

@@ -483,7 +483,7 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
         CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
         tree.SetCategoricalSplit(nid, node->feature_id, node->default_left, false,
-                                 node->left_categories);
+                                 node->left_categories, false);
         Q.push({node->left_child, tree.LeftChild(nid)});
         Q.push({node->right_child, tree.RightChild(nid)});
       } else {  // leaf node

@@ -581,7 +581,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
-          const bool missing_value_to_zero = (missing_type != MissingType::kNaN);
+          const bool missing_value_to_zero = missing_type != MissingType::kNaN;
           bool default_left = false;
           if (missing_value_to_zero) {
             // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
@@ -601,7 +601,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
           if (missing_value_to_zero) {
             // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
             // we need to override the default_left flag
-            default_left = (static_cast<double>(0) <= threshold);
+            default_left = 0.0 <= threshold;
           }
           tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
         }

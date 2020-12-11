@@ -581,16 +581,29 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
-          tree.SetCategoricalSplit(new_id, split_index, false, (missing_type != MissingType::kNaN),
-                                   left_categories);
+          const bool missing_value_to_zero = (missing_type != MissingType::kNaN);
+          bool default_left = false;
+          if (missing_value_to_zero) {
+            // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
+            // we need to override the default_left flag
+            default_left
+              = (std::find(left_categories.begin(), left_categories.end(), uint32_t(0))
+                  != left_categories.end());
+          }
+          tree.SetCategoricalSplit(new_id, split_index, default_left, left_categories);
         } else {
           // numerical
           const auto threshold = static_cast<double>(lgb_tree.threshold[old_id]);
-          const bool default_left
+          bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);
           const treelite::Operator cmp_op = treelite::Operator::kLE;
-          tree.SetNumericalSplit(new_id, split_index, threshold, default_left,
-                                 (missing_type != MissingType::kNaN), cmp_op);
+          const bool missing_value_to_zero = (missing_type != MissingType::kNaN);
+          if (missing_value_to_zero) {
+            // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
+            // we need to override the default_left flag
+            default_left = (double(0) <= threshold);
+          }
+          tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
         }
         if (!lgb_tree.internal_count.empty()) {
           const int data_count = lgb_tree.internal_count[old_id];

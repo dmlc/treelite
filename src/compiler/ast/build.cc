@@ -49,7 +49,6 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildASTFromTree(
           parent,
           tree.SplitIndex(nid),
           tree.DefaultLeft(nid),
-          tree.MissingValueToZero(nid),
           false,
           tree.ComparisonOp(nid),
           ThresholdVariant<ThresholdType>(tree.Threshold(nid)));
@@ -58,7 +57,6 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildASTFromTree(
           parent,
           tree.SplitIndex(nid),
           tree.DefaultLeft(nid),
-          tree.MissingValueToZero(nid),
           tree.LeftCategories(nid));
     }
     if (tree.HasGain(nid)) {

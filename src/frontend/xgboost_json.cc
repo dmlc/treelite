@@ -233,7 +233,7 @@ bool RegTreeHandler::EndObject(std::size_t memberCount) {
       output.AddChilds(new_id);
       output.SetNumericalSplit(
           new_id, split_indices[old_id], split_conditions[old_id],
-          default_left[old_id], false, treelite::Operator::kLT);
+          default_left[old_id], treelite::Operator::kLT);
       output.SetGain(new_id, loss_changes[old_id]);
       Q.push({left_children[old_id], output.LeftChild(new_id)});
       Q.push({right_children[old_id], output.RightChild(new_id)});

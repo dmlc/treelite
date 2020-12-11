@@ -587,8 +587,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
             // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
             // we need to override the default_left flag
             default_left
-              = (std::find(left_categories.begin(), left_categories.end(), uint32_t(0))
-                  != left_categories.end());
+              = (std::find(left_categories.begin(), left_categories.end(),
+                           static_cast<uint32_t>(0)) != left_categories.end());
           }
           tree.SetCategoricalSplit(new_id, split_index, default_left, left_categories);
         } else {
@@ -601,7 +601,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
           if (missing_value_to_zero) {
             // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
             // we need to override the default_left flag
-            default_left = (double(0) <= threshold);
+            default_left = (static_cast<double>(0) <= threshold);
           }
           tree.SetNumericalSplit(new_id, split_index, threshold, default_left, cmp_op);
         }

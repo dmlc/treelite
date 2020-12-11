@@ -50,6 +50,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
 #else
   FILE* fp = std::fopen(filename, "r");
 #endif
+  if (!fp) {
+    LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
+  }
 
   auto input_stream = std::make_unique<rapidjson::FileReadStream>(
       fp, read_buffer, sizeof(read_buffer));

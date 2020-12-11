@@ -32,7 +32,12 @@ _dataset_db = {
                                   dtrain=None, dtest='sparse_categorical.test', libname='sparsecat',
                                   expected_prob=None,
                                   expected_margin='sparse_categorical.test.margin',
-                                  is_multiclass=False, dtype='float64')
+                                  is_multiclass=False, dtype='float64'),
+    'xgb_toy_categorical': Dataset(model='xgb_toy_categorical_model.json', format='xgboost_json',
+                                   dtrain=None, dtest='xgb_toy_categorical.test',
+                                   libname='xgbtoycat', expected_prob=None,
+                                   expected_margin='xgb_toy_categorical.test.pred',
+                                   is_multiclass=False, dtype='float32')
 }
 
 

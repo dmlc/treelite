@@ -347,7 +347,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    if (nid > leaf_vector_offset_.Size()) {
+    if (static_cast<size_t>(nid) > leaf_vector_offset_.Size()) {
       throw std::runtime_error("nid too large");
     }
     return std::vector<LeafOutputType>(&leaf_vector_[leaf_vector_offset_[nid]],
@@ -358,7 +358,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    if (nid > leaf_vector_offset_.Size()) {
+    if (static_cast<size_t>(nid) > leaf_vector_offset_.Size()) {
       throw std::runtime_error("nid too large");
     }
     return leaf_vector_offset_[nid] != leaf_vector_offset_[nid + 1];
@@ -386,7 +386,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<uint32_t> MatchingCategories(int nid) const {
-    if (nid > matching_categories_offset_.Size()) {
+    if (static_cast<size_t>(nid) > matching_categories_offset_.Size()) {
       throw std::runtime_error("nid too large");
     }
     return std::vector<uint32_t>(&matching_categories_[matching_categories_offset_[nid]],

@@ -467,7 +467,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
         break;
       }
     }
-    CHECK(num_class >= 0 && num_class == model->task_param.num_class)
+    CHECK(num_class >= 0 && static_cast<size_t>(num_class) == model->task_param.num_class)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
@@ -489,7 +489,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
         }
       }
     }
-    CHECK(num_class >= 0 && num_class == model->task_param.num_class && alpha > 0.0f)
+    CHECK(num_class >= 0 && static_cast<size_t>(num_class) == model->task_param.num_class
+          && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
     std::strncpy(model->param.pred_transform, "multiclass_ova",

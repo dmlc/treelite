@@ -28,8 +28,7 @@ bool fold_code(ASTNode*, CodeFoldingContext*, ASTBuilder<ThresholdType, LeafOutp
 template <typename ThresholdType, typename LeafOutputType>
 class ASTBuilder {
  public:
-  ASTBuilder() : output_vector_flag(false), main_node(nullptr),
-                 quantize_threshold_flag(false) {}
+  ASTBuilder() : output_vector_flag(false), quantize_threshold_flag(false), main_node(nullptr) {}
 
   /* \brief initially build AST from model */
   void BuildAST(const ModelImpl<ThresholdType, LeafOutputType>& model);

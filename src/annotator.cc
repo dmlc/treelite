@@ -204,7 +204,6 @@ AnnotateImpl(
   counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
 
   const size_t num_row = dmat->GetNumRow();
-  const size_t num_col = dmat->GetNumCol();
   const size_t pstep = (num_row + 19) / 20;
   // interval to display progress
   for (size_t rbegin = 0; rbegin < num_row; rbegin += pstep) {

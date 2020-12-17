@@ -102,8 +102,8 @@ class ArrayFormatter {
 
  private:
   std::ostringstream oss_;  // string stream to store wrapped text
-  const size_t indent_;  // indent level, to indent each line
   const size_t text_width_;  // maximum length of each line
+  const size_t indent_;  // indent level, to indent each line
   const char delimiter_;  // delimiter (defaults to comma)
   const int default_precision_;  // default precision used by string stream
   size_t line_length_;  // width of current line

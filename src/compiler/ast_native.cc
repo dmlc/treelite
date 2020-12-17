@@ -666,7 +666,7 @@ class ASTNativeCompiler : public Compiler {
         // multi-class classification with random forest
         CHECK_EQ(node->vector.size(), static_cast<size_t>(task_param_.num_class))
           << "Ill-formed model: leaf vector must be of length [num_class]";
-        for (int group_id = 0; group_id < task_param_.num_class; ++group_id) {
+        for (size_t group_id = 0; group_id < task_param_.num_class; ++group_id) {
           output_statement
             += fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
                  "group_id"_a = group_id,

@@ -159,26 +159,26 @@ bool BaseHandler::assign_value(const std::string &key,
  * IgnoreHandler
  * ***************************************************************************/
 bool IgnoreHandler::Null() { return true; }
-bool IgnoreHandler::Bool(bool b) { return true; }
-bool IgnoreHandler::Int(int i) { return true; }
-bool IgnoreHandler::Uint(unsigned u) { return true; }
-bool IgnoreHandler::Int64(int64_t i) { return true; }
-bool IgnoreHandler::Uint64(uint64_t u) { return true; }
-bool IgnoreHandler::Double(double d) { return true; }
-bool IgnoreHandler::String(const char *str, std::size_t length, bool copy) {
+bool IgnoreHandler::Bool(bool) { return true; }
+bool IgnoreHandler::Int(int) { return true; }
+bool IgnoreHandler::Uint(unsigned) { return true; }
+bool IgnoreHandler::Int64(int64_t) { return true; }
+bool IgnoreHandler::Uint64(uint64_t) { return true; }
+bool IgnoreHandler::Double(double) { return true; }
+bool IgnoreHandler::String(const char *, std::size_t, bool) {
   return true; }
 bool IgnoreHandler::StartObject() { return push_handler<IgnoreHandler>(); }
-bool IgnoreHandler::Key(const char *str, std::size_t length, bool copy) {
+bool IgnoreHandler::Key(const char *, std::size_t, bool) {
   return true; }
 bool IgnoreHandler::StartArray() { return push_handler<IgnoreHandler>(); }
 
 /******************************************************************************
  * TreeParamHandler
  * ***************************************************************************/
-bool TreeParamHandler::String(const char *str, std::size_t length, bool copy) {
+bool TreeParamHandler::String(const char *str, std::size_t, bool) {
   // Key "num_deleted" deprecated but still present in some xgboost output
   return (check_cur_key("num_feature") ||
-          assign_value("num_nodes", atoi(str), output) ||
+          assign_value("num_nodes", std::atoi(str), output) ||
           check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
 }
 
@@ -210,59 +210,59 @@ bool RegTreeHandler::StartObject() {
   return push_key_handler<TreeParamHandler, int>("tree_param", num_nodes);
 }
 
-bool RegTreeHandler::Uint(unsigned u) { return check_cur_key("id"); }
+bool RegTreeHandler::Uint(unsigned) { return check_cur_key("id"); }
 
-bool RegTreeHandler::EndObject(std::size_t memberCount) {
+bool RegTreeHandler::EndObject(std::size_t) {
   output.Init();
   if (split_type.empty()) {
     split_type.resize(num_nodes, details::xgboost::FeatureType::kNumerical);
   }
-  if (num_nodes != loss_changes.size()) {
+  if (static_cast<size_t>(num_nodes) != loss_changes.size()) {
     LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << loss_changes.size();
     return false;
   }
-  if (num_nodes != sum_hessian.size()) {
+  if (static_cast<size_t>(num_nodes) != sum_hessian.size()) {
     LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << sum_hessian.size();
     return false;
   }
-  if (num_nodes != base_weights.size()) {
+  if (static_cast<size_t>(num_nodes) != base_weights.size()) {
     LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << base_weights.size();
     return false;
   }
-  if (num_nodes != left_children.size()) {
+  if (static_cast<size_t>(num_nodes) != left_children.size()) {
     LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << left_children.size();
     return false;
   }
-  if (num_nodes != right_children.size()) {
+  if (static_cast<size_t>(num_nodes) != right_children.size()) {
     LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << right_children.size();
     return false;
   }
-  if (num_nodes != parents.size()) {
+  if (static_cast<size_t>(num_nodes) != parents.size()) {
     LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << parents.size();
     return false;
   }
-  if (num_nodes != split_indices.size()) {
+  if (static_cast<size_t>(num_nodes) != split_indices.size()) {
     LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << split_indices.size();
     return false;
   }
-  if (num_nodes != split_type.size()) {
+  if (static_cast<size_t>(num_nodes) != split_type.size()) {
     LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << split_type.size();
     return false;
   }
-  if (num_nodes != split_conditions.size()) {
+  if (static_cast<size_t>(num_nodes) != split_conditions.size()) {
     LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << split_conditions.size();
     return false;
   }
-  if (num_nodes != default_left.size()) {
+  if (static_cast<size_t>(num_nodes) != default_left.size()) {
     LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
                << ", Actual: " << default_left.size();
     return false;
@@ -329,7 +329,7 @@ bool GBTreeModelHandler::StartObject() {
  * ***************************************************************************/
 bool GradientBoosterHandler::String(const char *str,
                                     std::size_t length,
-                                    bool copy) {
+                                    bool) {
   if (!check_cur_key("name")) {
     return false;
   }
@@ -363,7 +363,7 @@ bool ObjectiveHandler::StartObject() {
           push_key_handler<IgnoreHandler>("aft_loss_param"));
 }
 
-bool ObjectiveHandler::String(const char *str, std::size_t length, bool copy) {
+bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {
   return assign_value("name", std::string{str, length}, output);
 }
 
@@ -371,8 +371,8 @@ bool ObjectiveHandler::String(const char *str, std::size_t length, bool copy) {
  * LearnerParamHandler
  * ***************************************************************************/
 bool LearnerParamHandler::String(const char *str,
-                                 std::size_t length,
-                                 bool copy) {
+                                 std::size_t,
+                                 bool) {
   return (assign_value("base_score", strtof(str, nullptr),
                        output.param.global_bias) ||
           assign_value("num_class", static_cast<unsigned int>(std::max(std::atoi(str), 1)),
@@ -393,7 +393,7 @@ bool LearnerHandler::StartObject() {
           push_key_handler<IgnoreHandler>("attributes"));
 }
 
-bool LearnerHandler::EndObject(std::size_t memberCount) {
+bool LearnerHandler::EndObject(std::size_t) {
   xgboost::SetPredTransform(objective, &output.model->param);
   output.objective_name = objective;
   return pop_handler();

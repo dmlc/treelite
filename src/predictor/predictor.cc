@@ -51,7 +51,6 @@ inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int nu
   std::vector<treelite::predictor::Entry<ThresholdType>> inst(
     std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
   CHECK(rbegin < rend && rend <= dmat->num_row);
-  const size_t num_col = dmat->num_col;
   const ElementType* data = dmat->data.data();
   const uint32_t* col_ind = dmat->col_ind.data();
   const size_t* row_ptr = dmat->row_ptr.data();
@@ -106,8 +105,7 @@ class PredLoopDispatcherWithDenseDMatrix {
  public:
   template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
   inline static size_t Dispatch(
-      const treelite::DMatrix* dmat, ThresholdType test_val,
-      int num_feature, size_t rbegin, size_t rend,
+      const treelite::DMatrix* dmat, ThresholdType, int num_feature, size_t rbegin, size_t rend,
       LeafOutputType* out_pred, PredFunc func) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
     return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
@@ -120,8 +118,7 @@ class PredLoopDispatcherWithCSRDMatrix {
  public:
   template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
   inline static size_t Dispatch(
-      const treelite::DMatrix* dmat, ThresholdType test_val,
-      int num_feature, size_t rbegin, size_t rend,
+      const treelite::DMatrix* dmat, ThresholdType, int num_feature, size_t rbegin, size_t rend,
       LeafOutputType* out_pred, PredFunc func) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
     return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
@@ -254,7 +251,6 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
   // Note that size of prediction may be smaller than out_pred (this occurs
   // when pred_function is set to "max_index").
   CHECK(rbegin < rend && rend <= dmat->GetNumRow());
-  size_t num_row = rend - rbegin;
   if (num_class_ > 1) {  // multi-class classification
     using PredFunc = size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);

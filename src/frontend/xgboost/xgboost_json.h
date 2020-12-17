@@ -41,23 +41,23 @@ class BaseHandler
     delegator{parent_delegator} {};
 
   virtual bool Null() { return false; }
-  virtual bool Bool(bool b) { return false; }
-  virtual bool Int(int i) { return false; }
-  virtual bool Uint(unsigned u) { return false; }
-  virtual bool Int64(int64_t i) { return false; }
-  virtual bool Uint64(uint64_t u) { return false; }
-  virtual bool Double(double d) { return false; }
-  virtual bool String(const char *str, std::size_t length, bool copy) {
+  virtual bool Bool(bool) { return false; }
+  virtual bool Int(int) { return false; }
+  virtual bool Uint(unsigned) { return false; }
+  virtual bool Int64(int64_t) { return false; }
+  virtual bool Uint64(uint64_t) { return false; }
+  virtual bool Double(double) { return false; }
+  virtual bool String(const char *, std::size_t, bool) {
     return false;
   }
   virtual bool StartObject() { return false; }
-  virtual bool Key(const char *str, std::size_t length, bool copy) {
+  virtual bool Key(const char *str, std::size_t length, bool) {
     set_cur_key(str, length);
     return true;
   }
-  virtual bool EndObject(std::size_t memberCount) { return pop_handler(); }
+  virtual bool EndObject(std::size_t) { return pop_handler(); }
   virtual bool StartArray() { return false; }
-  virtual bool EndArray(std::size_t elementCount) { return pop_handler(); }
+  virtual bool EndArray(std::size_t) { return pop_handler(); }
 
  protected:
   /* \brief build handler of indicated type and push it onto delegator's stack
@@ -178,7 +178,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
   template <typename ArgType, typename IntType = ElemType>
   typename std::enable_if<!std::is_integral<IntType>::value, bool>::type
-  store_int(ArgType i) {
+  store_int(ArgType) {
     return false;
   }
 
@@ -204,7 +204,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   template <typename StringType = ElemType>
   typename std::enable_if<!std::is_same<StringType, std::string>::value,
                           bool>::type
-  store_string(const char *str, std::size_t length, bool copy) {
+  store_string(const char *, std::size_t, bool) {
     return false;
   }
 
@@ -251,7 +251,6 @@ class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
   std::vector<double> loss_changes;
   std::vector<double> sum_hessian;
   std::vector<double> base_weights;
-  std::vector<int> leaf_child_counts;
   std::vector<int> left_children;
   std::vector<int> right_children;
   std::vector<int> parents;

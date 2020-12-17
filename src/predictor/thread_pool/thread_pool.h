@@ -70,8 +70,8 @@ class ThreadPool {
   std::vector<std::thread> thread_;
   std::vector<std::unique_ptr<SpscQueue<InputToken>>> incoming_queue_;
   std::vector<std::unique_ptr<SpscQueue<OutputToken>>> outgoing_queue_;
-  TaskFunc task_;
   const TaskContext* context_;
+  TaskFunc task_;
 
   inline void SetAffinity() {
 #ifdef _WIN32

@@ -25,8 +25,8 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildAST(
                                                model.num_feature);
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);
-  for (int tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
-    ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], tree_id, 0, ac);
+  for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
+    ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], static_cast<int>(tree_id), 0, ac);
     ac->children.push_back(tree_head);
   }
   this->model_param = model.param.__DICT__();

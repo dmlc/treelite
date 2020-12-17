@@ -441,7 +441,7 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   }
   InitScalarFromPyBuffer(&num_nodes, *begin++);
   InitArrayFromPyBuffer(&nodes_, *begin++);
-  if (num_nodes != nodes_.Size()) {
+  if (static_cast<size_t>(num_nodes) != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
   }
   InitArrayFromPyBuffer(&leaf_vector_, *begin++);
@@ -677,7 +677,6 @@ Model::GetPyBuffer() {
 
 inline std::unique_ptr<Model>
 Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  using TypeInfoInt = std::underlying_type<TypeInfo>::type;
   TypeInfo threshold_type, leaf_output_type;
   if (frames.size() < 2) {
     throw std::runtime_error("Insufficient number of frames: there must be at least two");

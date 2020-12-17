@@ -358,10 +358,11 @@ class Tree {
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
     const size_t offset_begin = leaf_vector_offset_.at(nid);
     const size_t offset_end = leaf_vector_offset_.at(nid + 1);
-    if (offset_end > leaf_vector_.Size()) {
-      throw std::range_error("Out-of-range access to leaf vector field");
+    if (offset_begin >= leaf_vector_.size() || offset_end > leaf_vector_.Size()) {
+      // Return empty vector, to indicate the lack of leaf vector
+      return std::vector<LeafOutputType>();
     }
-    return std::vector<LeafOutputType>(&leaf_vector_.at(offset_begin),
+    return std::vector<LeafOutputType>(&leaf_vector_[offset_begin],
                                        &leaf_vector_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
@@ -398,13 +399,23 @@ class Tree {
   inline std::vector<uint32_t> MatchingCategories(int nid) const {
     const size_t offset_begin = matching_categories_offset_.at(nid);
     const size_t offset_end = matching_categories_offset_.at(nid + 1);
-    if (offset_end > matching_categories_.Size()) {
-      throw std::range_error("Out-of-range access to matching categories field");
+    if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
+      // Return empty vector, to indicate the lack of any matching categories
+      // The node might be a numerical split
+      return std::vector<uint32_t>();
     }
-    return std::vector<uint32_t>(&matching_categories_.at(offset_begin),
+    return std::vector<uint32_t>(&matching_categories_[offset_begin],
                                  &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
+  }
+  /*!
+   * \brief tests whether the node has a non-empty list for matching categories. See
+   *        MatchingCategories() for the definition of matching categories.
+   * \param nid ID of node being queried
+   */
+  inline bool HasMatchingCategories(int nid) const {
+    return matching_categories_offset_.at(nid) != matching_categories_offset_.at(nid + 1);
   }
   /*!
    * \brief get feature split type

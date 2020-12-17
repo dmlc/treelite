@@ -149,7 +149,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(
           "cright"_a = -1);
       } else {
         CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-              && tree.MatchingCategories(nid).empty())
+              && !tree.HasMatchingCategories(nid))
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
             "sindex"_a
@@ -185,7 +185,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
         val = {0, static_cast<float>(tree.LeafValue(nid)), -1, -1};
       } else {
         CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-              && tree.MatchingCategories(nid).empty())
+              && !tree.HasMatchingCategories(nid))
           << "categorical splits are not supported in FailSafeCompiler";
         val = {(tree.SplitIndex(nid) | (static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31)),
                static_cast<float>(tree.Threshold(nid)), tree.LeftChild(nid), tree.RightChild(nid)};

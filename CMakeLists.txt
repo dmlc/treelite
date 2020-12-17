@@ -16,6 +16,13 @@ option(USE_OPENMP "Use OpenMP" ON)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
 option(BUILD_JVM_RUNTIME "Build Treelite runtime for JVM" OFF)
+option(ENABLE_ALL_WARNINGS "Enable all compiler warnings. Only effective for GCC/Clang" OFF)
+
+if(ENABLE_ALL_WARNINGS)
+  if((NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
+    message(SEND_ERROR "ENABLE_ALL_WARNINGS is only available for Clang and GCC.")
+  endif()
+endif()
 
 # When installing dependencies, use Conda environment if available
 if(DETECT_CONDA_ENV)

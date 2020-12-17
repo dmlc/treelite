@@ -22,6 +22,12 @@ else()
   message(STATUS "Disabling OpenMP")
 endif()
 
+if(ENABLE_ALL_WARNINGS)
+  foreach(target objtreelite objtreelite_runtime objtreelite_runtime)
+    target_compile_options(${target} PRIVATE -Wall -Wextra)
+  endforeach()
+endif()
+
 foreach(lib objtreelite objtreelite_runtime objtreelite_common)
   target_include_directories(${lib} PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>

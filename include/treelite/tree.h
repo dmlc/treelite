@@ -259,6 +259,8 @@ class Tree {
   Tree(Tree&&) noexcept = default;
   Tree& operator=(Tree&&) noexcept = default;
 
+  inline Tree<ThresholdType, LeafOutputType> Clone() const;
+
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,

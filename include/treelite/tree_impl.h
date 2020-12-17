@@ -397,6 +397,19 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
+inline Tree<ThresholdType, LeafOutputType>
+Tree<ThresholdType, LeafOutputType>::Clone() const {
+  Tree<ThresholdType, LeafOutputType> tree;
+  tree.num_nodes = num_nodes;
+  tree.nodes_ = nodes_.Clone();
+  tree.leaf_vector_ = leaf_vector_.Clone();
+  tree.leaf_vector_offset_ = leaf_vector_offset_.Clone();
+  tree.matching_categories_ = matching_categories_.Clone();
+  tree.matching_categories_offset_ = matching_categories_offset_.Clone();
+  return tree;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
 inline const char*
 Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {

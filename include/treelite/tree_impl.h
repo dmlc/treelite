@@ -249,6 +249,42 @@ ContiguousArray<T>::operator[](size_t idx) const {
   return buffer_[idx];
 }
 
+template <typename T>
+inline T&
+ContiguousArray<T>::at(size_t idx) {
+  if (idx >= Size()) {
+    throw std::runtime_error("nid out of range");
+  }
+  return buffer_[idx];
+}
+
+template <typename T>
+inline const T&
+ContiguousArray<T>::at(size_t idx) const {
+  if (idx >= Size()) {
+    throw std::runtime_error("nid out of range");
+  }
+  return buffer_[idx];
+}
+
+template <typename T>
+inline T&
+ContiguousArray<T>::at(int idx) {
+  if (idx < 0 || static_cast<size_t>(idx) >= Size()) {
+    throw std::runtime_error("nid out of range");
+  }
+  return buffer_[static_cast<size_t>(idx)];
+}
+
+template <typename T>
+inline const T&
+ContiguousArray<T>::at(int idx) const {
+  if (idx < 0 || static_cast<size_t>(idx) >= Size()) {
+    throw std::runtime_error("nid out of range");
+  }
+  return buffer_[static_cast<size_t>(idx)];
+}
+
 template<typename Container>
 inline std::vector<std::pair<std::string, std::string> >
 ModelParam::InitAllowUnknown(const Container& kwargs) {
@@ -489,7 +525,7 @@ Tree<ThresholdType, LeafOutputType>::Init() {
   matching_categories_.Clear();
   matching_categories_offset_.Resize(2, 0);
   nodes_.Resize(1);
-  nodes_[0].Init();
+  nodes_.at(0).Init();
   SetLeaf(0, static_cast<LeafOutputType>(0));
 }
 
@@ -498,8 +534,8 @@ inline void
 Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
   const int cleft = this->AllocNode();
   const int cright = this->AllocNode();
-  nodes_[nid].cleft_ = cleft;
-  nodes_[nid].cright_ = cright;
+  nodes_.at(nid).cleft_ = cleft;
+  nodes_.at(nid).cright_ = cright;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -535,7 +571,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
     int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp) {
-  Node& node = nodes_[nid];
+  Node& node = nodes_.at(nid);
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
   }
@@ -561,7 +597,7 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   if (end_oft != matching_categories_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  if (!std::all_of(&matching_categories_offset_[nid + 1], matching_categories_offset_.End(),
+  if (!std::all_of(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                    [end_oft](size_t x) { return (x == end_oft); })) {
     throw std::runtime_error("Invariant violated");
   }
@@ -570,11 +606,11 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   if (new_end_oft != matching_categories_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  std::for_each(&matching_categories_offset_[nid + 1], matching_categories_offset_.End(),
+  std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                 [new_end_oft](size_t& x) { x = new_end_oft; });
-  std::sort(&matching_categories_[end_oft], matching_categories_.End());
+  std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
 
-  Node& node = nodes_[nid];
+  Node& node = nodes_.at(nid);
   if (default_left) split_index |= (1U << 31U);
   node.sindex_ = split_index;
   node.split_type_ = SplitFeatureType::kCategorical;
@@ -584,7 +620,7 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
-  Node& node = nodes_[nid];
+  Node& node = nodes_.at(nid);
   (node.info_).leaf_value = value;
   node.cleft_ = -1;
   node.cright_ = -1;
@@ -600,7 +636,7 @@ Tree<ThresholdType, LeafOutputType>::SetLeafVector(
   if (end_oft != leaf_vector_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  if (!std::all_of(&leaf_vector_offset_[nid + 1], leaf_vector_offset_.End(),
+  if (!std::all_of(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
                    [end_oft](size_t x) { return (x == end_oft); })) {
     throw std::runtime_error("Invariant violated");
   }
@@ -609,10 +645,10 @@ Tree<ThresholdType, LeafOutputType>::SetLeafVector(
   if (new_end_oft != leaf_vector_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
-  std::for_each(&leaf_vector_offset_[nid + 1], leaf_vector_offset_.End(),
+  std::for_each(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
                 [new_end_oft](size_t& x) { x = new_end_oft; });
 
-  Node& node = nodes_[nid];
+  Node& node = nodes_.at(nid);
   node.cleft_ = -1;
   node.cright_ = -1;
   node.split_type_ = SplitFeatureType::kNone;

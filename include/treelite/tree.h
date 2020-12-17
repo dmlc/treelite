@@ -67,8 +67,15 @@ class ContiguousArray {
   inline void Clear();
   inline void PushBack(T t);
   inline void Extend(const std::vector<T>& other);
+  /* Unsafe access, no bounds checking */
   inline T& operator[](size_t idx);
   inline const T& operator[](size_t idx) const;
+  /* Safe access, with bounds checking */
+  inline T& at(size_t idx);
+  inline const T& at(size_t idx) const;
+  /* Safe access, with bounds checking + check against non-existent node (<0) */
+  inline T& at(int idx);
+  inline const T& at(int idx) const;
   static_assert(std::is_pod<T>::value, "T must be POD");
 
  private:
@@ -300,14 +307,14 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline int LeftChild(int nid) const {
-    return nodes_[nid].cleft_;
+    return nodes_.at(nid).cleft_;
   }
   /*!
    * \brief index of the node's right child
    * \param nid ID of node being queried
    */
   inline int RightChild(int nid) const {
-    return nodes_[nid].cright_;
+    return nodes_.at(nid).cright_;
   }
   /*!
    * \brief index of the node's "default" child, used when feature is missing
@@ -321,63 +328,64 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline uint32_t SplitIndex(int nid) const {
-    return (nodes_[nid].sindex_ & ((1U << 31U) - 1U));
+    return (nodes_.at(nid).sindex_ & ((1U << 31U) - 1U));
   }
   /*!
    * \brief whether to use the left child node, when the feature in the split condition is missing
    * \param nid ID of node being queried
    */
   inline bool DefaultLeft(int nid) const {
-    return (nodes_[nid].sindex_ >> 31U) != 0;
+    return (nodes_.at(nid).sindex_ >> 31U) != 0;
   }
   /*!
    * \brief whether the node is leaf node
    * \param nid ID of node being queried
    */
   inline bool IsLeaf(int nid) const {
-    return nodes_[nid].cleft_ == -1;
+    return nodes_.at(nid).cleft_ == -1;
   }
   /*!
    * \brief get leaf value of the leaf node
    * \param nid ID of node being queried
    */
   inline LeafOutputType LeafValue(int nid) const {
-    return (nodes_[nid].info_).leaf_value;
+    return (nodes_.at(nid).info_).leaf_value;
   }
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    if (static_cast<size_t>(nid) > leaf_vector_offset_.Size()) {
-      throw std::runtime_error("nid too large");
+    const size_t offset_begin = leaf_vector_offset_.at(nid);
+    const size_t offset_end = leaf_vector_offset_.at(nid + 1);
+    if (offset_end > leaf_vector_.Size()) {
+      throw std::range_error("Out-of-range access to leaf vector field");
     }
-    return std::vector<LeafOutputType>(&leaf_vector_[leaf_vector_offset_[nid]],
-                                       &leaf_vector_[leaf_vector_offset_[nid + 1]]);
+    return std::vector<LeafOutputType>(&leaf_vector_.at(offset_begin),
+                                       &leaf_vector_[offset_end]);
+      // Use unsafe access here, since we may need to take the address of one past the last
+      // element, to follow with the range semantic of std::vector<>.
   }
   /*!
    * \brief tests whether the leaf node has a non-empty leaf vector
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    if (static_cast<size_t>(nid) > leaf_vector_offset_.Size()) {
-      throw std::runtime_error("nid too large");
-    }
-    return leaf_vector_offset_[nid] != leaf_vector_offset_[nid + 1];
+    return leaf_vector_offset_.at(nid) != leaf_vector_offset_.at(nid + 1);
   }
   /*!
    * \brief get threshold of the node
    * \param nid ID of node being queried
    */
   inline ThresholdType Threshold(int nid) const {
-    return (nodes_[nid].info_).threshold;
+    return (nodes_.at(nid).info_).threshold;
   }
   /*!
    * \brief get comparison operator
    * \param nid ID of node being queried
    */
   inline Operator ComparisonOp(int nid) const {
-    return nodes_[nid].cmp_;
+    return nodes_.at(nid).cmp_;
   }
   /*!
    * \brief Get list of all categories belonging to the left/right child node. See the
@@ -388,32 +396,36 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<uint32_t> MatchingCategories(int nid) const {
-    if (static_cast<size_t>(nid) > matching_categories_offset_.Size()) {
-      throw std::runtime_error("nid too large");
+    const size_t offset_begin = matching_categories_offset_.at(nid);
+    const size_t offset_end = matching_categories_offset_.at(nid + 1);
+    if (offset_end > matching_categories_.Size()) {
+      throw std::range_error("Out-of-range access to matching categories field");
     }
-    return std::vector<uint32_t>(&matching_categories_[matching_categories_offset_[nid]],
-                                 &matching_categories_[matching_categories_offset_[nid + 1]]);
+    return std::vector<uint32_t>(&matching_categories_.at(offset_begin),
+                                 &matching_categories_[offset_end]);
+      // Use unsafe access here, since we may need to take the address of one past the last
+      // element, to follow with the range semantic of std::vector<>.
   }
   /*!
    * \brief get feature split type
    * \param nid ID of node being queried
    */
   inline SplitFeatureType SplitType(int nid) const {
-    return nodes_[nid].split_type_;
+    return nodes_.at(nid).split_type_;
   }
   /*!
    * \brief test whether this node has data count
    * \param nid ID of node being queried
    */
   inline bool HasDataCount(int nid) const {
-    return nodes_[nid].data_count_present_;
+    return nodes_.at(nid).data_count_present_;
   }
   /*!
    * \brief get data count
    * \param nid ID of node being queried
    */
   inline uint64_t DataCount(int nid) const {
-    return nodes_[nid].data_count_;
+    return nodes_.at(nid).data_count_;
   }
 
   /*!
@@ -421,28 +433,28 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasSumHess(int nid) const {
-    return nodes_[nid].sum_hess_present_;
+    return nodes_.at(nid).sum_hess_present_;
   }
   /*!
    * \brief get hessian sum
    * \param nid ID of node being queried
    */
   inline double SumHess(int nid) const {
-    return nodes_[nid].sum_hess_;
+    return nodes_.at(nid).sum_hess_;
   }
   /*!
    * \brief test whether this node has gain value
    * \param nid ID of node being queried
    */
   inline bool HasGain(int nid) const {
-    return nodes_[nid].gain_present_;
+    return nodes_.at(nid).gain_present_;
   }
   /*!
    * \brief get gain value
    * \param nid ID of node being queried
    */
   inline double Gain(int nid) const {
-    return nodes_[nid].gain_;
+    return nodes_.at(nid).gain_;
   }
   /*!
    * \brief test whether the list given by MatchingCategories(nid) is associated with the right
@@ -450,7 +462,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool CategoriesListRightChild(int nid) const {
-    return nodes_[nid].categories_list_right_child_;
+    return nodes_.at(nid).categories_list_right_child_;
   }
 
   /** Setters **/
@@ -498,7 +510,7 @@ class Tree {
    * \param sum_hess hessian sum
    */
   inline void SetSumHess(int nid, double sum_hess) {
-    Node& node = nodes_[nid];
+    Node& node = nodes_.at(nid);
     node.sum_hess_ = sum_hess;
     node.sum_hess_present_ = true;
   }
@@ -508,7 +520,7 @@ class Tree {
    * \param data_count data count
    */
   inline void SetDataCount(int nid, uint64_t data_count) {
-    Node& node = nodes_[nid];
+    Node& node = nodes_.at(nid);
     node.data_count_ = data_count;
     node.data_count_present_ = true;
   }
@@ -518,7 +530,7 @@ class Tree {
    * \param gain gain value
    */
   inline void SetGain(int nid, double gain) {
-    Node& node = nodes_[nid];
+    Node& node = nodes_.at(nid);
     node.gain_ = gain;
     node.gain_present_ = true;
   }

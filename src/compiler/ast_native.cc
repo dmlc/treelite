@@ -128,6 +128,8 @@ class ASTNativeCompiler : public Compiler {
   }
 
   CompiledModel Compile(const Model& model) override {
+    CHECK(model.GetLeafOutputType() != TypeInfo::kUInt32)
+      << "Integer leaf outputs not yet supported";
     this->pred_tranform_func_ = PredTransformFunction("native", model);
     return model.Dispatch([this](const auto& model_handle) {
       return this->CompileImpl(model_handle);

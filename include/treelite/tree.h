@@ -358,7 +358,7 @@ class Tree {
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
     const size_t offset_begin = leaf_vector_offset_.at(nid);
     const size_t offset_end = leaf_vector_offset_.at(nid + 1);
-    if (offset_begin >= leaf_vector_.size() || offset_end > leaf_vector_.Size()) {
+    if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
     }

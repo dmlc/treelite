@@ -216,7 +216,7 @@ int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
 int TreeliteTreeBuilderCreateValue(const void* init_value, const char* type, ValueHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::Value> value = std::make_unique<frontend::Value>();
-  *value = frontend::Value::Create(init_value, typeinfo_table.at(type));
+  *value = frontend::Value::Create(init_value, GetTypeInfoByName(type));
   *out = static_cast<ValueHandle>(value.release());
   API_END();
 }
@@ -231,8 +231,8 @@ int TreeliteCreateTreeBuilder(const char* threshold_type, const char* leaf_outpu
                               TreeBuilderHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::TreeBuilder> builder{
-    new frontend::TreeBuilder(typeinfo_table.at(threshold_type),
-                              typeinfo_table.at(leaf_output_type))
+    new frontend::TreeBuilder(GetTypeInfoByName(threshold_type),
+                              GetTypeInfoByName(leaf_output_type))
   };
   *out = static_cast<TreeBuilderHandle>(builder.release());
   API_END();
@@ -323,8 +323,8 @@ int TreeliteCreateModelBuilder(
     const char* leaf_output_type, ModelBuilderHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::ModelBuilder> builder{new frontend::ModelBuilder(
-      num_feature, num_class, (average_tree_output != 0), typeinfo_table.at(threshold_type),
-      typeinfo_table.at(leaf_output_type))};
+      num_feature, num_class, (average_tree_output != 0), GetTypeInfoByName(threshold_type),
+      GetTypeInfoByName(leaf_output_type))};
   *out = static_cast<ModelBuilderHandle>(builder.release());
   API_END();
 }

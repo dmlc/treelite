@@ -331,10 +331,10 @@ Predictor::Load(const char* libpath) {
   /* 6. Query the data type for thresholds and leaf outputs */
   auto* threshold_type_query_func
     = lib_.LoadFunctionWithSignature<StringQueryFunc>("get_threshold_type");
-  threshold_type_ = typeinfo_table.at(threshold_type_query_func());
+  threshold_type_ = GetTypeInfoByName(threshold_type_query_func());
   auto* leaf_output_type_query_func
     = lib_.LoadFunctionWithSignature<StringQueryFunc>("get_leaf_output_type");
-  leaf_output_type_ = typeinfo_table.at(leaf_output_type_query_func());
+  leaf_output_type_ = GetTypeInfoByName(leaf_output_type_query_func());
 
   /* 7. load appropriate function for margin prediction */
   CHECK_GT(num_class_, 0) << "num_class cannot be zero";

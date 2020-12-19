@@ -29,7 +29,7 @@ static_assert(std::is_same<std::underlying_type<TypeInfo>::type, uint8_t>::value
               "TypeInfo must use uint8_t as underlying type");
 
 /*! \brief conversion table from string to TypeInfo, defined in tables.cc */
-extern const std::unordered_map<std::string, TypeInfo> typeinfo_table;
+TypeInfo GetTypeInfoByName(const std::string& str);
 
 /*!
  * \brief Get string representation of type info

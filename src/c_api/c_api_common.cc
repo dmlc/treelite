@@ -43,7 +43,7 @@ int TreeliteDMatrixCreateFromCSR(
     const void* data, const char* data_type_str, const uint32_t* col_ind, const size_t* row_ptr,
     size_t num_row, size_t num_col, DMatrixHandle* out) {
   API_BEGIN();
-  TypeInfo data_type = typeinfo_table.at(data_type_str);
+  TypeInfo data_type = GetTypeInfoByName(data_type_str);
   std::unique_ptr<DMatrix> matrix
     = CSRDMatrix::Create(data_type, data, col_ind, row_ptr, num_row, num_col);
   *out = static_cast<DMatrixHandle>(matrix.release());
@@ -54,7 +54,7 @@ int TreeliteDMatrixCreateFromMat(
     const void* data, const char* data_type_str, size_t num_row, size_t num_col,
     const void* missing_value, DMatrixHandle* out) {
   API_BEGIN();
-  TypeInfo data_type = typeinfo_table.at(data_type_str);
+  TypeInfo data_type = GetTypeInfoByName(data_type_str);
   std::unique_ptr<DMatrix> matrix
     = DenseDMatrix::Create(data_type, data, missing_value, num_row, num_col);
   *out = static_cast<DMatrixHandle>(matrix.release());

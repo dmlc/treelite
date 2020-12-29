@@ -13,10 +13,17 @@
 
 namespace treelite {
 
-const std::unordered_map<std::string, TypeInfo> typeinfo_table{
-  {"uint32", TypeInfo::kUInt32},
-  {"float32", TypeInfo::kFloat32},
-  {"float64", TypeInfo::kFloat64}
-};
+TypeInfo GetTypeInfoByName(const std::string& str) {
+  if (str == "uint32") {
+    return TypeInfo::kUInt32;
+  } else if (str == "float32") {
+    return TypeInfo::kFloat32;
+  } else if (str == "float64") {
+    return TypeInfo::kFloat64;
+  } else {
+    throw std::runtime_error("Unrecognized type");
+    return TypeInfo::kInvalid;
+  }
+}
 
 }  // namespace treelite

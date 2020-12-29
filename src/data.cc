@@ -206,7 +206,7 @@ CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, con
 std::unique_ptr<CSRDMatrix>
 CSRDMatrix::Create(
     const char* filename, const char* format, const char* data_type, int nthread, int verbose) {
-  TypeInfo dtype = (data_type ? typeinfo_table.at(data_type) : TypeInfo::kFloat32);
+  TypeInfo dtype = (data_type ? GetTypeInfoByName(data_type) : TypeInfo::kFloat32);
   return CreateFromParser(filename, format, dtype, nthread, verbose);
 }
 

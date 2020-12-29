@@ -432,8 +432,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   // 1.0 it's the original value provided by user.
   const bool need_transform_to_margin = (version[0] >= 1);
   if (need_transform_to_margin) {
-    treelite::details::xgboost::TransformGlobalBiasToMargin(
-        output.objective_name, &output.model->param);
+    treelite::details::xgboost::TransformGlobalBiasToMargin(&output.model->param);
   }
   return pop_handler();
 }

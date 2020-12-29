@@ -114,18 +114,18 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,max_label,expected_global_bias',
                          [('binary:logistic', 2, 0),
                           ('binary:hinge', 2, 0.5),
-                          ('binary:logitraw', 2, 0),
+                          ('binary:logitraw', 2, 0.5),
                           ('count:poisson', 4, math.log(0.5)),
                           ('rank:pairwise', 5, 0.5),
                           ('rank:ndcg', 5, 0.5),
                           ('rank:map', 5, 0.5)],
                          ids=['binary:logistic', 'binary:hinge', 'binary:logitraw',
                               'count:poisson', 'rank:pairwise', 'rank:ndcg', 'rank:map'])
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias, toolchain,
                              model_format):
     # pylint: disable=too-many-locals,too-many-arguments

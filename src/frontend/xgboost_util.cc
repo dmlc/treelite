@@ -54,15 +54,8 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param) {
 }
 
 // Transform the global bias parameter from probability into margin score
-void TransformGlobalBiasToMargin(const std::string& objective_name, ModelParam* param) {
+void TransformGlobalBiasToMargin(ModelParam* param) {
   std::string bias_transform{param->pred_transform};
-  if (objective_name == "binary:logitraw") {
-    // Special handling for 'logitraw', where the global bias is transformed with 'sigmoid',
-    // but the prediction is returned un-transformed.
-    CHECK_EQ(bias_transform, "identity");
-    bias_transform = "sigmoid";
-  }
-
   if (bias_transform == "sigmoid") {
     param->global_bias = ProbToMargin::Sigmoid(param->global_bias);
   } else if (bias_transform == "exponential") {

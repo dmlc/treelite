@@ -311,7 +311,9 @@ int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle, int node_key,
   auto* builder = static_cast<frontend::TreeBuilder*>(handle);
   CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
   std::vector<frontend::Value> vec(leaf_vector_len);
+  CHECK(leaf_vector) << "leaf_vector argument must not be null";
   for (size_t i = 0; i < leaf_vector_len; ++i) {
+    CHECK(leaf_vector[i]) << "leaf_vector[" << i << "] contains an empty Value handle";
     vec[i] = *static_cast<const frontend::Value*>(leaf_vector[i]);
   }
   builder->SetLeafVectorNode(node_key, vec);

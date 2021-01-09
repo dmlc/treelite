@@ -45,11 +45,12 @@ def os_platform():
 
 
 def is_apple_clang(toolchain):
+    """Query whether a given compiler executable is Apple Clang compiler."""
     try:
         proc = subprocess.run([toolchain, '--version'], check=True, capture_output=True)
         stdout = proc.stdout.decode('utf-8')
         return re.search(r'Apple Clang', stdout, re.IGNORECASE)
-    except:
+    except subprocess.CalledProcessError:
         return False
 
 

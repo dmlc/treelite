@@ -48,7 +48,7 @@ def is_apple_clang(toolchain):
     try:
         proc = subprocess.run([toolchain, '--version'], check=True, capture_output=True)
         stdout = proc.stdout.decode('utf-8')
-        return re.search(r'Apple Clang', stdout, re.IGNORECASE):
+        return re.search(r'Apple Clang', stdout, re.IGNORECASE)
     except:
         return False
 

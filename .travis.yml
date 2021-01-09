@@ -30,7 +30,7 @@ addons:
   homebrew:
     packages:
       - cmake
-      - gcc@7
+      - gcc@10
       - libomp
       - wget
       - lcov

@@ -17,6 +17,8 @@ from .libpath import TreeliteRuntimeLibraryNotFound, find_lib_path
 def _load_runtime_lib():
     """Load Treelite runtime"""
     lib_path = find_lib_path()
+    if sys.version_info >= (3, 8) and sys.platform == 'win32':
+        os.add_dll_directory(os.path.join(os.path.normpath(sys.prefix), 'Library', 'bin'))
     lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
     lib.callback = _log_callback

@@ -43,7 +43,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DUSE_OPENMP=ON -GNinja
+  cmake .. -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
   ninja install
 
   # Try compiling a sample application

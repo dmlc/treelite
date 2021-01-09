@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions for tests"""
 import os
-import subprocess
-import re
 from sys import platform as _platform
 from contextlib import contextmanager
 
@@ -42,16 +40,6 @@ def os_platform():
     if _platform in ['win32', 'cygwin']:
         return 'windows'
     return 'unix'
-
-
-def is_apple_clang(toolchain):
-    """Query whether a given compiler executable is Apple Clang compiler."""
-    try:
-        proc = subprocess.run([toolchain, '--version'], check=True, capture_output=True)
-        stdout = proc.stdout.decode('utf-8')
-        return re.search(r'Apple Clang', stdout, re.IGNORECASE)
-    except subprocess.CalledProcessError:
-        return False
 
 
 def libname(fmt):

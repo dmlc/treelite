@@ -10,7 +10,7 @@ import treelite_runtime
 from treelite.contrib import _libext
 from treelite.util import has_sklearn
 from .metadata import dataset_db, _qualify_path
-from .util import os_compatible_toolchains, os_platform, check_predictor, is_apple_clang
+from .util import os_compatible_toolchains, os_platform, check_predictor
 
 try:
     import lightgbm
@@ -227,7 +227,7 @@ def test_sparse_categorical_model(tmpdir, quantize, toolchain):
         pytest.xfail(reason='Clang cannot handle long if conditional')
     if os_platform() == 'windows':
         pytest.xfail(reason='MSVC cannot handle long if conditional')
-    if os_platform() == 'osx' and is_apple_clang(toolchain):
+    if os_platform() == 'osx':
         pytest.xfail(reason='Apple Clang cannot handle long if conditional')
     dataset = 'sparse_categorical'
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())

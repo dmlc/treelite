@@ -1,4 +1,5 @@
 include(FetchContent)
+include(cmake/FetchContentMakeAvailable.cmake)
 
 FetchContent_Declare(
   dmlccore

@@ -9,7 +9,7 @@ import treelite
 import treelite_runtime
 from treelite.contrib import _libext
 from .metadata import dataset_db
-from .util import os_platform, os_compatible_toolchains
+from .util import os_platform, os_compatible_toolchains, is_apple_clang
 
 ModelFact = collections.namedtuple(
     'ModelFact',
@@ -28,8 +28,12 @@ _model_facts = {
     'dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical', 'sparse_categorical'])
 def test_model_query(tmpdir, dataset):
     """Test all query functions for every example model"""
-    if dataset == 'sparse_categorical' and os_platform() == 'windows':
-        pytest.xfail('MSVC cannot handle long if conditional')
+    toolchain = os_compatible_toolchains()[0]
+    if dataset == 'sparse_categorical':
+        if os_platform() == 'windows':
+            pytest.xfail('MSVC cannot handle long if conditional')
+        elif os_platform() == 'osx' and is_apple_clang(toolchain):
+            pytest.xfail('Apple Clang cannot handle long if conditional')
     if dataset == 'letor' and os_platform() == 'windows':
         pytest.xfail('export_lib() is too slow for letor on MSVC')
 
@@ -39,7 +43,6 @@ def test_model_query(tmpdir, dataset):
     assert model.num_class == _model_facts[dataset].num_class
     assert model.num_tree == _model_facts[dataset].num_tree
 
-    toolchain = os_compatible_toolchains()[0]
     model.export_lib(toolchain=toolchain, libpath=libpath,
                      params={'quantize': 1, 'parallel_comp': model.num_tree}, verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)

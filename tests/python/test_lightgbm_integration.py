@@ -227,6 +227,8 @@ def test_sparse_categorical_model(tmpdir, quantize, toolchain):
         pytest.xfail(reason='Clang cannot handle long if conditional')
     if os_platform() == 'windows':
         pytest.xfail(reason='MSVC cannot handle long if conditional')
+    if os_platform() == 'osx':
+        pytest.xfail(reason='Apple Clang cannot handle long if conditional')
     dataset = 'sparse_categorical'
     libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

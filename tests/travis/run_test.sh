@@ -22,7 +22,6 @@ then
   python -m pip install xgboost
   python -m pip install lightgbm codecov
   ./build/treelite_cpp_test
-  export GCC_PATH=gcc-7
   PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
   lcov --directory . --capture --output-file coverage.info
   lcov --remove coverage.info '*dmlccore*' --output-file coverage.info
@@ -43,7 +42,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DUSE_OPENMP=ON -GNinja
+  cmake .. -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
   ninja install
 
   # Try compiling a sample application
@@ -92,7 +91,6 @@ then
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
   python -m pip install xgboost
   python -m pip install lightgbm
-  export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
 
   # Deploy binary wheel to S3
@@ -124,7 +122,6 @@ if [ ${TASK} == "python_sdist_test" ]; then
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
   python -m pip install xgboost
   python -m pip install lightgbm
-  export GCC_PATH=gcc-7
   python -m pytest -v --fulltrace tests/python
 
   # Deploy source wheel to S3

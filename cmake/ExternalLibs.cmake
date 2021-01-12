@@ -1,9 +1,10 @@
 include(FetchContent)
+include(cmake/FetchContentMakeAvailable.cmake)
 
 FetchContent_Declare(
   dmlccore
   GIT_REPOSITORY  https://github.com/dmlc/dmlc-core
-  GIT_TAG         v0.4
+  GIT_TAG         f0ff3146705e27ac2b1e6081fa0983a8a6fda72d
 )
 FetchContent_MakeAvailable(dmlccore)
 target_compile_options(dmlc PRIVATE

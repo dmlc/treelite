@@ -156,8 +156,10 @@ Contents
   treelite-runtime-api
   treelite-c-api
   javadoc/packages
+  Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>
   knobs/index
   Internal docs <http://treelite.readthedocs.io/en/latest/dev/>
+  
 
 *******
 Indices

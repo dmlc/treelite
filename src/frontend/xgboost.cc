@@ -367,9 +367,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   }
 
   /* loading GBTree */
-  CHECK_EQ(name_gbm_, "gbtree")
+  CHECK(name_gbm_ == "gbtree" || name_gbm_ == "dart")
     << "Invalid XGBoost model file: "
-    << "Gradient booster must be gbtree type.";
+    << "Gradient booster must be gbtree or dart type.";
 
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
@@ -378,6 +378,21 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
     xgb_trees_.back().Load(fp.get());
   }
   CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
+  // tree_info is currently unused.
+  std::vector<int> tree_info;
+  tree_info.resize(gbm_param_.num_trees);
+  if (gbm_param_.num_trees != 0) {
+    CHECK_EQ(fp->Read(dmlc::BeginPtr(tree_info), sizeof(int32_t) * tree_info.size()),
+             sizeof(int32_t) * tree_info.size());
+  }
+  // Load weight drop values (per tree) for dart models.
+  std::vector<bst_float> weight_drop;
+  if (name_gbm_ == "dart") {
+    weight_drop.resize(gbm_param_.num_trees);
+    if (gbm_param_.num_trees != 0) {
+      fi->Read(&weight_drop);
+    }
+  }
 
   /* 2. Export model */
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
@@ -427,7 +442,11 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
       const XGBTree::Node& node = xgb_tree[old_id];
       const NodeStat stat = xgb_tree.Stat(old_id);
       if (node.is_leaf()) {
-        const bst_float leaf_value = node.leaf_value();
+        bst_float leaf_value = node.leaf_value();
+        // Fold weight drop into leaf value for dart models.
+        if (!weight_drop.empty()) {
+          leaf_value *= weight_drop[model->trees.size() - 1];
+        }
         tree.SetLeaf(new_id, static_cast<float>(leaf_value));
       } else {
         const bst_float split_cond = node.split_cond();

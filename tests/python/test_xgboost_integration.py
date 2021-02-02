@@ -290,3 +290,56 @@ def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
 
     predictor = treelite_runtime.Predictor(libpath)
     check_predictor(predictor, dataset)
+
+
+# TODO(trevmorr): Enable json format when implemented.
+@pytest.mark.parametrize('model_format', ['binary'])
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+def test_xgb_dart_boston(tmpdir, toolchain, model_format):
+    # pylint: disable=too-many-locals,too-many-arguments
+    """Test non-linear objectives with dummy data"""
+    np.random.seed(0)
+    nrow = 16
+    ncol = 8
+    X = np.random.randn(nrow, ncol)
+    y = np.random.randint(0, 2, size=nrow)
+    assert np.min(y) == 0
+    assert np.max(y) == 1
+
+    num_round = 50
+    dtrain = xgboost.DMatrix(X, label=y)
+    param = {'booster': 'dart',
+             'max_depth': 5, 'learning_rate': 0.1,
+             'objective': 'binary:logistic',
+             'sample_type': 'uniform',
+             'normalize_type': 'tree',
+             'rate_drop': 0.1,
+             'skip_drop': 0.5}
+    bst = xgboost.train(param,
+                        dtrain=dtrain, num_boost_round=num_round)
+
+    if model_format == 'json':
+        model_name = 'dart.json'
+        model_path = os.path.join(tmpdir, model_name)
+        bst.save_model(model_path)
+        bst.save_model('/home/ubuntu/debug-treelite/dart_test.json')
+        model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
+    else:
+        model = treelite.Model.from_xgboost(bst)
+
+    assert model.num_feature == dtrain.num_col()
+    assert model.num_class == 1
+    assert model.num_tree == num_round
+    libpath = os.path.join(tmpdir, "dart" + _libext())
+    model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
+
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    assert predictor.num_feature == dtrain.num_col()
+    assert predictor.num_class == 1
+    assert predictor.pred_transform == 'sigmoid'
+    np.testing.assert_almost_equal(predictor.global_bias, 0, decimal=5)
+    assert predictor.sigmoid_alpha == 1.0
+    dmat = treelite_runtime.DMatrix(X, dtype='float32')
+    out_pred = predictor.predict(dmat)
+    expected_pred = bst.predict(dtrain)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

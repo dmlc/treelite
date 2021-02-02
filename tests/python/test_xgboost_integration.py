@@ -292,12 +292,11 @@ def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
     check_predictor(predictor, dataset)
 
 
-# TODO(trevmorr): Enable json format when implemented.
 @pytest.mark.parametrize('model_format', ['binary'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_dart_boston(tmpdir, toolchain, model_format):
     # pylint: disable=too-many-locals,too-many-arguments
-    """Test non-linear objectives with dummy data"""
+    """Test dart booster with dummy data"""
     np.random.seed(0)
     nrow = 16
     ncol = 8
@@ -315,14 +314,12 @@ def test_xgb_dart_boston(tmpdir, toolchain, model_format):
              'normalize_type': 'tree',
              'rate_drop': 0.1,
              'skip_drop': 0.5}
-    bst = xgboost.train(param,
-                        dtrain=dtrain, num_boost_round=num_round)
+    bst = xgboost.train(param, dtrain=dtrain, num_boost_round=num_round)
 
     if model_format == 'json':
         model_name = 'dart.json'
         model_path = os.path.join(tmpdir, model_name)
         bst.save_model(model_path)
-        bst.save_model('/home/ubuntu/debug-treelite/dart_test.json')
         model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
         model = treelite.Model.from_xgboost(bst)

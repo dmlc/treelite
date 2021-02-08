@@ -285,14 +285,6 @@ class GradientBoosterHandler : public OutputHandler<treelite::ModelImpl<float, f
   std::vector<double> weight_drop;
 };
 
-/*! \brief handler for GradientBoosterHandler objects from XGBoost schema for DART booster*/
-class DartGBTreeModelHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
- public:
-  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
-  bool String(const char *str, std::size_t length, bool copy) override;
-  bool StartObject() override;
-};
-
 /*! \brief handler for ObjectiveHandler objects from XGBoost schema*/
 class ObjectiveHandler : public OutputHandler<std::string> {
   using OutputHandler<std::string>::OutputHandler;

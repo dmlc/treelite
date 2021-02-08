@@ -344,8 +344,8 @@ bool GradientBoosterHandler::String(const char *str,
 bool GradientBoosterHandler::StartObject() {
   if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl<float, float>>("model", output)) {
     return true;
-  } else if (push_key_handler<DartGBTreeModelHandler,treelite::ModelImpl<float, float>>("gbtree",
-                                                                                        output)) {
+  } else if (push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>("gbtree",
+                                                                                         output)) {
     // "dart" booster contains a standard gbtree under ["gradient_booster"]["gbtree"]["model"].
     return true;
   } else {
@@ -370,33 +370,6 @@ bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
     }
   }
   return pop_handler();
-}
-
-/******************************************************************************
- * DartGBTreeHandler
- * ***************************************************************************/
-bool DartGBTreeModelHandler::String(const char *str,
-                                    std::size_t length,
-                                    bool) {
-  if (!check_cur_key("name")) {
-    return false;
-  }
-  fmt::string_view name{str, length};
-  if (name != "gbtree") {
-    LOG(ERROR) << "Only GBTree-type boosters are currently supported.";
-    return false;
-  } else {
-    return true;
-  }
-}
-bool DartGBTreeModelHandler::StartObject() {
-  if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl<float, float>>("model", output)) {
-    return true;
-  } else {
-    LOG(ERROR) << "Key \"" << get_cur_key()
-               << "\" not recognized. Is this a DART-type booster?";
-    return false;
-  }
 }
 
 /******************************************************************************

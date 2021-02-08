@@ -344,7 +344,8 @@ bool GradientBoosterHandler::String(const char *str,
 bool GradientBoosterHandler::StartObject() {
   if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl<float, float>>("model", output)) {
     return true;
-  } else if (push_key_handler<DartGBTreeModelHandler, treelite::ModelImpl<float, float>>("gbtree", output)) {
+  } else if (push_key_handler<DartGBTreeModelHandler,treelite::ModelImpl<float, float>>("gbtree",
+                                                                                        output)) {
     // "dart" booster contains a standard gbtree under ["gradient_booster"]["gbtree"]["model"].
     return true;
   } else {

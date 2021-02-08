@@ -292,9 +292,9 @@ def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
     check_predictor(predictor, dataset)
 
 
-@pytest.mark.parametrize('model_format', ['binary'])
+@pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_dart_boston(tmpdir, toolchain, model_format):
+def test_xgb_dart(tmpdir, toolchain, model_format):
     # pylint: disable=too-many-locals,too-many-arguments
     """Test dart booster with dummy data"""
     np.random.seed(0)
@@ -317,12 +317,13 @@ def test_xgb_dart_boston(tmpdir, toolchain, model_format):
     bst = xgboost.train(param, dtrain=dtrain, num_boost_round=num_round)
 
     if model_format == 'json':
-        model_name = 'dart.json'
-        model_path = os.path.join(tmpdir, model_name)
-        bst.save_model(model_path)
-        model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
+        model_json_path = os.path.join(tmpdir, 'serialized.json')
+        bst.save_model(model_json_path)
+        model = treelite.Model.load(model_json_path, model_format='xgboost_json')
     else:
-        model = treelite.Model.from_xgboost(bst)
+        model_bin_path = os.path.join(tmpdir, 'serialized.model')
+        bst.save_model(model_bin_path)
+        model = treelite.Model.load(model_bin_path, model_format='xgboost')
 
     assert model.num_feature == dtrain.num_col()
     assert model.num_class == 1

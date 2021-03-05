@@ -169,6 +169,9 @@ jobs:
       cd runtime/java/treelite4j
       mvn test -DJNI.args=cpp-coverage
     displayName: 'Running integration tests for Java runtime (treelite4j)...'
+    env:
+      JAVA_HOME: $(JAVA_HOME_8_X64)
+      PATH: $(JAVA_HOME_8_X64)/bin:$(PATH)
   - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
     displayName: 'Submitting Java code (treelite4j) coverage data to CodeCov...'
     env:

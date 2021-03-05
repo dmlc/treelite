@@ -277,7 +277,12 @@ class GradientBoosterHandler : public OutputHandler<treelite::ModelImpl<float, f
  public:
   using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
+  bool StartArray() override;
   bool StartObject() override;
+  bool EndObject(std::size_t memberCount) override;
+ private:
+  std::string name;
+  std::vector<double> weight_drop;
 };
 
 /*! \brief handler for ObjectiveHandler objects from XGBoost schema*/

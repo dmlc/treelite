@@ -495,7 +495,7 @@ Let's test it out:
 
   import treelite_runtime
   predictor = treelite_runtime.Predictor(libpath='./libtest.dylib')
-  predictor.predict(treelite_runtime.Batch.from_npy2d(X))
+  predictor.predict(treelite_runtime.DMatrix(X))
 
 Regression with GradientBoostingRegressor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -555,7 +555,7 @@ Let's test it:
   model.export_lib(libpath='./libtest2.dylib', toolchain='gcc', verbose=True)
   # Make prediction with predictor
   predictor = treelite_runtime.Predictor(libpath='./libtest2.dylib')
-  predictor.predict(treelite_runtime.Batch.from_npy2d(X))
+  predictor.predict(treelite_runtime.DMatrix(X))
 
 Binary Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -23,5 +23,5 @@ for batchsize in np.logspace(np.log10(100), 5, 10).astype(np.int):
   for i in range(300):
     rbegin = np.random.randint(0, nrow - batchsize + 1)
     rend = rbegin + batchsize
-    batch = treelite_runtime.Batch.from_csr(X, rbegin, rend)
-    predictor.predict(batch, pred_margin=True)
+    dmat = treelite_runtime.DMatrix(X[rbegin:rend])
+    predictor.predict(dmat, pred_margin=True)

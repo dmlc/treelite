@@ -138,14 +138,6 @@ for. Say, from 10th house to 20th:
 
 .. code-block:: python
 
-    batch = treelite_runtime.Batch.from_npy2d(X, rbegin=10, rend=20)
-
-We used the method :py:meth:`~treelite_runtime.Batch.from_npy2d`
-because the matrix ``X`` was a dense NumPy array (:py:class:`numpy.ndarray`).
-If ``X`` were a sparse matrix (:py:class:`scipy.sparse.csr_matrix`), we would
-have used the method :py:meth:`~treelite_runtime.Batch.from_csr` instead.
-
-.. code-block:: python
-
-    out_pred = predictor.predict(batch)
+    dmat = treelite_runtime.DMatrix(X[10:20])
+    out_pred = predictor.predict(dmat)
     print(out_pred)

@@ -96,8 +96,8 @@ Make predictions on the target machine:
 
   import treelite_runtime
   predictor = treelite_runtime.Predictor('./mymodel.so', verbose=True)
-  batch = treelite_runtime.Batch.from_npy2d(X)
-  out_pred = predictor.predict(batch)
+  dmat = treelite_runtime.DMatrix(X)
+  out_pred = predictor.predict(dmat)
 
 Read :doc:`tutorials/first` for a more detailed example. See
 :doc:`tutorials/deploy` for additional instructions on deployment.

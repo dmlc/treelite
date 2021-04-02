@@ -99,7 +99,7 @@ jobs:
     displayName: 'Building Treelite...'
   - script: |
       python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm
-      python -m pip install xgboost
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - script: ./build/treelite_cpp_test
     displayName: 'Running C++ integration tests...'

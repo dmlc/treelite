@@ -312,6 +312,7 @@ class LearnerHandler : public OutputHandler<XGBoostModelHandle> {
   using OutputHandler<XGBoostModelHandle>::OutputHandler;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
+  bool StartArray() override;
 
  private:
   std::string objective;

@@ -99,7 +99,7 @@ jobs:
     displayName: 'Building Treelite...'
   - script: |
       python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm
-      python -m pip install xgboost
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - script: ./build/treelite_cpp_test
     displayName: 'Running C++ integration tests...'
@@ -130,7 +130,8 @@ jobs:
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
-      python -m pip install xgboost lightgbm codecov
+      python -m pip install lightgbm codecov
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -186,7 +187,9 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn xgboost lightgbm
+  - script: |
+      python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn lightgbm
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -216,7 +219,8 @@ jobs:
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
-      python -m pip install xgboost lightgbm
+      python -m pip install lightgbm
+      python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

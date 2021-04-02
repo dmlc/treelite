@@ -19,7 +19,7 @@ then
   ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
-  python -m pip install xgboost
+  python -m pip install --pre xgboost
   python -m pip install lightgbm codecov
   ./build/treelite_cpp_test
   PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
@@ -89,7 +89,7 @@ then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install xgboost
+  python -m pip install --pre xgboost
   python -m pip install lightgbm
   python -m pytest -v --fulltrace tests/python
 
@@ -120,7 +120,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Run tests
   conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install xgboost
+  python -m pip install --pre xgboost
   python -m pip install lightgbm
   python -m pytest -v --fulltrace tests/python
 

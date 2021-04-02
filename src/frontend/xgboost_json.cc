@@ -420,6 +420,11 @@ bool LearnerHandler::EndObject(std::size_t) {
   return pop_handler();
 }
 
+bool LearnerHandler::StartArray() {
+  return (push_key_handler<IgnoreHandler>("feature_names") ||
+          push_key_handler<IgnoreHandler>("feature_types"));
+}
+
 /******************************************************************************
  * XGBoostModelHandler
  * ***************************************************************************/

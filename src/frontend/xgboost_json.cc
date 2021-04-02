@@ -411,7 +411,9 @@ bool LearnerHandler::StartObject() {
           push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>(
               "gradient_booster", *output.model) ||
           push_key_handler<ObjectiveHandler, std::string>("objective", objective) ||
-          push_key_handler<IgnoreHandler>("attributes"));
+          push_key_handler<IgnoreHandler>("attributes") ||
+          push_key_handler<IgnoreHandler>("feature_names") ||
+          push_key_handler<IgnoreHandler>("feature_types"));
 }
 
 bool LearnerHandler::EndObject(std::size_t) {

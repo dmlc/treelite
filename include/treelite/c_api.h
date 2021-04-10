@@ -171,6 +171,13 @@ TREELITE_DLL int TreeliteLoadXGBoostJSONString(const char* json_str,
 TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
                                                           size_t len,
                                                           ModelHandle* out);
+
+TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** impurity,
+    ModelHandle* out);
+
 /*!
  * \brief Query the number of trees in the model
  * \param handle model to query

@@ -7,6 +7,7 @@
 #ifndef TREELITE_FRONTEND_H_
 #define TREELITE_FRONTEND_H_
 
+#include <dmlc/logging.h>
 #include <treelite/base.h>
 #include <string>
 #include <memory>
@@ -57,6 +58,11 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename);
  * \param out reference to loaded model
  */
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length);
+
+std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** impurity);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

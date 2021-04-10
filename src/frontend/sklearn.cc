@@ -1,3 +1,9 @@
+/*!
+ * Copyright (c) 2021 by Contributors
+ * \file sklearn.cc
+ * \brief Frontend for scikit-learn models
+ * \author Hyunsu Cho
+ */
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <memory>
@@ -13,7 +19,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
     const double** value, const int64_t** n_node_samples, const double** impurity) {
   CHECK_GT(n_estimators, 0);
   CHECK_GT(n_features, 0);
-  
+
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
   auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
   model->num_feature = n_features;
@@ -54,8 +60,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
         const double gain = sample_cnt * (
             impurity[tree_id][node_id]
             - left_child_sample_cnt  * impurity[tree_id][left_child_id]  / sample_cnt
-            - right_child_sample_cnt * impurity[tree_id][right_child_id] / sample_cnt
-          ) / total_sample_cnt;
+            - right_child_sample_cnt * impurity[tree_id][right_child_id] / sample_cnt)
+          / total_sample_cnt;
 
         tree.AddChilds(new_node_id);
         tree.SetNumericalSplit(new_node_id, split_index, split_cond, true, treelite::Operator::kLE);

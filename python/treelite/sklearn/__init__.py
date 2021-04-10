@@ -3,6 +3,9 @@
 
 from __future__ import absolute_import as _abs
 
+import ctypes
+import numpy as np
+
 from ..util import TreeliteError
 from ..core import _LIB, c_array, _check_call
 from ..frontend import Model
@@ -13,8 +16,6 @@ from .gbm_multi_classifier import SKLGBMMultiClassifierMixin
 from .rf_regressor import SKLRFRegressorMixin
 from .rf_classifier import SKLRFClassifierMixin
 from .rf_multi_classifier import SKLRFMultiClassifierMixin
-import ctypes
-import numpy as np
 
 
 def import_model(sklearn_model):
@@ -103,10 +104,31 @@ class SKLRFMultiClassifierConverter(SKLRFMultiClassifierMixin, SKLConverterBase)
     pass
 
 
-def import_model_v2(clf):
+def import_model_v2(sklearn_model):
+    # pylint: disable=R0914
+    """
+    Load a tree ensemble model from a scikit-learn model object
+
+    Parameters
+    ----------
+    sklearn_model : object of type \
+                    :py:class:`~sklearn.ensemble.RandomForestRegressor`
+        Python handle to scikit-learn model
+
+    Returns
+    -------
+    model : :py:class:`~treelite.Model` object
+        loaded model
+    """
+    class_name = sklearn_model.__class__.__name__
+    module_name = sklearn_model.__module__.split('.')[0]
+    if module_name != 'sklearn':
+        raise Exception('Not a scikit-learn model')
+    if class_name != 'RandomForestRegressor':
+        raise Exception('Only RandomForestRegressor supported for now')
+
     int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
     float64_ptr_type = ctypes.POINTER(ctypes.c_double)
-
     node_count = []
     children_left = []
     children_right = []
@@ -115,7 +137,7 @@ def import_model_v2(clf):
     value = []
     n_node_samples = []
     impurity = []
-    for i, estimator in enumerate(clf.estimators_):
+    for estimator in sklearn_model.estimators_:
         tree = estimator.tree_
         node_count_v = tree.node_count
         node_count.append(node_count_v)
@@ -143,7 +165,7 @@ def import_model_v2(clf):
 
     handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
-        ctypes.c_int(clf.n_estimators), ctypes.c_int(clf.n_features_),
+        ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
         c_array(ctypes.c_int64, node_count), c_array(int64_ptr_type, children_left),
         c_array(int64_ptr_type, children_right), c_array(int64_ptr_type, feature),
         c_array(float64_ptr_type, threshold), c_array(float64_ptr_type, value),

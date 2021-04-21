@@ -104,6 +104,29 @@ class SKLRFMultiClassifierConverter(SKLRFMultiClassifierMixin, SKLConverterBase)
     pass
 
 
+class ArrayOfArrays:
+    def __init__(self, *, dtype):
+        int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
+        float64_ptr_type = ctypes.POINTER(ctypes.c_double)
+        if dtype == np.int64:
+            self.ptr_type = int64_ptr_type
+        elif dtype == np.float64:
+            self.ptr_type = float64_ptr_type
+        else:
+            raise ValueError(f'dtype {dtype} is not supported')
+        self.dtype = dtype
+        self.collection = []
+
+    def add(self, array, *, expected_shape=None):
+        if expected_shape:
+            assert array.shape == expected_shape
+        v = np.array(array, copy=False, dtype=self.dtype, order='C')
+        self.collection.append(v.ctypes.data_as(self.ptr_type))
+
+    def as_c_array(self):
+        return c_array(self.ptr_type, self.collection)
+
+
 def import_model_v2(sklearn_model):
     # pylint: disable=R0914
     """
@@ -127,49 +150,31 @@ def import_model_v2(sklearn_model):
     if class_name != 'RandomForestRegressor':
         raise Exception('Only RandomForestRegressor supported for now')
 
-    int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
-    float64_ptr_type = ctypes.POINTER(ctypes.c_double)
     node_count = []
-    children_left = []
-    children_right = []
-    feature = []
-    threshold = []
-    value = []
-    n_node_samples = []
-    impurity = []
+    children_left = ArrayOfArrays(dtype=np.int64)
+    children_right = ArrayOfArrays(dtype=np.int64)
+    feature = ArrayOfArrays(dtype=np.int64)
+    threshold = ArrayOfArrays(dtype=np.float64)
+    value = ArrayOfArrays(dtype=np.float64)
+    n_node_samples = ArrayOfArrays(dtype=np.int64)
+    impurity = ArrayOfArrays(dtype=np.float64)
     for estimator in sklearn_model.estimators_:
         tree = estimator.tree_
-        node_count_v = tree.node_count
-        node_count.append(node_count_v)
-        assert tree.children_left.shape == (node_count_v,)
-        children_left_v = np.array(tree.children_left, copy=False, dtype=np.int64, order='C')
-        children_left.append(children_left_v.ctypes.data_as(int64_ptr_type))
-        assert tree.children_right.shape == (node_count_v,)
-        children_right_v = np.array(tree.children_right, copy=False, dtype=np.int64, order='C')
-        children_right.append(children_right_v.ctypes.data_as(int64_ptr_type))
-        assert tree.feature.shape == (node_count_v,)
-        feature_v = np.array(tree.feature, copy=False, dtype=np.int64, order='C')
-        feature.append(feature_v.ctypes.data_as(int64_ptr_type))
-        assert tree.threshold.shape == (node_count_v,)
-        threshold_v = np.array(tree.threshold, copy=False, dtype=np.float64, order='C')
-        threshold.append(threshold_v.ctypes.data_as(float64_ptr_type))
-        assert tree.value.shape == (node_count_v, 1, 1)
-        value_v = np.array(tree.value, copy=False, dtype=np.float64, order='C')
-        value.append(value_v.ctypes.data_as(float64_ptr_type))
-        assert tree.n_node_samples.shape == (node_count_v,)
-        n_node_samples_v = np.array(tree.n_node_samples, copy=False, dtype=np.int64, order='C')
-        n_node_samples.append(n_node_samples_v.ctypes.data_as(int64_ptr_type))
-        assert tree.impurity.shape == (node_count_v,)
-        impurity_v = np.array(tree.impurity, copy=False, dtype=np.float64, order='C')
-        impurity.append(impurity_v.ctypes.data_as(float64_ptr_type))
+        node_count.append(tree.node_count)
+        children_left.add(tree.children_left, expected_shape=(tree.node_count,))
+        children_right.add(tree.children_right, expected_shape=(tree.node_count,))
+        feature.add(tree.feature, expected_shape=(tree.node_count,))
+        threshold.add(tree.threshold, expected_shape=(tree.node_count,))
+        value.add(tree.value, expected_shape=(tree.node_count, 1, 1))
+        n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
+        impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
     _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
         ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
-        c_array(ctypes.c_int64, node_count), c_array(int64_ptr_type, children_left),
-        c_array(int64_ptr_type, children_right), c_array(int64_ptr_type, feature),
-        c_array(float64_ptr_type, threshold), c_array(float64_ptr_type, value),
-        c_array(int64_ptr_type, n_node_samples), c_array(float64_ptr_type, impurity),
+        c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
+        children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
+        value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
         ctypes.byref(handle)))
     return Model(handle)
 

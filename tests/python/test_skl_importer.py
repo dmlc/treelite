@@ -48,7 +48,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    if clazz == RandomForestClassifier:
+    if clazz in [RandomForestClassifier, ExtraTreesClassifier]:
         model = treelite.sklearn.import_model_v2(clf)
     else:
         model = treelite.sklearn.import_model(clf)
@@ -92,7 +92,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
 
-    if clazz == RandomForestClassifier:
+    if clazz in [RandomForestClassifier, ExtraTreesClassifier]:
         model = treelite.sklearn.import_model_v2(clf)
     else:
         model = treelite.sklearn.import_model(clf)
@@ -134,7 +134,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     clf.fit(X, y)
     expected_pred = clf.predict(X)
 
-    if clazz == RandomForestRegressor:
+    if clazz == [RandomForestRegressor, ExtraTreesRegressor]:
         model = treelite.sklearn.import_model_v2(clf)
     else:
         model = treelite.sklearn.import_model(clf)

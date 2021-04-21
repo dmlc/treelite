@@ -27,6 +27,8 @@ def import_model(sklearn_model):
     sklearn_model : object of type \
                     :py:class:`~sklearn.ensemble.RandomForestRegressor` / \
                     :py:class:`~sklearn.ensemble.RandomForestClassifier` / \
+                    :py:class:`~sklearn.ensemble.ExtraTreesRegressor` / \
+                    :py:class:`~sklearn.ensemble.ExtraTreesClassifier` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
         Python handle to scikit-learn model
@@ -137,7 +139,10 @@ def import_model_v2(sklearn_model):
     Parameters
     ----------
     sklearn_model : object of type \
-                    :py:class:`~sklearn.ensemble.RandomForestRegressor`
+                    :py:class:`~sklearn.ensemble.RandomForestRegressor` / \
+                    :py:class:`~sklearn.ensemble.RandomForestClassifier` / \
+                    :py:class:`~sklearn.ensemble.ExtraTreesRegressor` / \
+                    :py:class:`~sklearn.ensemble.ExtraTreesClassifier`
         Python handle to scikit-learn model
 
     Returns
@@ -150,9 +155,9 @@ def import_model_v2(sklearn_model):
     if module_name != 'sklearn':
         raise TreeliteError('Not a scikit-learn model')
 
-    if class_name == 'RandomForestRegressor':
+    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
         leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
-    elif class_name == 'RandomForestClassifier':
+    elif class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
         leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
     else:
         raise TreeliteError(f'Not supported: {class_name}')
@@ -177,14 +182,14 @@ def import_model_v2(sklearn_model):
         impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
-    if class_name == 'RandomForestRegressor':
+    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
             value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
             ctypes.byref(handle)))
-    elif class_name == 'RandomForestClassifier':
+    elif class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),

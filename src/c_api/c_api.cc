@@ -189,6 +189,19 @@ int TreeliteLoadSKLearnRandomForestRegressor(
   API_END();
 }
 
+int TreeliteLoadSKLearnRandomForestClassifier(
+    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
+    const double** threshold, const double** value, const int64_t** n_node_samples,
+    const double** impurity, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestClassifier(
+      n_estimators, n_features, n_classes, node_count, children_left, children_right, feature,
+      threshold, value, n_node_samples, impurity);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);

@@ -177,6 +177,11 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** impurity,
     ModelHandle* out);
+TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
+    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
+    const double** threshold, const double** value, const int64_t** n_node_samples,
+    const double** impurity, ModelHandle* out);
 
 /*!
  * \brief Query the number of trees in the model

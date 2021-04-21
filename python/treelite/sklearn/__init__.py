@@ -118,8 +118,10 @@ class ArrayOfArrays:
         self.collection = []
 
     def add(self, array, *, expected_shape=None):
+        assert array.dtype == self.dtype
         if expected_shape:
-            assert array.shape == expected_shape
+            assert array.shape == expected_shape, \
+                    f'Expected shape: {expected_shape}, Got shape {array.shape}'
         v = np.array(array, copy=False, dtype=self.dtype, order='C')
         self.collection.append(v.ctypes.data_as(self.ptr_type))
 
@@ -146,9 +148,14 @@ def import_model_v2(sklearn_model):
     class_name = sklearn_model.__class__.__name__
     module_name = sklearn_model.__module__.split('.')[0]
     if module_name != 'sklearn':
-        raise Exception('Not a scikit-learn model')
-    if class_name != 'RandomForestRegressor':
-        raise Exception('Only RandomForestRegressor supported for now')
+        raise TreeliteError('Not a scikit-learn model')
+
+    if class_name == 'RandomForestRegressor':
+        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
+    elif class_name == 'RandomForestClassifier':
+        leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
+    else:
+        raise TreeliteError(f'Not supported: {class_name}')
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -165,17 +172,27 @@ def import_model_v2(sklearn_model):
         children_right.add(tree.children_right, expected_shape=(tree.node_count,))
         feature.add(tree.feature, expected_shape=(tree.node_count,))
         threshold.add(tree.threshold, expected_shape=(tree.node_count,))
-        value.add(tree.value, expected_shape=(tree.node_count, 1, 1))
+        value.add(tree.value, expected_shape=leaf_value_expected_shape(tree.node_count))
         n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
         impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
-    _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
-        ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
-        c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
-        children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
-        value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
-        ctypes.byref(handle)))
+    if class_name == 'RandomForestRegressor':
+        _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
+            ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
+            c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
+            children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
+            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
+            ctypes.byref(handle)))
+    elif class_name == 'RandomForestClassifier':
+        _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(
+            ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
+            ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
+            children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
+            threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
+            impurity.as_c_array(), ctypes.byref(handle)))
+    else:
+        raise TreeliteError(f'Not supported: {class_name}')
     return Model(handle)
 
 

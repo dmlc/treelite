@@ -89,7 +89,10 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
 
-    model = treelite.sklearn.import_model(clf)
+    if clazz == RandomForestClassifier:
+        model = treelite.sklearn.import_model_v2(clf)
+    else:
+        model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

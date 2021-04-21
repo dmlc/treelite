@@ -107,6 +107,9 @@ class SKLRFMultiClassifierConverter(SKLRFMultiClassifierMixin, SKLConverterBase)
 
 
 class ArrayOfArrays:
+    """
+    Utility class to marshall a collection of arrays in order to pass to a C function
+    """
     def __init__(self, *, dtype):
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
@@ -120,6 +123,7 @@ class ArrayOfArrays:
         self.collection = []
 
     def add(self, array, *, expected_shape=None):
+        """Add an array to the collection"""
         assert array.dtype == self.dtype
         if expected_shape:
             assert array.shape == expected_shape, \
@@ -128,11 +132,12 @@ class ArrayOfArrays:
         self.collection.append(v.ctypes.data_as(self.ptr_type))
 
     def as_c_array(self):
+        """Prepare the collection to pass as an argument of a C function"""
         return c_array(self.ptr_type, self.collection)
 
 
 def import_model_v2(sklearn_model):
-    # pylint: disable=R0914
+    # pylint: disable=R0914,R0912
     """
     Load a tree ensemble model from a scikit-learn model object
 
@@ -166,8 +171,7 @@ def import_model_v2(sklearn_model):
         raise TreeliteError(f'Not supported: {class_name}')
 
     if class_name.startswith('GradientBoosting') and sklearn_model.init != 'zero':
-        raise treelite.TreeliteError("Gradient boosted trees must be trained with "
-                                     "the option init='zero'")
+        raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -226,8 +230,6 @@ def import_model_v2(sklearn_model):
             children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
             threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
             impurity.as_c_array(), ctypes.byref(handle)))
-    else:
-        raise TreeliteError(f'Not supported: {class_name}')
     return Model(handle)
 
 

@@ -48,10 +48,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    if clazz in [RandomForestClassifier, ExtraTreesClassifier]:
-        model = treelite.sklearn.import_model_v2(clf)
-    else:
-        model = treelite.sklearn.import_model(clf)
+    model = treelite.sklearn.import_model_v2(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == clf.n_classes_
     assert (model.num_tree ==
@@ -92,10 +89,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
 
-    if clazz in [RandomForestClassifier, ExtraTreesClassifier]:
-        model = treelite.sklearn.import_model_v2(clf)
-    else:
-        model = treelite.sklearn.import_model(clf)
+    model = treelite.sklearn.import_model_v2(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

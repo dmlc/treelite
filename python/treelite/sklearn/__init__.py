@@ -143,7 +143,8 @@ def import_model_v2(sklearn_model):
                     :py:class:`~sklearn.ensemble.RandomForestClassifier` / \
                     :py:class:`~sklearn.ensemble.ExtraTreesRegressor` / \
                     :py:class:`~sklearn.ensemble.ExtraTreesClassifier` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingRegressor`
+                    :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
+                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
         Python handle to scikit-learn model
 
     Returns
@@ -156,12 +157,17 @@ def import_model_v2(sklearn_model):
     if module_name != 'sklearn':
         raise TreeliteError('Not a scikit-learn model')
 
-    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor', 'GradientBoostingRegressor']:
+    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
+                      'GradientBoostingClassifier']:
         leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
     elif class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
         leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
     else:
         raise TreeliteError(f'Not supported: {class_name}')
+
+    if class_name.startswith('GradientBoosting') and sklearn_model.init != 'zero':
+        raise treelite.TreeliteError("Gradient boosted trees must be trained with "
+                                     "the option init='zero'")
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -173,20 +179,23 @@ def import_model_v2(sklearn_model):
     impurity = ArrayOfArrays(dtype=np.float64)
     for estimator in sklearn_model.estimators_:
         if class_name.startswith('GradientBoosting'):
-            tree = estimator[0].tree_
+            estimator_range = estimator
             learning_rate = sklearn_model.learning_rate
         else:
-            tree = estimator.tree_
+            estimator_range = [estimator]
             learning_rate = 1.0
-        node_count.append(tree.node_count)
-        children_left.add(tree.children_left, expected_shape=(tree.node_count,))
-        children_right.add(tree.children_right, expected_shape=(tree.node_count,))
-        feature.add(tree.feature, expected_shape=(tree.node_count,))
-        threshold.add(tree.threshold, expected_shape=(tree.node_count,))
-        value.add(tree.value * learning_rate,
-                  expected_shape=leaf_value_expected_shape(tree.node_count))
-        n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
-        impurity.add(tree.impurity, expected_shape=(tree.node_count,))
+        for sub_estimator in estimator_range:
+            tree = sub_estimator.tree_
+            node_count.append(tree.node_count)
+            children_left.add(tree.children_left, expected_shape=(tree.node_count,))
+            children_right.add(tree.children_right, expected_shape=(tree.node_count,))
+            feature.add(tree.feature, expected_shape=(tree.node_count,))
+            threshold.add(tree.threshold, expected_shape=(tree.node_count,))
+            # Note: for gradient boosted trees, we shrink each leaf output by the learning rate
+            value.add(tree.value * learning_rate,
+                      expected_shape=leaf_value_expected_shape(tree.node_count))
+            n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
+            impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
     if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
@@ -210,6 +219,13 @@ def import_model_v2(sklearn_model):
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
             value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
             ctypes.byref(handle)))
+    elif class_name == 'GradientBoostingClassifier':
+        _check_call(_LIB.TreeliteLoadSKLearnGradientBoostingClassifier(
+            ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
+            ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
+            children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
+            threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
+            impurity.as_c_array(), ctypes.byref(handle)))
     else:
         raise TreeliteError(f'Not supported: {class_name}')
     return Model(handle)

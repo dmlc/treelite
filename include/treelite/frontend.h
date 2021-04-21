@@ -63,8 +63,16 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** impurity);
-
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
+    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
+    const double** threshold, const double** value, const int64_t** n_node_samples,
+    const double** impurity);
+std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** impurity);
+std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,

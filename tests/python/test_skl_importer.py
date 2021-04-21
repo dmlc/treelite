@@ -134,10 +134,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     clf.fit(X, y)
     expected_pred = clf.predict(X)
 
-    if clazz == [RandomForestRegressor, ExtraTreesRegressor]:
-        model = treelite.sklearn.import_model_v2(clf)
-    else:
-        model = treelite.sklearn.import_model(clf)
+    model = treelite.sklearn.import_model_v2(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

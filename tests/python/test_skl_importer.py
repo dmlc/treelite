@@ -48,7 +48,10 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    model = treelite.sklearn.import_model(clf)
+    if clazz == RandomForestClassifier:
+        model = treelite.sklearn.import_model_v2(clf)
+    else:
+        model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == clf.n_classes_
     assert (model.num_tree ==

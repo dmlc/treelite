@@ -30,8 +30,9 @@ endif()
 
 foreach(lib objtreelite objtreelite_runtime objtreelite_common)
   target_include_directories(${lib} PUBLIC
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
   target_link_libraries(${lib} PUBLIC dmlc)
   target_compile_definitions(${lib} PRIVATE -DDMLC_LOG_CUSTOMIZE)
   if(MSVC)

@@ -8,6 +8,7 @@
 #define TREELITE_TREE_H_
 
 #include <treelite/base.h>
+#include <treelite/version.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -615,7 +616,8 @@ inline void InitParamAndCheck(ModelParam* param,
 class Model {
  public:
   /*! \brief disable copy; use default move */
-  Model() = default;
+  Model() : major_ver_(TREELITE_VER_MAJOR), minor_ver_(TREELITE_VER_MINOR),
+    patch_ver_(TREELITE_VER_PATCH) {}
   virtual ~Model() = default;
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
@@ -658,6 +660,7 @@ class Model {
   ModelParam param;
 
  private:
+  int major_ver_, minor_ver_, patch_ver_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
   // Internal functions for serialization

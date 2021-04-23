@@ -705,6 +705,9 @@ Model::Dispatch(Func func) const {
 inline std::vector<PyBufferFrame>
 Model::GetPyBuffer() {
   std::vector<PyBufferFrame> buffer;
+  buffer.push_back(GetPyBufferFromScalar(&major_ver_));
+  buffer.push_back(GetPyBufferFromScalar(&minor_ver_));
+  buffer.push_back(GetPyBufferFromScalar(&patch_ver_));
   buffer.push_back(GetPyBufferFromScalar(&threshold_type_));
   buffer.push_back(GetPyBufferFromScalar(&leaf_output_type_));
   this->GetPyBuffer(&buffer);
@@ -713,15 +716,22 @@ Model::GetPyBuffer() {
 
 inline std::unique_ptr<Model>
 Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
+  int major_ver, minor_ver, patch_ver;
   TypeInfo threshold_type, leaf_output_type;
-  if (frames.size() < 2) {
-    throw std::runtime_error("Insufficient number of frames: there must be at least two");
+  if (frames.size() < 5) {
+    throw std::runtime_error("Insufficient number of frames: there must be at least 5");
   }
-  InitScalarFromPyBuffer(&threshold_type, frames[0]);
-  InitScalarFromPyBuffer(&leaf_output_type, frames[1]);
+  InitScalarFromPyBuffer(&major_ver, frames[0]);
+  InitScalarFromPyBuffer(&minor_ver, frames[1]);
+  InitScalarFromPyBuffer(&patch_ver, frames[2]);
+  if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
+    throw std::runtime_error("Cannot deserialize model from a different version of Treelite");
+  }
+  InitScalarFromPyBuffer(&threshold_type, frames[3]);
+  InitScalarFromPyBuffer(&leaf_output_type, frames[4]);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
-  model->InitFromPyBuffer(frames.begin() + 2, frames.end());
+  model->InitFromPyBuffer(frames.begin() + 5, frames.end());
   return model;
 }
 

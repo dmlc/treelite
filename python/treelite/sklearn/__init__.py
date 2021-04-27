@@ -20,7 +20,13 @@ from .rf_multi_classifier import SKLRFMultiClassifierMixin
 
 def import_model_with_model_builder(sklearn_model):
     """
-    Load a tree ensemble model from a scikit-learn model object
+    Load a tree ensemble model from a scikit-learn model object using the model builder API.
+
+    .. note:: Use ``import_model`` for production use
+
+        This function exists to demonstrate the use of the model builder API and is slow with
+        large models. For production, please use :py:func:`~treelite.sklearn.import_model`
+        which is significantly faster.
 
     Parameters
     ----------
@@ -156,6 +162,21 @@ def import_model(sklearn_model):
     -------
     model : :py:class:`~treelite.Model` object
         loaded model
+
+    Example
+    -------
+
+    .. code-block:: python
+      :emphasize-lines: 8
+
+      import sklearn.datasets
+      import sklearn.ensemble
+      X, y = sklearn.datasets.load_boston(return_X_y=True)
+      clf = sklearn.ensemble.RandomForestRegressor(n_estimators=10)
+      clf.fit(X, y)
+
+      import treelite.sklearn
+      model = treelite.sklearn.import_model(clf)
     """
     class_name = sklearn_model.__class__.__name__
     module_name = sklearn_model.__module__.split('.')[0]

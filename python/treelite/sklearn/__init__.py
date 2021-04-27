@@ -1,8 +1,6 @@
 # coding: utf-8
 """Converter to ingest scikit-learn models into Treelite"""
 
-from __future__ import absolute_import as _abs
-
 import ctypes
 import numpy as np
 

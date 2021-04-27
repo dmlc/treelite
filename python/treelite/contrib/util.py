@@ -65,6 +65,7 @@ def _enqueue(args):
     create_log_cmd = args['create_log_cmd']
     save_retcode_cmd = args['save_retcode_cmd']
 
+    # pylint: disable=R1732
     proc = subprocess.Popen(_shell(), shell=True,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,

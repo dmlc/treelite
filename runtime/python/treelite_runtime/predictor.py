@@ -58,6 +58,12 @@ class Predictor:
     """
     Predictor class: loader for compiled shared libraries
 
+    Note:
+        Treelite uses a custom thread pool which pins threads to CPU cores by default.
+        To disable thread pinning, set the environment variable
+        ``TREELITE_BIND_THREADS`` to ``0``. Disabling thread pinning is recommended when
+        using Treelite in multi-threaded applications.
+
     Parameters
     ----------
     libpath: :py:class:`str <python:str>`

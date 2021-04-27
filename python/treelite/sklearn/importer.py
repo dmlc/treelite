@@ -40,7 +40,7 @@ class ArrayOfArrays:
 
 
 def import_model(sklearn_model):
-    # pylint: disable=R0914,R0912
+    # pylint: disable=R0914,R0912,R0915
     """
     Load a tree ensemble model from a scikit-learn model object
 
@@ -76,7 +76,6 @@ def import_model(sklearn_model):
       model = treelite.sklearn.import_model(clf)
     """
     try:
-        import sklearn.ensemble
         from sklearn.ensemble import RandomForestRegressor as RandomForestR
         from sklearn.ensemble import RandomForestClassifier as RandomForestC
         from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR

@@ -57,7 +57,6 @@ def import_model_with_model_builder(sklearn_model):
       model = treelite.sklearn.import_model_with_model_builder(clf)
     """
     try:
-        import sklearn.ensemble
         from sklearn.ensemble import RandomForestRegressor as RandomForestR
         from sklearn.ensemble import RandomForestClassifier as RandomForestC
         from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR

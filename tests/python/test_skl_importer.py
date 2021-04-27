@@ -45,7 +45,8 @@ else:
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
-def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
+@pytest.mark.parametrize('import_method', ['import_old', 'import_new'])
+def test_skl_converter_multiclass_classifier(tmpdir, import_method, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn multi-class classifier"""
     X, y = load_iris(return_X_y=True)
@@ -56,7 +57,10 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    model = treelite.sklearn.import_model(clf)
+    if import_method == 'import_new':
+        model = treelite.sklearn.import_model(clf)
+    else:
+        model = treelite.sklearn.import_model_with_model_builder(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == clf.n_classes_
     assert (model.num_tree ==
@@ -86,7 +90,8 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
-def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
+@pytest.mark.parametrize('import_method', ['import_old', 'import_new'])
+def test_skl_converter_binary_classifier(tmpdir, import_method, clazz, toolchain):
     # pylint: disable=too-many-locals
     """Convert scikit-learn binary classifier"""
     X, y = load_breast_cancer(return_X_y=True)
@@ -97,7 +102,10 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
 
-    model = treelite.sklearn.import_model(clf)
+    if import_method == 'import_new':
+        model = treelite.sklearn.import_model(clf)
+    else:
+        model = treelite.sklearn.import_model_with_model_builder(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
@@ -126,7 +134,9 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestRegressor, ExtraTreesRegressor,
                                    GradientBoostingRegressor])
-def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=too-many-locals
+@pytest.mark.parametrize('import_method', ['import_old', 'import_new'])
+def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
+    # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
     X, y = load_boston(return_X_y=True)
     kwargs = {}
@@ -136,7 +146,10 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     clf.fit(X, y)
     expected_pred = clf.predict(X)
 
-    model = treelite.sklearn.import_model(clf)
+    if import_method == 'import_new':
+        model = treelite.sklearn.import_model(clf)
+    else:
+        model = treelite.sklearn.import_model_with_model_builder(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

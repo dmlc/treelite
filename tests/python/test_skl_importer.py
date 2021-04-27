@@ -21,7 +21,15 @@ else:
         pass
 
 
+    class RandomForestRegressor:  # pylint: disable=missing-class-docstring, R0903
+        pass
+
+
     class GradientBoostingClassifier:  # pylint: disable=missing-class-docstring, R0903
+        pass
+
+
+    class GradientBoostingRegressor:  # pylint: disable=missing-class-docstring, R0903
         pass
 
 

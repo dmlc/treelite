@@ -57,29 +57,34 @@ def import_model_with_model_builder(sklearn_model):
       import treelite.sklearn
       model = treelite.sklearn.import_model_with_model_builder(clf)
     """
-    class_name = sklearn_model.__class__.__name__
-    module_name = sklearn_model.__module__.split('.')[0]
+    try:
+        import sklearn.ensemble
+        from sklearn.ensemble import RandomForestRegressor as RandomForestR
+        from sklearn.ensemble import RandomForestClassifier as RandomForestC
+        from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
+        from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
+        from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
+        from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
+    except ImportError as e:
+        raise TreeliteError('This function requires scikit-learn package') from e
 
-    if module_name != 'sklearn':
-        raise Exception('Not a scikit-learn model')
-
-    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
+    if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
         return SKLRFRegressorConverter.process_model(sklearn_model)
-    if class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
+    if isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         if sklearn_model.n_classes_ == 2:
             return SKLRFClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:
             return SKLRFMultiClassifierConverter.process_model(sklearn_model)
         raise TreeliteError('n_classes_ must be at least 2')
-    if class_name == 'GradientBoostingRegressor':
+    if isinstance(sklearn_model, GradientBoostingR):
         return SKLGBMRegressorConverter.process_model(sklearn_model)
-    if class_name == 'GradientBoostingClassifier':
+    if isinstance(sklearn_model, GradientBoostingC):
         if sklearn_model.n_classes_ == 2:
             return SKLGBMClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:
             return SKLGBMMultiClassifierConverter.process_model(sklearn_model)
         raise TreeliteError('n_classes_ must be at least 2')
-    raise TreeliteError('Unsupported model type: currently ' +
+    raise TreeliteError(f'Unsupported model type {sklearn_model.__class__.__name__}: currently ' +
                         'random forests, extremely randomized trees, and gradient boosted trees ' +
                         'are supported')
 
@@ -176,20 +181,27 @@ def import_model(sklearn_model):
       import treelite.sklearn
       model = treelite.sklearn.import_model(clf)
     """
-    class_name = sklearn_model.__class__.__name__
-    module_name = sklearn_model.__module__.split('.')[0]
-    if module_name != 'sklearn':
-        raise TreeliteError('Not a scikit-learn model')
+    try:
+        import sklearn.ensemble
+        from sklearn.ensemble import RandomForestRegressor as RandomForestR
+        from sklearn.ensemble import RandomForestClassifier as RandomForestC
+        from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
+        from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
+        from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
+        from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
+    except ImportError as e:
+        raise TreeliteError('This function requires scikit-learn package') from e
 
-    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
-                      'GradientBoostingClassifier']:
+    if isinstance(sklearn_model,
+            (RandomForestR, ExtraTreesR, GradientBoostingR, GradientBoostingC)):
         leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
-    elif class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
+    elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
     else:
-        raise TreeliteError(f'Not supported: {class_name}')
+        raise TreeliteError(f'Not supported model type: {sklearn_model.__class__.__name__}')
 
-    if class_name.startswith('GradientBoosting') and sklearn_model.init != 'zero':
+    if isinstance(sklearn_model,
+            (GradientBoostingR, GradientBoostingC)) and sklearn_model.init != 'zero':
         raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
 
     node_count = []
@@ -201,7 +213,7 @@ def import_model(sklearn_model):
     n_node_samples = ArrayOfArrays(dtype=np.int64)
     impurity = ArrayOfArrays(dtype=np.float64)
     for estimator in sklearn_model.estimators_:
-        if class_name.startswith('GradientBoosting'):
+        if isinstance(sklearn_model, (GradientBoostingR, GradientBoostingC)):
             estimator_range = estimator
             learning_rate = sklearn_model.learning_rate
         else:
@@ -221,34 +233,38 @@ def import_model(sklearn_model):
             impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
-    if class_name in ['RandomForestRegressor', 'ExtraTreesRegressor']:
+    if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestRegressor(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
             value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
             ctypes.byref(handle)))
-    elif class_name in ['RandomForestClassifier', 'ExtraTreesClassifier']:
+    elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
             children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
             threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
             impurity.as_c_array(), ctypes.byref(handle)))
-    elif class_name == 'GradientBoostingRegressor':
+    elif isinstance(sklearn_model, GradientBoostingR):
         _check_call(_LIB.TreeliteLoadSKLearnGradientBoostingRegressor(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
             value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
             ctypes.byref(handle)))
-    elif class_name == 'GradientBoostingClassifier':
+    elif isinstance(sklearn_model, GradientBoostingC):
         _check_call(_LIB.TreeliteLoadSKLearnGradientBoostingClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
             children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
             threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
             impurity.as_c_array(), ctypes.byref(handle)))
+    else:
+        raise TreeliteError(f'Unsupported model type {sklearn_model.__class__.__name__}: ' +
+                            'currently random forests, extremely randomized trees, and gradient ' +
+                            'boosted trees are supported')
     return Model(handle)
 
 

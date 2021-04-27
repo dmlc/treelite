@@ -48,7 +48,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    model = treelite.sklearn.import_model_v2(clf)
+    model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == clf.n_classes_
     assert (model.num_tree ==
@@ -89,7 +89,7 @@ def test_skl_converter_binary_classifier(tmpdir, clazz, toolchain):
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
 
-    model = treelite.sklearn.import_model_v2(clf)
+    model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
@@ -128,7 +128,7 @@ def test_skl_converter_regressor(tmpdir, clazz, toolchain):  # pylint: disable=t
     clf.fit(X, y)
     expected_pred = clf.predict(X)
 
-    model = treelite.sklearn.import_model_v2(clf)
+    model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

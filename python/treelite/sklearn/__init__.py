@@ -18,7 +18,7 @@ from .rf_classifier import SKLRFClassifierMixin
 from .rf_multi_classifier import SKLRFMultiClassifierMixin
 
 
-def import_model(sklearn_model):
+def import_model_with_model_builder(sklearn_model):
     """
     Load a tree ensemble model from a scikit-learn model object
 
@@ -51,7 +51,7 @@ def import_model(sklearn_model):
       clf.fit(X, y)
 
       import treelite.sklearn
-      model = treelite.sklearn.import_model(clf)
+      model = treelite.sklearn.import_model_with_model_builder(clf)
     """
     class_name = sklearn_model.__class__.__name__
     module_name = sklearn_model.__module__.split('.')[0]
@@ -136,7 +136,7 @@ class ArrayOfArrays:
         return c_array(self.ptr_type, self.collection)
 
 
-def import_model_v2(sklearn_model):
+def import_model(sklearn_model):
     # pylint: disable=R0914,R0912
     """
     Load a tree ensemble model from a scikit-learn model object
@@ -233,4 +233,4 @@ def import_model_v2(sklearn_model):
     return Model(handle)
 
 
-__all__ = ['import_model', 'import_model_v2']
+__all__ = ['import_model_with_model_builder', 'import_model']

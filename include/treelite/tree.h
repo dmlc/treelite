@@ -36,12 +36,50 @@ float stof(const std::string& value, size_t* pos);
 
 namespace treelite {
 
+class PyBufferFrameWithManagedBuffer;
+
 struct PyBufferFrame {
   void* buf;
   char* format;
   size_t itemsize;
   size_t nitem;
+
+  // Serialize a frame to a file stream
+  inline void Serialize(FILE* dest_fp) const;
+
+  // Deserialize a frame from a file stream
+  // Note. This function allocates new buffers for buf and format fields. To prevent memory leak,
+  // we wrap the frame with a memory-managing class that will automatically free the allocated
+  // buffers.
+  inline static PyBufferFrameWithManagedBuffer Deserialize(FILE* src_fp);
 };
+
+class PyBufferFrameWithManagedBuffer {
+ public:
+  PyBufferFrame frame_;
+
+  PyBufferFrameWithManagedBuffer(void* buf, char* format, size_t itemsize, size_t nitem)
+    : frame_({buf, format, itemsize, nitem}) {}
+
+  PyBufferFrameWithManagedBuffer(PyBufferFrameWithManagedBuffer&) = delete;
+  PyBufferFrameWithManagedBuffer(PyBufferFrameWithManagedBuffer&& other) noexcept
+    : frame_(other.frame_) {
+    other.frame_.buf = nullptr;
+    other.frame_.format = nullptr;
+    other.frame_.nitem = 0;
+  }
+
+  ~PyBufferFrameWithManagedBuffer() {
+    if (frame_.buf) {
+      std::free(frame_.buf);
+    }
+    if (frame_.format) {
+      std::free(frame_.format);
+    }
+  }
+};
+
+static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 
 template <typename T>
 class ContiguousArray {
@@ -55,6 +93,7 @@ class ContiguousArray {
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
   inline void UseForeignBuffer(void* prealloc_buf, size_t size);
+  inline void CopyFrom(void* src_buf, size_t size);
   inline T* Data();
   inline const T* Data() const;
   inline T* End();
@@ -272,7 +311,8 @@ class Tree {
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end);
+                               std::vector<PyBufferFrame>::iterator end,
+                               bool copy);
 
  private:
   // vector of nodes
@@ -642,8 +682,15 @@ class Model {
   virtual void SetTreeLimit(size_t limit) = 0;
   virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
 
+  /* In-memory serialization, zero-copy */
   inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+  inline static std::unique_ptr<Model> CreateFromPyBuffer(
+      std::vector<PyBufferFrame> frames, bool copy);
+  // Optionally set copy=True to copy the underlying buffers for the trees, so that the Model
+  // handle will own the buffers.
+  /* Serialization to a file stream */
+  inline void Serialize(FILE* dest_fp);
+  inline static std::unique_ptr<Model> Deserialize(FILE* src_fp);
 
   /*!
    * \brief number of features used for the model.
@@ -666,7 +713,8 @@ class Model {
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
   virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                                std::vector<PyBufferFrame>::iterator end) = 0;
+                                std::vector<PyBufferFrame>::iterator end,
+                                bool copy) = 0;
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -692,8 +740,11 @@ class ModelImpl : public Model {
   }
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
+  // Set copy=True to copy the underlying buffers of the trees, so that the Model handle will
+  // own the buffers.
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end) override;
+                               std::vector<PyBufferFrame>::iterator end,
+                               bool copy) override;
 };
 
 }  // namespace treelite

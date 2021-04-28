@@ -8,6 +8,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <dmlc/memory_io.h>
+#include <cstdio>
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -23,10 +24,28 @@ inline std::string TreeliteToBytes(treelite::Model* model) {
 }
 
 inline void TestRoundTrip(treelite::Model* model) {
-  auto buffer = model->GetPyBuffer();
-  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
+  {
+    // Test round trip with in-memory serialization
+    auto buffer = model->GetPyBuffer();
+    std::unique_ptr<treelite::Model> received_model
+        = treelite::Model::CreateFromPyBuffer(buffer, false);
 
-  ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+    ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+  }
+  {
+    // Test round trip with serialization to a FILE stream
+    const char* filename = std::tmpnam(nullptr);
+    FILE* fp = std::fopen(filename, "w");
+    ASSERT_TRUE(fp);
+    model->Serialize(fp);
+    std::fclose(fp);
+    fp = std::fopen(filename, "r");
+    ASSERT_TRUE(fp);
+    std::unique_ptr<treelite::Model> received_model = model->Deserialize(fp);
+    std::fclose(fp);
+
+    ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+  }
 }
 
 }  // anonymous namespace
@@ -54,6 +73,30 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+}
+
+TEST(PyBufferInterfaceRoundTrip, Frame) {
+  std::vector<float> array{1.0f, 2.0f};
+  char format[] = "=f";
+  PyBufferFrame frame{static_cast<void*>(array.data()), format, sizeof(float), array.size()};
+  const char* filename = std::tmpnam(nullptr);
+  FILE* fp = std::fopen(filename, "w");
+  ASSERT_TRUE(fp);
+  frame.Serialize(fp);
+  std::fclose(fp);
+
+  fp = std::fopen(filename, "r");
+  ASSERT_TRUE(fp);
+  PyBufferFrameWithManagedBuffer received_frame = PyBufferFrame::Deserialize(fp);
+  std::fclose(fp);
+  ASSERT_EQ(received_frame.frame_.itemsize, sizeof(float));
+  ASSERT_EQ(received_frame.frame_.nitem, array.size());
+  ASSERT_EQ(std::string(received_frame.frame_.format), std::string(format));
+
+  std::vector<float> received_array(received_frame.frame_.nitem);
+  std::memcpy(received_array.data(), received_frame.frame_.buf,
+              received_frame.frame_.itemsize * received_frame.frame_.nitem);
+  ASSERT_EQ(array, received_array);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStump) {

@@ -46,6 +46,63 @@ inline std::string GetString<double>(double x) {
 
 namespace treelite {
 
+inline void
+PyBufferFrame::Serialize(FILE* dest_fp) const {
+  auto write_to_file = [](const void* buffer, size_t size, size_t count, FILE* fp) {
+    if (std::fwrite(buffer, size, count, fp) < count) {
+      throw std::runtime_error("Failed to write to disk");
+    }
+  };
+
+  static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too big on this platform");
+
+  const auto itemsize_uint64 = static_cast<uint64_t>(itemsize);
+  const auto nitem_uint64 = static_cast<uint64_t>(nitem);
+  const auto format_str_len = static_cast<uint64_t>(std::strlen(format));
+
+  write_to_file(&itemsize_uint64, sizeof(itemsize_uint64), 1, dest_fp);
+  write_to_file(&nitem_uint64, sizeof(nitem_uint64), 1, dest_fp);
+  write_to_file(&format_str_len, sizeof(format_str_len), 1, dest_fp);
+  write_to_file(format, sizeof(char),
+                static_cast<size_t>(format_str_len) + 1, dest_fp);  // write terminating NUL
+  write_to_file(buf, itemsize, nitem, dest_fp);
+}
+
+inline PyBufferFrameWithManagedBuffer
+PyBufferFrame::Deserialize(FILE* src_fp) {
+  auto read_from_file = [](void* buffer, size_t size, size_t count, FILE* fp) {
+    if (std::fread(buffer, size, count, fp) < count) {
+      throw std::runtime_error("Failed to read from disk");
+    }
+  };
+  auto alloc_error = []() {
+    throw std::runtime_error("Failed to allocate buffer while deserializing");
+  };
+
+  uint64_t itemsize, nitem, format_str_len;
+  void* buf;
+  char* format;
+
+  read_from_file(&itemsize, sizeof(itemsize), 1, src_fp);
+  read_from_file(&nitem, sizeof(nitem), 1, src_fp);
+  read_from_file(&format_str_len, sizeof(format_str_len), 1, src_fp);
+  itemsize = static_cast<size_t>(itemsize);
+  nitem = static_cast<size_t>(nitem);
+  format = static_cast<char*>(std::malloc(
+      sizeof(char) * (static_cast<size_t>(format_str_len) + 1)));
+  if (!format) {
+    alloc_error();
+  }
+  read_from_file(format, sizeof(char), static_cast<size_t>(format_str_len) + 1, src_fp);
+  buf = static_cast<char*>(std::malloc(sizeof(char) * static_cast<size_t>(itemsize * nitem)));
+  if (!buf) {
+    alloc_error();
+  }
+  read_from_file(buf, itemsize, nitem, src_fp);
+
+  return PyBufferFrameWithManagedBuffer(buf, format, itemsize, nitem);
+}
+
 template <typename T>
 ContiguousArray<T>::ContiguousArray()
     : buffer_(nullptr), size_(0), capacity_(0), owned_buffer_(true) {}
@@ -105,6 +162,22 @@ ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, size_t size) {
   size_ = size;
   capacity_ = size;
   owned_buffer_ = false;
+}
+
+template <typename T>
+inline void
+ContiguousArray<T>::CopyFrom(void* src_buf, size_t size) {
+  if (buffer_ && owned_buffer_) {
+    std::free(buffer_);
+  }
+  buffer_ = static_cast<T*>(std::malloc(sizeof(T) * size));
+  if (!buffer_) {
+    throw std::runtime_error("Could not allocate memory for buffer");
+  }
+  std::memcpy(buffer_, src_buf, sizeof(T) * size);
+  size_ = size;
+  capacity_ = size;
+  owned_buffer_ = true;
 }
 
 template <typename T>
@@ -389,11 +462,16 @@ inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
 }
 
 template <typename T>
-inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame buffer) {
+inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame buffer, bool copy) {
+  // Set copy=true to make a copy, so that the array would own the buffer
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
   }
-  vec->UseForeignBuffer(buffer.buf, buffer.nitem);
+  if (copy) {
+    vec->CopyFrom(buffer.buf, buffer.nitem);
+  } else {
+    vec->UseForeignBuffer(buffer.buf, buffer.nitem);
+  }
 }
 
 inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
@@ -470,20 +548,21 @@ Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* des
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
+                                                      std::vector<PyBufferFrame>::iterator end,
+                                                      bool copy) {
   if (std::distance(begin, end) != kNumFramePerTree) {
     throw std::runtime_error("Wrong number of frames specified");
   }
   InitScalarFromPyBuffer(&num_nodes, *begin++);
-  InitArrayFromPyBuffer(&nodes_, *begin++);
+  InitArrayFromPyBuffer(&nodes_, *begin++, copy);
   if (static_cast<size_t>(num_nodes) != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
   }
-  InitArrayFromPyBuffer(&leaf_vector_, *begin++);
-  InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++);
-  InitArrayFromPyBuffer(&matching_categories_, *begin++);
-  InitArrayFromPyBuffer(&matching_categories_offset_, *begin++);
+  InitArrayFromPyBuffer(&leaf_vector_, *begin++, copy);
+  InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++, copy);
+  InitArrayFromPyBuffer(&matching_categories_, *begin++, copy);
+  InitArrayFromPyBuffer(&matching_categories_offset_, *begin++, copy);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -715,7 +794,7 @@ Model::GetPyBuffer() {
 }
 
 inline std::unique_ptr<Model>
-Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
+Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames, bool copy) {
   int major_ver, minor_ver, patch_ver;
   TypeInfo threshold_type, leaf_output_type;
   if (frames.size() < 5) {
@@ -731,8 +810,40 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   InitScalarFromPyBuffer(&leaf_output_type, frames[4]);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
-  model->InitFromPyBuffer(frames.begin() + 5, frames.end());
+  model->InitFromPyBuffer(frames.begin() + 5, frames.end(), copy);
   return model;
+}
+
+
+inline void
+Model::Serialize(FILE* dest_fp) {
+  auto frames = this->GetPyBuffer();
+  const auto num_frame = static_cast<uint64_t>(frames.size());
+  if (std::fwrite(&num_frame, sizeof(num_frame), 1, dest_fp) < 1) {
+    throw std::runtime_error("Error while serializing to disk");
+  }
+  for (auto frame : frames) {
+    frame.Serialize(dest_fp);
+  }
+}
+
+inline std::unique_ptr<Model>
+Model::Deserialize(FILE* src_fp) {
+  uint64_t num_frame;
+  if (std::fread(&num_frame, sizeof(num_frame), 1, src_fp) < 1) {
+    throw std::runtime_error("Error while deserializing from disk");
+  }
+  std::vector<PyBufferFrameWithManagedBuffer> deserialized_frames;
+    // this vector owns the allocated buffers; we want to keep the buffers until we are done
+    // loading the model
+  std::vector<PyBufferFrame> frames_ref;
+    // this vector only contains reference to buffers in deserialized_frames
+  for (uint64_t i = 0; i < num_frame; ++i) {
+    deserialized_frames.push_back(PyBufferFrame::Deserialize(src_fp));
+    frames_ref.push_back(deserialized_frames.back().frame_);
+  }
+  return CreateFromPyBuffer(frames_ref, true);
+    // When this function returns, all the allocated buffers will be automatically freed
 }
 
 
@@ -756,7 +867,8 @@ ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end,
+    bool copy) {
   const size_t num_frame = std::distance(begin, end);
   /* Header */
   constexpr size_t kNumFrameInHeader = 5;
@@ -775,7 +887,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   trees.clear();
   for (; begin < end; begin += kNumFramePerTree) {
     trees.emplace_back();
-    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree);
+    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree, copy);
   }
 }
 

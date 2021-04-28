@@ -38,6 +38,8 @@ namespace treelite {
 
 class PyBufferFrameWithManagedBuffer;
 
+// Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
+// to hold only 1-D arrays with stride 1.
 struct PyBufferFrame {
   void* buf;
   char* format;

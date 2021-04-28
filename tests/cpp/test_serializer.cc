@@ -87,16 +87,20 @@ TEST(PyBufferInterfaceRoundTrip, Frame) {
 
   fp = std::fopen(filename, "rb");
   ASSERT_TRUE(fp);
-  PyBufferFrameWithManagedBuffers received_frame = PyBufferFrame::Deserialize(fp);
+  void* received_buf;
+  char* received_format;
+  PyBufferFrame received_frame = PyBufferFrame::Deserialize(fp, &received_buf, &received_format);
   std::fclose(fp);
-  ASSERT_EQ(received_frame.frame_.itemsize, sizeof(float));
-  ASSERT_EQ(received_frame.frame_.nitem, array.size());
-  ASSERT_EQ(std::string(received_frame.frame_.format), std::string(format));
+  ASSERT_EQ(received_frame.itemsize, sizeof(float));
+  ASSERT_EQ(received_frame.nitem, array.size());
+  ASSERT_EQ(std::string(received_frame.format), std::string(format));
 
-  std::vector<float> received_array(received_frame.frame_.nitem);
-  std::memcpy(received_array.data(), received_frame.frame_.buf,
-              received_frame.frame_.itemsize * received_frame.frame_.nitem);
+  std::vector<float> received_array(received_frame.nitem);
+  std::memcpy(received_array.data(), received_frame.buf,
+              received_frame.itemsize * received_frame.nitem);
   ASSERT_EQ(array, received_array);
+  std::free(received_buf);
+  std::free(received_format);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStump) {

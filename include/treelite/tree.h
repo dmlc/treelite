@@ -36,8 +36,6 @@ float stof(const std::string& value, size_t* pos);
 
 namespace treelite {
 
-class PyBufferFrameWithManagedBuffers;
-
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
 struct PyBufferFrame {
@@ -50,35 +48,10 @@ struct PyBufferFrame {
   inline void Serialize(FILE* dest_fp) const;
 
   // Deserialize a frame from a file stream
-  // Note. This function allocates new buffers for buf and format fields. To prevent memory leak,
-  // we wrap the frame with a memory-managing class that will automatically free the allocated
-  // buffers.
-  inline static PyBufferFrameWithManagedBuffers Deserialize(FILE* src_fp);
-};
-
-class PyBufferFrameWithManagedBuffers {
- public:
-  PyBufferFrame frame_;
-
-  PyBufferFrameWithManagedBuffers(void* buf, char* format, size_t itemsize, size_t nitem)
-    : frame_({buf, format, itemsize, nitem}) {}
-
-  PyBufferFrameWithManagedBuffers(PyBufferFrameWithManagedBuffers&) = delete;
-  PyBufferFrameWithManagedBuffers(PyBufferFrameWithManagedBuffers&& other) noexcept
-    : frame_(other.frame_) {
-    other.frame_.buf = nullptr;
-    other.frame_.format = nullptr;
-    other.frame_.nitem = 0;
-  }
-
-  ~PyBufferFrameWithManagedBuffers() {
-    if (frame_.buf) {
-      std::free(frame_.buf);
-    }
-    if (frame_.format) {
-      std::free(frame_.format);
-    }
-  }
+  // Note. This function allocates new buffers for buf and format fields and returns the references
+  // via the last two arguments.
+  inline static PyBufferFrame Deserialize(
+      FILE* src_fp, void** allocated_buf, char** allocated_format);
 };
 
 static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
@@ -94,7 +67,9 @@ class ContiguousArray {
   ContiguousArray(ContiguousArray&& other) noexcept;
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
-  inline void UseForeignBuffer(void* prealloc_buf, size_t size);
+  inline void UseForeignBuffer(void* prealloc_buf, size_t size, bool assume_ownership);
+    // Set assume_ownership=true if you want the array to be responsible for deleting the
+    // foreign buffer
   inline void CopyFrom(void* src_buf, size_t size);
   inline T* Data();
   inline const T* Data() const;
@@ -314,7 +289,7 @@ class Tree {
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                std::vector<PyBufferFrame>::iterator end,
-                               bool copy);
+                               bool assume_ownership);
 
  private:
   // vector of nodes
@@ -687,9 +662,9 @@ class Model {
   /* In-memory serialization, zero-copy */
   inline std::vector<PyBufferFrame> GetPyBuffer();
   inline static std::unique_ptr<Model> CreateFromPyBuffer(
-      std::vector<PyBufferFrame> frames, bool copy);
-  // Optionally set copy=True to copy the underlying buffers for the trees, so that the Model
-  // handle will own the buffers.
+      std::vector<PyBufferFrame> frames, bool assume_ownership);
+  // Set assume_ownership=True if you want the Model object to own the buffers, i.e. the Model
+  // object should be responsible for deleting the buffers.
   /* Serialization to a file stream */
   inline void Serialize(FILE* dest_fp);
   inline static std::unique_ptr<Model> Deserialize(FILE* src_fp);
@@ -716,7 +691,7 @@ class Model {
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
   virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                 std::vector<PyBufferFrame>::iterator end,
-                                bool copy) = 0;
+                                bool assume_ownership) = 0;
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -746,7 +721,7 @@ class ModelImpl : public Model {
   // own the buffers.
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                std::vector<PyBufferFrame>::iterator end,
-                               bool copy) override;
+                               bool assume_ownership) override;
 };
 
 }  // namespace treelite

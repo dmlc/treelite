@@ -100,8 +100,12 @@ PyBufferFrame::Deserialize(FILE* src_fp, void** allocated_buf, char** allocated_
   }
   read_from_file(buf, itemsize, nitem, src_fp);
 
-  *allocated_buf = buf;
-  *allocated_format = format;
+  if (allocated_buf) {
+    *allocated_buf = buf;
+  }
+  if (allocated_format) {
+    *allocated_format = format;
+  }
   return PyBufferFrame{buf, format, itemsize, nitem};
 }
 
@@ -817,18 +821,12 @@ Model::Deserialize(FILE* src_fp) {
     throw std::runtime_error("Error while deserializing from disk");
   }
   std::vector<PyBufferFrame> frames;
-  // hold buffers for incoming frames until we can transfer their ownership to the newly
-  // constructed model object
-  std::vector<void*> buf;
-  std::vector<char*> format;
   for (uint64_t i = 0; i < num_frame; ++i) {
-    buf.emplace_back();
-    format.emplace_back();
-    frames.push_back(PyBufferFrame::Deserialize(src_fp, &buf.back(), &format.back()));
+    frames.push_back(PyBufferFrame::Deserialize(src_fp, nullptr, nullptr));
   }
   return CreateFromPyBuffer(frames, true);
     // Set assume_ownership=true so that the model object is now responsible for freeing
-    // all buffers.
+    // all buffers that were allocated in PyBufferFrame::Deserialize().
 }
 
 

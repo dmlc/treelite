@@ -49,7 +49,10 @@ struct PyBufferFrame {
 
   // Deserialize a frame from a file stream
   // Note. This function allocates new buffers for buf and format fields and returns the references
-  // via the last two arguments.
+  // via the last two arguments. Make sure to free them to avoid memory leak. Alternatively, you
+  // should transfer the ownership of the allocated buffers to a Model object, by calling
+  // Model::CreateFromPyBuffer() with assume_ownership=true. In that scenario, set the arguments to
+  // nullptr since you don't have to manually free them yourself.
   inline static PyBufferFrame Deserialize(
       FILE* src_fp, void** allocated_buf, char** allocated_format);
 };

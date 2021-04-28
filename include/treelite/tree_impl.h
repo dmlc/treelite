@@ -167,22 +167,6 @@ ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, size_t size, bool assum
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::CopyFrom(void* src_buf, size_t size) {
-  if (buffer_ && owned_buffer_) {
-    std::free(buffer_);
-  }
-  buffer_ = static_cast<T*>(std::malloc(sizeof(T) * size));
-  if (!buffer_) {
-    throw std::runtime_error("Could not allocate memory for buffer");
-  }
-  std::memcpy(buffer_, src_buf, sizeof(T) * size);
-  size_ = size;
-  capacity_ = size;
-  owned_buffer_ = true;
-}
-
-template <typename T>
 inline T*
 ContiguousArray<T>::Data() {
   return buffer_;

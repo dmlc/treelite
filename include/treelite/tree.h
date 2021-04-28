@@ -70,7 +70,6 @@ class ContiguousArray {
   inline void UseForeignBuffer(void* prealloc_buf, size_t size, bool assume_ownership);
     // Set assume_ownership=true if you want the array to be responsible for deleting the
     // foreign buffer
-  inline void CopyFrom(void* src_buf, size_t size);
   inline T* Data();
   inline const T* Data() const;
   inline T* End();

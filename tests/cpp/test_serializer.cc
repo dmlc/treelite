@@ -35,11 +35,11 @@ inline void TestRoundTrip(treelite::Model* model) {
   {
     // Test round trip with serialization to a FILE stream
     const char* filename = std::tmpnam(nullptr);
-    FILE* fp = std::fopen(filename, "w");
+    FILE* fp = std::fopen(filename, "wb");
     ASSERT_TRUE(fp);
     model->Serialize(fp);
     std::fclose(fp);
-    fp = std::fopen(filename, "r");
+    fp = std::fopen(filename, "rb");
     ASSERT_TRUE(fp);
     std::unique_ptr<treelite::Model> received_model = model->Deserialize(fp);
     std::fclose(fp);
@@ -80,12 +80,12 @@ TEST(PyBufferInterfaceRoundTrip, Frame) {
   char format[] = "=f";
   PyBufferFrame frame{static_cast<void*>(array.data()), format, sizeof(float), array.size()};
   const char* filename = std::tmpnam(nullptr);
-  FILE* fp = std::fopen(filename, "w");
+  FILE* fp = std::fopen(filename, "wb");
   ASSERT_TRUE(fp);
   frame.Serialize(fp);
   std::fclose(fp);
 
-  fp = std::fopen(filename, "r");
+  fp = std::fopen(filename, "rb");
   ASSERT_TRUE(fp);
   PyBufferFrameWithManagedBuffer received_frame = PyBufferFrame::Deserialize(fp);
   std::fclose(fp);

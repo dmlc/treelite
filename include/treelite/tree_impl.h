@@ -68,7 +68,7 @@ PyBufferFrame::Serialize(FILE* dest_fp) const {
   write_to_file(buf, itemsize, nitem, dest_fp);
 }
 
-inline PyBufferFrameWithManagedBuffer
+inline PyBufferFrameWithManagedBuffers
 PyBufferFrame::Deserialize(FILE* src_fp) {
   auto read_from_file = [](void* buffer, size_t size, size_t count, FILE* fp) {
     if (std::fread(buffer, size, count, fp) < count) {
@@ -100,7 +100,7 @@ PyBufferFrame::Deserialize(FILE* src_fp) {
   }
   read_from_file(buf, itemsize, nitem, src_fp);
 
-  return PyBufferFrameWithManagedBuffer(buf, format, itemsize, nitem);
+  return PyBufferFrameWithManagedBuffers(buf, format, itemsize, nitem);
 }
 
 template <typename T>
@@ -833,7 +833,7 @@ Model::Deserialize(FILE* src_fp) {
   if (std::fread(&num_frame, sizeof(num_frame), 1, src_fp) < 1) {
     throw std::runtime_error("Error while deserializing from disk");
   }
-  std::vector<PyBufferFrameWithManagedBuffer> deserialized_frames;
+  std::vector<PyBufferFrameWithManagedBuffers> deserialized_frames;
     // this vector owns the allocated buffers; we want to keep the buffers until we are done
     // loading the model
   std::vector<PyBufferFrame> frames_ref;

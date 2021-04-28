@@ -87,7 +87,7 @@ TEST(PyBufferInterfaceRoundTrip, Frame) {
 
   fp = std::fopen(filename, "rb");
   ASSERT_TRUE(fp);
-  PyBufferFrameWithManagedBuffer received_frame = PyBufferFrame::Deserialize(fp);
+  PyBufferFrameWithManagedBuffers received_frame = PyBufferFrame::Deserialize(fp);
   std::fclose(fp);
   ASSERT_EQ(received_frame.frame_.itemsize, sizeof(float));
   ASSERT_EQ(received_frame.frame_.nitem, array.size());

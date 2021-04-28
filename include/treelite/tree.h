@@ -36,7 +36,7 @@ float stof(const std::string& value, size_t* pos);
 
 namespace treelite {
 
-class PyBufferFrameWithManagedBuffer;
+class PyBufferFrameWithManagedBuffers;
 
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
@@ -53,25 +53,25 @@ struct PyBufferFrame {
   // Note. This function allocates new buffers for buf and format fields. To prevent memory leak,
   // we wrap the frame with a memory-managing class that will automatically free the allocated
   // buffers.
-  inline static PyBufferFrameWithManagedBuffer Deserialize(FILE* src_fp);
+  inline static PyBufferFrameWithManagedBuffers Deserialize(FILE* src_fp);
 };
 
-class PyBufferFrameWithManagedBuffer {
+class PyBufferFrameWithManagedBuffers {
  public:
   PyBufferFrame frame_;
 
-  PyBufferFrameWithManagedBuffer(void* buf, char* format, size_t itemsize, size_t nitem)
+  PyBufferFrameWithManagedBuffers(void* buf, char* format, size_t itemsize, size_t nitem)
     : frame_({buf, format, itemsize, nitem}) {}
 
-  PyBufferFrameWithManagedBuffer(PyBufferFrameWithManagedBuffer&) = delete;
-  PyBufferFrameWithManagedBuffer(PyBufferFrameWithManagedBuffer&& other) noexcept
+  PyBufferFrameWithManagedBuffers(PyBufferFrameWithManagedBuffers&) = delete;
+  PyBufferFrameWithManagedBuffers(PyBufferFrameWithManagedBuffers&& other) noexcept
     : frame_(other.frame_) {
     other.frame_.buf = nullptr;
     other.frame_.format = nullptr;
     other.frame_.nitem = 0;
   }
 
-  ~PyBufferFrameWithManagedBuffer() {
+  ~PyBufferFrameWithManagedBuffers() {
     if (frame_.buf) {
       std::free(frame_.buf);
     }

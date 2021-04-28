@@ -461,7 +461,7 @@ inline void InitArrayFromPyBuffer(
   vec->UseForeignBuffer(buffer.buf, buffer.nitem, assume_ownership);
 }
 
-inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer, bool assume_ownership) {
   using T = std::underlying_type<TypeInfo>::type;
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
@@ -471,9 +471,13 @@ inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TypeInfo>(*t);
+  if (assume_ownership) {
+    std::free(buffer.buf);
+    std::free(buffer.format);
+  }
 }
 
-inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer, bool assume_ownership) {
   using T = std::underlying_type<TaskType>::type;
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
@@ -483,10 +487,14 @@ inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TaskType>(*t);
+  if (assume_ownership) {
+    std::free(buffer.buf);
+    std::free(buffer.format);
+  }
 }
 
 template <typename T>
-inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer, bool assume_ownership) {
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
   }
@@ -495,6 +503,10 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = *t;
+  if (assume_ownership) {
+    std::free(buffer.buf);
+    std::free(buffer.format);
+  }
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -541,7 +553,7 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>
   if (std::distance(begin, end) != kNumFramePerTree) {
     throw std::runtime_error("Wrong number of frames specified");
   }
-  InitScalarFromPyBuffer(&num_nodes, *begin++);
+  InitScalarFromPyBuffer(&num_nodes, *begin++, assume_ownership);
   InitArrayFromPyBuffer(&nodes_, *begin++, assume_ownership);
   if (static_cast<size_t>(num_nodes) != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
@@ -784,17 +796,19 @@ inline std::unique_ptr<Model>
 Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames, bool assume_ownership) {
   int major_ver, minor_ver, patch_ver;
   TypeInfo threshold_type, leaf_output_type;
-  if (frames.size() < 5) {
-    throw std::runtime_error("Insufficient number of frames: there must be at least 5");
+  constexpr size_t kNumFrameInHeader = 5;
+  if (frames.size() < kNumFrameInHeader) {
+    throw std::runtime_error(std::string("Insufficient number of frames: there must be at least ")
+      + std::to_string(kNumFrameInHeader));
   }
-  InitScalarFromPyBuffer(&major_ver, frames[0]);
-  InitScalarFromPyBuffer(&minor_ver, frames[1]);
-  InitScalarFromPyBuffer(&patch_ver, frames[2]);
+  InitScalarFromPyBuffer(&major_ver, frames[0], assume_ownership);
+  InitScalarFromPyBuffer(&minor_ver, frames[1], assume_ownership);
+  InitScalarFromPyBuffer(&patch_ver, frames[2], assume_ownership);
   if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
     throw std::runtime_error("Cannot deserialize model from a different version of Treelite");
   }
-  InitScalarFromPyBuffer(&threshold_type, frames[3]);
-  InitScalarFromPyBuffer(&leaf_output_type, frames[4]);
+  InitScalarFromPyBuffer(&threshold_type, frames[3], assume_ownership);
+  InitScalarFromPyBuffer(&leaf_output_type, frames[4], assume_ownership);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
   model->InitFromPyBuffer(frames.begin() + 5, frames.end(), assume_ownership);
@@ -858,11 +872,11 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   if (num_frame < kNumFrameInHeader) {
     throw std::runtime_error("Wrong number of frames");
   }
-  InitScalarFromPyBuffer(&num_feature, *begin++);
-  InitScalarFromPyBuffer(&task_type, *begin++);
-  InitScalarFromPyBuffer(&average_tree_output, *begin++);
-  InitScalarFromPyBuffer(&task_param, *begin++);
-  InitScalarFromPyBuffer(&param, *begin++);
+  InitScalarFromPyBuffer(&num_feature, *begin++, assume_ownership);
+  InitScalarFromPyBuffer(&task_type, *begin++, assume_ownership);
+  InitScalarFromPyBuffer(&average_tree_output, *begin++, assume_ownership);
+  InitScalarFromPyBuffer(&task_param, *begin++, assume_ownership);
+  InitScalarFromPyBuffer(&param, *begin++, assume_ownership);
   /* Body */
   if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
     throw std::runtime_error("Wrong number of frames");

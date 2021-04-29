@@ -24,14 +24,14 @@ inline std::string TreeliteToBytes(treelite::Model* model) {
 }
 
 inline void TestRoundTrip(treelite::Model* model) {
-  {
+  for (int i = 0; i < 2; ++i) {
     // Test round trip with in-memory serialization
     auto buffer = model->GetPyBuffer();
     std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
     ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
   }
-  {
+  for (int i = 0; i < 2; ++i) {
     // Test round trip with serialization to a FILE stream
     const char* filename = std::tmpnam(nullptr);
     FILE* fp = std::fopen(filename, "wb");

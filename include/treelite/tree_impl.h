@@ -453,12 +453,17 @@ inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
 
 template <typename T>
 inline void InitArrayFromPyBuffer(
-    ContiguousArray<T>* vec, PyBufferFrame buffer, bool assume_ownership) {
-  // Set assume_ownership=true to make the array would own the buffer
-  if (sizeof(T) != buffer.itemsize) {
+    ContiguousArray<T>* vec, PyBufferFrame frame, bool assume_ownership) {
+  // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf, format)
+  // of the frame to the ContiguousArray. If ownership is transferred, the buf and format pointers
+  // of the frame are invalidated.
+  if (sizeof(T) != frame.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
   }
-  vec->UseForeignBuffer(buffer.buf, buffer.nitem, assume_ownership);
+  if (assume_ownership) {
+    std::free(frame.format);
+  }
+  vec->UseForeignBuffer(frame.buf, frame.nitem, assume_ownership);
 }
 
 inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer, bool assume_ownership) {
@@ -811,7 +816,7 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames, bool assume_ownersh
   InitScalarFromPyBuffer(&leaf_output_type, frames[4], assume_ownership);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
-  model->InitFromPyBuffer(frames.begin() + 5, frames.end(), assume_ownership);
+  model->InitFromPyBuffer(frames.begin() + kNumFrameInHeader, frames.end(), assume_ownership);
   return model;
 }
 
@@ -839,8 +844,9 @@ Model::Deserialize(FILE* src_fp) {
     frames.push_back(PyBufferFrame::Deserialize(src_fp, nullptr, nullptr));
   }
   return CreateFromPyBuffer(frames, true);
-    // Set assume_ownership=true so that the model object is now responsible for freeing
-    // all buffers that were allocated in PyBufferFrame::Deserialize().
+    // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf,
+    // format) of the frames to the Model object. All the buffers were allocated by
+    // PyBufferFrame::Deserialize() and should be freed when the Model object is freed.
 }
 
 

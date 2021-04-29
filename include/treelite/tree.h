@@ -71,8 +71,8 @@ class ContiguousArray {
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
   inline void UseForeignBuffer(void* prealloc_buf, size_t size, bool assume_ownership);
-    // Set assume_ownership=true if you want the array to be responsible for deleting the
-    // foreign buffer
+    // Set assume_ownership=true to transfer the ownership of the buffer to the ContiguousArray
+    // object. The object will be responsible for freeing the buffer.
   inline T* Data();
   inline const T* Data() const;
   inline T* End();
@@ -665,8 +665,14 @@ class Model {
   inline std::vector<PyBufferFrame> GetPyBuffer();
   inline static std::unique_ptr<Model> CreateFromPyBuffer(
       std::vector<PyBufferFrame> frames, bool assume_ownership);
-  // Set assume_ownership=True if you want the Model object to own the buffers, i.e. the Model
-  // object should be responsible for deleting the buffers.
+  // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf, format)
+  // of the frames to the Model object. All the buffers will be freed when the Model object is
+  // freed.
+  // Tip 1: Use assume_ownership=true if the model is being deserialized from temporary
+  // buffers, i.e. when reading from a file stream. Use assume_ownership=false if the model is
+  // being deserialized from in-memory buffers that are not temporary.
+  // Tip 2: If assume_ownership is set to true, do not assume that the buf and format pointers will
+  // remain valid after the call to CreateFromBuffer().
   /* Serialization to a file stream */
   inline void Serialize(FILE* dest_fp);
   inline static std::unique_ptr<Model> Deserialize(FILE* src_fp);

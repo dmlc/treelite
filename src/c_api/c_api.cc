@@ -176,6 +176,26 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelH
   API_END();
 }
 
+int TreeliteSerializeModel(const char* filename, ModelHandle handle) {
+  API_BEGIN();
+  FILE* fp = std::fopen(filename, "wb");
+  CHECK(fp) << "Failed to open file '" << filename << "'";
+  auto* model_ = static_cast<Model*>(handle);
+  model_->Serialize(fp);
+  std::fclose(fp);
+  API_END();
+}
+
+int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
+  API_BEGIN();
+  FILE* fp = std::fopen(filename, "rb");
+  CHECK(fp) << "Failed to open file '" << filename << "'";
+  std::unique_ptr<Model> model = Model::Deserialize(fp);
+  std::fclose(fp);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);

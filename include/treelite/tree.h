@@ -716,8 +716,8 @@ class ModelImpl : public Model {
   }
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
-  // Set copy=True to copy the underlying buffers of the trees, so that the Model handle will
-  // own the buffers.
+  // Set assume_ownership=true to transfer the ownership of the underlying buffers of the frames to
+  // the Model object, so that the Model object is responsible for freeing the buffers.
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                std::vector<PyBufferFrame>::iterator end,
                                bool assume_ownership) override;

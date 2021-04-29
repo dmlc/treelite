@@ -27,8 +27,7 @@ inline void TestRoundTrip(treelite::Model* model) {
   {
     // Test round trip with in-memory serialization
     auto buffer = model->GetPyBuffer();
-    std::unique_ptr<treelite::Model> received_model
-        = treelite::Model::CreateFromPyBuffer(buffer, false);
+    std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
     ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
   }

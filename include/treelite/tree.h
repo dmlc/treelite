@@ -49,10 +49,7 @@ struct PyBufferFrame {
 
   // Deserialize a frame from a file stream
   // Note. This function allocates new buffers for buf and format fields and returns the references
-  // via the last two arguments. Make sure to free them to avoid memory leak. Alternatively, you
-  // should transfer the ownership of the allocated buffers to a Model object, by calling
-  // Model::CreateFromPyBuffer() with assume_ownership=true. In that scenario, set the arguments to
-  // nullptr since you don't have to manually free them yourself.
+  // via the last two arguments. Make sure to free them to avoid memory leak.
   inline static PyBufferFrame Deserialize(
       FILE* src_fp, void** allocated_buf, char** allocated_format);
 };
@@ -663,16 +660,8 @@ class Model {
 
   /* In-memory serialization, zero-copy */
   inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline static std::unique_ptr<Model> CreateFromPyBuffer(
-      std::vector<PyBufferFrame> frames, bool assume_ownership);
-  // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf, format)
-  // of the frames to the Model object. All the buffers will be freed when the Model object is
-  // freed.
-  // Tip 1: Use assume_ownership=true if the model is being deserialized from temporary
-  // buffers, i.e. when reading from a file stream. Use assume_ownership=false if the model is
-  // being deserialized from in-memory buffers that are not temporary.
-  // Tip 2: If assume_ownership is set to true, do not assume that the buf and format pointers will
-  // remain valid after the call to CreateFromBuffer().
+  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+
   /* Serialization to a file stream */
   inline void Serialize(FILE* dest_fp);
   inline static std::unique_ptr<Model> Deserialize(FILE* src_fp);
@@ -700,6 +689,8 @@ class Model {
   virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                 std::vector<PyBufferFrame>::iterator end,
                                 bool assume_ownership) = 0;
+  inline static std::unique_ptr<Model> CreateFromPyBufferImpl(
+      std::vector<PyBufferFrame> frames, bool assume_ownership);
 };
 
 template <typename ThresholdType, typename LeafOutputType>

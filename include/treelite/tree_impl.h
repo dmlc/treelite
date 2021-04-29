@@ -798,13 +798,13 @@ Model::GetPyBuffer() {
 }
 
 inline std::unique_ptr<Model>
-Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames, bool assume_ownership) {
+Model::CreateFromPyBufferImpl(std::vector<PyBufferFrame> frames, bool assume_ownership) {
   int major_ver, minor_ver, patch_ver;
   TypeInfo threshold_type, leaf_output_type;
   constexpr size_t kNumFrameInHeader = 5;
   if (frames.size() < kNumFrameInHeader) {
     throw std::runtime_error(std::string("Insufficient number of frames: there must be at least ")
-      + std::to_string(kNumFrameInHeader));
+                             + std::to_string(kNumFrameInHeader));
   }
   InitScalarFromPyBuffer(&major_ver, frames[0], assume_ownership);
   InitScalarFromPyBuffer(&minor_ver, frames[1], assume_ownership);
@@ -820,6 +820,10 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames, bool assume_ownersh
   return model;
 }
 
+inline std::unique_ptr<Model>
+Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
+  return CreateFromPyBufferImpl(std::move(frames), false);
+}
 
 inline void
 Model::Serialize(FILE* dest_fp) {
@@ -843,7 +847,7 @@ Model::Deserialize(FILE* src_fp) {
   for (uint64_t i = 0; i < num_frame; ++i) {
     frames.push_back(PyBufferFrame::Deserialize(src_fp, nullptr, nullptr));
   }
-  return CreateFromPyBuffer(frames, true);
+  return CreateFromPyBufferImpl(frames, true);
     // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf,
     // format) of the frames to the Model object. All the buffers were allocated by
     // PyBufferFrame::Deserialize() and should be freed when the Model object is freed.

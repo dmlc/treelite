@@ -91,6 +91,7 @@ target_sources(objtreelite
     compiler/pred_transform.h
     frontend/builder.cc
     frontend/lightgbm.cc
+    frontend/sklearn.cc
     frontend/xgboost.cc
     frontend/xgboost_json.cc
     frontend/xgboost_util.cc

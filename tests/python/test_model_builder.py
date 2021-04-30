@@ -16,6 +16,7 @@ from .util import os_compatible_toolchains, check_predictor
 @pytest.mark.parametrize('quantize', [True, False])
 @pytest.mark.parametrize('use_annotation', [True, False])
 def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_trip):
+    # pylint: disable=R0914,R0915
     """A simple model"""
     num_feature = 127
     pred_transform = 'sigmoid'
@@ -107,6 +108,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_t
 @pytest.mark.parametrize('test_round_trip', [True, False])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
+    # pylint: disable=R0914
     """Test ability to add and remove nodes"""
     num_feature = 3
     builder = treelite.ModelBuilder(num_feature=num_feature)

@@ -425,7 +425,7 @@ class Model:
         filename : :py:class:`str <python:str>`
             path to model file
         model_format : :py:class:`str <python:str>`
-            model file format. Must be one or 'xgboost', 'lightgbm'
+            model file format. Must be 'xgboost', 'xgboost_json', or 'lightgbm'
 
         Returns
         -------

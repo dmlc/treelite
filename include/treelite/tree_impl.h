@@ -20,6 +20,7 @@
 #include <typeinfo>
 #include <stdexcept>
 #include <iostream>
+#include <cstddef>
 
 namespace {
 
@@ -48,13 +49,13 @@ namespace treelite {
 
 inline void
 PyBufferFrame::Serialize(FILE* dest_fp) const {
-  auto write_to_file = [](const void* buffer, size_t size, size_t count, FILE* fp) {
+  auto write_to_file = [](const void* buffer, std::size_t size, std::size_t count, FILE* fp) {
     if (std::fwrite(buffer, size, count, fp) < count) {
       throw std::runtime_error("Failed to write to disk");
     }
   };
 
-  static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too big on this platform");
+  static_assert(sizeof(uint64_t) >= sizeof(std::size_t), "size_t too big on this platform");
 
   const auto itemsize_uint64 = static_cast<uint64_t>(itemsize);
   const auto nitem_uint64 = static_cast<uint64_t>(nitem);
@@ -64,13 +65,13 @@ PyBufferFrame::Serialize(FILE* dest_fp) const {
   write_to_file(&nitem_uint64, sizeof(nitem_uint64), 1, dest_fp);
   write_to_file(&format_str_len, sizeof(format_str_len), 1, dest_fp);
   write_to_file(format, sizeof(char),
-                static_cast<size_t>(format_str_len) + 1, dest_fp);  // write terminating NUL
+                static_cast<std::size_t>(format_str_len) + 1, dest_fp);  // write terminating NUL
   write_to_file(buf, itemsize, nitem, dest_fp);
 }
 
 inline PyBufferFrame
 PyBufferFrame::Deserialize(FILE* src_fp, void** allocated_buf, char** allocated_format) {
-  auto read_from_file = [](void* buffer, size_t size, size_t count, FILE* fp) {
+  auto read_from_file = [](void* buffer, std::size_t size, std::size_t count, FILE* fp) {
     if (std::fread(buffer, size, count, fp) < count) {
       throw std::runtime_error("Failed to read from disk");
     }
@@ -86,15 +87,15 @@ PyBufferFrame::Deserialize(FILE* src_fp, void** allocated_buf, char** allocated_
   read_from_file(&itemsize, sizeof(itemsize), 1, src_fp);
   read_from_file(&nitem, sizeof(nitem), 1, src_fp);
   read_from_file(&format_str_len, sizeof(format_str_len), 1, src_fp);
-  itemsize = static_cast<size_t>(itemsize);
-  nitem = static_cast<size_t>(nitem);
+  itemsize = static_cast<std::size_t>(itemsize);
+  nitem = static_cast<std::size_t>(nitem);
   format = static_cast<char*>(std::malloc(
-      sizeof(char) * (static_cast<size_t>(format_str_len) + 1)));
+      sizeof(char) * (static_cast<std::size_t>(format_str_len) + 1)));
   if (!format) {
     alloc_error();
   }
-  read_from_file(format, sizeof(char), static_cast<size_t>(format_str_len) + 1, src_fp);
-  buf = static_cast<char*>(std::malloc(sizeof(char) * static_cast<size_t>(itemsize * nitem)));
+  read_from_file(format, sizeof(char), static_cast<std::size_t>(format_str_len) + 1, src_fp);
+  buf = static_cast<char*>(std::malloc(sizeof(char) * static_cast<std::size_t>(itemsize * nitem)));
   if (!buf) {
     alloc_error();
   }
@@ -160,7 +161,7 @@ ContiguousArray<T>::Clone() const {
 
 template <typename T>
 inline void
-ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, size_t size, bool assume_ownership) {
+ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size, bool assume_ownership) {
   if (buffer_ && owned_buffer_) {
     std::free(buffer_);
   }
@@ -207,14 +208,14 @@ ContiguousArray<T>::Back() const {
 }
 
 template <typename T>
-inline size_t
+inline std::size_t
 ContiguousArray<T>::Size() const {
   return size_;
 }
 
 template <typename T>
 inline void
-ContiguousArray<T>::Reserve(size_t newsize) {
+ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
   }
@@ -228,12 +229,12 @@ ContiguousArray<T>::Reserve(size_t newsize) {
 
 template <typename T>
 inline void
-ContiguousArray<T>::Resize(size_t newsize) {
+ContiguousArray<T>::Resize(std::size_t newsize) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
   }
   if (newsize > capacity_) {
-    size_t newcapacity = capacity_;
+    std::size_t newcapacity = capacity_;
     if (newcapacity == 0) {
       newcapacity = 1;
     }
@@ -247,13 +248,13 @@ ContiguousArray<T>::Resize(size_t newsize) {
 
 template <typename T>
 inline void
-ContiguousArray<T>::Resize(size_t newsize, T t) {
+ContiguousArray<T>::Resize(std::size_t newsize, T t) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
   }
-  size_t oldsize = Size();
+  std::size_t oldsize = Size();
   Resize(newsize);
-  for (size_t i = oldsize; i < newsize; ++i) {
+  for (std::size_t i = oldsize; i < newsize; ++i) {
     buffer_[i] = t;
   }
 }
@@ -285,9 +286,9 @@ ContiguousArray<T>::Extend(const std::vector<T>& other) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot add elements when using a foreign buffer; clone first");
   }
-  size_t newsize = size_ + other.size();
+  std::size_t newsize = size_ + other.size();
   if (newsize > capacity_) {
-    size_t newcapacity = capacity_;
+    std::size_t newcapacity = capacity_;
     if (newcapacity == 0) {
       newcapacity = 1;
     }
@@ -302,19 +303,19 @@ ContiguousArray<T>::Extend(const std::vector<T>& other) {
 
 template <typename T>
 inline T&
-ContiguousArray<T>::operator[](size_t idx) {
+ContiguousArray<T>::operator[](std::size_t idx) {
   return buffer_[idx];
 }
 
 template <typename T>
 inline const T&
-ContiguousArray<T>::operator[](size_t idx) const {
+ContiguousArray<T>::operator[](std::size_t idx) const {
   return buffer_[idx];
 }
 
 template <typename T>
 inline T&
-ContiguousArray<T>::at(size_t idx) {
+ContiguousArray<T>::at(std::size_t idx) {
   if (idx >= Size()) {
     throw std::runtime_error("nid out of range");
   }
@@ -323,7 +324,7 @@ ContiguousArray<T>::at(size_t idx) {
 
 template <typename T>
 inline const T&
-ContiguousArray<T>::at(size_t idx) const {
+ContiguousArray<T>::at(std::size_t idx) const {
   if (idx >= Size()) {
     throw std::runtime_error("nid out of range");
   }
@@ -333,19 +334,19 @@ ContiguousArray<T>::at(size_t idx) const {
 template <typename T>
 inline T&
 ContiguousArray<T>::at(int idx) {
-  if (idx < 0 || static_cast<size_t>(idx) >= Size()) {
+  if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
     throw std::runtime_error("nid out of range");
   }
-  return buffer_[static_cast<size_t>(idx)];
+  return buffer_[static_cast<std::size_t>(idx)];
 }
 
 template <typename T>
 inline const T&
 ContiguousArray<T>::at(int idx) const {
-  if (idx < 0 || static_cast<size_t>(idx) >= Size()) {
+  if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
     throw std::runtime_error("nid out of range");
   }
-  return buffer_[static_cast<size_t>(idx)];
+  return buffer_[static_cast<std::size_t>(idx)];
 }
 
 template<typename Container>
@@ -376,7 +377,7 @@ ModelParam::__DICT__() const {
 }
 
 inline PyBufferFrame GetPyBufferFromArray(void* data, const char* format,
-                                          size_t itemsize, size_t nitem) {
+                                          std::size_t itemsize, std::size_t nitem) {
   return PyBufferFrame{data, const_cast<char*>(format), itemsize, nitem};
 }
 
@@ -424,7 +425,7 @@ inline PyBufferFrame GetPyBufferFromArray(ContiguousArray<T>* vec) {
   return GetPyBufferFromArray(vec, InferFormatString<T>());
 }
 
-inline PyBufferFrame GetPyBufferFromScalar(void* data, const char* format, size_t itemsize) {
+inline PyBufferFrame GetPyBufferFromScalar(void* data, const char* format, std::size_t itemsize) {
   return GetPyBufferFromArray(data, format, itemsize, 1);
 }
 
@@ -537,7 +538,7 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr size_t kNumFramePerTree = 6;
+constexpr std::size_t kNumFramePerTree = 6;
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
@@ -560,7 +561,7 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>
   }
   InitScalarFromPyBuffer(&num_nodes, *begin++, assume_ownership);
   InitArrayFromPyBuffer(&nodes_, *begin++, assume_ownership);
-  if (static_cast<size_t>(num_nodes) != nodes_.Size()) {
+  if (static_cast<std::size_t>(num_nodes) != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
   }
   InitArrayFromPyBuffer(&leaf_vector_, *begin++, assume_ownership);
@@ -587,7 +588,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline int
 Tree<ThresholdType, LeafOutputType>::AllocNode() {
   int nd = num_nodes++;
-  if (nodes_.Size() != static_cast<size_t>(nd)) {
+  if (nodes_.Size() != static_cast<std::size_t>(nd)) {
     throw std::runtime_error("Invariant violated: nodes_ contains incorrect number of nodes");
   }
   for (int nid = nd; nid < num_nodes; ++nid) {
@@ -675,13 +676,13 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     throw std::runtime_error("split_index too big");
   }
 
-  const size_t end_oft = matching_categories_offset_.Back();
-  const size_t new_end_oft = end_oft + categories_list.size();
+  const std::size_t end_oft = matching_categories_offset_.Back();
+  const std::size_t new_end_oft = end_oft + categories_list.size();
   if (end_oft != matching_categories_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
   if (!std::all_of(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-                   [end_oft](size_t x) { return (x == end_oft); })) {
+                   [end_oft](std::size_t x) { return (x == end_oft); })) {
     throw std::runtime_error("Invariant violated");
   }
   // Hopefully we won't have to move any element as we add node_matching_categories for node nid
@@ -690,7 +691,7 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     throw std::runtime_error("Invariant violated");
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-                [new_end_oft](size_t& x) { x = new_end_oft; });
+                [new_end_oft](std::size_t& x) { x = new_end_oft; });
   std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
 
   Node& node = nodes_.at(nid);
@@ -714,13 +715,13 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetLeafVector(
     int nid, const std::vector<LeafOutputType>& node_leaf_vector) {
-  const size_t end_oft = leaf_vector_offset_.Back();
-  const size_t new_end_oft = end_oft + node_leaf_vector.size();
+  const std::size_t end_oft = leaf_vector_offset_.Back();
+  const std::size_t new_end_oft = end_oft + node_leaf_vector.size();
   if (end_oft != leaf_vector_.Size()) {
     throw std::runtime_error("Invariant violated");
   }
   if (!std::all_of(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                   [end_oft](size_t x) { return (x == end_oft); })) {
+                   [end_oft](std::size_t x) { return (x == end_oft); })) {
     throw std::runtime_error("Invariant violated");
   }
   // Hopefully we won't have to move any element as we add leaf vector elements for node nid
@@ -729,7 +730,7 @@ Tree<ThresholdType, LeafOutputType>::SetLeafVector(
     throw std::runtime_error("Invariant violated");
   }
   std::for_each(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                [new_end_oft](size_t& x) { x = new_end_oft; });
+                [new_end_oft](std::size_t& x) { x = new_end_oft; });
 
   Node& node = nodes_.at(nid);
   node.cleft_ = -1;
@@ -801,7 +802,7 @@ inline std::unique_ptr<Model>
 Model::CreateFromPyBufferImpl(std::vector<PyBufferFrame> frames, bool assume_ownership) {
   int major_ver, minor_ver, patch_ver;
   TypeInfo threshold_type, leaf_output_type;
-  constexpr size_t kNumFrameInHeader = 5;
+  constexpr std::size_t kNumFrameInHeader = 5;
   if (frames.size() < kNumFrameInHeader) {
     throw std::runtime_error(std::string("Insufficient number of frames: there must be at least ")
                              + std::to_string(kNumFrameInHeader));
@@ -876,9 +877,9 @@ inline void
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end,
     bool assume_ownership) {
-  const size_t num_frame = std::distance(begin, end);
+  const std::size_t num_frame = std::distance(begin, end);
   /* Header */
-  constexpr size_t kNumFrameInHeader = 5;
+  constexpr std::size_t kNumFrameInHeader = 5;
   if (num_frame < kNumFrameInHeader) {
     throw std::runtime_error("Wrong number of frames");
   }

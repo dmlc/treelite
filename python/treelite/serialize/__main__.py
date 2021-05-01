@@ -8,7 +8,20 @@ import pickle
 import treelite
 
 
-def main(args):
+def main():
+    """Convert a model file to a Treelite binary checkpoint"""
+    parser = argparse.ArgumentParser(description='CLI script to convert a model file to a ' +
+                                                 'Treelite binary checkpoint')
+    parser.add_argument('--input-model', type=str, required=True,
+                        help='Path to the tree model file')
+    parser.add_argument('--input-model-type', type=str, required=True,
+                        choices=['sklearn_pkl', 'xgboost', 'xgboost_json', 'lightgbm'],
+                        help='Type of the tree model file')
+    parser.add_argument('--output-checkpoint', type=str, required=True,
+                        help='Path to the checkpoint file, using a special binary format for ' +
+                             'Treelite')
+    args = parser.parse_args()
+
     if args.input_model_type == 'sklearn_pkl':
         with open(args.input_model, 'rb') as f:
             sklearn_model = pickle.load(f)
@@ -22,15 +35,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='CLI script to convert a model file to a ' +
-                                                 'Treelite binary checkpoint')
-    parser.add_argument('--input-model', type=str, required=True,
-                        help='Path to the tree model file')
-    parser.add_argument('--input-model-type', type=str, required=True,
-                        choices=['sklearn_pkl', 'xgboost', 'xgboost_json', 'lightgbm'],
-                        help='Type of the tree model file')
-    parser.add_argument('--output-checkpoint', type=str, required=True,
-                        help='Path to the checkpoint file, using a special binary format for ' +
-                             'Treelite')
-    args = parser.parse_args()
-    main(args)
+    main()

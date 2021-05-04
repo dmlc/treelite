@@ -593,6 +593,7 @@ Tree<ThresholdType, LeafOutputType>::DeserializeFromFile(FILE* src_fp) {
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
+  std::memset(this, 0, sizeof(Node));
   cleft_ = cright_ = -1;
   sindex_ = 0;
   info_.leaf_value = static_cast<LeafOutputType>(0);

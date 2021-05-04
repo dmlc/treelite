@@ -46,15 +46,6 @@ struct PyBufferFrame {
   std::size_t nitem;
 };
 
-// Serialize a frame to a file stream
-void SerializePyBufferFrame(PyBufferFrame frame, FILE* dest_fp);
-
-// Deserialize a frame from a file stream
-// Note. This function allocates new buffers for buf and format fields and returns the references
-// via the last two arguments. Make sure to free them to avoid memory leak.
-PyBufferFrame DeserializePyBufferFrame(
-    FILE* src_fp, void** allocated_buf, char** allocated_format);
-
 static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 
 template <typename T>
@@ -68,9 +59,7 @@ class ContiguousArray {
   ContiguousArray(ContiguousArray&& other) noexcept;
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
-  inline void UseForeignBuffer(void* prealloc_buf, std::size_t size, bool assume_ownership);
-    // Set assume_ownership=true to transfer the ownership of the buffer to the ContiguousArray
-    // object. The object will be responsible for freeing the buffer.
+  inline void UseForeignBuffer(void* prealloc_buf, std::size_t size);
   inline T* Data();
   inline const T* Data() const;
   inline T* End();
@@ -287,9 +276,10 @@ class Tree {
 
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
+  inline void SerializeToFile(FILE* dest_fp);
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end,
-                               bool assume_ownership);
+                               std::vector<PyBufferFrame>::iterator end);
+  inline void DeserializeFromFile(FILE* src_fp);
 
  private:
   // vector of nodes
@@ -301,6 +291,15 @@ class Tree {
 
   // allocate a new node
   inline int AllocNode();
+
+  // utility functions used for serialization, internal use only
+  template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
+  inline void
+  SerializeTemplate(ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
+      CompositeArrayHandler composite_array_handler);
+  template <typename ScalarHandler, typename ArrayHandler>
+  inline void
+  DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler);
 
  public:
   /*! \brief number of nodes */
@@ -660,12 +659,12 @@ class Model {
   virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
 
   /* In-memory serialization, zero-copy */
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+  std::vector<PyBufferFrame> GetPyBuffer();
+  static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
 
   /* Serialization to a file stream */
-  void Serialize(FILE* dest_fp);
-  static std::unique_ptr<Model> Deserialize(FILE* src_fp);
+  void SerializeToFile(FILE* dest_fp);
+  static std::unique_ptr<Model> DeserializeFromFile(FILE* src_fp);
 
   /*!
    * \brief number of features used for the model.
@@ -687,11 +686,16 @@ class Model {
   TypeInfo leaf_output_type_;
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
+  virtual void SerializeToFileImpl(FILE* dest_fp) = 0;
   virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                                std::vector<PyBufferFrame>::iterator end,
-                                bool assume_ownership) = 0;
-  inline static std::unique_ptr<Model> CreateFromPyBufferImpl(
-      std::vector<PyBufferFrame> frames, bool assume_ownership);
+                                std::vector<PyBufferFrame>::iterator end) = 0;
+  virtual void DeserializeFromFileImpl(FILE* src_fp) = 0;
+  template <typename HeaderPrimitiveFieldHandlerFunc>
+  inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
+  template <typename HeaderPrimitiveFieldHandlerFunc>
+  inline static void DeserializeTemplate(
+      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      TypeInfo& threshold_type, TypeInfo& leaf_output_type);
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -717,11 +721,23 @@ class ModelImpl : public Model {
   }
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
-  // Set assume_ownership=true to transfer the ownership of the underlying buffers of the frames to
-  // the Model object, so that the Model object is responsible for freeing the buffers.
+  inline void SerializeToFileImpl(FILE* dest_fp) override;
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end,
-                               bool assume_ownership) override;
+                               std::vector<PyBufferFrame>::iterator end) override;
+  inline void DeserializeFromFileImpl(FILE* src_fp) override;
+
+ private:
+  template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
+      typename TreeHandlerFunc>
+  inline void SerializeTemplate(
+      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      HeaderCompositeFieldHandlerFunc header_composite_field_handler,
+      TreeHandlerFunc tree_handler);
+  template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
+  inline void DeserializeTemplate(
+      size_t num_tree,
+      HeaderFieldHandlerFunc header_field_handler,
+      TreeHandlerFunc tree_handler);
 };
 
 }  // namespace treelite

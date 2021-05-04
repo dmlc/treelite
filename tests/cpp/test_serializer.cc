@@ -31,16 +31,17 @@ inline void TestRoundTrip(treelite::Model* model) {
 
     ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
   }
+
   for (int i = 0; i < 2; ++i) {
     // Test round trip with serialization to a FILE stream
     const char* filename = std::tmpnam(nullptr);
     FILE* fp = std::fopen(filename, "wb");
     ASSERT_TRUE(fp);
-    model->Serialize(fp);
+    model->SerializeToFile(fp);
     std::fclose(fp);
     fp = std::fopen(filename, "rb");
     ASSERT_TRUE(fp);
-    std::unique_ptr<treelite::Model> received_model = model->Deserialize(fp);
+    std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromFile(fp);
     std::fclose(fp);
 
     ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
@@ -72,34 +73,6 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
-}
-
-TEST(PyBufferInterfaceRoundTrip, Frame) {
-  std::vector<float> array{1.0f, 2.0f};
-  char format[] = "=f";
-  PyBufferFrame frame{static_cast<void*>(array.data()), format, sizeof(float), array.size()};
-  const char* filename = std::tmpnam(nullptr);
-  FILE* fp = std::fopen(filename, "wb");
-  ASSERT_TRUE(fp);
-  SerializePyBufferFrame(frame, fp);
-  std::fclose(fp);
-
-  fp = std::fopen(filename, "rb");
-  ASSERT_TRUE(fp);
-  void* received_buf;
-  char* received_format;
-  PyBufferFrame received_frame = DeserializePyBufferFrame(fp, &received_buf, &received_format);
-  std::fclose(fp);
-  ASSERT_EQ(received_frame.itemsize, sizeof(float));
-  ASSERT_EQ(received_frame.nitem, array.size());
-  ASSERT_EQ(std::string(received_frame.format), std::string(format));
-
-  std::vector<float> received_array(received_frame.nitem);
-  std::memcpy(received_array.data(), received_frame.buf,
-              received_frame.itemsize * received_frame.nitem);
-  ASSERT_EQ(array, received_array);
-  std::free(received_buf);
-  std::free(received_format);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStump) {
@@ -216,9 +189,9 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     tree->SetCategoricalTestNode(1, 0, {0, 1}, true, 3, 4);
     tree->SetCategoricalTestNode(2, 1, {0}, true, 5, 6);
     tree->SetRootNode(0);
-    tree->SetLeafNode(3, frontend::Value::Create<LeafOutputType>(-2));
+    tree->SetLeafNode(3, frontend::Value::Create<LeafOutputType>(3));
     tree->SetLeafNode(4, frontend::Value::Create<LeafOutputType>(1));
-    tree->SetLeafNode(5, frontend::Value::Create<LeafOutputType>(-1));
+    tree->SetLeafNode(5, frontend::Value::Create<LeafOutputType>(4));
     tree->SetLeafNode(6, frontend::Value::Create<LeafOutputType>(2));
     builder->InsertTree(tree.get());
   }

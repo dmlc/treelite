@@ -98,14 +98,14 @@ ContiguousArray<T>::Clone() const {
 
 template <typename T>
 inline void
-ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size, bool assume_ownership) {
+ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size) {
   if (buffer_ && owned_buffer_) {
     std::free(buffer_);
   }
   buffer_ = static_cast<T*>(prealloc_buf);
   size_ = size;
   capacity_ = size;
-  owned_buffer_ = assume_ownership;
+  owned_buffer_ = false;
 }
 
 template <typename T>
@@ -368,6 +368,7 @@ inline PyBufferFrame GetPyBufferFromScalar(void* data, const char* format, std::
 
 template <typename T>
 inline PyBufferFrame GetPyBufferFromScalar(T* scalar, const char* format) {
+  static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   return GetPyBufferFromScalar(static_cast<void*>(scalar), format, sizeof(T));
 }
 
@@ -390,21 +391,14 @@ inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
 }
 
 template <typename T>
-inline void InitArrayFromPyBuffer(
-    ContiguousArray<T>* vec, PyBufferFrame frame, bool assume_ownership) {
-  // Set assume_ownership=true to transfer the ownership of the two underlying buffers (buf, format)
-  // of the frame to the ContiguousArray. If ownership is transferred, the buf and format pointers
-  // of the frame are invalidated.
+inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame frame) {
   if (sizeof(T) != frame.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
   }
-  if (assume_ownership) {
-    std::free(frame.format);
-  }
-  vec->UseForeignBuffer(frame.buf, frame.nitem, assume_ownership);
+  vec->UseForeignBuffer(frame.buf, frame.nitem);
 }
 
-inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer, bool assume_ownership) {
+inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
   using T = std::underlying_type<TypeInfo>::type;
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
@@ -414,13 +408,9 @@ inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer, bool 
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TypeInfo>(*t);
-  if (assume_ownership) {
-    std::free(buffer.buf);
-    std::free(buffer.format);
-  }
 }
 
-inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer, bool assume_ownership) {
+inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
   using T = std::underlying_type<TaskType>::type;
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
@@ -430,14 +420,11 @@ inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer, bool 
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TaskType>(*t);
-  if (assume_ownership) {
-    std::free(buffer.buf);
-    std::free(buffer.format);
-  }
 }
 
 template <typename T>
-inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer, bool assume_ownership) {
+inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
+  static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   if (sizeof(T) != buffer.itemsize) {
     throw std::runtime_error("Incorrect itemsize");
   }
@@ -446,9 +433,48 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer, bool assume_
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = *t;
-  if (assume_ownership) {
-    std::free(buffer.buf);
-    std::free(buffer.format);
+}
+
+template <typename T>
+inline void ReadScalarFromFile(T* scalar, FILE* fp) {
+  static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
+  if (std::fread(scalar, sizeof(T), 1, fp) < 1) {
+    throw std::runtime_error("Could not read a scalar");
+  }
+}
+
+template <typename T>
+inline void WriteScalarToFile(T* scalar, FILE* fp) {
+  static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
+  if (std::fwrite(scalar, sizeof(T), 1, fp) < 1) {
+    throw std::runtime_error("Could not write a scalar");
+  }
+}
+
+template <typename T>
+inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
+  uint64_t nelem;
+  if (std::fread(&nelem, sizeof(nelem), 1, fp) < 1) {
+    throw std::runtime_error("Could not read the number of elements");
+  }
+  vec->Clear();
+  vec->Resize(nelem);
+  const auto nelem_size_t = static_cast<std::size_t>(nelem);
+  if (std::fread(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
+    throw std::runtime_error("Could not read an array");
+  }
+}
+
+template <typename T>
+inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
+  static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too large");
+  const auto nelem = static_cast<uint64_t>(vec->Size());
+  if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
+    throw std::runtime_error("Could not write the number of elements");
+  }
+  const auto nelem_size_t = vec->Size();
+  if (std::fwrite(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
+    throw std::runtime_error("Could not write an array");
   }
 }
 
@@ -478,33 +504,91 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
 constexpr std::size_t kNumFramePerTree = 6;
 
 template <typename ThresholdType, typename LeafOutputType>
+template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
+inline void
+Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
+    ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
+    CompositeArrayHandler composite_array_handler) {
+  scalar_handler(&num_nodes);
+  composite_array_handler(&nodes_, GetFormatStringForNode());
+  primitive_array_handler(&leaf_vector_);
+  primitive_array_handler(&leaf_vector_offset_);
+  primitive_array_handler(&matching_categories_);
+  primitive_array_handler(&matching_categories_offset_);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+template <typename ScalarHandler, typename ArrayHandler>
+inline void
+Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
+    ScalarHandler scalar_handler, ArrayHandler array_handler) {
+  scalar_handler(&num_nodes);
+  array_handler(&nodes_);
+  if (static_cast<std::size_t>(num_nodes) != nodes_.Size()) {
+    throw std::runtime_error("Could not load the correct number of nodes");
+  }
+  array_handler(&leaf_vector_);
+  array_handler(&leaf_vector_offset_);
+  array_handler(&matching_categories_);
+  array_handler(&matching_categories_offset_);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
-  dest->push_back(GetPyBufferFromScalar(&num_nodes));
-  dest->push_back(GetPyBufferFromArray(&nodes_, GetFormatStringForNode()));
-  dest->push_back(GetPyBufferFromArray(&leaf_vector_));
-  dest->push_back(GetPyBufferFromArray(&leaf_vector_offset_));
-  dest->push_back(GetPyBufferFromArray(&matching_categories_));
-  dest->push_back(GetPyBufferFromArray(&matching_categories_offset_));
+  auto scalar_handler = [dest](auto* field) {
+    dest->push_back(GetPyBufferFromScalar(field));
+  };
+  auto primitive_array_handler = [dest](auto* field) {
+    dest->push_back(GetPyBufferFromArray(field));
+  };
+  auto composite_array_handler = [dest](auto* field, const char* format) {
+    dest->push_back(GetPyBufferFromArray(field, format));
+  };
+  SerializeTemplate(scalar_handler, primitive_array_handler, composite_array_handler);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+Tree<ThresholdType, LeafOutputType>::SerializeToFile(FILE* dest_fp) {
+  auto scalar_handler = [dest_fp](auto* field) {
+    WriteScalarToFile(field, dest_fp);
+  };
+  auto primitive_array_handler = [dest_fp](auto* field) {
+    WriteArrayToFile(field, dest_fp);
+  };
+  auto composite_array_handler = [dest_fp](auto* field, const char* format) {
+    WriteArrayToFile(field, dest_fp);
+  };
+  SerializeTemplate(scalar_handler, primitive_array_handler, composite_array_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                                                      std::vector<PyBufferFrame>::iterator end,
-                                                      bool assume_ownership) {
+                                                      std::vector<PyBufferFrame>::iterator end) {
   if (std::distance(begin, end) != kNumFramePerTree) {
     throw std::runtime_error("Wrong number of frames specified");
   }
-  InitScalarFromPyBuffer(&num_nodes, *begin++, assume_ownership);
-  InitArrayFromPyBuffer(&nodes_, *begin++, assume_ownership);
-  if (static_cast<std::size_t>(num_nodes) != nodes_.Size()) {
-    throw std::runtime_error("Could not load the correct number of nodes");
-  }
-  InitArrayFromPyBuffer(&leaf_vector_, *begin++, assume_ownership);
-  InitArrayFromPyBuffer(&leaf_vector_offset_, *begin++, assume_ownership);
-  InitArrayFromPyBuffer(&matching_categories_, *begin++, assume_ownership);
-  InitArrayFromPyBuffer(&matching_categories_offset_, *begin++, assume_ownership);
+  auto scalar_handler = [&begin](auto* field) {
+    InitScalarFromPyBuffer(field, *begin++);
+  };
+  auto array_handler = [&begin](auto* field) {
+    InitArrayFromPyBuffer(field, *begin++);
+  };
+  DeserializeTemplate(scalar_handler, array_handler);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+Tree<ThresholdType, LeafOutputType>::DeserializeFromFile(FILE* src_fp) {
+  auto scalar_handler = [src_fp](auto* field) {
+    ReadScalarFromFile(field, src_fp);
+  };
+  auto array_handler = [src_fp](auto* field) {
+    ReadArrayFromFile(field, src_fp);
+  };
+  DeserializeTemplate(scalar_handler, array_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -723,88 +807,143 @@ Model::Dispatch(Func func) const {
   return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
 }
 
-inline std::vector<PyBufferFrame>
-Model::GetPyBuffer() {
-  std::vector<PyBufferFrame> buffer;
-  buffer.push_back(GetPyBufferFromScalar(&major_ver_));
-  buffer.push_back(GetPyBufferFromScalar(&minor_ver_));
-  buffer.push_back(GetPyBufferFromScalar(&patch_ver_));
-  buffer.push_back(GetPyBufferFromScalar(&threshold_type_));
-  buffer.push_back(GetPyBufferFromScalar(&leaf_output_type_));
-  this->GetPyBuffer(&buffer);
-  return buffer;
+template <typename HeaderPrimitiveFieldHandlerFunc>
+inline void
+Model::SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler) {
+  header_primitive_field_handler(&major_ver_);
+  header_primitive_field_handler(&minor_ver_);
+  header_primitive_field_handler(&patch_ver_);
+  header_primitive_field_handler(&threshold_type_);
+  header_primitive_field_handler(&leaf_output_type_);
 }
 
-inline std::unique_ptr<Model>
-Model::CreateFromPyBufferImpl(std::vector<PyBufferFrame> frames, bool assume_ownership) {
+template <typename HeaderPrimitiveFieldHandlerFunc>
+inline void
+Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+                           TypeInfo& threshold_type, TypeInfo& leaf_output_type) {
   int major_ver, minor_ver, patch_ver;
-  TypeInfo threshold_type, leaf_output_type;
-  constexpr std::size_t kNumFrameInHeader = 5;
-  if (frames.size() < kNumFrameInHeader) {
-    throw std::runtime_error(std::string("Insufficient number of frames: there must be at least ")
-                             + std::to_string(kNumFrameInHeader));
-  }
-  InitScalarFromPyBuffer(&major_ver, frames[0], assume_ownership);
-  InitScalarFromPyBuffer(&minor_ver, frames[1], assume_ownership);
-  InitScalarFromPyBuffer(&patch_ver, frames[2], assume_ownership);
+  header_primitive_field_handler(&major_ver);
+  header_primitive_field_handler(&minor_ver);
+  header_primitive_field_handler(&patch_ver);
   if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
     throw std::runtime_error("Cannot deserialize model from a different version of Treelite");
   }
-  InitScalarFromPyBuffer(&threshold_type, frames[3], assume_ownership);
-  InitScalarFromPyBuffer(&leaf_output_type, frames[4], assume_ownership);
-
-  std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
-  model->InitFromPyBuffer(frames.begin() + kNumFrameInHeader, frames.end(), assume_ownership);
-  return model;
+  header_primitive_field_handler(&threshold_type);
+  header_primitive_field_handler(&leaf_output_type);
 }
 
-inline std::unique_ptr<Model>
-Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
-  return CreateFromPyBufferImpl(std::move(frames), false);
+template <typename ThresholdType, typename LeafOutputType>
+template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
+    typename TreeHandlerFunc>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
+    HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+    HeaderCompositeFieldHandlerFunc header_composite_field_handler,
+    TreeHandlerFunc tree_handler) {
+  /* Header */
+  header_primitive_field_handler(&num_feature);
+  header_primitive_field_handler(&task_type);
+  header_primitive_field_handler(&average_tree_output);
+  header_composite_field_handler(&task_param, "T{=B=?xx=I=I}");
+  header_composite_field_handler(
+      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}");
+
+  /* Body */
+  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
+    tree_handler(tree);
+  }
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
+    size_t num_tree,
+    HeaderFieldHandlerFunc header_field_handler,
+    TreeHandlerFunc tree_handler) {
+  /* Header */
+  header_field_handler(&num_feature);
+  header_field_handler(&task_type);
+  header_field_handler(&average_tree_output);
+  header_field_handler(&task_param);
+  header_field_handler(&param);
+  /* Body */
+  trees.clear();
+  for (size_t i = 0; i < num_tree; ++i) {
+    trees.emplace_back();
+    tree_handler(trees.back());
+  }
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
-  /* Header */
-  dest->push_back(GetPyBufferFromScalar(&num_feature));
-  dest->push_back(GetPyBufferFromScalar(&task_type));
-  dest->push_back(GetPyBufferFromScalar(&average_tree_output));
-  dest->push_back(GetPyBufferFromScalar(&task_param, "T{=B=?xx=I=I}"));
-  dest->push_back(GetPyBufferFromScalar(
-      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}"));
-
-  /* Body */
-  for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
+  auto header_primitive_field_handler = [dest](auto* field) {
+    dest->push_back(GetPyBufferFromScalar(field));
+  };
+  auto header_composite_field_handler = [dest](auto* field, const char* format) {
+    dest->push_back(GetPyBufferFromScalar(field, format));
+  };
+  auto tree_handler = [dest](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.GetPyBuffer(dest);
-  }
+  };
+  SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
+  const auto num_tree = static_cast<uint64_t>(this->trees.size());
+  WriteScalarToFile(&num_tree, dest_fp);
+  auto header_primitive_field_handler = [dest_fp](auto* field) {
+    WriteScalarToFile(field, dest_fp);
+  };
+  auto header_composite_field_handler = [dest_fp](auto* field, const char* format) {
+    WriteScalarToFile(field, dest_fp);
+  };
+  auto tree_handler = [dest_fp](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.SerializeToFile(dest_fp);
+  };
+  SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end,
-    bool assume_ownership) {
+    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
   const std::size_t num_frame = std::distance(begin, end);
-  /* Header */
   constexpr std::size_t kNumFrameInHeader = 5;
-  if (num_frame < kNumFrameInHeader) {
+  if (num_frame < kNumFrameInHeader || (num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
     throw std::runtime_error("Wrong number of frames");
   }
-  InitScalarFromPyBuffer(&num_feature, *begin++, assume_ownership);
-  InitScalarFromPyBuffer(&task_type, *begin++, assume_ownership);
-  InitScalarFromPyBuffer(&average_tree_output, *begin++, assume_ownership);
-  InitScalarFromPyBuffer(&task_param, *begin++, assume_ownership);
-  InitScalarFromPyBuffer(&param, *begin++, assume_ownership);
-  /* Body */
-  if ((num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
-    throw std::runtime_error("Wrong number of frames");
-  }
-  trees.clear();
-  for (; begin < end; begin += kNumFramePerTree) {
-    trees.emplace_back();
-    trees.back().InitFromPyBuffer(begin, begin + kNumFramePerTree, assume_ownership);
-  }
+  const size_t num_tree = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
+
+  auto header_field_handler = [&begin](auto* field) {
+    InitScalarFromPyBuffer(field, *begin++);
+  };
+
+  auto tree_hanlder = [&begin](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.InitFromPyBuffer(begin, begin + kNumFramePerTree);
+  };
+
+  DeserializeTemplate(num_tree, header_field_handler, tree_hanlder);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void
+ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) {
+  uint64_t num_tree;
+  ReadScalarFromFile(&num_tree, src_fp);
+
+  auto header_field_handler = [src_fp](auto* field) {
+    ReadScalarFromFile(field, src_fp);
+  };
+
+  auto tree_hanlder = [src_fp](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.DeserializeFromFile(src_fp);
+  };
+
+  DeserializeTemplate(num_tree, header_field_handler, tree_hanlder);
 }
 
 inline void InitParamAndCheck(ModelParam* param,

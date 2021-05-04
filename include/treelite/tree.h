@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file tree.h
  * \brief model structure for tree ensemble
  * \author Hyunsu Cho

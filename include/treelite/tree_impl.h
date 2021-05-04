@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020-2021 by Contributors
  * \file tree_impl.h
  * \brief Implementation for tree.h
  * \author Hyunsu Cho

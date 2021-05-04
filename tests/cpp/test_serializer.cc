@@ -8,6 +8,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <dmlc/memory_io.h>
+#include <cstdio>
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -23,10 +24,28 @@ inline std::string TreeliteToBytes(treelite::Model* model) {
 }
 
 inline void TestRoundTrip(treelite::Model* model) {
-  auto buffer = model->GetPyBuffer();
-  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
+  for (int i = 0; i < 2; ++i) {
+    // Test round trip with in-memory serialization
+    auto buffer = model->GetPyBuffer();
+    std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
-  ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+    ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    // Test round trip with serialization to a FILE stream
+    const char* filename = std::tmpnam(nullptr);
+    FILE* fp = std::fopen(filename, "wb");
+    ASSERT_TRUE(fp);
+    model->SerializeToFile(fp);
+    std::fclose(fp);
+    fp = std::fopen(filename, "rb");
+    ASSERT_TRUE(fp);
+    std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromFile(fp);
+    std::fclose(fp);
+
+    ASSERT_EQ(TreeliteToBytes(model), TreeliteToBytes(received_model.get()));
+  }
 }
 
 }  // anonymous namespace
@@ -170,9 +189,9 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     tree->SetCategoricalTestNode(1, 0, {0, 1}, true, 3, 4);
     tree->SetCategoricalTestNode(2, 1, {0}, true, 5, 6);
     tree->SetRootNode(0);
-    tree->SetLeafNode(3, frontend::Value::Create<LeafOutputType>(-2));
+    tree->SetLeafNode(3, frontend::Value::Create<LeafOutputType>(3));
     tree->SetLeafNode(4, frontend::Value::Create<LeafOutputType>(1));
-    tree->SetLeafNode(5, frontend::Value::Create<LeafOutputType>(-1));
+    tree->SetLeafNode(5, frontend::Value::Create<LeafOutputType>(4));
     tree->SetLeafNode(6, frontend::Value::Create<LeafOutputType>(2));
     builder->InsertTree(tree.get());
   }

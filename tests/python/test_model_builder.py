@@ -11,10 +11,12 @@ from .metadata import dataset_db
 from .util import os_compatible_toolchains, check_predictor
 
 
+@pytest.mark.parametrize('test_round_trip', [True, False])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('quantize', [True, False])
 @pytest.mark.parametrize('use_annotation', [True, False])
-def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
+def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_trip):
+    # pylint: disable=R0914,R0915
     """A simple model"""
     num_feature = 127
     pred_transform = 'sigmoid'
@@ -77,6 +79,10 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
     builder.append(tree)
 
     model = builder.commit()
+    if test_round_trip:
+        checkpoint_path = os.path.join(tmpdir, 'checkpoint.bin')
+        model.serialize(checkpoint_path)
+        model = treelite.Model.deserialize(checkpoint_path)
     assert model.num_feature == num_feature
     assert model.num_class == 1
     assert model.num_tree == 2
@@ -99,8 +105,10 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain):
     check_predictor(predictor, 'mushroom')
 
 
+@pytest.mark.parametrize('test_round_trip', [True, False])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_node_insert_delete(tmpdir, toolchain):
+def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
+    # pylint: disable=R0914
     """Test ability to add and remove nodes"""
     num_feature = 3
     builder = treelite.ModelBuilder(num_feature=num_feature)
@@ -124,6 +132,10 @@ def test_node_insert_delete(tmpdir, toolchain):
     builder[0][5].set_root()
 
     model = builder.commit()
+    if test_round_trip:
+        checkpoint_path = os.path.join(tmpdir, 'checkpoint.bin')
+        model.serialize(checkpoint_path)
+        model = treelite.Model.deserialize(checkpoint_path)
     assert model.num_feature == num_feature
     assert model.num_class == 1
     assert model.num_tree == 1

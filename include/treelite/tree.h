@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file tree.h
  * \brief model structure for tree ensemble
  * \author Hyunsu Cho
@@ -8,6 +8,7 @@
 #define TREELITE_TREE_H_
 
 #include <treelite/base.h>
+#include <treelite/version.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -16,6 +17,7 @@
 #include <utility>
 #include <type_traits>
 #include <limits>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
@@ -29,18 +31,22 @@
 namespace dmlc {
 
 class Stream;
-float stof(const std::string& value, size_t* pos);
+float stof(const std::string& value, std::size_t* pos);
 
 }  // namespace dmlc
 
 namespace treelite {
 
+// Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
+// to hold only 1-D arrays with stride 1.
 struct PyBufferFrame {
   void* buf;
   char* format;
-  size_t itemsize;
-  size_t nitem;
+  std::size_t itemsize;
+  std::size_t nitem;
 };
+
+static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 
 template <typename T>
 class ContiguousArray {
@@ -53,26 +59,26 @@ class ContiguousArray {
   ContiguousArray(ContiguousArray&& other) noexcept;
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
-  inline void UseForeignBuffer(void* prealloc_buf, size_t size);
+  inline void UseForeignBuffer(void* prealloc_buf, std::size_t size);
   inline T* Data();
   inline const T* Data() const;
   inline T* End();
   inline const T* End() const;
   inline T& Back();
   inline const T& Back() const;
-  inline size_t Size() const;
-  inline void Reserve(size_t newsize);
-  inline void Resize(size_t newsize);
-  inline void Resize(size_t newsize, T t);
+  inline std::size_t Size() const;
+  inline void Reserve(std::size_t newsize);
+  inline void Resize(std::size_t newsize);
+  inline void Resize(std::size_t newsize, T t);
   inline void Clear();
   inline void PushBack(T t);
   inline void Extend(const std::vector<T>& other);
   /* Unsafe access, no bounds checking */
-  inline T& operator[](size_t idx);
-  inline const T& operator[](size_t idx) const;
+  inline T& operator[](std::size_t idx);
+  inline const T& operator[](std::size_t idx) const;
   /* Safe access, with bounds checking */
-  inline T& at(size_t idx);
-  inline const T& at(size_t idx) const;
+  inline T& at(std::size_t idx);
+  inline const T& at(std::size_t idx) const;
   /* Safe access, with bounds checking + check against non-existent node (<0) */
   inline T& at(int idx);
   inline const T& at(int idx) const;
@@ -80,8 +86,8 @@ class ContiguousArray {
 
  private:
   T* buffer_;
-  size_t size_;
-  size_t capacity_;
+  std::size_t size_;
+  std::size_t capacity_;
   bool owned_buffer_;
 };
 
@@ -270,19 +276,30 @@ class Tree {
 
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
+  inline void SerializeToFile(FILE* dest_fp);
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                std::vector<PyBufferFrame>::iterator end);
+  inline void DeserializeFromFile(FILE* src_fp);
 
  private:
   // vector of nodes
   ContiguousArray<Node> nodes_;
   ContiguousArray<LeafOutputType> leaf_vector_;
-  ContiguousArray<size_t> leaf_vector_offset_;
+  ContiguousArray<std::size_t> leaf_vector_offset_;
   ContiguousArray<uint32_t> matching_categories_;
-  ContiguousArray<size_t> matching_categories_offset_;
+  ContiguousArray<std::size_t> matching_categories_offset_;
 
   // allocate a new node
   inline int AllocNode();
+
+  // utility functions used for serialization, internal use only
+  template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
+  inline void
+  SerializeTemplate(ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
+      CompositeArrayHandler composite_array_handler);
+  template <typename ScalarHandler, typename ArrayHandler>
+  inline void
+  DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler);
 
  public:
   /*! \brief number of nodes */
@@ -356,8 +373,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const size_t offset_begin = leaf_vector_offset_.at(nid);
-    const size_t offset_end = leaf_vector_offset_.at(nid + 1);
+    const std::size_t offset_begin = leaf_vector_offset_.at(nid);
+    const std::size_t offset_end = leaf_vector_offset_.at(nid + 1);
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -397,8 +414,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<uint32_t> MatchingCategories(int nid) const {
-    const size_t offset_begin = matching_categories_offset_.at(nid);
-    const size_t offset_end = matching_categories_offset_.at(nid + 1);
+    const std::size_t offset_begin = matching_categories_offset_.at(nid);
+    const std::size_t offset_end = matching_categories_offset_.at(nid + 1);
     if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
       // Return empty vector, to indicate the lack of any matching categories
       // The node might be a numerical split
@@ -615,7 +632,8 @@ inline void InitParamAndCheck(ModelParam* param,
 class Model {
  public:
   /*! \brief disable copy; use default move */
-  Model() = default;
+  Model() : major_ver_(TREELITE_VER_MAJOR), minor_ver_(TREELITE_VER_MINOR),
+    patch_ver_(TREELITE_VER_PATCH) {}
   virtual ~Model() = default;
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
@@ -636,12 +654,17 @@ class Model {
   template <typename Func>
   inline auto Dispatch(Func func) const;
 
-  virtual size_t GetNumTree() const = 0;
-  virtual void SetTreeLimit(size_t limit) = 0;
+  virtual std::size_t GetNumTree() const = 0;
+  virtual void SetTreeLimit(std::size_t limit) = 0;
   virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
 
-  inline std::vector<PyBufferFrame> GetPyBuffer();
-  inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+  /* In-memory serialization, zero-copy */
+  std::vector<PyBufferFrame> GetPyBuffer();
+  static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+
+  /* Serialization to a file stream */
+  void SerializeToFile(FILE* dest_fp);
+  static std::unique_ptr<Model> DeserializeFromFile(FILE* src_fp);
 
   /*!
    * \brief number of features used for the model.
@@ -658,12 +681,21 @@ class Model {
   ModelParam param;
 
  private:
+  int major_ver_, minor_ver_, patch_ver_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
+  virtual void SerializeToFileImpl(FILE* dest_fp) = 0;
   virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                 std::vector<PyBufferFrame>::iterator end) = 0;
+  virtual void DeserializeFromFileImpl(FILE* src_fp) = 0;
+  template <typename HeaderPrimitiveFieldHandlerFunc>
+  inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
+  template <typename HeaderPrimitiveFieldHandlerFunc>
+  inline static void DeserializeTemplate(
+      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      TypeInfo& threshold_type, TypeInfo& leaf_output_type);
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -681,16 +713,31 @@ class ModelImpl : public Model {
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
   void ReferenceSerialize(dmlc::Stream* fo) const override;
-  inline size_t GetNumTree() const override {
+  inline std::size_t GetNumTree() const override {
     return trees.size();
   }
-  void SetTreeLimit(size_t limit) override {
+  void SetTreeLimit(std::size_t limit) override {
     return trees.resize(limit);
   }
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
+  inline void SerializeToFileImpl(FILE* dest_fp) override;
   inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                std::vector<PyBufferFrame>::iterator end) override;
+  inline void DeserializeFromFileImpl(FILE* src_fp) override;
+
+ private:
+  template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
+      typename TreeHandlerFunc>
+  inline void SerializeTemplate(
+      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      HeaderCompositeFieldHandlerFunc header_composite_field_handler,
+      TreeHandlerFunc tree_handler);
+  template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
+  inline void DeserializeTemplate(
+      size_t num_tree,
+      HeaderFieldHandlerFunc header_field_handler,
+      TreeHandlerFunc tree_handler);
 };
 
 }  // namespace treelite

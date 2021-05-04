@@ -81,14 +81,14 @@ TEST(PyBufferInterfaceRoundTrip, Frame) {
   const char* filename = std::tmpnam(nullptr);
   FILE* fp = std::fopen(filename, "wb");
   ASSERT_TRUE(fp);
-  frame.Serialize(fp);
+  SerializePyBufferFrame(frame, fp);
   std::fclose(fp);
 
   fp = std::fopen(filename, "rb");
   ASSERT_TRUE(fp);
   void* received_buf;
   char* received_format;
-  PyBufferFrame received_frame = PyBufferFrame::Deserialize(fp, &received_buf, &received_format);
+  PyBufferFrame received_frame = DeserializePyBufferFrame(fp, &received_buf, &received_format);
   std::fclose(fp);
   ASSERT_EQ(received_frame.itemsize, sizeof(float));
   ASSERT_EQ(received_frame.nitem, array.size());

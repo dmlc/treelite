@@ -98,6 +98,7 @@ target_sources(objtreelite
     annotator.cc
     filesystem.cc
     optable.cc
+    serializer.cc
     reference_serializer.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/annotator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/base.h

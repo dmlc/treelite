@@ -44,16 +44,16 @@ struct PyBufferFrame {
   char* format;
   std::size_t itemsize;
   std::size_t nitem;
-
-  // Serialize a frame to a file stream
-  inline void Serialize(FILE* dest_fp) const;
-
-  // Deserialize a frame from a file stream
-  // Note. This function allocates new buffers for buf and format fields and returns the references
-  // via the last two arguments. Make sure to free them to avoid memory leak.
-  inline static PyBufferFrame Deserialize(
-      FILE* src_fp, void** allocated_buf, char** allocated_format);
 };
+
+// Serialize a frame to a file stream
+void SerializePyBufferFrame(PyBufferFrame frame, FILE* dest_fp);
+
+// Deserialize a frame from a file stream
+// Note. This function allocates new buffers for buf and format fields and returns the references
+// via the last two arguments. Make sure to free them to avoid memory leak.
+PyBufferFrame DeserializePyBufferFrame(
+    FILE* src_fp, void** allocated_buf, char** allocated_format);
 
 static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 
@@ -664,8 +664,8 @@ class Model {
   inline static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
 
   /* Serialization to a file stream */
-  inline void Serialize(FILE* dest_fp);
-  inline static std::unique_ptr<Model> Deserialize(FILE* src_fp);
+  void Serialize(FILE* dest_fp);
+  static std::unique_ptr<Model> Deserialize(FILE* src_fp);
 
   /*!
    * \brief number of features used for the model.

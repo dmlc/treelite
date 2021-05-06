@@ -925,6 +925,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 
   auto tree_hanlder = [&begin](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.InitFromPyBuffer(begin, begin + kNumFramePerTree);
+    begin += kNumFramePerTree;
   };
 
   DeserializeTemplate(num_tree, header_field_handler, tree_hanlder);

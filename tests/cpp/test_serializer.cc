@@ -216,7 +216,7 @@ template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_DeepFullTree() {
   TypeInfo threshold_type = TypeToInfo<ThresholdType>();
   TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
-  const int depth = 19;
+  const int depth = 17;
 
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(3, 1, false, threshold_type, leaf_output_type)

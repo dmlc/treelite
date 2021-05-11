@@ -29,6 +29,8 @@ inline void TestRoundTrip(treelite::Model* model) {
     auto buffer = model->GetPyBuffer();
     std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
 
+    // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
+    // causing an OOM error
     ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
   }
 
@@ -44,6 +46,8 @@ inline void TestRoundTrip(treelite::Model* model) {
     std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromFile(fp);
     std::fclose(fp);
 
+    // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
+    // causing an OOM error
     ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
   }
 }

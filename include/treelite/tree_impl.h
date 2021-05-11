@@ -859,7 +859,7 @@ template <typename ThresholdType, typename LeafOutputType>
 template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
-    size_t num_tree,
+    std::size_t num_tree,
     HeaderFieldHandlerFunc header_field_handler,
     TreeHandlerFunc tree_handler) {
   /* Header */
@@ -870,7 +870,7 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
   header_field_handler(&param);
   /* Body */
   trees.clear();
-  for (size_t i = 0; i < num_tree; ++i) {
+  for (std::size_t i = 0; i < num_tree; ++i) {
     trees.emplace_back();
     tree_handler(trees.back());
   }
@@ -917,18 +917,20 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   if (num_frame < kNumFrameInHeader || (num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
     throw std::runtime_error("Wrong number of frames");
   }
-  const size_t num_tree = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
+  const std::size_t num_tree = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
 
   auto header_field_handler = [&begin](auto* field) {
     InitScalarFromPyBuffer(field, *begin++);
   };
 
-  auto tree_hanlder = [&begin](Tree<ThresholdType, LeafOutputType>& tree) {
+  auto tree_handler = [&begin](Tree<ThresholdType, LeafOutputType>& tree) {
+    // Read the frames in the range [begin, begin + kNumFramePerTree) into the tree
     tree.InitFromPyBuffer(begin, begin + kNumFramePerTree);
     begin += kNumFramePerTree;
+      // Advance the iterator so that the next tree reads the next kNumFramePerTree frames
   };
 
-  DeserializeTemplate(num_tree, header_field_handler, tree_hanlder);
+  DeserializeTemplate(num_tree, header_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -941,11 +943,11 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) 
     ReadScalarFromFile(field, src_fp);
   };
 
-  auto tree_hanlder = [src_fp](Tree<ThresholdType, LeafOutputType>& tree) {
+  auto tree_handler = [src_fp](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.DeserializeFromFile(src_fp);
   };
 
-  DeserializeTemplate(num_tree, header_field_handler, tree_hanlder);
+  DeserializeTemplate(num_tree, header_field_handler, tree_handler);
 }
 
 inline void InitParamAndCheck(ModelParam* param,

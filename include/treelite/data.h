@@ -76,6 +76,11 @@ class DenseDMatrixImpl : public DenseDMatrix {
   size_t GetNumElem() const override;
   DMatrixType GetType() const override;
 
+  template <typename OutputType>
+  void FillRow(size_t row_id, OutputType* out) const;
+  template <typename OutputType>
+  void ClearRow(size_t row_id, OutputType* out) const;
+
   friend class DenseDMatrix;
 };
 
@@ -129,6 +134,11 @@ class CSRDMatrixImpl : public CSRDMatrix {
   size_t GetNumCol() const override;
   size_t GetNumElem() const override;
   DMatrixType GetType() const override;
+
+  template <typename OutputType>
+  void FillRow(size_t row_id, OutputType* out) const;
+  template <typename OutputType>
+  void ClearRow(size_t row_id, OutputType* out) const;
 
   friend class CSRDMatrix;
 };

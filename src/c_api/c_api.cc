@@ -16,6 +16,7 @@
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <treelite/math.h>
+#include <treelite/gtil.h>
 #include <dmlc/thread_local.h>
 #include <memory>
 #include <algorithm>
@@ -251,6 +252,22 @@ int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
 int TreeliteFreeModel(ModelHandle handle) {
   API_BEGIN();
   delete static_cast<Model*>(handle);
+  API_END();
+}
+
+int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out) {
+  API_BEGIN();
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out = gtil::GetPredictOutputSize(model_, num_row);
+  API_END();
+}
+
+int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row, float* output,
+                        int pred_transform, size_t* out_result_size) {
+  API_BEGIN();
+  const auto* model_ = static_cast<const Model*>(handle);
+  *out_result_size =
+      gtil::Predict(model_, input, num_row, output, (pred_transform == 1));
   API_END();
 }
 

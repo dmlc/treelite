@@ -162,6 +162,28 @@ DenseDMatrixImpl<ElementType>::GetType() const {
   return DMatrixType::kDense;
 }
 
+template <typename ElementType>
+template <typename OutputType>
+void
+DenseDMatrixImpl<ElementType>::FillRow(size_t row_id, OutputType* out) const {
+  size_t out_idx = 0;
+  size_t in_idx = row_id * num_col;
+  while (out_idx < num_col) {
+    out[out_idx] = static_cast<OutputType>(data[in_idx]);
+    ++out_idx;
+    ++in_idx;
+  }
+}
+
+template <typename ElementType>
+template <typename OutputType>
+void
+DenseDMatrixImpl<ElementType>::ClearRow(size_t row_id, OutputType* out) const {
+  for (size_t i = 0; i < num_col; ++i) {
+    out[i] = std::numeric_limits<OutputType>::quiet_NaN();
+  }
+}
+
 template<typename ElementType>
 std::unique_ptr<CSRDMatrix>
 CSRDMatrix::Create(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
@@ -247,9 +269,44 @@ CSRDMatrixImpl<ElementType>::GetType() const {
   return DMatrixType::kSparseCSR;
 }
 
+template <typename ElementType>
+template <typename OutputType>
+void
+CSRDMatrixImpl<ElementType>::FillRow(size_t row_id, OutputType* out) const {
+  for (size_t i = row_ptr[row_id]; i < row_ptr[row_id + 1]; ++i) {
+    out[col_ind[i]] = static_cast<OutputType>(data[i]);
+  }
+}
+
+template <typename ElementType>
+template <typename OutputType>
+void
+CSRDMatrixImpl<ElementType>::ClearRow(size_t row_id, OutputType* out) const {
+  for (size_t i = row_ptr[row_id]; i < row_ptr[row_id + 1]; ++i) {
+    out[col_ind[i]] = std::numeric_limits<OutputType>::quiet_NaN();
+  }
+}
+
 template class DenseDMatrixImpl<float>;
 template class DenseDMatrixImpl<double>;
 template class CSRDMatrixImpl<float>;
 template class CSRDMatrixImpl<double>;
+
+template void CSRDMatrixImpl<float>::FillRow<float>(size_t, float*) const;
+template void CSRDMatrixImpl<float>::FillRow<double>(size_t, double*) const;
+template void CSRDMatrixImpl<float>::ClearRow<float>(size_t, float*) const;
+template void CSRDMatrixImpl<float>::ClearRow<double>(size_t, double*) const;
+template void CSRDMatrixImpl<double>::FillRow<float>(size_t, float*) const;
+template void CSRDMatrixImpl<double>::FillRow<double>(size_t, double*) const;
+template void CSRDMatrixImpl<double>::ClearRow<float>(size_t, float*) const;
+template void CSRDMatrixImpl<double>::ClearRow<double>(size_t, double*) const;
+template void DenseDMatrixImpl<float>::FillRow<float>(size_t, float*) const;
+template void DenseDMatrixImpl<float>::FillRow<double>(size_t, double*) const;
+template void DenseDMatrixImpl<float>::ClearRow<float>(size_t, float*) const;
+template void DenseDMatrixImpl<float>::ClearRow<double>(size_t, double*) const;
+template void DenseDMatrixImpl<double>::FillRow<float>(size_t, float*) const;
+template void DenseDMatrixImpl<double>::FillRow<double>(size_t, double*) const;
+template void DenseDMatrixImpl<double>::ClearRow<float>(size_t, float*) const;
+template void DenseDMatrixImpl<double>::ClearRow<double>(size_t, double*) const;
 
 }  // namespace treelite

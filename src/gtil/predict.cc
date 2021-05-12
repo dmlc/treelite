@@ -6,7 +6,6 @@
  *        predicting with decision trees. GTIL is useful in cases it is infeasible to build the
  *        tree models as native shared libs.
  */
-#include "./pred_transform.h"
 #include <treelite/gtil.h>
 #include <treelite/tree.h>
 #include <treelite/data.h>
@@ -14,6 +13,7 @@
 #include <limits>
 #include <vector>
 #include <cstddef>
+#include "./pred_transform.h"
 
 namespace {
 
@@ -102,9 +102,9 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
       float average_factor;
       if (model.task_type == treelite::TaskType::kMultiClfGrovePerClass) {
         CHECK(task_param.grove_per_class);
-        CHECK(task_param.leaf_vector_size == 1);
-        CHECK(task_param.num_class > 1);
-        CHECK(num_tree % task_param.num_class == 0)
+        CHECK_EQ(task_param.leaf_vector_size, 1);
+        CHECK_GT(task_param.num_class, 1);
+        CHECK_EQ(num_tree % task_param.num_class, 0)
           << "Expected the number of trees to be divisible by the number of classes";
         int num_boosting_round = num_tree / static_cast<int>(task_param.num_class);
         average_factor = static_cast<float>(num_boosting_round);
@@ -201,8 +201,7 @@ std::size_t Predict(const Model* model, const float* input, std::size_t num_row,
           std::vector<float>(input, input + num_row * model->num_feature),
           std::numeric_limits<float>::quiet_NaN(),
           num_row,
-          model->num_feature
-      );
+          model->num_feature);
   return Predict(model, dmat.get(), output, pred_transform);
 }
 

@@ -1,5 +1,7 @@
-from .metadata import dataset_db
-from .util import load_txt
+"""
+Tests for General Tree Inference Library (GTIL). The tests ensure that GTIL produces correct
+prediction results for a variety of tree models.
+"""
 import os
 import pytest
 import treelite
@@ -7,17 +9,20 @@ import xgboost as xgb
 import lightgbm as lgb
 import numpy as np
 import scipy
-
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
     ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, \
     ExtraTreesRegressor
 from sklearn.datasets import load_iris, load_breast_cancer, load_boston, load_svmlight_file
 from sklearn.model_selection import train_test_split
 
+from .metadata import dataset_db
+from .util import load_txt
+
 
 @pytest.mark.parametrize('clazz', [RandomForestRegressor, ExtraTreesRegressor,
                                    GradientBoostingRegressor])
 def test_skl_regressor(clazz):
+    """Scikit-learn regressor"""
     X, y = load_boston(return_X_y=True)
     kwargs = {'max_depth': 3, 'random_state': 0, 'n_estimators': 10}
     if clazz == GradientBoostingRegressor:
@@ -34,6 +39,7 @@ def test_skl_regressor(clazz):
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
 def test_skl_binary_classifier(clazz):
+    """Scikit-learn binary classifier"""
     X, y = load_breast_cancer(return_X_y=True)
     kwargs = {'max_depth': 3, 'random_state': 0, 'n_estimators': 10}
     if clazz == GradientBoostingClassifier:
@@ -49,7 +55,8 @@ def test_skl_binary_classifier(clazz):
 
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
-def test_skl_converter_multiclass_classifier(clazz):
+def test_skl_multiclass_classifier(clazz):
+    """Scikit-learn multi-class classifier"""
     X, y = load_iris(return_X_y=True)
     kwargs = {'max_depth': 3, 'random_state': 0, 'n_estimators': 10}
     if clazz == GradientBoostingClassifier:
@@ -67,6 +74,8 @@ def test_skl_converter_multiclass_classifier(clazz):
                                        'reg:pseudohubererror'])
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 def test_xgb_boston(tmpdir, model_format, objective):
+    # pylint: disable=too-many-locals
+    """Test XGBoost with Boston data (regression)"""
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgb.DMatrix(X_train, label=y_train)
@@ -91,6 +100,8 @@ def test_xgb_boston(tmpdir, model_format, objective):
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['multi:softmax', 'multi:softprob'])
 def test_xgb_iris(tmpdir, objective, model_format):
+    # pylint: disable=too-many-locals
+    """Test XGBoost with Iris data (multi-class classification)"""
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgb.DMatrix(X_train, label=y_train)
@@ -124,7 +135,9 @@ def test_xgb_iris(tmpdir, objective, model_format):
                           ('rank:map', 5)],
                          ids=['binary:logistic', 'binary:hinge', 'binary:logitraw',
                               'count:poisson', 'rank:pairwise', 'rank:ndcg', 'rank:map'])
-def test_nonlinear_objective(tmpdir, objective, max_label, model_format):
+def test_xgb_nonlinear_objective(tmpdir, objective, max_label, model_format):
+    # pylint: disable=too-many-locals
+    """Test XGBoost with non-linear objectives with dummy data"""
     nrow = 16
     ncol = 8
     rng = np.random.default_rng(seed=0)
@@ -170,6 +183,8 @@ def test_xgb_categorical_split():
 
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 def test_xgb_dart(tmpdir, model_format):
+    # pylint: disable=too-many-locals
+    """Test XGBoost DART model with dummy data"""
     nrow = 16
     ncol = 8
     rng = np.random.default_rng(seed=0)
@@ -204,6 +219,8 @@ def test_xgb_dart(tmpdir, model_format):
 @pytest.mark.parametrize('objective', ['regression', 'regression_l1', 'huber'])
 @pytest.mark.parametrize('reg_sqrt', [True, False])
 def test_lightgbm_regression(tmpdir, objective, reg_sqrt):
+    # pylint: disable=too-many-locals
+    """Test LightGBM regressor"""
     lgb_model_path = os.path.join(tmpdir, 'boston_lightgbm.txt')
 
     X, y = load_boston(return_X_y=True)
@@ -224,11 +241,13 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt):
 
 @pytest.mark.parametrize('objective', ['binary', 'xentlambda', 'xentropy'])
 def test_lightgbm_binary_classification(tmpdir, objective):
+    # pylint: disable=too-many-locals
+    """Test LightGBM binary classifier"""
     lgb_model_path = os.path.join(tmpdir, 'breast_cancer_lightgbm.txt')
     X, y = load_breast_cancer(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
-    dtrain = lgb.Dataset(X_train)
-    dtest = lgb.Dataset(X_test, reference=dtrain)
+    dtrain = lgb.Dataset(X_train, y_train, free_raw_data=False)
+    dtest = lgb.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
     param = {'task': 'train', 'boosting_type': 'gbdt', 'objective': objective, 'metric': 'auc',
              'num_leaves': 7, 'learning_rate': 0.1}
     lgb_model = lgb.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
@@ -244,6 +263,8 @@ def test_lightgbm_binary_classification(tmpdir, objective):
 @pytest.mark.parametrize('boosting_type', ['gbdt', 'rf'])
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
 def test_lightgbm_multiclass_classification(tmpdir, objective, boosting_type):
+    # pylint: disable=too-many-locals
+    """Test LightGBM multi-class classifier"""
     lgb_model_path = os.path.join(tmpdir, 'iris_lightgbm.txt')
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -263,7 +284,8 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, boosting_type):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-def test_categorical_data(tmpdir):
+def test_lightgbm_categorical_data():
+    """Test LightGBM with toy categorical data"""
     dataset = 'toy_categorical'
     lgb_model_path = dataset_db[dataset].model
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')
@@ -274,7 +296,8 @@ def test_categorical_data(tmpdir):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-def test_sparse_ranking_model(tmpdir):
+def test_lightgbm_sparse_ranking_model(tmpdir):
+    """Generate a LightGBM ranking model with highly sparse data."""
     rng = np.random.default_rng(seed=2020)
     X = scipy.sparse.random(m=10, n=206947, format='csr', dtype=np.float64, random_state=0,
                             density=0.0001)
@@ -308,7 +331,8 @@ def test_sparse_ranking_model(tmpdir):
     np.testing.assert_almost_equal(out, lgb_out)
 
 
-def test_sparse_categorical_model(tmpdir):
+def test_lightgbm_sparse_categorical_model():
+    """Test LightGBM with high-cardinality categorical features"""
     dataset = 'sparse_categorical'
     lgb_model_path = dataset_db[dataset].model
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')

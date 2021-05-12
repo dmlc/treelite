@@ -12,7 +12,7 @@ jobs:
       versionSpec: '3.7'
       addToPath: true
   - checkout: self
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy scikit-learn pytest
+  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy scikit-learn pytest xgboost lightgbm
     displayName: 'Installing pylint and cpplint...'
   - script: make lint
     displayName: 'Running pylint and cpplint...'

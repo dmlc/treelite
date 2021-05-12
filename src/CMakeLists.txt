@@ -95,6 +95,9 @@ target_sources(objtreelite
     frontend/xgboost.cc
     frontend/xgboost_json.cc
     frontend/xgboost_util.cc
+    gtil/predict.cc
+    gtil/pred_transform.h
+    gtil/pred_transform.cc
     annotator.cc
     filesystem.cc
     optable.cc
@@ -108,6 +111,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/filesystem.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h

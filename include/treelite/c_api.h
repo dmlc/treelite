@@ -354,6 +354,21 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 /*! \} */
 
 /*!
+ * \defgroup gtil
+ * General Tree Inference Library (GTIL), providing a reference implementation for
+ * predicting with decision trees. GTIL is useful in cases it is infeasible to build the
+ * tree models as native shared libs.
+ * \{
+ */
+
+TREELITE_DLL int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out);
+
+TREELITE_DLL int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row,
+                                     float* output, int pred_transform, size_t* out_result_size);
+
+/*! \} */
+
+/*!
  * \defgroup model_builder
  * Model builder interface: build trees incrementally
  * \{

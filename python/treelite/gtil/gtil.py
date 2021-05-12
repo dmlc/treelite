@@ -5,6 +5,29 @@ import numpy as np
 
 
 def predict(model: Model, input: np.ndarray, pred_margin: bool = False):
+    """
+    Predict with a Treelite model using General Tree Inference Library (GTIL). GTIL is intended to
+    be a reference implementation.
+
+    .. note:: GTIL is currently experimental
+
+        GTIL is currently in its early stage of development and may have bugs and performance
+        issues. Please report any issues found on GitHub.
+
+    Parameters
+    ----------
+    model : :py:class:`Model` object
+        Treelite model object
+    input : :py:class:`numpy.ndarray` array
+        2D NumPy array, with which to run prediction
+    pred_margin : :py:class:`bool <python:bool>`, optional
+        Whether to produce raw margin scores
+
+    Returns
+    -------
+    prediction : :py:class:`numpy.ndarray` array
+        Prediction
+    """
     assert isinstance(model, Model)
     assert isinstance(input, np.ndarray)
     assert len(input.shape) == 2

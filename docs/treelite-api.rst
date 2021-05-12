@@ -11,3 +11,8 @@ API of Treelite Python package.
 
 .. automodule:: treelite.sklearn
    :members:
+
+------------
+
+.. automodule:: treelite.gtil
+   :members:

@@ -244,9 +244,11 @@ if __name__ == '__main__':
     # From source tree `treelite/python`:
     # - python setup.py install
     # - python setup.py bdist_wheel && pip install <wheel-name>
+    with open(os.path.join(CURRENT_DIR, 'treelite/VERSION')) as f:
+        version = f.read().strip()
     logging.basicConfig(level=logging.INFO)
     setup(name='treelite',
-          version=open(os.path.join(CURRENT_DIR, 'treelite/VERSION')).read().strip(),
+          version=version,
           description='Treelite: model compiler for decision trees',
           install_requires=['numpy', 'scipy'],
           ext_modules=[CMakeExtension('libtreelite')],

@@ -8,6 +8,8 @@
 #include <treelite/compiler_param.h>
 #include <treelite/annotator.h>
 #include <fmt/format.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <algorithm>
 #include <fstream>
 #include <unordered_map>
@@ -96,23 +98,31 @@ class ASTNativeCompilerImpl {
 
     {
       /* write recipe.json */
-      std::vector<std::unordered_map<std::string, std::string>> source_list;
+      rapidjson::StringBuffer os;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(os);
+
+      writer.StartObject();
+      writer.Key("target");
+      writer.String(param_.native_lib_name.data(), param_.native_lib_name.size());
+      writer.Key("sources");
+      writer.StartArray();
       for (const auto& kv : files_) {
         if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
           const size_t line_count
             = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
-          source_list.push_back({ {"name",
-                                   kv.first.substr(0, kv.first.length() - 2)},
-                                  {"length", std::to_string(line_count)} });
+          writer.StartObject();
+          writer.Key("name");
+          std::string name = kv.first.substr(0, kv.first.length() - 2);
+          writer.String(name.data(), name.size());
+          writer.Key("length");
+          writer.Uint64(line_count);
+          writer.EndObject();
         }
       }
-      std::ostringstream oss;
-      std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&oss));
-      writer->BeginObject();
-      writer->WriteObjectKeyValue("target", param_.native_lib_name);
-      writer->WriteObjectKeyValue("sources", source_list);
-      writer->EndObject();
-      files_["recipe.json"] = CompiledModel::FileEntry(oss.str());
+      writer.EndArray();
+      writer.EndObject();
+
+      files_["recipe.json"] = CompiledModel::FileEntry(os.GetString());
     }
     cm.files = std::move(files_);
     return cm;

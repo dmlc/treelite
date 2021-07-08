@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file predictor.h
  * \author Hyunsu Cho
  * \brief Load prediction function exported as a shared library
@@ -8,7 +8,7 @@
 #define TREELITE_PREDICTOR_H_
 
 #include <dmlc/common.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <treelite/typeinfo.h>
 #include <treelite/c_api_runtime.h>
 #include <treelite/data.h>

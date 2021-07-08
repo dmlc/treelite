@@ -16,6 +16,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <treelite/math.h>
+#include <treelite/logging.h>
 
 #include <algorithm>
 #include <cstdio>

@@ -9,7 +9,7 @@
 #include <treelite/gtil.h>
 #include <treelite/tree.h>
 #include <treelite/data.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <limits>
 #include <vector>
 #include <cmath>

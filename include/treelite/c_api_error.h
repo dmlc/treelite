@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api_error.h
  * \author Hyunsu Cho
  * \brief Error handling for C API.
@@ -7,7 +7,6 @@
 #ifndef TREELITE_C_API_ERROR_H_
 #define TREELITE_C_API_ERROR_H_
 
-#include <dmlc/logging.h>
 #include <treelite/c_api_common.h>
 #include <stdexcept>
 

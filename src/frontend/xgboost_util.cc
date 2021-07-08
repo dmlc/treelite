@@ -1,12 +1,12 @@
 /*!
- * Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020-2021 by Contributors
  * \file xgboost_util.cc
  * \brief Common utilities for XGBoost frontends
  * \author Hyunsu Cho
  */
 
 #include <treelite/tree.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <cstring>
 #include "xgboost/xgboost.h"
 

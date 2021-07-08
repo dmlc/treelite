@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file frontend.h
  * \brief Collection of front-end methods to load or construct ensemble model
  * \author Hyunsu Cho
@@ -7,7 +7,6 @@
 #ifndef TREELITE_FRONTEND_H_
 #define TREELITE_FRONTEND_H_
 
-#include <dmlc/logging.h>
 #include <treelite/base.h>
 #include <string>
 #include <memory>

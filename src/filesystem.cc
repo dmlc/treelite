@@ -1,12 +1,12 @@
 /*!
- * Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020-2021 by Contributors
  * \file filesystem.cc
  * \author Hyunsu Cho
  * \brief Cross-platform wrapper for common filesystem functions
  */
 
 #include <treelite/filesystem.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <fstream>
 
 #ifdef _WIN32

@@ -46,7 +46,7 @@ TEST(CompilerParam, NonExistentKey) {
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(HasSubstr("Unrecognized key 'nonexistent'")));
+      ThrowsMessage<treelite::Error>(HasSubstr("Unrecognized key 'nonexistent'")));
   json_str = R"JSON(
     {
       "quantize": 1,
@@ -57,7 +57,7 @@ TEST(CompilerParam, NonExistentKey) {
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(HasSubstr("Unrecognized key 'extra_object'")));
+      ThrowsMessage<treelite::Error>(HasSubstr("Unrecognized key 'extra_object'")));
 }
 
 TEST(CompilerParam, IncorrectType) {
@@ -68,7 +68,7 @@ TEST(CompilerParam, IncorrectType) {
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(HasSubstr("Expected an integer for 'quantize'")));
+      ThrowsMessage<treelite::Error>(HasSubstr("Expected an integer for 'quantize'")));
   json_str = R"JSON(
     {
       "code_folding_req": {
@@ -77,7 +77,7 @@ TEST(CompilerParam, IncorrectType) {
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(
+      ThrowsMessage<treelite::Error>(
         HasSubstr("Expected a floating-point decimal for 'code_folding_req'")));
   json_str = R"JSON(
     {
@@ -85,14 +85,14 @@ TEST(CompilerParam, IncorrectType) {
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(HasSubstr("Expected a string for 'native_lib_name'")));
+      ThrowsMessage<treelite::Error>(HasSubstr("Expected a string for 'native_lib_name'")));
   json_str = R"JSON(
     {
       "code_folding_req": 13bad
     })JSON";
   EXPECT_THAT(
       [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-      ThrowsMessage<dmlc::Error>(HasSubstr("Got an invalid JSON string")));
+      ThrowsMessage<treelite::Error>(HasSubstr("Got an invalid JSON string")));
 }
 
 TEST(CompilerParam, InvalidRange) {
@@ -104,7 +104,7 @@ TEST(CompilerParam, InvalidRange) {
     std::string expected_error = fmt::format("'{}' must be 0 or greater", key);
     EXPECT_THAT(
         [&]() { CompilerParam::ParseFromJSON(json_str.c_str()); },
-        ThrowsMessage<dmlc::Error>(HasSubstr(expected_error)));
+        ThrowsMessage<treelite::Error>(HasSubstr(expected_error)));
   }
 }
 

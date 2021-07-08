@@ -9,7 +9,7 @@
 #include <treelite/tree.h>
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <fmt/format.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>

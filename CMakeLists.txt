@@ -68,14 +68,13 @@ endif()
 
 foreach(lib ${TREELITE_TARGETS})
   set_output_directory(${lib} ${PROJECT_BINARY_DIR})
-  target_link_libraries(${lib} INTERFACE dmlc)
 endforeach()
 
 # Export install targets
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 set(INSTALL_TARGETS ${TREELITE_TARGETS}
-                    objtreelite objtreelite_common objtreelite_runtime dmlc rapidjson)
+                    objtreelite objtreelite_common objtreelite_runtime rapidjson)
 if(NOT FMTLIB_FROM_SYSTEM_ROOT)
   list(APPEND INSTALL_TARGETS fmt-header-only)
 endif()

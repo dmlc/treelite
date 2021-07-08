@@ -84,8 +84,10 @@ target_sources(objtreelite
     compiler/native/pred_transform.h
     compiler/native/qnode_template.h
     compiler/native/typeinfo_ctypes.h
+    compiler/ast_native.h
     compiler/ast_native.cc
     compiler/compiler.cc
+    compiler/failsafe.h
     compiler/failsafe.cc
     compiler/pred_transform.cc
     compiler/pred_transform.h

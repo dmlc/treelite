@@ -1,9 +1,9 @@
 /*!
- * Copyright (c) 2019-2020 by Contributors
+ * Copyright (c) 2019-2021 by Contributors
  * \file failsafe.cc
- * \author Hyunsu Cho
  * \brief C code generator (fail-safe). The generated code will mimic prediction logic found in
  *        XGBoost
+ * \author Hyunsu Cho
  */
 
 #include <treelite/tree.h>
@@ -15,6 +15,7 @@
 #include <tuple>
 #include <utility>
 #include <cmath>
+#include "./failsafe.h"
 #include "./pred_transform.h"
 #include "./common/format_util.h"
 #include "./elf/elf_formatter.h"
@@ -232,34 +233,11 @@ inline bool EndsWith(const std::string& str, const std::string& suffix) {
 namespace treelite {
 namespace compiler {
 
-DMLC_REGISTRY_FILE_TAG(failsafe);
-
-class FailSafeCompiler : public Compiler {
+class FailSafeCompilerImpl {
  public:
-  explicit FailSafeCompiler(const CompilerParam& param)
-    : param(param) {
-    if (param.verbose > 0) {
-      LOG(INFO) << "Using FailSafeCompiler";
-    }
-    if (param.annotate_in != "NULL") {
-      LOG(INFO) << "Warning: 'annotate_in' parameter is not applicable for "
-                   "FailSafeCompiler";
-    }
-    if (param.quantize > 0) {
-      LOG(INFO) << "Warning: 'quantize' parameter is not applicable for "
-                   "FailSafeCompiler";
-    }
-    if (param.parallel_comp > 0) {
-      LOG(INFO) << "Warning: 'parallel_comp' parameter is not applicable for "
-                   "FailSafeCompiler";
-    }
-    if (std::isfinite(param.code_folding_req)) {
-      LOG(INFO) << "Warning: 'code_folding_req' parameter is not applicable "
-                   "for FailSafeCompiler";
-    }
-  }
+  explicit FailSafeCompilerImpl(const CompilerParam& param) : param_(param) {}
 
-  CompiledModel Compile(const Model& model_ptr) override {
+  CompiledModel Compile(const Model& model_ptr) {
     CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
           && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
       << "Failsafe compiler only supports models with float32 thresholds and float32 leaf outputs";
@@ -310,8 +288,8 @@ class FailSafeCompiler : public Compiler {
 
     std::string nodes, nodes_row_ptr;
     std::vector<char> nodes_elf;
-    if (param.dump_array_as_elf > 0) {
-      if (param.verbose > 0) {
+    if (param_.dump_array_as_elf > 0) {
+      if (param_.verbose > 0) {
         LOG(INFO) << "Dumping arrays as an ELF relocatable object...";
       }
       std::tie(nodes_elf, nodes_row_ptr) = FormatNodesArrayELF(model);
@@ -343,7 +321,7 @@ class FailSafeCompiler : public Compiler {
 
     files_["main.c"] = CompiledModel::FileEntry(main_program.str());
 
-    if (param.dump_array_as_elf > 0) {
+    if (param_.dump_array_as_elf > 0) {
       files_["arrays.o"] = CompiledModel::FileEntry(std::move(nodes_elf));
     } else {
       files_["arrays.c"] = CompiledModel::FileEntry(fmt::format(arrays_template,
@@ -376,7 +354,7 @@ class FailSafeCompiler : public Compiler {
       std::ostringstream oss;
       std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&oss));
       writer->BeginObject();
-      writer->WriteObjectKeyValue("target", param.native_lib_name);
+      writer->WriteObjectKeyValue("target", param_.native_lib_name);
       writer->WriteObjectKeyValue("sources", source_list);
       if (!extra_file_list.empty()) {
         writer->WriteObjectKeyValue("extra", extra_file_list);
@@ -389,17 +367,40 @@ class FailSafeCompiler : public Compiler {
   }
 
  private:
-  CompilerParam param;
+  CompilerParam param_;
   int num_feature_;
   unsigned int num_class_;
   std::string pred_tranform_func_;
   std::unordered_map<std::string, CompiledModel::FileEntry> files_;
 };
 
-TREELITE_REGISTER_COMPILER(FailSafeCompiler, "failsafe")
-.describe("Simple compiler to express trees as a tight for-loop")
-.set_body([](const CompilerParam& param) -> Compiler* {
-    return new FailSafeCompiler(param);
-  });
+FailSafeCompiler::FailSafeCompiler(const CompilerParam& param)
+    : pimpl_(std::make_unique<FailSafeCompilerImpl>(param)) {
+  if (param.verbose > 0) {
+    LOG(INFO) << "Using FailSafeCompiler";
+  }
+  if (param.annotate_in != "NULL") {
+    LOG(INFO) << "Warning: 'annotate_in' parameter is not applicable for "
+                 "FailSafeCompiler";
+  }
+  if (param.quantize > 0) {
+    LOG(INFO) << "Warning: 'quantize' parameter is not applicable for "
+                 "FailSafeCompiler";
+  }
+  if (param.parallel_comp > 0) {
+    LOG(INFO) << "Warning: 'parallel_comp' parameter is not applicable for "
+                 "FailSafeCompiler";
+  }
+  if (std::isfinite(param.code_folding_req)) {
+    LOG(INFO) << "Warning: 'code_folding_req' parameter is not applicable "
+                 "for FailSafeCompiler";
+  }
+}
+
+CompiledModel
+FailSafeCompiler::Compile(const Model& model) {
+  return pimpl_->Compile(model);
+}
+
 }  // namespace compiler
 }  // namespace treelite

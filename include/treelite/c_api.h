@@ -72,31 +72,22 @@ TREELITE_DLL int TreeliteAnnotationFree(AnnotationHandle handle);
  * \{
  */
 /*!
- * \brief create a compiler with a given name
+ * \brief Create a compiler with a given name
  * \param name name of compiler
+ * \param params_json_str JSON string representing the parameters for the compiler
  * \param out created compiler
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteCompilerCreate(const char* name,
-                                        CompilerHandle* out);
+TREELITE_DLL int TreeliteCompilerCreateV2(const char* name, const char* params_json_str,
+                                          CompilerHandle* out);
 /*!
- * \brief set a parameter for a compiler
- * \param handle compiler
- * \param name name of parameter
- * \param value value of parameter
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteCompilerSetParam(CompilerHandle handle,
-                                          const char* name,
-                                          const char* value);
-/*!
- * \brief generate prediction code from a tree ensemble model. The code will
+ * \brief Generate prediction code from a tree ensemble model. The code will
  *        be C99 compliant. One header file (.h) will be generated, along with
  *        one or more source files (.c).
  *
  * Usage example:
  * \code
- *   TreeliteCompilerGenerateCode(compiler, model, 1, "./my/model");
+ *   TreeliteCompilerGenerateCodeV2(compiler, model, "./my/model");
  *   // files to generate: ./my/model/header.h, ./my/model/main.c
  *   // if parallel compilation is enabled:
  *   // ./my/model/header.h, ./my/model/main.c, ./my/model/tu0.c,
@@ -104,14 +95,12 @@ TREELITE_DLL int TreeliteCompilerSetParam(CompilerHandle handle,
  * \endcode
  * \param compiler handle for compiler
  * \param model handle for tree ensemble model
- * \param verbose whether to produce extra messages
  * \param dirpath directory to store header and source files
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteCompilerGenerateCode(CompilerHandle compiler,
-                                              ModelHandle model,
-                                              int verbose,
-                                              const char* dirpath);
+TREELITE_DLL int TreeliteCompilerGenerateCodeV2(CompilerHandle compiler,
+                                                ModelHandle model,
+                                                const char* dirpath);
 /*!
  * \brief delete compiler from memory
  * \param handle compiler to remove

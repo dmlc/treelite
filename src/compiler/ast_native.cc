@@ -136,6 +136,10 @@ class ASTNativeCompiler : public Compiler {
     });
   }
 
+  CompilerParam QueryParam() const override {
+    return param;
+  }
+
  private:
   CompilerParam param;
   int num_feature_;

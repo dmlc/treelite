@@ -388,6 +388,10 @@ class FailSafeCompiler : public Compiler {
     return cm;
   }
 
+  CompilerParam QueryParam() const override {
+    return param;
+  }
+
  private:
   CompilerParam param;
   int num_feature_;

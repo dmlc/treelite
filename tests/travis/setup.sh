@@ -3,6 +3,7 @@
 set -eo pipefail
 
 if [ ${TRAVIS_OS_NAME} == "osx" ]; then
+  brew install cmake libomp wget lconv ninja
   wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
 else
   wget -O conda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh

@@ -1,16 +1,13 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file split.cc
  * \brief Split prediction subroutine into multiple translation units (files)
  */
-#include <dmlc/registry.h>
 #include <treelite/logging.h>
 #include "./builder.h"
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(split);
 
 int count_tu_nodes(ASTNode* node) {
   int accum = (dynamic_cast<TranslationUnitNode*>(node)) ? 1 : 0;

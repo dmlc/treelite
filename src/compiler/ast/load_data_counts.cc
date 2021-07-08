@@ -4,14 +4,11 @@
  * \brief AST manipulation logic to load data counts
  * \author Hyunsu Cho
  */
-#include <dmlc/registry.h>
 #include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(load_data_counts);
 
 static void load_data_counts(ASTNode* node, const std::vector<std::vector<uint64_t>>& counts) {
   if (node->tree_id >= 0 && node->node_id >= 0) {

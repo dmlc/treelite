@@ -8,7 +8,6 @@
 
 #include "xgboost/xgboost_json.h"
 
-#include <dmlc/registry.h>
 #include <fmt/format.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
@@ -39,8 +38,6 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
 
 namespace treelite {
 namespace frontend {
-
-DMLC_REGISTRY_FILE_TAG(xgboost_json);
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
   char read_buffer[65536];

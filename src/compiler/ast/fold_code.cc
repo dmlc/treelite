@@ -1,10 +1,9 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file fold_code.h
  * \brief AST manipulation logic for code folding
  * \author Hyunsu Cho
  */
-#include <dmlc/registry.h>
 #include <treelite/logging.h>
 #include <limits>
 #include <cmath>
@@ -12,8 +11,6 @@
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(fold_code);
 
 struct CodeFoldingContext {
   double magnitude_req;

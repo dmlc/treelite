@@ -1,15 +1,12 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file build.cc
  * \brief Build AST from a given model
  */
-#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(build);
 
 template <typename ThresholdType, typename LeafOutputType>
 void

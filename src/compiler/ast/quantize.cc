@@ -1,10 +1,9 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file quantize.cc
  * \brief Quantize thresholds in condition nodes
  */
 #include <treelite/math.h>
-#include <dmlc/registry.h>
 #include <treelite/logging.h>
 #include <set>
 #include <cmath>
@@ -12,8 +11,6 @@
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(quantize);
 
 template <typename ThresholdType>
 static void

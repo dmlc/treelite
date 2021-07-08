@@ -11,7 +11,6 @@
 #include <treelite/typeinfo.h>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
-#include <dmlc/timer.h>
 #include <cstdint>
 #include <algorithm>
 #include <memory>
@@ -19,6 +18,7 @@
 #include <limits>
 #include <functional>
 #include <type_traits>
+#include <chrono>
 #include "thread_pool/thread_pool.h"
 
 #ifdef _WIN32
@@ -28,6 +28,11 @@
 #endif
 
 namespace {
+
+inline double GetTime(void) {
+  return std::chrono::duration<double>(
+      std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
 
 struct InputToken {
   const treelite::DMatrix* dmat;  // input data
@@ -411,7 +416,7 @@ class DeallocateOutputVector {
 size_t
 Predictor::PredictBatch(
     const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutputHandle out_result) const {
-  const double tstart = dmlc::GetTime();
+  const double tstart = GetTime();
 
   const size_t num_row = dmat->GetNumRow();
   auto* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
@@ -449,7 +454,7 @@ Predictor::PredictBatch(
     DispatchWithTypeInfo<ShrinkResultToFit>(
         leaf_output_type_, num_row, query_size_per_instance, num_class_, out_result);
   }
-  const double tend = dmlc::GetTime();
+  const double tend = GetTime();
   if (verbose > 0) {
     LOG(INFO) << "Treelite: Finished prediction in " << tend - tstart << " sec";
   }

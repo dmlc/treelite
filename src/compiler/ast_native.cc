@@ -331,8 +331,8 @@ class ASTNativeCompiler : public Compiler {
       condition_with_na_check = ExtractCategoricalCondition(t2);
     }
     if (node->children[0]->data_count && node->children[1]->data_count) {
-      const size_t left_freq = node->children[0]->data_count.value();
-      const size_t right_freq = node->children[1]->data_count.value();
+      const size_t left_freq = *node->children[0]->data_count;
+      const size_t right_freq = *node->children[1]->data_count;
       condition_with_na_check
         = fmt::format(" {keyword}( {condition} ) ",
             "keyword"_a = ((left_freq > right_freq) ? "LIKELY" : "UNLIKELY"),

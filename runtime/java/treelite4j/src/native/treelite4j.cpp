@@ -3,9 +3,6 @@
 #include <treelite/c_api_error.h>
 #include <treelite/predictor.h>
 #include <treelite/typeinfo.h>
-#include <dmlc/endian.h>
-#include <dmlc/logging.h>
-#include <dmlc/memory_io.h>
 #include <algorithm>
 #include <limits>
 #include <vector>

@@ -68,7 +68,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
   const size_t num_row = input->GetNumRow();
   const size_t num_col = input->GetNumCol();
   std::vector<ThresholdType> row(num_col);
-  const treelite::TaskParameter task_param = model.task_param;
+  const treelite::TaskParam task_param = model.task_param;
   std::vector<float> sum(task_param.num_class);
 
   // TODO(phcho): Use parallelism
@@ -142,7 +142,7 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
                                const DMatrixType* input, float* output,
                                bool pred_transform) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
-  const treelite::TaskParameter task_param = model.task_param;
+  const treelite::TaskParam task_param = model.task_param;
   if (task_param.num_class > 1) {
     if (task_param.leaf_vector_size > 1) {
       // multi-class classification with random forest

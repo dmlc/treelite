@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file ast.h
  * \brief Definition for AST classes
  * \author Hyunsu Cho
@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <cstdint>
 
 namespace treelite {
 namespace compiler {
@@ -24,7 +25,7 @@ class ASTNode {
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  dmlc::optional<size_t> data_count;
+  dmlc::optional<uint64_t> data_count;
   dmlc::optional<double> sum_hess;
   virtual std::string GetDump() const = 0;
   virtual ~ASTNode() = 0;  // force ASTNode to be abstract class

@@ -7,8 +7,9 @@ import scipy.sparse
 import pytest
 import treelite
 import treelite_runtime
+from sklearn.datasets import load_svmlight_file, load_boston, load_iris
+from sklearn.model_selection import train_test_split
 from treelite.contrib import _libext
-from treelite.util import has_sklearn
 from .metadata import dataset_db, _qualify_path
 from .util import os_compatible_toolchains, os_platform, check_predictor
 
@@ -19,7 +20,6 @@ except ImportError:
     pytest.skip('LightGBM not installed; skipping', allow_module_level=True)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('objective', ['regression', 'regression_l1', 'huber'])
 @pytest.mark.parametrize('reg_sqrt', [True, False])
@@ -28,8 +28,7 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
     """Test a regressor"""
     model_path = os.path.join(tmpdir, 'boston_lightgbm.txt')
 
-    from sklearn.datasets import load_boston
-    from sklearn.model_selection import train_test_split
+
 
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -52,7 +51,6 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('boosting_type', ['gbdt', 'rf'])
 @pytest.mark.parametrize('objective', ['multiclass', 'multiclassova'])
@@ -60,9 +58,6 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, boosting_type, to
     # pylint: disable=too-many-locals
     """Test a multi-class classifier"""
     model_path = os.path.join(tmpdir, 'iris_lightgbm.txt')
-
-    from sklearn.datasets import load_iris
-    from sklearn.model_selection import train_test_split
 
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -109,7 +104,9 @@ def test_lightgbm_binary_classification(tmpdir, objective, toolchain):
 
     model = treelite.Model.load(model_path, model_format='lightgbm')
     libpath = os.path.join(tmpdir, f'agaricus_{objective}' + _libext())
-    dmat = treelite_runtime.DMatrix(dtest_path, dtype='float64')
+    dmat = treelite_runtime.DMatrix(
+        load_svmlight_file(dtest_path, zero_based=True)[0],
+        dtype='float64')
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
     predictor = treelite_runtime.Predictor(libpath, verbose=True)
     out_prob = predictor.predict(dmat)

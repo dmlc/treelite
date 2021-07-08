@@ -1,10 +1,9 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api.cc
  * \author Hyunsu Cho
  * \brief C API of treelite, used for interfacing with other languages
  */
-
 
 #include <treelite/annotator.h>
 #include <treelite/c_api.h>
@@ -17,7 +16,6 @@
 #include <treelite/tree.h>
 #include <treelite/math.h>
 #include <treelite/gtil.h>
-#include <dmlc/thread_local.h>
 #include <memory>
 #include <algorithm>
 

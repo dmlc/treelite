@@ -103,7 +103,7 @@ target_sources(objtreelite
     filesystem.cc
     optable.cc
     serializer.cc
-    reference_serializer.cc
+    json_serializer.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/annotator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/base.h
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h

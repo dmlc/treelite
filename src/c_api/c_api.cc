@@ -17,9 +17,9 @@
 #include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
-#include <dmlc/io.h>
 #include <memory>
 #include <algorithm>
+#include <cstdio>
 
 using namespace treelite;
 
@@ -52,8 +52,9 @@ int TreeliteAnnotationSave(AnnotationHandle handle,
                            const char* path) {
   API_BEGIN();
   const BranchAnnotator* annotator = static_cast<BranchAnnotator*>(handle);
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(path, "w"));
-  annotator->Save(fo.get());
+  FILE* fo = std::fopen(path, "w");
+  annotator->Save(fo);
+  std::fclose(fo);
   API_END();
 }
 

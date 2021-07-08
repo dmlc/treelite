@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020-2021 by Contributors
  * \file xgboost_json.cc
  * \brief Frontend for xgboost model
  * \author Hyunsu Cho
@@ -9,7 +9,6 @@
 #include "xgboost/xgboost_json.h"
 
 #include <dmlc/registry.h>
-#include <dmlc/io.h>
 #include <fmt/format.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
@@ -444,7 +443,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
     return false;
   }
   output.model->average_tree_output = false;
-  output.model->task_param.output_type = TaskParameter::OutputType::kFloat;
+  output.model->task_param.output_type = TaskParam::OutputType::kFloat;
   output.model->task_param.leaf_vector_size = 1;
   if (output.model->task_param.num_class > 1) {
     // multi-class classifier

@@ -431,7 +431,7 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
   ModelImpl<ThresholdType, LeafOutputType>& model = *out_model;
   model.num_feature = this->num_feature;
   model.average_tree_output = this->average_tree_output;
-  model.task_param.output_type = TaskParameter::OutputType::kFloat;
+  model.task_param.output_type = TaskParam::OutputType::kFloat;
   model.task_param.num_class = this->num_class;
   // extra parameters
   InitParamAndCheck(&model.param, this->cfg);

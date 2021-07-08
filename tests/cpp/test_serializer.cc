@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
-#include <dmlc/memory_io.h>
+#include <sstream>
 #include <cstdio>
 #include <string>
 #include <memory>
@@ -16,11 +16,9 @@
 namespace {
 
 inline std::string TreeliteToBytes(treelite::Model* model) {
-  std::string s;
-  std::unique_ptr<dmlc::Stream> mstrm{new dmlc::MemoryStringStream(&s)};
-  model->ReferenceSerialize(mstrm.get());
-  mstrm.reset();
-  return s;
+  std::ostringstream oss;
+  model->SerializeToJSON(oss);
+  return oss.str();
 }
 
 inline void TestRoundTrip(treelite::Model* model) {
@@ -220,7 +218,7 @@ template <typename ThresholdType, typename LeafOutputType>
 void PyBufferInterfaceRoundTrip_DeepFullTree() {
   TypeInfo threshold_type = TypeToInfo<ThresholdType>();
   TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
-  const int depth = 17;
+  const int depth = 12;
 
   std::unique_ptr<frontend::ModelBuilder> builder{
       new frontend::ModelBuilder(3, 1, false, threshold_type, leaf_output_type)

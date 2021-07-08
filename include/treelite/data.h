@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file data.h
  * \author Hyunsu Cho
  * \brief Input data structure of Treelite
@@ -7,7 +7,6 @@
 #ifndef TREELITE_DATA_H_
 #define TREELITE_DATA_H_
 
-#include <dmlc/data.h>
 #include <treelite/typeinfo.h>
 #include <vector>
 #include <type_traits>
@@ -99,8 +98,6 @@ class CSRDMatrix : public DMatrix {
   static std::unique_ptr<CSRDMatrix> Create(
       TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
       size_t num_row, size_t num_col);
-  static std::unique_ptr<CSRDMatrix> Create(
-      const char* filename, const char* format, const char* data_type, int nthread, int verbose);
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;

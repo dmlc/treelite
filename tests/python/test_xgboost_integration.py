@@ -8,8 +8,9 @@ import numpy as np
 import pytest
 import treelite
 import treelite_runtime
-from treelite.util import has_sklearn
 from treelite.contrib import _libext
+from sklearn.datasets import load_boston, load_iris
+from sklearn.model_selection import train_test_split
 from .util import os_compatible_toolchains, check_predictor
 from .metadata import dataset_db
 
@@ -20,7 +21,6 @@ except ImportError:
     pytest.skip('XGBoost not installed; skipping', allow_module_level=True)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',
                                        'reg:pseudohubererror'])
@@ -28,9 +28,6 @@ except ImportError:
 def test_xgb_boston(tmpdir, toolchain, objective, model_format):
     # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
-    from sklearn.datasets import load_boston
-    from sklearn.model_selection import train_test_split
-
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
@@ -66,7 +63,6 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,expected_pred_transform',
                          [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')],
@@ -75,9 +71,6 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
 def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform):
     # pylint: disable=too-many-locals
     """Test Iris data (multi-class classification)"""
-    from sklearn.datasets import load_iris
-    from sklearn.model_selection import train_test_split
-
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
@@ -182,14 +175,10 @@ def test_nonlinear_objective(tmpdir, objective, max_label, expected_global_bias,
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_xgb_deserializers(tmpdir, toolchain):
     # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
-    from sklearn.datasets import load_boston
-    from sklearn.model_selection import train_test_split
-
     # Train xgboost model
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(

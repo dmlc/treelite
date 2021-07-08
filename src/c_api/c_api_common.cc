@@ -29,15 +29,6 @@ int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_END();
 }
 
-int TreeliteDMatrixCreateFromFile(
-    const char* path, const char* format, const char* data_type, int nthread, int verbose,
-    DMatrixHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<DMatrix> mat = CSRDMatrix::Create(path, format, data_type, nthread, verbose);
-  *out = static_cast<DMatrixHandle>(mat.release());
-  API_END();
-}
-
 int TreeliteDMatrixCreateFromCSR(
     const void* data, const char* data_type_str, const uint32_t* col_ind, const size_t* row_ptr,
     size_t num_row, size_t num_col, DMatrixHandle* out) {

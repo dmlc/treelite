@@ -7,6 +7,7 @@
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
 #include <treelite/annotator.h>
+#include <dmlc/io.h>
 #include <fmt/format.h>
 #include <algorithm>
 #include <fstream>
@@ -23,7 +24,6 @@
 #include "./native/typeinfo_ctypes.h"
 #include "./common/format_util.h"
 #include "./common/code_folding_util.h"
-#include "./common/categorical_bitmap.h"
 
 #if defined(_MSC_VER) || defined(_WIN32)
 #define DLLEXPORT_KEYWORD "__declspec(dllexport) "

@@ -270,21 +270,16 @@ class DMatrix:
                  feature_names=None, feature_types=None,
                  verbose=False, nthread=None):
         if data is None:
-            raise TreeliteRuntimeError('\'data\' argument cannot be None')
+            raise TreeliteRuntimeError("'data' argument cannot be None")
 
         self.handle = ctypes.c_void_p()
 
         if isinstance(data, (str,)):
-            nthread = nthread if nthread is not None else 0
-            data_format = data_format if data_format is not None else "libsvm"
-            data_type = ctypes.c_char_p(None) if dtype is None else c_str(dtype)
-            _check_call(_LIB.TreeliteDMatrixCreateFromFile(
-                c_str(data),
-                c_str(data_format),
-                data_type,
-                ctypes.c_int(nthread),
-                ctypes.c_int(1 if verbose else 0),
-                ctypes.byref(self.handle)))
+            raise TreeliteRuntimeError(
+                "'data' argument cannot be a string. Did you mean to load data from a text file? "
+                "Please use the following packages to load the text file:\n"
+                "   * CSV file: Use pandas.read_csv() or numpy.loadtxt()\n"
+                "   * LIBSVM file: Use sklearn.datasets.load_svmlight_file()")
         elif isinstance(data, scipy.sparse.csr_matrix):
             self._init_from_csr(data, dtype=dtype)
         elif isinstance(data, scipy.sparse.csc_matrix):

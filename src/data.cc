@@ -1,93 +1,15 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file data.cc
  * \author Hyunsu Cho
  * \brief Input data structure of Treelite
  */
 
+#include <treelite/logging.h>
 #include <treelite/data.h>
-#include <treelite/omp.h>
 #include <memory>
 #include <limits>
 #include <cstdint>
-
-namespace {
-
-template <typename ElementType, typename DMLCParserDType>
-inline static std::unique_ptr<treelite::CSRDMatrix> CreateFromParserImpl(
-    const char* filename, const char* format, int nthread, int verbose) {
-  std::unique_ptr<dmlc::Parser<uint32_t, DMLCParserDType>> parser(
-      dmlc::Parser<uint32_t, DMLCParserDType>::Create(filename, 0, 1, format));
-
-  const int max_thread = omp_get_max_threads();
-  nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
-
-  std::vector<ElementType> data;
-  std::vector<uint32_t> col_ind;
-  std::vector<size_t> row_ptr;
-  row_ptr.resize(1, 0);
-  size_t num_row = 0;
-  size_t num_col = 0;
-  size_t num_elem = 0;
-
-  std::vector<size_t> max_col_ind(nthread, 0);
-  parser->BeforeFirst();
-  while (parser->Next()) {
-    const dmlc::RowBlock<uint32_t, DMLCParserDType>& batch = parser->Value();
-    num_row += batch.size;
-    num_elem += batch.offset[batch.size];
-    const size_t top = data.size();
-    data.resize(top + batch.offset[batch.size] - batch.offset[0]);
-    col_ind.resize(top + batch.offset[batch.size] - batch.offset[0]);
-    CHECK_LT(static_cast<int64_t>(batch.offset[batch.size]),
-             std::numeric_limits<int64_t>::max());
-    #pragma omp parallel for schedule(static) num_threads(nthread)
-    for (int64_t i = static_cast<int64_t>(batch.offset[0]);
-         i < static_cast<int64_t>(batch.offset[batch.size]); ++i) {
-      const int tid = omp_get_thread_num();
-      const uint32_t index = batch.index[i];
-      const ElementType fvalue
-        = ((batch.value == nullptr) ? static_cast<ElementType>(1)
-                                    : static_cast<ElementType>(batch.value[i]));
-      const size_t offset = top + i - batch.offset[0];
-      data[offset] = fvalue;
-      col_ind[offset] = index;
-      max_col_ind[tid] = std::max(max_col_ind[tid], static_cast<size_t>(index));
-    }
-    const size_t rtop = row_ptr.size();
-    row_ptr.resize(rtop + batch.size);
-    CHECK_LT(static_cast<int64_t>(batch.size), std::numeric_limits<int64_t>::max());
-    #pragma omp parallel for schedule(static) num_threads(nthread)
-    for (int64_t i = 0; i < static_cast<int64_t>(batch.size); ++i) {
-      row_ptr[rtop + i] = row_ptr[rtop - 1] + batch.offset[i + 1] - batch.offset[0];
-    }
-    if (verbose > 0) {
-      LOG(INFO) << num_row << " rows read into memory";
-    }
-  }
-  num_col = *std::max_element(max_col_ind.begin(), max_col_ind.end()) + 1;
-  return treelite::CSRDMatrix::Create(std::move(data), std::move(col_ind), std::move(row_ptr),
-                                      num_row, num_col);
-}
-
-std::unique_ptr<treelite::CSRDMatrix>
-CreateFromParser(
-    const char* filename, const char* format, treelite::TypeInfo dtype, int nthread, int verbose) {
-  switch (dtype) {
-  case treelite::TypeInfo::kFloat32:
-    return CreateFromParserImpl<float, float>(filename, format, nthread, verbose);
-  case treelite::TypeInfo::kFloat64:
-    return CreateFromParserImpl<double, float>(filename, format, nthread, verbose);
-  case treelite::TypeInfo::kUInt32:
-    return CreateFromParserImpl<uint32_t, int64_t>(filename, format, nthread, verbose);
-  default:
-    LOG(FATAL) << "Unrecognized TypeInfo: " << treelite::TypeInfoToString(dtype);
-  }
-  return CreateFromParserImpl<float, float>(filename, format, nthread, verbose);
-    // avoid missing value warning
-}
-
-}  // anonymous namespace
 
 namespace treelite {
 
@@ -223,13 +145,6 @@ CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, con
     LOG(FATAL) << "Invalid type for CSRDMatrix: " << TypeInfoToString(type);
   }
   return std::unique_ptr<CSRDMatrix>(nullptr);
-}
-
-std::unique_ptr<CSRDMatrix>
-CSRDMatrix::Create(
-    const char* filename, const char* format, const char* data_type, int nthread, int verbose) {
-  TypeInfo dtype = (data_type ? GetTypeInfoByName(data_type) : TypeInfo::kFloat32);
-  return CreateFromParser(filename, format, dtype, nthread, verbose);
 }
 
 TypeInfo

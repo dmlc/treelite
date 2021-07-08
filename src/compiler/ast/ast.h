@@ -7,7 +7,7 @@
 #ifndef TREELITE_COMPILER_AST_AST_H_
 #define TREELITE_COMPILER_AST_AST_H_
 
-#include <dmlc/optional.h>
+#include <treelite/optional.h>
 #include <treelite/base.h>
 #include <fmt/format.h>
 #include <limits>
@@ -25,8 +25,8 @@ class ASTNode {
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  dmlc::optional<uint64_t> data_count;
-  dmlc::optional<double> sum_hess;
+  optional<uint64_t> data_count;
+  optional<double> sum_hess;
   virtual std::string GetDump() const = 0;
   virtual ~ASTNode() = 0;  // force ASTNode to be abstract class
  protected:
@@ -107,12 +107,12 @@ class ConditionNode : public ASTNode {
     : split_index(split_index), default_left(default_left) {}
   unsigned split_index;
   bool default_left;
-  dmlc::optional<double> gain;
+  optional<double> gain;
 
   std::string GetDump() const override {
     if (gain) {
       return fmt::format("ConditionNode {{ split_index: {}, default_left: {}, gain: {} }}",
-                         split_index, default_left, gain.value());
+                         split_index, default_left, *gain);
     } else {
       return fmt::format("ConditionNode {{ split_index: {}, default_left: {} }}",
                          split_index, default_left);

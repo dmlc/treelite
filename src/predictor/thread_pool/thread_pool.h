@@ -16,6 +16,12 @@
 #else
 #include <sched.h>
 #endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach/mach.h>
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+#endif
 #include "spsc_queue.h"
 
 namespace treelite {

@@ -34,7 +34,6 @@ foreach(lib objtreelite objtreelite_runtime objtreelite_common)
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
   target_link_libraries(${lib} PUBLIC dmlc)
-  target_compile_definitions(${lib} PRIVATE -DDMLC_LOG_CUSTOMIZE)
   if(MSVC)
     target_compile_options(${lib} PRIVATE /MP)
     target_compile_definitions(${lib} PRIVATE -DNOMINMAX)

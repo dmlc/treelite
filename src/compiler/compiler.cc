@@ -5,6 +5,7 @@
  */
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
+#include <treelite/logging.h>
 #include "./ast_native.h"
 #include "./failsafe.h"
 

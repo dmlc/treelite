@@ -6,9 +6,8 @@
  */
 
 #include "./pred_transform.h"
-#include <treelite/gtil.h>
 #include <treelite/tree.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <string>
 #include <unordered_map>
 #include <cmath>

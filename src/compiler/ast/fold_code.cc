@@ -5,8 +5,9 @@
  * \author Hyunsu Cho
  */
 #include <dmlc/registry.h>
-#include <cmath>
+#include <treelite/logging.h>
 #include <limits>
+#include <cmath>
 #include "./builder.h"
 
 namespace treelite {

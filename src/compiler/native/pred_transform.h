@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file pred_transform.h
  * \author Hyunsu Cho
  * \brief template for pred_transform() function in generated C code
@@ -8,7 +8,7 @@
 #ifndef TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 #define TREELITE_COMPILER_NATIVE_PRED_TRANSFORM_H_
 
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <fmt/format.h>
 #include <string>
 #include "./typeinfo_ctypes.h"

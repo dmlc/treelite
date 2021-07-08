@@ -4,6 +4,7 @@
  * \brief Frontend for scikit-learn models
  * \author Hyunsu Cho
  */
+#include <treelite/logging.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <memory>

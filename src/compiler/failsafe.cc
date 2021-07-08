@@ -9,6 +9,7 @@
 #include <treelite/tree.h>
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
+#include <treelite/logging.h>
 #include <fmt/format.h>
 #include <unordered_map>
 #include <set>

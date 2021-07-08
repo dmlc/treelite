@@ -240,6 +240,10 @@ class FailSafeCompilerImpl {
  public:
   explicit FailSafeCompilerImpl(const CompilerParam& param) : param_(param) {}
 
+  CompilerParam QueryParam() const {
+    return param_;
+  }
+
   CompiledModel Compile(const Model& model_ptr) {
     CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
           && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
@@ -416,6 +420,11 @@ FailSafeCompiler::FailSafeCompiler(const CompilerParam& param)
 CompiledModel
 FailSafeCompiler::Compile(const Model& model) {
   return pimpl_->Compile(model);
+}
+
+CompilerParam
+FailSafeCompiler::QueryParam() const {
+  return pimpl_->QueryParam();
 }
 
 }  // namespace compiler

@@ -52,13 +52,13 @@ add_library(RapidJSON::rapidjson ALIAS rapidjson)
 
 # Google C++ tests
 if(BUILD_CPP_TEST)
-  find_package(GTest CONFIG)
+  find_package(GTest 1.11.0 CONFIG)
   if(NOT GTEST_FOUND)
     message(STATUS "Did not find Google Test in the system root. Fetching Google Test now...")
     FetchContent_Declare(
       googletest
       GIT_REPOSITORY https://github.com/google/googletest.git
-      GIT_TAG        release-1.10.0
+      GIT_TAG        release-1.11.0
     )
     FetchContent_MakeAvailable(googletest)
     add_library(GTest::GTest ALIAS gtest)

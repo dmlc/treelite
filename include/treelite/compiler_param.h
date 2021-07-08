@@ -7,7 +7,6 @@
 #ifndef TREELITE_COMPILER_PARAM_H_
 #define TREELITE_COMPILER_PARAM_H_
 
-#include <dmlc/parameter.h>
 #include <string>
 #include <limits>
 
@@ -15,7 +14,7 @@ namespace treelite {
 namespace compiler {
 
 /*! \brief parameters for tree compiler */
-struct CompilerParam : public dmlc::Parameter<CompilerParam> {
+struct CompilerParam {
   /*!
   * \defgroup compiler_param
   * parameters for tree compiler
@@ -49,24 +48,7 @@ struct CompilerParam : public dmlc::Parameter<CompilerParam> {
   int dump_array_as_elf;
   /*! \} */
 
-  // declare parameters
-  DMLC_DECLARE_PARAMETER(CompilerParam) {
-    DMLC_DECLARE_FIELD(annotate_in).set_default("NULL")
-      .describe("Name of model annotation file");
-    DMLC_DECLARE_FIELD(quantize).set_lower_bound(0).set_default(0)
-      .describe("whether to quantize threshold points (0: no, >0: yes)");
-    DMLC_DECLARE_FIELD(parallel_comp).set_lower_bound(0).set_default(0)
-      .describe("option to enable parallel compilation;"
-                "if set to nonzero, the trees will be evely distributed"
-                "into [parallel_comp] files.");
-    DMLC_DECLARE_FIELD(verbose).set_default(0)
-      .describe("if >0, produce extra messages");
-    DMLC_DECLARE_FIELD(native_lib_name).set_default("predictor");
-    DMLC_DECLARE_FIELD(code_folding_req)
-       .set_default(std::numeric_limits<double>::infinity())
-       .set_lower_bound(0);
-    DMLC_DECLARE_FIELD(dump_array_as_elf).set_lower_bound(0).set_default(0);
-  }
+  static CompilerParam ParseFromJSON(const char* param_json_str);
 };
 
 }  // namespace compiler

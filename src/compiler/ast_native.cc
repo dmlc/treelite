@@ -137,6 +137,10 @@ class ASTNativeCompilerImpl {
     });
   }
 
+  CompilerParam QueryParam() const {
+    return param_;
+  }
+
  private:
   CompilerParam param_;
   int num_feature_;
@@ -708,6 +712,11 @@ ASTNativeCompiler::ASTNativeCompiler(const CompilerParam& param)
 CompiledModel
 ASTNativeCompiler::Compile(const Model &model) {
   return pimpl_->Compile(model);
+}
+
+CompilerParam
+ASTNativeCompiler::QueryParam() const {
+  return pimpl_->QueryParam();
 }
 
 }  // namespace compiler

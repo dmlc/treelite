@@ -12,6 +12,7 @@
 #include <dmlc/logging.h>
 #include <limits>
 #include <vector>
+#include <cmath>
 #include <cstddef>
 #include "./pred_transform.h"
 

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api_runtime.cc
  * \author Hyunsu Cho
  * \brief C API of treelite (runtime portion)
@@ -8,7 +8,7 @@
 #include <treelite/predictor.h>
 #include <treelite/c_api_runtime.h>
 #include <treelite/c_api_error.h>
-#include <dmlc/thread_local.h>
+#include <treelite/thread_local.h>
 #include <string>
 #include <cstring>
 
@@ -23,8 +23,7 @@ struct TreeliteRuntimeAPIThreadLocalEntry {
 };
 
 // thread-local store for returning strings
-using TreeliteRuntimeAPIThreadLocalStore
-  = dmlc::ThreadLocalStore<TreeliteRuntimeAPIThreadLocalEntry>;
+using TreeliteRuntimeAPIThreadLocalStore = ThreadLocalStore<TreeliteRuntimeAPIThreadLocalEntry>;
 
 }  // anonymous namespace
 

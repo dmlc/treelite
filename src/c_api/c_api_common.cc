@@ -1,11 +1,11 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api_common.cc
  * \author Hyunsu Cho
  * \brief C API of treelite (this file is used by both runtime and main package)
  */
 
-#include <dmlc/thread_local.h>
+#include <treelite/thread_local.h>
 #include <treelite/logging.h>
 #include <treelite/data.h>
 #include <treelite/c_api_common.h>
@@ -20,22 +20,12 @@ struct TreeliteAPIThreadLocalEntry {
 };
 
 // define threadlocal store for returning information
-using TreeliteAPIThreadLocalStore
-  = dmlc::ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
+using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
 
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
   registry->Register(callback);
-  API_END();
-}
-
-int TreeliteDMatrixCreateFromFile(
-    const char* path, const char* format, const char* data_type, int nthread, int verbose,
-    DMatrixHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<DMatrix> mat = CSRDMatrix::Create(path, format, data_type, nthread, verbose);
-  *out = static_cast<DMatrixHandle>(mat.release());
   API_END();
 }
 

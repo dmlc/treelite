@@ -7,41 +7,13 @@ import numpy as np
 import treelite
 import treelite_runtime
 from treelite.contrib import _libext
-from treelite.util import has_sklearn
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
+    ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, \
+    ExtraTreesRegressor
+from sklearn.datasets import load_iris, load_breast_cancer, load_boston
 from .util import os_compatible_toolchains
 
 
-if has_sklearn():
-    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
-        ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, \
-        ExtraTreesRegressor
-    from sklearn.datasets import load_iris, load_breast_cancer, load_boston
-else:
-    class RandomForestClassifier:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-    class RandomForestRegressor:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-    class GradientBoostingClassifier:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-    class GradientBoostingRegressor:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-    class ExtraTreesClassifier:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-    class ExtraTreesRegressor:  # pylint: disable=missing-class-docstring, R0903
-        pass
-
-
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
@@ -86,7 +58,6 @@ def test_skl_converter_multiclass_classifier(tmpdir, import_method, clazz, toolc
     np.testing.assert_almost_equal(out_prob, expected_prob)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestClassifier, ExtraTreesClassifier,
                                    GradientBoostingClassifier])
@@ -130,7 +101,6 @@ def test_skl_converter_binary_classifier(tmpdir, import_method, clazz, toolchain
     np.testing.assert_almost_equal(out_prob, expected_prob)
 
 
-@pytest.mark.skipif(not has_sklearn(), reason='Needs scikit-learn')
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('clazz', [RandomForestRegressor, ExtraTreesRegressor,
                                    GradientBoostingRegressor])

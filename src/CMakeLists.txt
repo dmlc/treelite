@@ -114,6 +114,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
     ${PROJECT_SOURCE_DIR}/include/treelite/optional.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h
 )

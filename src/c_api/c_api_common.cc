@@ -1,11 +1,11 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api_common.cc
  * \author Hyunsu Cho
  * \brief C API of treelite (this file is used by both runtime and main package)
  */
 
-#include <dmlc/thread_local.h>
+#include <treelite/thread_local.h>
 #include <treelite/logging.h>
 #include <treelite/data.h>
 #include <treelite/c_api_common.h>
@@ -20,8 +20,7 @@ struct TreeliteAPIThreadLocalEntry {
 };
 
 // define threadlocal store for returning information
-using TreeliteAPIThreadLocalStore
-  = dmlc::ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
+using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
 
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();

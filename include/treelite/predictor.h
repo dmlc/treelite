@@ -7,12 +7,14 @@
 #ifndef TREELITE_PREDICTOR_H_
 #define TREELITE_PREDICTOR_H_
 
+#include <dmlc/common.h>
 #include <dmlc/logging.h>
 #include <treelite/typeinfo.h>
 #include <treelite/c_api_runtime.h>
 #include <treelite/data.h>
 #include <string>
 #include <memory>
+#include <mutex>
 #include <cstdint>
 
 namespace treelite {

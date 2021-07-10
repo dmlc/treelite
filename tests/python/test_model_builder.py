@@ -7,6 +7,7 @@ import numpy as np
 import treelite
 import treelite_runtime
 from treelite.contrib import _libext
+from sklearn.datasets import load_svmlight_file
 from .metadata import dataset_db
 from .util import os_compatible_toolchains, check_predictor
 
@@ -89,7 +90,9 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_t
 
     annotation_path = os.path.join(tmpdir, 'annotation.json')
     if use_annotation:
-        dtrain = treelite_runtime.DMatrix(dataset_db['mushroom'].dtrain, dtype='float32')
+        dtrain = treelite_runtime.DMatrix(
+            load_svmlight_file(dataset_db['mushroom'].dtrain, zero_based=True)[0],
+            dtype='float32')
         annotator = treelite.Annotator()
         annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
         annotator.save(path=annotation_path)

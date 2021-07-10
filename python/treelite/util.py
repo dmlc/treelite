@@ -64,15 +64,6 @@ def log_info(filename, linenum, msg):
     print(f'[{time.strftime("%X")}] {filename}:{linenum}: {msg}')
 
 
-def has_sklearn():
-    """Check whether scikit-learn is available"""
-    try:
-        import sklearn  # pylint: disable=unused-import
-        return True
-    except ImportError:
-        return False
-
-
 def type_info_to_ctypes_type(type_info):
     """Obtain ctypes type corresponding to a given TypeInfo"""
     return _CTYPES_TYPE_TABLE[type_info]

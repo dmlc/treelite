@@ -16,6 +16,7 @@
 #include <treelite/tree.h>
 #include <treelite/math.h>
 #include <treelite/gtil.h>
+#include <dmlc/io.h>
 #include <memory>
 #include <algorithm>
 

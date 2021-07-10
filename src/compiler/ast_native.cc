@@ -7,7 +7,6 @@
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
 #include <treelite/annotator.h>
-#include <dmlc/io.h>
 #include <fmt/format.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>

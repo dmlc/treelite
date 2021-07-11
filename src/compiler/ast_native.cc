@@ -81,9 +81,8 @@ class ASTNativeCompiler : public Compiler {
     }
     if (param.annotate_in != "NULL") {
       BranchAnnotator annotator;
-      FILE* fi = std::fopen(param.annotate_in.c_str(), "r");
+      std::ifstream fi(param.annotate_in.c_str());
       annotator.Load(fi);
-      std::fclose(fi);
       const auto annotation = annotator.Get();
       builder.LoadDataCounts(annotation);
       LOG(INFO) << "Loading node frequencies from `"

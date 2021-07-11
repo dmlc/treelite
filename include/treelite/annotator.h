@@ -9,6 +9,8 @@
 
 #include <treelite/tree.h>
 #include <treelite/data.h>
+#include <istream>
+#include <ostream>
 #include <vector>
 #include <cstdio>
 #include <cstdint>
@@ -29,14 +31,14 @@ class BranchAnnotator {
   void Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose);
   /*!
    * \brief load branch annotation from a JSON file
-   * \param fp input stream
+   * \param fi input stream
    */
-  void Load(FILE* fp);
+  void Load(std::istream& fi);
   /*!
    * \brief save branch annotation to a JSON file
-   * \param fp output stream
+   * \param fo output stream
    */
-  void Save(FILE* fp) const;
+  void Save(std::ostream& fo) const;
   /*!
    * \brief fetch branch annotation.
    * Usage example:

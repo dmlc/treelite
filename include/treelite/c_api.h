@@ -87,7 +87,7 @@ TREELITE_DLL int TreeliteCompilerCreateV2(const char* name, const char* params_j
  *
  * Usage example:
  * \code
- *   TreeliteCompilerGenerateCodeV2(compiler, model, 1, "./my/model");
+ *   TreeliteCompilerGenerateCodeV2(compiler, model, "./my/model");
  *   // files to generate: ./my/model/header.h, ./my/model/main.c
  *   // if parallel compilation is enabled:
  *   // ./my/model/header.h, ./my/model/main.c, ./my/model/tu0.c,

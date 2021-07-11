@@ -9,8 +9,8 @@
 #include <treelite/annotator.h>
 #include <treelite/math.h>
 #include <treelite/omp.h>
-#include <rapidjson/filereadstream.h>
-#include <rapidjson/filewritestream.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/document.h>
 #include <limits>
@@ -242,10 +242,8 @@ BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat, int nthread, 
 }
 
 void
-BranchAnnotator::Load(FILE* fp) {
-  CHECK(fp) << "Invalid file stream";
-  char read_buffer[65536];
-  rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
+BranchAnnotator::Load(std::istream& fi) {
+  rapidjson::IStreamWrapper is(fi);
 
   rapidjson::Document doc;
   doc.ParseStream(is);
@@ -263,11 +261,9 @@ BranchAnnotator::Load(FILE* fp) {
 }
 
 void
-BranchAnnotator::Save(FILE* fp) const {
-  CHECK(fp) << "Invalid file stream";
-  char write_buffer[65536];
-  rapidjson::FileWriteStream os(fp, write_buffer, sizeof(write_buffer));
-  rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+BranchAnnotator::Save(std::ostream& fo) const {
+  rapidjson::OStreamWrapper os(fo);
+  rapidjson::Writer<rapidjson::OStreamWrapper> writer(os);
 
   writer.StartArray();
   for (const auto& node_cnt : counts_) {

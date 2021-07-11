@@ -19,6 +19,7 @@
 #include <treelite/logging.h>
 #include <memory>
 #include <algorithm>
+#include <fstream>
 #include <cstdio>
 
 using namespace treelite;
@@ -39,9 +40,8 @@ int TreeliteAnnotationSave(AnnotationHandle handle,
                            const char* path) {
   API_BEGIN();
   const BranchAnnotator* annotator = static_cast<BranchAnnotator*>(handle);
-  FILE* fo = std::fopen(path, "w");
+  std::ofstream fo(path);
   annotator->Save(fo);
-  std::fclose(fo);
   API_END();
 }
 

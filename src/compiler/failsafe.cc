@@ -240,10 +240,6 @@ class FailSafeCompilerImpl {
  public:
   explicit FailSafeCompilerImpl(const CompilerParam& param) : param_(param) {}
 
-  CompilerParam QueryParam() const {
-    return param_;
-  }
-
   CompiledModel Compile(const Model& model_ptr) {
     CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
           && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
@@ -384,6 +380,10 @@ class FailSafeCompilerImpl {
     }
     cm.files = std::move(files_);
     return cm;
+  }
+
+  CompilerParam QueryParam() const {
+    return param_;
   }
 
  private:

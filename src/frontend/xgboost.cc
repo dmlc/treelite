@@ -44,15 +44,6 @@ namespace {
 
 typedef float bst_float;
 
-template <typename T>
-inline T* BeginPtr(std::vector<T>& vec) {  // NOLINT(*)
-  if (vec.empty()) {
-    return nullptr;
-  } else {
-    return &vec[0];
-  }
-}
-
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
  public:
@@ -308,14 +299,14 @@ class XGBTree {
   inline void Load(PeekableInputStream* fi) {
     CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
      << "Ill-formed XGBoost model file: can't read TreeParam";
+    CHECK_GT(param.num_nodes, 0)
+     << "Ill-formed XGBoost model file: a tree can't be empty";
     nodes.resize(param.num_nodes);
     stats.resize(param.num_nodes);
-    CHECK_NE(param.num_nodes, 0)
-     << "Ill-formed XGBoost model file: a tree can't be empty";
-    CHECK_EQ(fi->Read(BeginPtr(nodes), sizeof(Node) * nodes.size()),
+    CHECK_EQ(fi->Read(nodes.data(), sizeof(Node) * nodes.size()),
              sizeof(Node) * nodes.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
-    CHECK_EQ(fi->Read(BeginPtr(stats), sizeof(NodeStat) * stats.size()),
+    CHECK_EQ(fi->Read(stats.data(), sizeof(NodeStat) * stats.size()),
              sizeof(NodeStat) * stats.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     if (param.size_leaf_vector != 0) {
@@ -383,6 +374,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
 
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
+  CHECK_GE(gbm_param_.num_trees, 0)
+    << "Invalid XGBoost model file: num_trees must be 0 or greater";
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
@@ -391,8 +384,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   // tree_info is currently unused.
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
-  if (gbm_param_.num_trees != 0) {
-    CHECK_EQ(fp->Read(BeginPtr(tree_info), sizeof(int32_t) * tree_info.size()),
+  if (gbm_param_.num_trees > 0) {
+    CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
              sizeof(int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.

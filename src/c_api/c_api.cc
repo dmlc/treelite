@@ -19,6 +19,8 @@
 #include <dmlc/io.h>
 #include <memory>
 #include <algorithm>
+#include <fstream>
+#include <cstdio>
 
 using namespace treelite;
 
@@ -51,8 +53,8 @@ int TreeliteAnnotationSave(AnnotationHandle handle,
                            const char* path) {
   API_BEGIN();
   const BranchAnnotator* annotator = static_cast<BranchAnnotator*>(handle);
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(path, "w"));
-  annotator->Save(fo.get());
+  std::ofstream fo(path);
+  annotator->Save(fo);
   API_END();
 }
 

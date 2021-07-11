@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file lightgbm.cc
  * \brief Frontend for LightGBM model
  * \author Hyunsu Cho
@@ -11,21 +11,22 @@
 #include <unordered_map>
 #include <limits>
 #include <queue>
+#include <string>
+#include <fstream>
 
 namespace {
 
-inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi);
+inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 }  // anonymous namespace
 
 namespace treelite {
 namespace frontend {
 
-DMLC_REGISTRY_FILE_TAG(lightgbm);
 
-std::unique_ptr<treelite::Model> LoadLightGBMModel(const char *filename) {
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  return ParseStream(fi.get());
+std::unique_ptr<treelite::Model> LoadLightGBMModel(const char* filename) {
+  std::ifstream fi(filename, std::ios::in);
+  return ParseStream(fi);
 }
 
 }  // namespace frontend
@@ -212,48 +213,17 @@ inline std::vector<uint32_t> BitsetToList(const uint32_t* bits,
   return result;
 }
 
-inline std::vector<std::string> LoadText(dmlc::Stream* fi) {
-  const size_t bufsize = 16 * 1024 * 1024;  // 16 MB
-  std::vector<char> buf(bufsize);
-
+inline std::vector<std::string> LoadText(std::istream& fi) {
   std::vector<std::string> lines;
-
-  size_t byte_read;
-
-  std::string leftover = "";  // carry over between buffers
-  while ((byte_read = fi->Read(&buf[0], sizeof(char) * bufsize)) > 0) {
-    size_t i = 0;
-    size_t tok_begin = 0;
-    while (i < byte_read) {
-      if (buf[i] == '\n' || buf[i] == '\r') {  // delimiter for lines
-        if (tok_begin == 0 && leftover.length() + i > 0) {
-          // first line in buffer
-          lines.push_back(leftover + std::string(&buf[0], i));
-          leftover = "";
-        } else {
-          lines.emplace_back(&buf[tok_begin], i - tok_begin);
-        }
-        // skip all delimiters afterwards
-        for (; (buf[i] == '\n' || buf[i] == '\r') && i < byte_read; ++i) {}
-        tok_begin = i;
-      } else {
-        ++i;
-      }
-    }
-    // left-over string
-    leftover += std::string(&buf[tok_begin], byte_read - tok_begin);
-  }
-
-  if (!leftover.empty()) {
-    LOG(INFO)
-      << "Warning: input file was not terminated with end-of-line character.";
-    lines.push_back(leftover);
+  std::string line;
+  while (std::getline(fi, line)) {
+    lines.push_back(line);
   }
 
   return lines;
 }
 
-inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
+inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::vector<LGBTree> lgb_trees_;
   int max_feature_idx_;
   int num_class_;
@@ -450,7 +420,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
   }
-  model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+  model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
   model->task_param.num_class = num_class_;
   model->task_param.leaf_vector_size = 1;
 

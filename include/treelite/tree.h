@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <vector>
 #include <utility>
@@ -26,14 +27,6 @@
 #define _TREELITE_STR(x) __TREELITE_STR(x)
 
 #define TREELITE_MAX_PRED_TRANSFORM_LENGTH 256
-
-/* Foward declarations */
-namespace dmlc {
-
-class Stream;
-float stof(const std::string& value, std::size_t* pos);
-
-}  // namespace dmlc
 
 namespace treelite {
 
@@ -161,7 +154,7 @@ enum class TaskType : uint8_t {
 };
 
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
-struct TaskParameter {
+struct TaskParam {
   enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
   /*! \brief The type of output from each leaf node. */
   OutputType output_type;
@@ -190,7 +183,7 @@ struct TaskParameter {
   unsigned int leaf_vector_size;
 };
 
-static_assert(std::is_pod<TaskParameter>::value, "TaskParameter must be POD type");
+static_assert(std::is_pod<TaskParam>::value, "TaskParameter must be POD type");
 
 /*! \brief in-memory representation of a decision tree */
 template <typename ThresholdType, typename LeafOutputType>
@@ -288,6 +281,9 @@ class Tree {
   ContiguousArray<std::size_t> leaf_vector_offset_;
   ContiguousArray<uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
+
+  template <typename WriterType, typename X, typename Y>
+  friend void SerializeTreeToJSON(WriterType& writer, const Tree<X, Y>& tree);
 
   // allocate a new node
   inline int AllocNode();
@@ -562,8 +558,6 @@ class Tree {
     node.gain_ = gain;
     node.gain_present_ = true;
   }
-
-  void ReferenceSerialize(dmlc::Stream* fo) const;
 };
 
 struct ModelParam {
@@ -656,7 +650,7 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void ReferenceSerialize(dmlc::Stream* fo) const = 0;
+  virtual void SerializeToJSON(std::ostream& fo) const = 0;
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();
@@ -676,7 +670,7 @@ class Model {
   /*! \brief whether to average tree outputs */
   bool average_tree_output;
   /*! \brief Group of parameters that are specific to the particular task type */
-  TaskParameter task_param;
+  TaskParam task_param;
   /*! \brief extra parameters */
   ModelParam param;
 
@@ -712,7 +706,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void ReferenceSerialize(dmlc::Stream* fo) const override;
+  void SerializeToJSON(std::ostream& fo) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();
   }

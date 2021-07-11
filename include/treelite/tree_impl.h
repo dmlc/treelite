@@ -296,9 +296,9 @@ ModelParam::InitAllowUnknown(const Container& kwargs) {
                    TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1);
       this->pred_transform[TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1] = '\0';
     } else if (e.first == "sigmoid_alpha") {
-      this->sigmoid_alpha = dmlc::stof(e.second, nullptr);
+      this->sigmoid_alpha = std::stof(e.second, nullptr);
     } else if (e.first == "global_bias") {
-      this->global_bias = dmlc::stof(e.second, nullptr);
+      this->global_bias = std::stof(e.second, nullptr);
     }
   }
   return unknowns;

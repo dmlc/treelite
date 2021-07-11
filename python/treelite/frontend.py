@@ -5,6 +5,7 @@ import ctypes
 import collections
 import shutil
 import os
+import json
 from tempfile import TemporaryDirectory
 
 import numpy as np
@@ -304,39 +305,18 @@ class Model:
         ``./model/header.h``, ``./my/model/main.c``
         """
         compiler_handle = ctypes.c_void_p()
-        _check_call(_LIB.TreeliteCompilerCreate(c_str(compiler),
-                                                ctypes.byref(compiler_handle)))
         _params = dict(params) if isinstance(params, list) else params
-        self._set_compiler_param(compiler_handle, _params or {})
-        _check_call(_LIB.TreeliteCompilerGenerateCode(
+        if verbose and _params:
+            _params['verbose'] = 1
+        params_json_str = json.dumps(_params) if _params else '{}'
+        _check_call(_LIB.TreeliteCompilerCreateV2(c_str(compiler),
+                                                  c_str(params_json_str),
+                                                  ctypes.byref(compiler_handle)))
+        _check_call(_LIB.TreeliteCompilerGenerateCodeV2(
             compiler_handle,
             self.handle,
-            ctypes.c_int(1 if verbose else 0),
             c_str(dirpath)))
         _check_call(_LIB.TreeliteCompilerFree(compiler_handle))
-
-    @staticmethod
-    def _set_compiler_param(compiler_handle, params, value=None):
-        """
-        Set parameter(s) for compiler
-
-        Parameters
-        ----------
-        params: :py:class:`dict <python:dict>` / :py:class:`list <python:list>` / \
-                :py:class:`str <python:str>`
-            list of key-alue pairs, dict or simply string key
-        compiler_handle: object of type `ctypes.c_void_p`
-            handle to compiler
-        value: optional
-            value of the specified parameter, when params is a single string
-        """
-        if isinstance(params, collections.abc.Mapping):
-            params = params.items()
-        elif isinstance(params, (str,)) and value is not None:
-            params = [(params, value)]
-        for key, val in params:
-            _check_call(_LIB.TreeliteCompilerSetParam(compiler_handle, c_str(key),
-                                                      c_str(str(val))))
 
     @classmethod
     def from_xgboost(cls, booster):

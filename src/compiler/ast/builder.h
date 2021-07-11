@@ -13,6 +13,7 @@
 #include <ostream>
 #include <utility>
 #include <memory>
+#include <cstdint>
 #include "./ast.h"
 
 namespace treelite {
@@ -58,7 +59,7 @@ class ASTBuilder {
   /* \brief replace split thresholds with integers */
   void QuantizeThresholds();
   /* \brief Load data counts from annotation file */
-  void LoadDataCounts(const std::vector<std::vector<size_t>>& counts);
+  void LoadDataCounts(const std::vector<std::vector<uint64_t>>& counts);
   /*
    * \brief Get a text representation of AST
    */

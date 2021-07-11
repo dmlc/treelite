@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file annotator.cc
  * \author Hyunsu Cho
  * \brief Branch annotation tools
@@ -8,7 +8,11 @@
 #include <treelite/annotator.h>
 #include <treelite/math.h>
 #include <treelite/omp.h>
-#include <dmlc/json.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/document.h>
+#include <dmlc/io.h>
 #include <limits>
 #include <cstdint>
 
@@ -22,7 +26,7 @@ union Entry {
 
 template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-               const Entry<ElementType>* data, int nid, size_t* out_counts) {
+               const Entry<ElementType>* data, int nid, uint64_t* out_counts) {
   ++out_counts[nid];
   if (!tree.IsLeaf(nid)) {
     const unsigned split_index = tree.SplitIndex(nid);
@@ -57,7 +61,7 @@ void Traverse_(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
 
 template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-              const Entry<ElementType>* data, size_t* out_counts) {
+              const Entry<ElementType>* data, uint64_t* out_counts) {
   Traverse_(tree, data, 0, out_counts);
 }
 
@@ -65,7 +69,7 @@ template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
     const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, size_t* counts_tloc) {
+    const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
@@ -102,7 +106,7 @@ template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
     const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, size_t* counts_tloc) {
+    const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   CHECK_LE(rbegin, rend);
@@ -135,7 +139,7 @@ class ComputeBranchLoopDispatcherWithDenseDMatrix {
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
       const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
-      const size_t* count_row_ptr, size_t* counts_tloc) {
+      const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
     CHECK(dmat_) << "Dangling data matrix reference detected";
     ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
@@ -149,7 +153,7 @@ class ComputeBranchLoopDispatcherWithCSRDMatrix {
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
       const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
-      const size_t* count_row_ptr, size_t* counts_tloc) {
+      const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
     CHECK(dmat_) << "Dangling data matrix reference detected";
     ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
@@ -160,7 +164,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                               const treelite::DMatrix* dmat, size_t rbegin,
                               size_t rend, int nthread, const size_t* count_row_ptr,
-                              size_t* counts_tloc) {
+                              uint64_t* counts_tloc) {
   switch (dmat->GetType()) {
   case treelite::DMatrixType::kDense: {
     treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithDenseDMatrix>(
@@ -188,9 +192,9 @@ inline void
 AnnotateImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
     const treelite::DMatrix* dmat, int nthread, int verbose,
-    std::vector<std::vector<size_t>>* out_counts) {
-  std::vector<size_t> new_counts;
-  std::vector<size_t> counts_tloc;
+    std::vector<std::vector<uint64_t>>* out_counts) {
+  std::vector<uint64_t> new_counts;
+  std::vector<uint64_t> counts_tloc;
   std::vector<size_t> count_row_ptr;
 
   count_row_ptr = {0};
@@ -223,7 +227,7 @@ AnnotateImpl(
   }
 
   // change layout of counts
-  std::vector<std::vector<size_t>>& counts = *out_counts;
+  std::vector<std::vector<uint64_t>>& counts = *out_counts;
   for (size_t i = 0; i < ntree; ++i) {
     counts.emplace_back(&new_counts[count_row_ptr[i]], &new_counts[count_row_ptr[i + 1]]);
   }
@@ -233,22 +237,43 @@ void
 BranchAnnotator::Annotate(const Model& model, const DMatrix* dmat, int nthread, int verbose) {
   TypeInfo threshold_type = model.GetThresholdType();
   model.Dispatch([this, dmat, nthread, verbose, threshold_type](auto& handle) {
-    AnnotateImpl(handle, dmat, nthread, verbose, &this->counts);
+    AnnotateImpl(handle, dmat, nthread, verbose, &this->counts_);
   });
 }
 
 void
-BranchAnnotator::Load(dmlc::Stream* fi) {
-  dmlc::istream is(fi);
-  std::unique_ptr<dmlc::JSONReader> reader(new dmlc::JSONReader(&is));
-  reader->Read(&counts);
+BranchAnnotator::Load(std::istream& fi) {
+  rapidjson::IStreamWrapper is(fi);
+
+  rapidjson::Document doc;
+  doc.ParseStream(is);
+
+  std::string err_msg = "JSON file must contain a list of lists of integers";
+  CHECK(doc.IsArray()) << err_msg;
+  counts_.clear();
+  for (const auto& node_cnt : doc.GetArray()) {
+    CHECK(node_cnt.IsArray()) << err_msg;
+    counts_.emplace_back();
+    for (const auto& e : node_cnt.GetArray()) {
+      counts_.back().push_back(e.GetUint64());
+    }
+  }
 }
 
 void
-BranchAnnotator::Save(dmlc::Stream* fo) const {
-  dmlc::ostream os(fo);
-  std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&os));
-  writer->Write(counts);
+BranchAnnotator::Save(std::ostream& fo) const {
+  rapidjson::OStreamWrapper os(fo);
+  rapidjson::Writer<rapidjson::OStreamWrapper> writer(os);
+
+  writer.StartArray();
+  for (const auto& node_cnt : counts_) {
+    writer.StartArray();
+    for (auto e : node_cnt) {
+      writer.Uint64(e);
+    }
+    writer.EndArray();
+  }
+  writer.EndArray();
 }
 
 }  // namespace treelite

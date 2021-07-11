@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 import numpy as np
 import treelite_runtime
+from sklearn.datasets import load_svmlight_file
 from treelite.contrib import _libext
 from .metadata import dataset_db
 
@@ -55,7 +56,9 @@ def does_not_raise():
 
 def check_predictor(predictor, dataset):
     """Check whether a predictor produces correct predictions for a given dataset"""
-    dmat = treelite_runtime.DMatrix(dataset_db[dataset].dtest, dtype=dataset_db[dataset].dtype)
+    dmat = treelite_runtime.DMatrix(
+        load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)[0],
+        dtype=dataset_db[dataset].dtype)
     out_margin = predictor.predict(dmat, pred_margin=True)
     out_prob = predictor.predict(dmat)
     check_predictor_output(dataset, dmat.shape, out_margin, out_prob)

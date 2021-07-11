@@ -9,6 +9,7 @@
 #include <treelite/tree.h>
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
+#include <dmlc/logging.h>
 #include <fmt/format.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -381,8 +382,8 @@ class FailSafeCompilerImpl {
     return cm;
   }
 
-  CompilerParam QueryParam() const override {
-    return param;
+  CompilerParam QueryParam() const {
+    return param_;
   }
 
  private:
@@ -421,6 +422,11 @@ FailSafeCompiler::~FailSafeCompiler() = default;
 CompiledModel
 FailSafeCompiler::Compile(const Model& model) {
   return pimpl_->Compile(model);
+}
+
+CompilerParam
+FailSafeCompiler::QueryParam() const {
+  return pimpl_->QueryParam();
 }
 
 }  // namespace compiler

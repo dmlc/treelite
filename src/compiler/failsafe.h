@@ -23,6 +23,7 @@ class FailSafeCompiler : public Compiler {
   explicit FailSafeCompiler(const CompilerParam& param);
   virtual ~FailSafeCompiler();
   CompiledModel Compile(const Model& model) override;
+  CompilerParam QueryParam() const override;
  private:
   std::unique_ptr<FailSafeCompilerImpl> pimpl_;
 };

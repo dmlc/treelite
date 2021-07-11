@@ -137,8 +137,8 @@ class ASTNativeCompilerImpl {
     });
   }
 
-  CompilerParam QueryParam() const override {
-    return param;
+  CompilerParam QueryParam() const {
+    return param_;
   }
 
  private:
@@ -714,6 +714,11 @@ ASTNativeCompiler::~ASTNativeCompiler() = default;
 CompiledModel
 ASTNativeCompiler::Compile(const Model &model) {
   return pimpl_->Compile(model);
+}
+
+CompilerParam
+ASTNativeCompiler::QueryParam() const {
+  return pimpl_->QueryParam();
 }
 
 }  // namespace compiler

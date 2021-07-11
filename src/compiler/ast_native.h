@@ -22,6 +22,7 @@ class ASTNativeCompiler : public Compiler {
   explicit ASTNativeCompiler(const CompilerParam& param);
   virtual ~ASTNativeCompiler();
   CompiledModel Compile(const Model& model) override;
+  CompilerParam QueryParam() const override;
  private:
   std::unique_ptr<ASTNativeCompilerImpl> pimpl_;
 };

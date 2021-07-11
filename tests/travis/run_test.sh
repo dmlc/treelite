@@ -42,7 +42,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
+  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
   ninja install
 
   # Try compiling a sample application

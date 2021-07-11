@@ -61,12 +61,18 @@ class Compiler {
    */
   virtual compiler::CompiledModel Compile(const Model& model) = 0;
   /*!
+   * \brief Query the parameters used to intiailize the compiler
+   * \return parameters used
+   */
+  virtual compiler::CompilerParam QueryParam() const = 0;
+  /*!
    * \brief create a compiler from given name
    * \param name name of compiler
+   * \param param_json_string JSON string representing
    * \return The created compiler
    */
   static Compiler* Create(const std::string& name,
-                          const compiler::CompilerParam& param);
+                          const char* param_json_str);
 };
 
 /*!

@@ -5,22 +5,23 @@
  */
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
-#include <dmlc/registry.h>
+#include <dmlc/logging.h>
 #include <rapidjson/document.h>
 #include <limits>
-
-namespace dmlc {
-DMLC_REGISTRY_ENABLE(::treelite::CompilerReg);
-}  // namespace dmlc
+#include "./ast_native.h"
+#include "./failsafe.h"
 
 namespace treelite {
 Compiler* Compiler::Create(const std::string& name, const char* param_json_str) {
   compiler::CompilerParam param = compiler::CompilerParam::ParseFromJSON(param_json_str);
-  auto *e = ::dmlc::Registry< ::treelite::CompilerReg>::Get()->Find(name);
-  if (e == nullptr) {
-    LOG(FATAL) << "Unknown compiler type " << name;
+  if (name == "ast_native") {
+    return new compiler::ASTNativeCompiler(param);
+  } else if (name == "failsafe") {
+    return new compiler::FailSafeCompiler(param);
+  } else {
+    LOG(FATAL) << "Unrecognized compiler '" << name << "'";
+    return nullptr;
   }
-  return (e->body)(param);
 }
 
 namespace compiler {
@@ -75,9 +76,6 @@ CompilerParam::ParseFromJSON(const char* param_json_str) {
   return param;
 }
 
-// List of files that will be force linked in static links.
-DMLC_REGISTRY_LINK_TAG(ast_native);
-DMLC_REGISTRY_LINK_TAG(failsafe);
 }  // namespace compiler
 
 }  // namespace treelite

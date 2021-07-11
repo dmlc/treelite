@@ -1,8 +1,8 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file ast_native.cc
- * \author Hyunsu Cho
  * \brief C code generator
+ * \author Hyunsu Cho
  */
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdint>
+#include "./ast_native.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
 #include "./native/main_template.h"
@@ -39,20 +40,9 @@ using namespace fmt::literals;
 namespace treelite {
 namespace compiler {
 
-DMLC_REGISTRY_FILE_TAG(ast_native);
-
-class ASTNativeCompiler : public Compiler {
+class ASTNativeCompilerImpl {
  public:
-  explicit ASTNativeCompiler(const CompilerParam& param)
-    : param(param) {
-    if (param.verbose > 0) {
-      LOG(INFO) << "Using ASTNativeCompiler";
-    }
-    if (param.dump_array_as_elf > 0) {
-      LOG(INFO) << "Warning: 'dump_array_as_elf' parameter is not applicable "
-                   "for ASTNativeCompiler";
-    }
-  }
+  explicit ASTNativeCompilerImpl(const CompilerParam& param) : param_(param) {}
 
   template <typename ThresholdType, typename LeafOutputType>
   CompiledModel CompileImpl(const ModelImpl<ThresholdType, LeafOutputType>& model) {
@@ -74,22 +64,22 @@ class ASTNativeCompiler : public Compiler {
 
     ASTBuilder<ThresholdType, LeafOutputType> builder;
     builder.BuildAST(model);
-    if (builder.FoldCode(param.code_folding_req) || param.quantize > 0) {
+    if (builder.FoldCode(param_.code_folding_req) || param_.quantize > 0) {
       // is_categorical[i] : is i-th feature categorical?
       array_is_categorical_
         = RenderIsCategoricalArray(builder.GenerateIsCategoricalArray());
     }
-    if (param.annotate_in != "NULL") {
+    if (param_.annotate_in != "NULL") {
       BranchAnnotator annotator;
-      std::ifstream fi(param.annotate_in.c_str());
+      std::ifstream fi(param_.annotate_in.c_str());
       annotator.Load(fi);
       const auto annotation = annotator.Get();
       builder.LoadDataCounts(annotation);
       LOG(INFO) << "Loading node frequencies from `"
-                << param.annotate_in << "'";
+                << param_.annotate_in << "'";
     }
-    builder.Split(param.parallel_comp);
-    if (param.quantize > 0) {
+    builder.Split(param_.parallel_comp);
+    if (param_.quantize > 0) {
       builder.QuantizeThresholds();
     }
 
@@ -113,7 +103,7 @@ class ASTNativeCompiler : public Compiler {
 
       writer.StartObject();
       writer.Key("target");
-      writer.String(param.native_lib_name.data(), param.native_lib_name.size());
+      writer.String(param_.native_lib_name.data(), param_.native_lib_name.size());
       writer.Key("sources");
       writer.StartArray();
       for (const auto& kv : files_) {
@@ -138,7 +128,7 @@ class ASTNativeCompiler : public Compiler {
     return cm;
   }
 
-  CompiledModel Compile(const Model& model) override {
+  CompiledModel Compile(const Model& model) {
     CHECK(model.GetLeafOutputType() != TypeInfo::kUInt32)
       << "Integer leaf outputs not yet supported";
     this->pred_tranform_func_ = PredTransformFunction("native", model);
@@ -147,12 +137,12 @@ class ASTNativeCompiler : public Compiler {
     });
   }
 
-  CompilerParam QueryParam() const override {
-    return param;
+  CompilerParam QueryParam() const {
+    return param_;
   }
 
  private:
-  CompilerParam param;
+  CompilerParam param_;
   int num_feature_;
   TaskType task_type_;
   TaskParam task_param_;
@@ -255,7 +245,7 @@ class ASTNativeCompiler : public Compiler {
         "predict_function_signature"_a = predict_function_signature,
         "query_functions_prototype"_a = query_functions_prototype,
         "threshold_type"_a = threshold_type,
-        "threshold_type_Node"_a = (param.quantize > 0 ? std::string("int") : threshold_type)),
+        "threshold_type_Node"_a = (param_.quantize > 0 ? std::string("int") : threshold_type)),
       indent);
 
     CHECK_EQ(node->children.size(), 1);
@@ -522,11 +512,11 @@ class ASTNativeCompiler : public Compiler {
 
     std::string output_switch_statement;
     Operator common_comp_op;
-    common_util::RenderCodeFolderArrays<ThresholdType, LeafOutputType>(node, param.quantize, false,
-      "{{ {default_left}, {split_index}, {threshold}, {left_child}, {right_child} }}",
+    common_util::RenderCodeFolderArrays<ThresholdType, LeafOutputType>(node, param_.quantize,
+      false, "{{ {default_left}, {split_index}, {threshold}, {left_child}, {right_child} }}",
       [this](const OutputNode<LeafOutputType>* node) { return RenderOutputStatement(node); },
-      &array_nodes, &array_cat_bitmap, &array_cat_begin,
-      &output_switch_statement, &common_comp_op);
+      &array_nodes, &array_cat_bitmap, &array_cat_begin, &output_switch_statement,
+      &common_comp_op);
     if (!array_nodes.empty()) {
       AppendToBuffer("header.h",
                      fmt::format("extern const struct Node {node_array_name}[];\n",
@@ -576,7 +566,7 @@ class ASTNativeCompiler : public Compiler {
                        "node_array_name"_a = node_array_name,
                        "cat_bitmap_name"_a = cat_bitmap_name,
                        "cat_begin_name"_a = cat_begin_name,
-                       "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                       "data_field"_a = (param_.quantize > 0 ? "qvalue" : "fvalue"),
                        "comp_op"_a = OpName(common_comp_op),
                        "output_switch_statement"_a
                          = output_switch_statement), indent);
@@ -584,7 +574,7 @@ class ASTNativeCompiler : public Compiler {
       AppendToBuffer(dest,
                      fmt::format(native::eval_loop_template_without_categorical_feature,
                        "node_array_name"_a = node_array_name,
-                       "data_field"_a = (param.quantize > 0 ? "qvalue" : "fvalue"),
+                       "data_field"_a = (param_.quantize > 0 ? "qvalue" : "fvalue"),
                        "comp_op"_a = OpName(common_comp_op),
                        "output_switch_statement"_a
                          = output_switch_statement), indent);
@@ -708,10 +698,28 @@ class ASTNativeCompiler : public Compiler {
   }
 };
 
-TREELITE_REGISTER_COMPILER(ASTNativeCompiler, "ast_native")
-.describe("AST-based compiler that produces C code")
-.set_body([](const CompilerParam& param) -> Compiler* {
-    return new ASTNativeCompiler(param);
-  });
+ASTNativeCompiler::ASTNativeCompiler(const CompilerParam& param)
+    : pimpl_(std::make_unique<ASTNativeCompilerImpl>(param)) {
+  if (param.verbose > 0) {
+    LOG(INFO) << "Using ASTNativeCompiler";
+  }
+  if (param.dump_array_as_elf > 0) {
+    LOG(INFO) << "Warning: 'dump_array_as_elf' parameter is not applicable "
+                 "for ASTNativeCompiler";
+  }
+}
+
+ASTNativeCompiler::~ASTNativeCompiler() = default;
+
+CompiledModel
+ASTNativeCompiler::Compile(const Model &model) {
+  return pimpl_->Compile(model);
+}
+
+CompilerParam
+ASTNativeCompiler::QueryParam() const {
+  return pimpl_->QueryParam();
+}
+
 }  // namespace compiler
 }  // namespace treelite

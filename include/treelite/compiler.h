@@ -7,7 +7,6 @@
 #ifndef TREELITE_COMPILER_H_
 #define TREELITE_COMPILER_H_
 
-#include <dmlc/registry.h>
 #include <unordered_map>
 #include <functional>
 #include <memory>
@@ -74,31 +73,6 @@ class Compiler {
   static Compiler* Create(const std::string& name,
                           const char* param_json_str);
 };
-
-/*!
- * \brief Registry entry for compiler
- */
-struct CompilerReg
-    : public dmlc::FunctionRegEntryBase<CompilerReg,
-                  std::function<Compiler* (const compiler::CompilerParam&)> > {
-};
-
-/*!
- * \brief Macro to register compiler.
- *
- * \code
- * // example of registering the simple compiler
- * TREELITE_REGISTER_COMPILER(SimpleCompiler, "simple")
- * .describe("Bare-bones simple compiler")
- * .set_body([]() {
- *     return new SimpleCompiler();
- *   });
- * \endcode
- */
-#define TREELITE_REGISTER_COMPILER(UniqueId, Name)                            \
-  static DMLC_ATTRIBUTE_UNUSED ::treelite::CompilerReg &          \
-  __make_ ## CompilerReg ## _ ## UniqueId ## __ =                \
-      ::dmlc::Registry< ::treelite::CompilerReg>::Get()->__REGISTER__(Name)
 
 }  // namespace treelite
 

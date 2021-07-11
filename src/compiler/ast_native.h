@@ -20,6 +20,7 @@ class ASTNativeCompilerImpl;
 class ASTNativeCompiler : public Compiler {
  public:
   explicit ASTNativeCompiler(const CompilerParam& param);
+  virtual ~ASTNativeCompiler();
   CompiledModel Compile(const Model& model) override;
   CompilerParam QueryParam() const override;
  private:

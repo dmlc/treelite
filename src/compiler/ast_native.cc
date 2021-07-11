@@ -708,6 +708,8 @@ ASTNativeCompiler::ASTNativeCompiler(const CompilerParam& param)
   }
 }
 
+ASTNativeCompiler::~ASTNativeCompiler() = default;
+
 CompiledModel
 ASTNativeCompiler::Compile(const Model &model) {
   return pimpl_->Compile(model);

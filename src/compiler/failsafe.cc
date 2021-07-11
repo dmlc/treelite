@@ -417,6 +417,8 @@ FailSafeCompiler::FailSafeCompiler(const CompilerParam& param)
   }
 }
 
+FailSafeCompiler::~FailSafeCompiler() = default;
+
 CompiledModel
 FailSafeCompiler::Compile(const Model& model) {
   return pimpl_->Compile(model);

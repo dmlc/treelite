@@ -21,6 +21,7 @@ class FailSafeCompilerImpl;
 class FailSafeCompiler : public Compiler {
  public:
   explicit FailSafeCompiler(const CompilerParam& param);
+  virtual ~FailSafeCompiler();
   CompiledModel Compile(const Model& model) override;
   CompilerParam QueryParam() const override;
  private:

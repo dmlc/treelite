@@ -27,22 +27,22 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
                ASTBuilder<ThresholdType, LeafOutputType>* builder) {
   if (node->node_id == 0) {
     if (node->data_count) {
-      context->log_root_data_count = std::log(node->data_count.value());
+      context->log_root_data_count = std::log(*node->data_count);
     } else {
       context->log_root_data_count = std::numeric_limits<double>::quiet_NaN();
     }
     if (node->sum_hess) {
-      context->log_root_sum_hess = std::log(node->sum_hess.value());
+      context->log_root_sum_hess = std::log(*node->sum_hess);
     } else {
       context->log_root_sum_hess = std::numeric_limits<double>::quiet_NaN();
     }
   }
 
   if (   (node->data_count && !std::isnan(context->log_root_data_count)
-          && context->log_root_data_count - std::log(node->data_count.value())
+          && context->log_root_data_count - std::log(*node->data_count)
              >= context->magnitude_req)
       || (node->sum_hess && !std::isnan(context->log_root_sum_hess)
-          && context->log_root_sum_hess - std::log(node->sum_hess.value())
+          && context->log_root_sum_hess - std::log(*node->sum_hess)
              >= context->magnitude_req) ) {
     // fold the subtree whose root is [node]
     ASTNode* parent_node = node->parent;

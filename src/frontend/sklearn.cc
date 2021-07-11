@@ -79,7 +79,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
     model->average_tree_output = true;
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = 1;
     model->task_param.leaf_vector_size = 1;
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
@@ -104,7 +104,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierBinary(
     model->average_tree_output = true;
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = 1;
     model->task_param.leaf_vector_size = 1;
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
@@ -133,7 +133,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierMulticlass(
     model->average_tree_output = true;
     model->task_type = treelite::TaskType::kMultiClfProbDistLeaf;
     model->task_param.grove_per_class = false;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = n_classes;
     model->task_param.leaf_vector_size = n_classes;
     std::strncpy(model->param.pred_transform, "identity_multiclass",
@@ -183,7 +183,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
     model->average_tree_output = false;
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = 1;
     model->task_param.leaf_vector_size = 1;
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
@@ -209,7 +209,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(
     model->average_tree_output = false;
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = 1;
     model->task_param.leaf_vector_size = 1;
     std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
@@ -235,7 +235,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass
     model->average_tree_output = false;
     model->task_type = treelite::TaskType::kMultiClfGrovePerClass;
     model->task_param.grove_per_class = true;
-    model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = n_classes;
     model->task_param.leaf_vector_size = 1;
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file annotator.h
  * \author Hyunsu Cho
  * \brief Branch annotation tools
@@ -9,7 +9,11 @@
 
 #include <treelite/tree.h>
 #include <treelite/data.h>
+#include <istream>
+#include <ostream>
 #include <vector>
+#include <cstdio>
+#include <cstdint>
 
 namespace treelite {
 
@@ -29,12 +33,12 @@ class BranchAnnotator {
    * \brief load branch annotation from a JSON file
    * \param fi input stream
    */
-  void Load(dmlc::Stream* fi);
+  void Load(std::istream& fi);
   /*!
    * \brief save branch annotation to a JSON file
    * \param fo output stream
    */
-  void Save(dmlc::Stream* fo) const;
+  void Save(std::ostream& fo) const;
   /*!
    * \brief fetch branch annotation.
    * Usage example:
@@ -48,12 +52,12 @@ class BranchAnnotator {
    * \endcode
    * \return branch annotation in 2D vector
    */
-  inline std::vector<std::vector<size_t>> Get() const {
-    return counts;
+  inline std::vector<std::vector<uint64_t>> Get() const {
+    return counts_;
   }
 
  private:
-  std::vector<std::vector<size_t>> counts;
+  std::vector<std::vector<uint64_t>> counts_;
 };
 
 }  // namespace treelite

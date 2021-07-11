@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api_common.h
  * \author Hyunsu Cho
  * \brief C API of Treelite, used for interfacing with other languages
@@ -50,18 +50,6 @@ TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
  * Data matrix interface
  * \{
  */
-/*!
- * \brief create a sparse DMatrix from a file
- * \param path file path
- * \param format file format
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
- * \param out the created DMatrix
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteDMatrixCreateFromFile(
-    const char* path, const char* format, const char* data_type, int nthread, int verbose,
-    DMatrixHandle* out);
 /*!
  * \brief create DMatrix from a (in-memory) CSR matrix
  * \param data feature values

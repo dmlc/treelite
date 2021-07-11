@@ -1,39 +1,38 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file xgboost.cc
  * \brief Frontend for xgboost model
  * \author Hyunsu Cho
  */
 
 #include "xgboost/xgboost.h"
-#include <dmlc/data.h>
-#include <dmlc/memory_io.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <algorithm>
 #include <memory>
 #include <queue>
+#include <fstream>
+#include <sstream>
 #include <cstring>
+#include <cstdint>
 
 namespace {
 
-inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi);
+inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 }  // anonymous namespace
 
 namespace treelite {
 namespace frontend {
 
-DMLC_REGISTRY_FILE_TAG(xgboost);
-
 std::unique_ptr<treelite::Model> LoadXGBoostModel(const char* filename) {
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(filename, "r"));
-  return ParseStream(fi.get());
+  std::ifstream fi(filename, std::ios::in | std::ios::binary);
+  return ParseStream(fi);
 }
 
 std::unique_ptr<treelite::Model> LoadXGBoostModel(const void* buf, size_t len) {
-  dmlc::MemoryFixedSizeStream fs(const_cast<void*>(buf), len);
-  return ParseStream(&fs);
+  std::istringstream fi(std::string(static_cast<const char*>(buf), len));
+  return ParseStream(fi);
 }
 
 }  // namespace frontend
@@ -49,7 +48,7 @@ class PeekableInputStream {
  public:
   const size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
 
-  explicit PeekableInputStream(dmlc::Stream* fi)
+  explicit PeekableInputStream(std::istream& fi)
     : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
 
   inline size_t Read(void* ptr, size_t size) {
@@ -77,8 +76,8 @@ class PeekableInputStream {
                     bytes_buffered + begin_ptr_ - MAX_PEEK_WINDOW - 1);
       }
       begin_ptr_ = end_ptr_;
-      return bytes_buffered
-             + istm_->Read(cptr + bytes_buffered, bytes_to_read);
+      istm_.read(cptr + bytes_buffered, bytes_to_read);
+      return bytes_buffered + istm_.gcount();
     }
   }
 
@@ -92,15 +91,16 @@ class PeekableInputStream {
     if (size > bytes_buffered) {
       const size_t bytes_to_read = size - bytes_buffered;
       if (end_ptr_ + bytes_to_read < MAX_PEEK_WINDOW + 1) {
-        CHECK_EQ(istm_->Read(&buf_[end_ptr_], bytes_to_read), bytes_to_read)
+        istm_.read(&buf_[end_ptr_], bytes_to_read);
+        CHECK_EQ(istm_.gcount(), bytes_to_read)
           << "Failed to peek " << size << " bytes";
         end_ptr_ += bytes_to_read;
       } else {
-        CHECK_EQ(istm_->Read(&buf_[end_ptr_],
-                             MAX_PEEK_WINDOW + 1 - end_ptr_)
-                 + istm_->Read(&buf_[0],
-                               bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1),
-                 bytes_to_read)
+        istm_.read(&buf_[end_ptr_], MAX_PEEK_WINDOW + 1 - end_ptr_);
+        size_t first_read = istm_.gcount();
+        istm_.read(&buf_[0], bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1);
+        size_t second_read = istm_.gcount();
+        CHECK_EQ(first_read + second_read, bytes_to_read)
           << "Ill-formed XGBoost model: Failed to peek " << size << " bytes";
         end_ptr_ = bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1;
       }
@@ -117,7 +117,7 @@ class PeekableInputStream {
   }
 
  private:
-  dmlc::Stream* istm_;
+  std::istream& istm_;
   std::vector<char> buf_;
   size_t begin_ptr_, end_ptr_;
 
@@ -298,14 +298,14 @@ class XGBTree {
   inline void Load(PeekableInputStream* fi) {
     CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
      << "Ill-formed XGBoost model file: can't read TreeParam";
+    CHECK_GT(param.num_nodes, 0)
+     << "Ill-formed XGBoost model file: a tree can't be empty";
     nodes.resize(param.num_nodes);
     stats.resize(param.num_nodes);
-    CHECK_NE(param.num_nodes, 0)
-     << "Ill-formed XGBoost model file: a tree can't be empty";
-    CHECK_EQ(fi->Read(dmlc::BeginPtr(nodes), sizeof(Node) * nodes.size()),
+    CHECK_EQ(fi->Read(nodes.data(), sizeof(Node) * nodes.size()),
              sizeof(Node) * nodes.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
-    CHECK_EQ(fi->Read(dmlc::BeginPtr(stats), sizeof(NodeStat) * stats.size()),
+    CHECK_EQ(fi->Read(stats.data(), sizeof(NodeStat) * stats.size()),
              sizeof(NodeStat) * stats.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     if (param.size_leaf_vector != 0) {
@@ -322,7 +322,7 @@ class XGBTree {
   }
 };
 
-inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
+inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::vector<XGBTree> xgb_trees_;
   LearnerModelParam mparam_;    // model parameter
   GBTreeModelParam gbm_param_;  // GBTree training parameter
@@ -373,6 +373,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
 
   CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
+  CHECK_GE(gbm_param_.num_trees, 0)
+    << "Invalid XGBoost model file: num_trees must be 0 or greater";
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
@@ -381,16 +383,21 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
   // tree_info is currently unused.
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
-  if (gbm_param_.num_trees != 0) {
-    CHECK_EQ(fp->Read(dmlc::BeginPtr(tree_info), sizeof(int32_t) * tree_info.size()),
+  if (gbm_param_.num_trees > 0) {
+    CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
              sizeof(int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.
   std::vector<bst_float> weight_drop;
   if (name_gbm_ == "dart") {
     weight_drop.resize(gbm_param_.num_trees);
+    uint64_t sz;
+    fi.read(reinterpret_cast<char*>(&sz), sizeof(uint64_t));
+    CHECK_EQ(sz, gbm_param_.num_trees);
     if (gbm_param_.num_trees != 0) {
-      fi->Read(&weight_drop);
+      for (uint64_t i = 0; i < sz; ++i) {
+        fi.read(reinterpret_cast<char*>(&weight_drop[i]), sizeof(bst_float));
+      }
     }
   }
 
@@ -409,7 +416,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(dmlc::Stream* fi) {
     model->task_type = treelite::TaskType::kBinaryClfRegr;
     model->task_param.grove_per_class = false;
   }
-  model->task_param.output_type = treelite::TaskParameter::OutputType::kFloat;
+  model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
   model->task_param.num_class = num_class;
   model->task_param.leaf_vector_size = 1;
 

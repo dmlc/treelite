@@ -7,12 +7,17 @@
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
 #include <treelite/annotator.h>
+#include <dmlc/io.h>
 #include <fmt/format.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <algorithm>
 #include <fstream>
 #include <unordered_map>
 #include <queue>
+#include <cstdio>
 #include <cmath>
+#include <cstdint>
 #include "./ast_native.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
@@ -23,7 +28,6 @@
 #include "./native/typeinfo_ctypes.h"
 #include "./common/format_util.h"
 #include "./common/code_folding_util.h"
-#include "./common/categorical_bitmap.h"
 
 #if defined(_MSC_VER) || defined(_WIN32)
 #define DLLEXPORT_KEYWORD "__declspec(dllexport) "
@@ -47,7 +51,7 @@ class ASTNativeCompilerImpl {
 
     CHECK(model.task_type != TaskType::kMultiClfCategLeaf)
       << "Model task type unsupported by ASTNativeCompiler";
-    CHECK(model.task_param.output_type == TaskParameter::OutputType::kFloat)
+    CHECK(model.task_param.output_type == TaskParam::OutputType::kFloat)
       << "ASTNativeCompiler only supports models with float output";
 
     num_feature_ = model.num_feature;
@@ -67,9 +71,8 @@ class ASTNativeCompilerImpl {
     }
     if (param_.annotate_in != "NULL") {
       BranchAnnotator annotator;
-      std::unique_ptr<dmlc::Stream> fi(
-        dmlc::Stream::Create(param_.annotate_in.c_str(), "r"));
-      annotator.Load(fi.get());
+      std::ifstream fi(param_.annotate_in.c_str());
+      annotator.Load(fi);
       const auto annotation = annotator.Get();
       builder.LoadDataCounts(annotation);
       LOG(INFO) << "Loading node frequencies from `"
@@ -95,23 +98,31 @@ class ASTNativeCompilerImpl {
 
     {
       /* write recipe.json */
-      std::vector<std::unordered_map<std::string, std::string>> source_list;
+      rapidjson::StringBuffer os;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(os);
+
+      writer.StartObject();
+      writer.Key("target");
+      writer.String(param_.native_lib_name.data(), param_.native_lib_name.size());
+      writer.Key("sources");
+      writer.StartArray();
       for (const auto& kv : files_) {
         if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
           const size_t line_count
             = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
-          source_list.push_back({ {"name",
-                                   kv.first.substr(0, kv.first.length() - 2)},
-                                  {"length", std::to_string(line_count)} });
+          writer.StartObject();
+          writer.Key("name");
+          std::string name = kv.first.substr(0, kv.first.length() - 2);
+          writer.String(name.data(), name.size());
+          writer.Key("length");
+          writer.Uint64(line_count);
+          writer.EndObject();
         }
       }
-      std::ostringstream oss;
-      std::unique_ptr<dmlc::JSONWriter> writer(new dmlc::JSONWriter(&oss));
-      writer->BeginObject();
-      writer->WriteObjectKeyValue("target", param_.native_lib_name);
-      writer->WriteObjectKeyValue("sources", source_list);
-      writer->EndObject();
-      files_["recipe.json"] = CompiledModel::FileEntry(oss.str());
+      writer.EndArray();
+      writer.EndObject();
+
+      files_["recipe.json"] = CompiledModel::FileEntry(os.GetString());
     }
     cm.files = std::move(files_);
     return cm;
@@ -126,11 +137,15 @@ class ASTNativeCompilerImpl {
     });
   }
 
+  CompilerParam QueryParam() const override {
+    return param;
+  }
+
  private:
   CompilerParam param_;
   int num_feature_;
   TaskType task_type_;
-  TaskParameter task_param_;
+  TaskParam task_param_;
   std::string pred_transform_;
   float sigmoid_alpha_;
   float global_bias_;
@@ -321,8 +336,8 @@ class ASTNativeCompilerImpl {
       condition_with_na_check = ExtractCategoricalCondition(t2);
     }
     if (node->children[0]->data_count && node->children[1]->data_count) {
-      const size_t left_freq = node->children[0]->data_count.value();
-      const size_t right_freq = node->children[1]->data_count.value();
+      const uint64_t left_freq = node->children[0]->data_count.value();
+      const uint64_t right_freq = node->children[1]->data_count.value();
       condition_with_na_check
         = fmt::format(" {keyword}( {condition} ) ",
             "keyword"_a = ((left_freq > right_freq) ? "LIKELY" : "UNLIKELY"),

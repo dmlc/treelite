@@ -1,10 +1,9 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file c_api.cc
  * \author Hyunsu Cho
  * \brief C API of treelite, used for interfacing with other languages
  */
-
 
 #include <treelite/annotator.h>
 #include <treelite/c_api.h>
@@ -17,24 +16,13 @@
 #include <treelite/tree.h>
 #include <treelite/math.h>
 #include <treelite/gtil.h>
-#include <dmlc/thread_local.h>
+#include <dmlc/io.h>
 #include <memory>
 #include <algorithm>
+#include <fstream>
+#include <cstdio>
 
 using namespace treelite;
-
-namespace {
-
-struct CompilerHandleImpl {
-  std::string name;
-  std::vector<std::pair<std::string, std::string>> cfg;
-  std::unique_ptr<Compiler> compiler;
-  explicit CompilerHandleImpl(const std::string& name)
-    : name(name), cfg(), compiler(nullptr) {}
-  ~CompilerHandleImpl() = default;
-};
-
-}  // anonymous namespace
 
 int TreeliteAnnotateBranch(
     ModelHandle model, DMatrixHandle dmat, int nthread, int verbose, AnnotationHandle* out) {
@@ -52,8 +40,8 @@ int TreeliteAnnotationSave(AnnotationHandle handle,
                            const char* path) {
   API_BEGIN();
   const BranchAnnotator* annotator = static_cast<BranchAnnotator*>(handle);
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(path, "w"));
-  annotator->Save(fo.get());
+  std::ofstream fo(path);
+  annotator->Save(fo);
   API_END();
 }
 
@@ -63,66 +51,35 @@ int TreeliteAnnotationFree(AnnotationHandle handle) {
   API_END();
 }
 
-int TreeliteCompilerCreate(const char* name,
-                           CompilerHandle* out) {
+int TreeliteCompilerCreateV2(const char* name, const char* params_json_str, CompilerHandle* out) {
   API_BEGIN();
-  std::unique_ptr<CompilerHandleImpl> compiler{new CompilerHandleImpl(name)};
+  std::unique_ptr<Compiler> compiler{Compiler::Create(name, params_json_str)};
   *out = static_cast<CompilerHandle>(compiler.release());
   API_END();
 }
 
-int TreeliteCompilerSetParam(CompilerHandle handle,
-                             const char* name,
-                             const char* value) {
+int TreeliteCompilerGenerateCodeV2(CompilerHandle compiler,
+                                   ModelHandle model,
+                                   const char* dirpath) {
   API_BEGIN();
-  CompilerHandleImpl* impl = static_cast<CompilerHandleImpl*>(handle);
-  auto& cfg_ = impl->cfg;
-  std::string name_(name);
-  std::string value_(value);
-  // check for duplicate parameters
-  auto it = std::find_if(cfg_.begin(), cfg_.end(),
-    [&name_](const std::pair<std::string, std::string>& x) {
-      return x.first == name_;
-    });
-  if (it == cfg_.end()) {
-    cfg_.emplace_back(name_, value_);
-  } else {
-    it->second = value;
-  }
-  API_END();
-}
-
-int TreeliteCompilerGenerateCode(CompilerHandle compiler,
-                                 ModelHandle model,
-                                 int verbose,
-                                 const char* dirpath) {
-  API_BEGIN();
-  if (verbose > 0) {  // verbose enabled
-    int ret = TreeliteCompilerSetParam(compiler, "verbose",
-                                       std::to_string(verbose).c_str());
-    if (ret < 0) {  // SetParam failed
-      return ret;
-    }
-  }
   const Model* model_ = static_cast<Model*>(model);
-  CompilerHandleImpl* impl = static_cast<CompilerHandleImpl*>(compiler);
+  Compiler* compiler_ = static_cast<Compiler*>(compiler);
+  CHECK(model_);
+  CHECK(compiler_);
+  compiler::CompilerParam param = compiler_->QueryParam();
 
   // create directory named dirpath
   const std::string& dirpath_(dirpath);
   filesystem::CreateDirectoryIfNotExist(dirpath);
 
-  compiler::CompilerParam cparam;
-  cparam.Init(impl->cfg, dmlc::parameter::kAllMatch);
-
   /* compile model */
-  impl->compiler.reset(Compiler::Create(impl->name, cparam));
-  auto compiled_model = impl->compiler->Compile(*model_);
-  if (verbose > 0) {
+  auto compiled_model = compiler_->Compile(*model_);
+  if (param.verbose > 0) {
     LOG(INFO) << "Code generation finished. Writing code to files...";
   }
 
   for (const auto& it : compiled_model.files) {
-    if (verbose > 0) {
+    if (param.verbose > 0) {
       LOG(INFO) << "Writing file " << it.first << "...";
     }
     const std::string filename_full = dirpath_ + "/" + it.first;
@@ -138,7 +95,7 @@ int TreeliteCompilerGenerateCode(CompilerHandle compiler,
 
 int TreeliteCompilerFree(CompilerHandle handle) {
   API_BEGIN();
-  delete static_cast<CompilerHandleImpl*>(handle);
+  delete static_cast<Compiler*>(handle);
   API_END();
 }
 

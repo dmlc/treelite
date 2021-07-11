@@ -64,7 +64,7 @@ DEFINE_CHECK_FUNC(_NE, !=)
 
 #define CHECK_BINARY_OP(name, op, x, y)                  \
   if (auto __treelite__log__err = treelite::LogCheck##name(x, y))  \
-      treelite::LogMessageFatal(__FILE__, __LINE__).stream() \
+      ::treelite::LogMessageFatal(__FILE__, __LINE__).stream() \
         << "Check failed: " << #x " " #op " " #y << *__treelite__log__err << ": "
 #define CHECK(x)                                               \
   if (!(x))                                                    \

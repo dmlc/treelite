@@ -235,8 +235,8 @@ bool RegTreeHandler::EndObject(std::size_t) {
     return false;
   }
   if (static_cast<size_t>(num_nodes) != right_children.size()) {
-    TREELITE_LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: " << num_nodes
-                        << ", Actual: " << right_children.size();
+    TREELITE_LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: "
+                        << num_nodes << ", Actual: " << right_children.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != parents.size()) {
@@ -255,8 +255,8 @@ bool RegTreeHandler::EndObject(std::size_t) {
     return false;
   }
   if (static_cast<size_t>(num_nodes) != split_conditions.size()) {
-    TREELITE_LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: " << num_nodes
-                        << ", Actual: " << split_conditions.size();
+    TREELITE_LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: "
+                        << num_nodes << ", Actual: " << split_conditions.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != default_left.size()) {
@@ -512,9 +512,9 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
     const auto error_code = result.Code();
     const size_t offset = result.Offset();
     std::string diagnostic = error_handler(offset);
-    TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. Parsing error at offset "
-                        << offset << ": " << rapidjson::GetParseError_En(error_code) << "\n"
-                        << diagnostic;
+    TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. "
+                        << "Parsing error at offset " << offset << ": "
+                        << rapidjson::GetParseError_En(error_code) << "\n" << diagnostic;
   }
   return handler->get_result();
 }

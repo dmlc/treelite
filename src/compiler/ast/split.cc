@@ -35,7 +35,8 @@ ASTBuilder<ThresholdType, LeafOutputType>::Split(int parallel_comp) {
   /* tree_head[i] stores reference to head of tree i */
   std::vector<ASTNode*> tree_head;
   for (ASTNode* node : top_ac_node->children) {
-    TREELITE_CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode<LeafOutputType>*>(node)
+    TREELITE_CHECK(dynamic_cast<ConditionNode*>(node)
+                   || dynamic_cast<OutputNode<LeafOutputType>*>(node)
                    || dynamic_cast<CodeFolderNode*>(node));
     tree_head.push_back(node);
   }

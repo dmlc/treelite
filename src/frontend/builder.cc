@@ -175,7 +175,8 @@ TreeBuilder::~TreeBuilder() = default;
 void
 TreeBuilder::CreateNode(int node_key) {
   auto& nodes = pimpl_->tree.nodes;
-  TREELITE_CHECK_EQ(nodes.count(node_key), 0) << "CreateNode: nodes with duplicate keys are not allowed";
+  TREELITE_CHECK_EQ(nodes.count(node_key), 0)
+    << "CreateNode: nodes with duplicate keys are not allowed";
   nodes[node_key] = std::make_unique<NodeDraft>();
 }
 
@@ -231,7 +232,8 @@ TreeBuilder::SetNumericalTestNode(int node_key, unsigned feature_id, Operator op
     << "SetNumericalTestNode: threshold has an incorrect type. "
     << "Expected: " << TypeInfoToString(tree.threshold_type)
     << ", Given: " << TypeInfoToString(threshold.GetValueType());
-  TREELITE_CHECK_GT(nodes.count(node_key), 0) << "SetNumericalTestNode: no node found with node_key";
+  TREELITE_CHECK_GT(nodes.count(node_key), 0)
+    << "SetNumericalTestNode: no node found with node_key";
   TREELITE_CHECK_GT(nodes.count(left_child_key), 0)
     << "SetNumericalTestNode: no node found with left_child_key";
   TREELITE_CHECK_GT(nodes.count(right_child_key), 0)
@@ -264,7 +266,8 @@ TreeBuilder::SetCategoricalTestNode(int node_key, unsigned feature_id,
                                     int left_child_key, int right_child_key) {
   auto &tree = pimpl_->tree;
   auto &nodes = tree.nodes;
-  TREELITE_CHECK_GT(nodes.count(node_key), 0) << "SetCategoricalTestNode: no node found with node_key";
+  TREELITE_CHECK_GT(nodes.count(node_key), 0)
+    << "SetCategoricalTestNode: no node found with node_key";
   TREELITE_CHECK_GT(nodes.count(left_child_key), 0)
     << "SetCategoricalTestNode: no node found with left_child_key";
   TREELITE_CHECK_GT(nodes.count(right_child_key), 0)
@@ -300,7 +303,8 @@ TreeBuilder::SetLeafNode(int node_key, Value leaf_value) {
     << ", Given: " << TypeInfoToString(leaf_value.GetValueType());
   TREELITE_CHECK_GT(nodes.count(node_key), 0) << "SetLeafNode: no node found with node_key";
   NodeDraft* node = nodes[node_key].get();
-  TREELITE_CHECK(node->status == NodeDraft::Status::kEmpty) << "SetLeafNode: cannot modify a non-empty node";
+  TREELITE_CHECK(node->status == NodeDraft::Status::kEmpty)
+    << "SetLeafNode: cannot modify a non-empty node";
   node->status = NodeDraft::Status::kLeaf;
   node->leaf_value = std::move(leaf_value);
 }
@@ -317,7 +321,8 @@ TreeBuilder::SetLeafVectorNode(int node_key, const std::vector<Value>& leaf_vect
       << "Expected: " << TypeInfoToString(tree.leaf_output_type)
       << ", Given: " << TypeInfoToString(leaf_value.GetValueType());
   }
-  TREELITE_CHECK_GT(nodes.count(node_key), 0) << "SetLeafVectorNode: no node found with node_key";
+  TREELITE_CHECK_GT(nodes.count(node_key), 0)
+    << "SetLeafVectorNode: no node found with node_key";
   NodeDraft* node = nodes[node_key].get();
   TREELITE_CHECK(node->status == NodeDraft::Status::kEmpty)
     << "SetLeafVectorNode: cannot modify a non-empty node";
@@ -371,7 +376,8 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
       const int fid = static_cast<int>(kv.second->feature_id);
       if (fid < 0 || fid >= this->pimpl_->num_feature) {
         TREELITE_LOG(FATAL) << "InsertTree: tree has an invalid split at node "
-                            << kv.first << ": feature id " << kv.second->feature_id << " is out of bound";
+                            << kv.first << ": feature id "
+                            << kv.second->feature_id << " is out of bound";
         return -1;
       }
     }
@@ -408,7 +414,8 @@ ModelBuilder::GetTree(int index) const {
 void
 ModelBuilder::DeleteTree(int index) {
   auto& trees = pimpl_->trees;
-  TREELITE_CHECK_LT(static_cast<size_t>(index), trees.size()) << "DeleteTree: index out of bound";
+  TREELITE_CHECK_LT(static_cast<size_t>(index), trees.size())
+    << "DeleteTree: index out of bound";
   trees.erase(trees.begin() + index);
 }
 
@@ -462,8 +469,10 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
       if (node->status == NodeDraft::Status::kNumericalTest) {
         TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
         TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
-        TREELITE_CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
-        TREELITE_CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
+        TREELITE_CHECK(node->left_child->parent == node)
+          << "CommitModel: left child has wrong parent";
+        TREELITE_CHECK(node->right_child->parent == node)
+          << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
         TREELITE_CHECK(node->threshold.GetValueType() == TypeToInfo<ThresholdType>())
           << "CommitModel: The specified threshold has incorrect type. Expected: "
@@ -476,8 +485,10 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
       } else if (node->status == NodeDraft::Status::kCategoricalTest) {
         TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
         TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
-        TREELITE_CHECK(node->left_child->parent == node) << "CommitModel: left child has wrong parent";
-        TREELITE_CHECK(node->right_child->parent == node) << "CommitModel: right child has wrong parent";
+        TREELITE_CHECK(node->left_child->parent == node)
+          << "CommitModel: left child has wrong parent";
+        TREELITE_CHECK(node->right_child->parent == node)
+          << "CommitModel: right child has wrong parent";
         tree.AddChilds(nid);
         tree.SetCategoricalSplit(nid, node->feature_id, node->default_left, node->left_categories,
                                  false);
@@ -528,7 +539,8 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
     // multi-class classifier, sklearn RF style
     model.task_type = TaskType::kMultiClfProbDistLeaf;
     model.task_param.grove_per_class = false;
-    TREELITE_CHECK_GT(model.task_param.num_class, 1) << "Expected leaf vectors with length exceeding 1";
+    TREELITE_CHECK_GT(model.task_param.num_class, 1)
+      << "Expected leaf vectors with length exceeding 1";
     model.task_param.leaf_vector_size = model.task_param.num_class;
   } else {
     TREELITE_LOG(FATAL) << "Impossible thing happened: model has no leaf node!";

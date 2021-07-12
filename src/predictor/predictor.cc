@@ -193,8 +193,9 @@ template <typename HandleType>
 HandleType
 SharedLibrary::LoadFunctionWithSignature(const char* name) const {
   auto func_handle = reinterpret_cast<HandleType>(LoadFunction(name));
-  TREELITE_CHECK(func_handle) << "Dynamic shared library `" << libpath_ << "' does not contain a function "
-                              << name << "() with the requested signature";
+  TREELITE_CHECK(func_handle) << "Dynamic shared library `" << libpath_
+                              << "' does not contain a function " << name
+                              << "() with the requested signature";
   return func_handle;
 }
 

@@ -62,7 +62,8 @@ CompilerParam::ParseFromJSON(const char* param_json_str) {
       TREELITE_CHECK(e.value.IsString()) << "Expected a string for 'native_lib_name'";
       param.native_lib_name = e.value.GetString();
     } else if (key == "code_folding_req") {
-      TREELITE_CHECK(e.value.IsDouble()) << "Expected a floating-point decimal for 'code_folding_req'";
+      TREELITE_CHECK(e.value.IsDouble())
+          << "Expected a floating-point decimal for 'code_folding_req'";
       param.code_folding_req = e.value.GetDouble();
       TREELITE_CHECK_GE(param.code_folding_req, 0) << "'code_folding_req' must be 0 or greater";
     } else if (key == "dump_array_as_elf") {

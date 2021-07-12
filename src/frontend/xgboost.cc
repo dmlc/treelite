@@ -83,7 +83,7 @@ class PeekableInputStream {
   }
 
   inline size_t PeekRead(void* ptr, size_t size) {
-    CHECK_LE(size, MAX_PEEK_WINDOW)
+    TREELITE_CHECK_LE(size, MAX_PEEK_WINDOW)
       << "PeekableInputStream allows peeking up to "
       << MAX_PEEK_WINDOW << " bytes";
     char* cptr = static_cast<char*>(ptr);
@@ -93,7 +93,7 @@ class PeekableInputStream {
       const size_t bytes_to_read = size - bytes_buffered;
       if (end_ptr_ + bytes_to_read < MAX_PEEK_WINDOW + 1) {
         istm_.read(&buf_[end_ptr_], bytes_to_read);
-        CHECK_EQ(istm_.gcount(), bytes_to_read)
+        TREELITE_CHECK_EQ(istm_.gcount(), bytes_to_read)
           << "Failed to peek " << size << " bytes";
         end_ptr_ += bytes_to_read;
       } else {
@@ -101,7 +101,7 @@ class PeekableInputStream {
         size_t first_read = istm_.gcount();
         istm_.read(&buf_[0], bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1);
         size_t second_read = istm_.gcount();
-        CHECK_EQ(first_read + second_read, bytes_to_read)
+        TREELITE_CHECK_EQ(first_read + second_read, bytes_to_read)
           << "Ill-formed XGBoost model: Failed to peek " << size << " bytes";
         end_ptr_ = bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1;
       }
@@ -135,7 +135,7 @@ template <typename T>
 inline void CONSUME_BYTES(const T& fi, size_t size) {
   static std::vector<char> dummy(500);
   if (size > dummy.size()) dummy.resize(size);
-  CHECK_EQ(fi->Read(&dummy[0], size), size)
+  TREELITE_CHECK_EQ(fi->Read(&dummy[0], size), size)
     << "Ill-formed XGBoost model format: cannot read " << size
     << " bytes from the file";
 }
@@ -259,7 +259,7 @@ class XGBTree {
 
   inline int AllocNode() {
     int nd = param.num_nodes++;
-    CHECK_LT(param.num_nodes, std::numeric_limits<int>::max())
+    TREELITE_CHECK_LT(param.num_nodes, std::numeric_limits<int>::max())
         << "number of nodes in the tree exceed 2^31";
     nodes.resize(param.num_nodes);
     return nd;
@@ -297,27 +297,27 @@ class XGBTree {
     nodes[nodes[nid].cright()].set_parent(nid, false);
   }
   inline void Load(PeekableInputStream* fi) {
-    CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
+    TREELITE_CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
      << "Ill-formed XGBoost model file: can't read TreeParam";
-    CHECK_GT(param.num_nodes, 0)
+    TREELITE_CHECK_GT(param.num_nodes, 0)
      << "Ill-formed XGBoost model file: a tree can't be empty";
     nodes.resize(param.num_nodes);
     stats.resize(param.num_nodes);
-    CHECK_EQ(fi->Read(nodes.data(), sizeof(Node) * nodes.size()),
+    TREELITE_CHECK_EQ(fi->Read(nodes.data(), sizeof(Node) * nodes.size()),
              sizeof(Node) * nodes.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
-    CHECK_EQ(fi->Read(stats.data(), sizeof(NodeStat) * stats.size()),
+    TREELITE_CHECK_EQ(fi->Read(stats.data(), sizeof(NodeStat) * stats.size()),
              sizeof(NodeStat) * stats.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     if (param.size_leaf_vector != 0) {
       uint64_t len;
-      CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
+      TREELITE_CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
        << "Ill-formed XGBoost model file";
       if (len > 0) {
         CONSUME_BYTES(fi, sizeof(bst_float) * len);
       }
     }
-    CHECK_EQ(param.num_roots, 1)
+    TREELITE_CHECK_EQ(param.num_roots, 1)
       << "Invalid XGBoost model file: treelite does not support trees "
       << "with multiple roots";
   }
@@ -336,56 +336,56 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::string header;
   header.resize(4);
   if (fp->PeekRead(&header[0], 4) == 4) {
-    CHECK_NE(header, "bs64")
+    TREELITE_CHECK_NE(header, "bs64")
         << "Ill-formed XGBoost model file: Base64 format no longer supported";
     if (header == "binf") {
       CONSUME_BYTES(fp, 4);
     }
   }
   // read parameter
-  CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
+  TREELITE_CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
       << "Ill-formed XGBoost model file: corrupted header";
   {
     uint64_t len;
-    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
+    TREELITE_CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
      << "Ill-formed XGBoost model file: corrupted header";
     if (len != 0) {
       name_obj_.resize(len);
-      CHECK_EQ(fp->Read(&name_obj_[0], len), len)
+      TREELITE_CHECK_EQ(fp->Read(&name_obj_[0], len), len)
           << "Ill-formed XGBoost model file: corrupted header";
     }
   }
 
   {
     uint64_t len;
-    CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
+    TREELITE_CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
       << "Ill-formed XGBoost model file: corrupted header";
     name_gbm_.resize(len);
     if (len > 0) {
-      CHECK_EQ(fp->Read(&name_gbm_[0], len), len)
+      TREELITE_CHECK_EQ(fp->Read(&name_gbm_[0], len), len)
         << "Ill-formed XGBoost model file: corrupted header";
     }
   }
 
   /* loading GBTree */
-  CHECK(name_gbm_ == "gbtree" || name_gbm_ == "dart")
+  TREELITE_CHECK(name_gbm_ == "gbtree" || name_gbm_ == "dart")
     << "Invalid XGBoost model file: "
     << "Gradient booster must be gbtree or dart type.";
 
-  CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
+  TREELITE_CHECK_EQ(fp->Read(&gbm_param_, sizeof(gbm_param_)), sizeof(gbm_param_))
     << "Invalid XGBoost model file: corrupted GBTree parameters";
-  CHECK_GE(gbm_param_.num_trees, 0)
+  TREELITE_CHECK_GE(gbm_param_.num_trees, 0)
     << "Invalid XGBoost model file: num_trees must be 0 or greater";
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
   }
-  CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
+  TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
   // tree_info is currently unused.
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {
-    CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
+    TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
              sizeof(int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.
@@ -394,7 +394,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     weight_drop.resize(gbm_param_.num_trees);
     uint64_t sz;
     fi.read(reinterpret_cast<char*>(&sz), sizeof(uint64_t));
-    CHECK_EQ(sz, gbm_param_.num_trees);
+    TREELITE_CHECK_EQ(sz, gbm_param_.num_trees);
     if (gbm_param_.num_trees != 0) {
       for (uint64_t i = 0; i < sz; ++i) {
         fi.read(reinterpret_cast<char*>(&weight_drop[i]), sizeof(bst_float));

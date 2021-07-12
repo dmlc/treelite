@@ -45,7 +45,7 @@ int TreelitePredictorPredictBatch(
   const std::string err_msg
     = std::string("Too many columns (features) in the given batch. "
                   "Number of features must not exceed ") + std::to_string(num_feature);
-  CHECK_LE(dmat->GetNumCol(), num_feature) << err_msg;
+  TREELITE_CHECK_LE(dmat->GetNumCol(), num_feature) << err_msg;
   *out_result_size = predictor->PredictBatch(dmat, verbose, (pred_margin != 0), out_result);
   API_END();
 }

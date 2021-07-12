@@ -35,7 +35,7 @@ DenseDMatrix::Create(const void* data, const void* missing_value, size_t num_row
 std::unique_ptr<DenseDMatrix>
 DenseDMatrix::Create(
     TypeInfo type, const void* data, const void* missing_value, size_t num_row, size_t num_col) {
-  CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
+  TREELITE_CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
   switch (type) {
   case TypeInfo::kFloat32:
     return Create<float>(data, missing_value, num_row, num_col);
@@ -44,7 +44,7 @@ DenseDMatrix::Create(
   case TypeInfo::kInvalid:
   case TypeInfo::kUInt32:
   default:
-    LOG(FATAL) << "Invalid type for DenseDMatrix: " << TypeInfoToString(type);
+    TREELITE_LOG(FATAL) << "Invalid type for DenseDMatrix: " << TypeInfoToString(type);
   }
   return std::unique_ptr<DenseDMatrix>(nullptr);
 }
@@ -133,7 +133,7 @@ CSRDMatrix::Create(const void* data, const uint32_t* col_ind,
 std::unique_ptr<CSRDMatrix>
 CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
                    size_t num_row, size_t num_col) {
-  CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
+  TREELITE_CHECK(type != TypeInfo::kInvalid) << "ElementType cannot be invalid";
   switch (type) {
   case TypeInfo::kFloat32:
     return Create<float>(data, col_ind, row_ptr, num_row, num_col);
@@ -142,7 +142,7 @@ CSRDMatrix::Create(TypeInfo type, const void* data, const uint32_t* col_ind, con
   case TypeInfo::kInvalid:
   case TypeInfo::kUInt32:
   default:
-    LOG(FATAL) << "Invalid type for CSRDMatrix: " << TypeInfoToString(type);
+    TREELITE_LOG(FATAL) << "Invalid type for CSRDMatrix: " << TypeInfoToString(type);
   }
   return std::unique_ptr<CSRDMatrix>(nullptr);
 }

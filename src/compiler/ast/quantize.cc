@@ -17,7 +17,7 @@ static void
 scan_thresholds(ASTNode* node, std::vector<std::set<ThresholdType>>* cut_pts) {
   NumericalConditionNode<ThresholdType>* num_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode<ThresholdType>*>(node)) ) {
-    CHECK(!num_cond->quantized) << "should not be already quantized";
+    TREELITE_CHECK(!num_cond->quantized) << "should not be already quantized";
     const ThresholdType threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       (*cut_pts)[num_cond->split_index].insert(threshold);
@@ -33,13 +33,13 @@ static void
 rewrite_thresholds(ASTNode* node, const std::vector<std::vector<ThresholdType>>& cut_pts) {
   NumericalConditionNode<ThresholdType>* num_cond;
   if ( (num_cond = dynamic_cast<NumericalConditionNode<ThresholdType>*>(node)) ) {
-    CHECK(!num_cond->quantized) << "should not be already quantized";
+    TREELITE_CHECK(!num_cond->quantized) << "should not be already quantized";
     const ThresholdType threshold = num_cond->threshold.float_val;
     if (std::isfinite(threshold)) {
       const auto& v = cut_pts[num_cond->split_index];
       {
         auto loc = math::binary_search(v.begin(), v.end(), threshold);
-        CHECK(loc != v.end());
+        TREELITE_CHECK(loc != v.end());
         num_cond->threshold.int_val = static_cast<int>(loc - v.begin()) * 2;
       }
       {
@@ -75,9 +75,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::QuantizeThresholds() {
   /* revise all numerical splits by quantizing thresholds */
   rewrite_thresholds(this->main_node, cut_pts_vec);
 
-  CHECK_EQ(this->main_node->children.size(), 1);
+  TREELITE_CHECK_EQ(this->main_node->children.size(), 1);
   ASTNode* top_ac_node = this->main_node->children[0];
-  CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
+  TREELITE_CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
   /* dynamic_cast<> is used here to check node types. This is to ensure
      that we don't accidentally call QuantizeThresholds() twice. */
 

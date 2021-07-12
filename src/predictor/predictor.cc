@@ -50,10 +50,10 @@ using PredThreadPool
 template <typename ElementType, typename ThresholdType, typename LeafOutputType, typename PredFunc>
 inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int num_feature,
                        size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
-  CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
+  TREELITE_CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
   std::vector<treelite::predictor::Entry<ThresholdType>> inst(
     std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
-  CHECK(rbegin < rend && rend <= dmat->num_row);
+  TREELITE_CHECK(rbegin < rend && rend <= dmat->num_row);
   const ElementType* data = dmat->data.data();
   const uint32_t* col_ind = dmat->col_ind.data();
   const size_t* row_ptr = dmat->row_ptr.data();
@@ -76,10 +76,10 @@ template <typename ElementType, typename ThresholdType, typename LeafOutputType,
 inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int num_feature,
                        size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
   const bool nan_missing = treelite::math::CheckNAN(dmat->missing_value);
-  CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
+  TREELITE_CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
   std::vector<treelite::predictor::Entry<ThresholdType>> inst(
       std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
-  CHECK(rbegin < rend && rend <= dmat->num_row);
+  TREELITE_CHECK(rbegin < rend && rend <= dmat->num_row);
   const size_t num_col = dmat->num_col;
   const ElementType missing_value = dmat->missing_value;
   const ElementType* data = dmat->data.data();
@@ -89,7 +89,7 @@ inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int 
     row = &data[rid * num_col];
     for (size_t j = 0; j < num_col; ++j) {
       if (treelite::math::CheckNAN(row[j])) {
-        CHECK(nan_missing)
+        TREELITE_CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any NaN in the matrix.";
       } else if (nan_missing || row[j] != missing_value) {
         inst[j].fvalue = static_cast<ThresholdType>(row[j]);
@@ -143,7 +143,7 @@ inline size_t PredLoop(const treelite::DMatrix* dmat, ThresholdType test_val, in
         dmat->GetElementType(), dmat, test_val, num_feature, rbegin, rend, out_pred, func);
   }
   default:
-    LOG(FATAL) << "Unrecognized data matrix type: " << static_cast<int>(dmat_type);
+    TREELITE_LOG(FATAL) << "Unrecognized data matrix type: " << static_cast<int>(dmat_type);
     return 0;
   }
 }
@@ -172,7 +172,7 @@ SharedLibrary::Load(const char* libpath) {
 #else
   void* handle = dlopen(libpath, RTLD_LAZY | RTLD_LOCAL);
 #endif
-  CHECK(handle) << "Failed to load dynamic shared library `" << libpath << "'";
+  TREELITE_CHECK(handle) << "Failed to load dynamic shared library `" << libpath << "'";
   handle_ = static_cast<LibraryHandle>(handle);
   libpath_ = std::string(libpath);
 }
@@ -184,7 +184,7 @@ SharedLibrary::LoadFunction(const char* name) const {
 #else
   void* func_handle = dlsym(static_cast<void*>(handle_), name);
 #endif
-  CHECK(func_handle)
+  TREELITE_CHECK(func_handle)
     << "Dynamic shared library `" << libpath_ << "' does not contain a function " << name << "().";
   return static_cast<SharedLibrary::FunctionHandle>(func_handle);
 }
@@ -193,8 +193,8 @@ template <typename HandleType>
 HandleType
 SharedLibrary::LoadFunctionWithSignature(const char* name) const {
   auto func_handle = reinterpret_cast<HandleType>(LoadFunction(name));
-  CHECK(func_handle) << "Dynamic shared library `" << libpath_ << "' does not contain a function "
-    << name << "() with the requested signature";
+  TREELITE_CHECK(func_handle) << "Dynamic shared library `" << libpath_ << "' does not contain a function "
+                              << name << "() with the requested signature";
   return func_handle;
 }
 
@@ -219,7 +219,7 @@ PredFunction::Create(
 template <typename ThresholdType, typename LeafOutputType>
 PredFunctionImpl<ThresholdType, LeafOutputType>::PredFunctionImpl(
     const SharedLibrary& library, int num_feature, int num_class) {
-  CHECK_GT(num_class, 0) << "num_class cannot be zero";
+  TREELITE_CHECK_GT(num_class, 0) << "num_class cannot be zero";
   if (num_class > 1) {  // multi-class classification
     handle_ = library.LoadFunction("predict_multiclass");
   } else {  // everything else
@@ -253,11 +253,11 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
   // can be either [num_data] or [num_class]*[num_data].
   // Note that size of prediction may be smaller than out_pred (this occurs
   // when pred_function is set to "max_index").
-  CHECK(rbegin < rend && rend <= dmat->GetNumRow());
+  TREELITE_CHECK(rbegin < rend && rend <= dmat->GetNumRow());
   if (num_class_ > 1) {  // multi-class classification
     using PredFunc = size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
-    CHECK(pred_func) << "The predict_multiclass() function has incorrect signature.";
+    TREELITE_CHECK(pred_func) << "The predict_multiclass() function has incorrect signature.";
     auto pred_func_wrapper
       = [pred_func, num_class = num_class_, pred_margin]
             (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
@@ -269,7 +269,7 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
   } else {  // everything else
     using PredFunc = LeafOutputType (*)(Entry<ThresholdType>*, int);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
-    CHECK(pred_func) << "The predict() function has incorrect signature.";
+    TREELITE_CHECK(pred_func) << "The predict() function has incorrect signature.";
     auto pred_func_wrapper
       = [pred_func, pred_margin]
             (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
@@ -315,7 +315,7 @@ Predictor::Load(const char* libpath) {
   auto* num_feature_query_func
     = lib_.LoadFunctionWithSignature<UnsignedQueryFunc>("get_num_feature");
   num_feature_ = num_feature_query_func();
-  CHECK_GT(num_feature_, 0) << "num_feature cannot be zero";
+  TREELITE_CHECK_GT(num_feature_, 0) << "num_feature cannot be zero";
 
   /* 3. query # of pred_transform name */
   auto* pred_transform_query_func
@@ -340,7 +340,7 @@ Predictor::Load(const char* libpath) {
   leaf_output_type_ = GetTypeInfoByName(leaf_output_type_query_func());
 
   /* 7. load appropriate function for margin prediction */
-  CHECK_GT(num_class_, 0) << "num_class cannot be zero";
+  TREELITE_CHECK_GT(num_class_, 0) << "num_class cannot be zero";
   pred_func_ = PredFunction::Create(
       threshold_type_, leaf_output_type_, lib_,
       static_cast<int>(num_feature_), static_cast<int>(num_class_));
@@ -375,7 +375,7 @@ Predictor::Free() {
 static inline
 std::vector<size_t> SplitBatch(const DMatrix* dmat, size_t split_factor) {
   const size_t num_row = dmat->GetNumRow();
-  CHECK_LE(split_factor, num_row);
+  TREELITE_CHECK_LE(split_factor, num_row);
   const size_t portion = num_row / split_factor;
   const size_t remainder = num_row % split_factor;
   std::vector<size_t> workload(split_factor, portion);
@@ -420,7 +420,7 @@ Predictor::PredictBatch(
   auto* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
   InputToken request{dmat, pred_margin, pred_func_.get(), 0, num_row, out_result};
   OutputToken response;
-  CHECK_GT(num_row, 0);
+  TREELITE_CHECK_GT(num_row, 0);
   const int nthread = std::min(num_worker_thread_, static_cast<int>(num_row));
   const std::vector<size_t> row_ptr = SplitBatch(dmat, nthread);
   for (int tid = 0; tid < nthread - 1; ++tid) {
@@ -444,17 +444,17 @@ Predictor::PredictBatch(
   }
   // re-shape output if total_size < dimension of out_result
   if (total_size < QueryResultSize(dmat, 0, num_row)) {
-    CHECK_GT(num_class_, 1);
-    CHECK_EQ(total_size % num_row, 0);
+    TREELITE_CHECK_GT(num_class_, 1);
+    TREELITE_CHECK_EQ(total_size % num_row, 0);
     const size_t query_size_per_instance = total_size / num_row;
-    CHECK_GT(query_size_per_instance, 0);
-    CHECK_LT(query_size_per_instance, num_class_);
+    TREELITE_CHECK_GT(query_size_per_instance, 0);
+    TREELITE_CHECK_LT(query_size_per_instance, num_class_);
     DispatchWithTypeInfo<ShrinkResultToFit>(
         leaf_output_type_, num_row, query_size_per_instance, num_class_, out_result);
   }
   const double tend = GetTime();
   if (verbose > 0) {
-    LOG(INFO) << "Treelite: Finished prediction in " << tend - tstart << " sec";
+    TREELITE_LOG(INFO) << "Treelite: Finished prediction in " << tend - tstart << " sec";
   }
   return total_size;
 }

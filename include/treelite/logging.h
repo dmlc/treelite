@@ -62,25 +62,25 @@ DEFINE_CHECK_FUNC(_NE, !=)
 #pragma GCC diagnostic pop
 
 
-#define CHECK_BINARY_OP(name, op, x, y)                  \
+#define TREELITE_CHECK_BINARY_OP(name, op, x, y)                     \
   if (auto __treelite__log__err = ::treelite::LogCheck##name(x, y))  \
-      ::treelite::LogMessageFatal(__FILE__, __LINE__).stream() \
+      ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()       \
         << "Check failed: " << #x " " #op " " #y << *__treelite__log__err << ": "
-#define CHECK(x)                                               \
+#define TREELITE_CHECK(x)                                      \
   if (!(x))                                                    \
-    ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()     \
+    ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()   \
       << "Check failed: " #x << ": "
-#define CHECK_LT(x, y) CHECK_BINARY_OP(_LT, <, x, y)
-#define CHECK_GT(x, y) CHECK_BINARY_OP(_GT, >, x, y)
-#define CHECK_LE(x, y) CHECK_BINARY_OP(_LE, <=, x, y)
-#define CHECK_GE(x, y) CHECK_BINARY_OP(_GE, >=, x, y)
-#define CHECK_EQ(x, y) CHECK_BINARY_OP(_EQ, ==, x, y)
-#define CHECK_NE(x, y) CHECK_BINARY_OP(_NE, !=, x, y)
+#define TREELITE_CHECK_LT(x, y) TREELITE_CHECK_BINARY_OP(_LT, <, x, y)
+#define TREELITE_CHECK_GT(x, y) TREELITE_CHECK_BINARY_OP(_GT, >, x, y)
+#define TREELITE_CHECK_LE(x, y) TREELITE_CHECK_BINARY_OP(_LE, <=, x, y)
+#define TREELITE_CHECK_GE(x, y) TREELITE_CHECK_BINARY_OP(_GE, >=, x, y)
+#define TREELITE_CHECK_EQ(x, y) TREELITE_CHECK_BINARY_OP(_EQ, ==, x, y)
+#define TREELITE_CHECK_NE(x, y) TREELITE_CHECK_BINARY_OP(_NE, !=, x, y)
 
-#define LOG_INFO ::treelite::LogMessage(__FILE__, __LINE__)
-#define LOG_ERROR LOG_INFO
-#define LOG_FATAL ::treelite::LogMessageFatal(__FILE__, __LINE__)
-#define LOG(severity) LOG_##severity.stream()
+#define TREELITE_LOG_INFO ::treelite::LogMessage(__FILE__, __LINE__)
+#define TREELITE_LOG_ERROR TREELITE_LOG_INFO
+#define TREELITE_LOG_FATAL ::treelite::LogMessageFatal(__FILE__, __LINE__)
+#define TREELITE_LOG(severity) TREELITE_LOG_##severity.stream()
 
 class DateLogger {
  public:

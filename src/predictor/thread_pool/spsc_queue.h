@@ -62,7 +62,7 @@ class SpscQueue {
     }
     const uint32_t head = head_.load(std::memory_order_relaxed);
     // sanity check if the queue is empty
-    CHECK(tail_.load(std::memory_order_acquire) != head);
+    TREELITE_CHECK(tail_.load(std::memory_order_acquire) != head);
     *output = buffer_[head];
     head_.store((head + 1) % kRingSize, std::memory_order_release);
     return true;

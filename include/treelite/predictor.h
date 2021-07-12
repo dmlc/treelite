@@ -152,7 +152,7 @@ class Predictor {
    * \return length of prediction array
    */
   inline size_t QueryResultSize(const DMatrix* dmat) const {
-    CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
+    TREELITE_CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
     return dmat->GetNumRow() * num_class_;
   }
   /*!
@@ -164,8 +164,8 @@ class Predictor {
    * \return length of prediction array
    */
   inline size_t QueryResultSize(const DMatrix* dmat, size_t rbegin, size_t rend) const {
-    CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
-    CHECK(rbegin < rend && rend <= dmat->GetNumRow());
+    TREELITE_CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
+    TREELITE_CHECK(rbegin < rend && rend <= dmat->GetNumRow());
     return (rend - rbegin) * num_class_;
   }
   /*!

@@ -26,7 +26,7 @@ FUNC_NAME(const std::string& backend, const Model& model) { \
   if (backend == "native") { \
     return treelite::compiler::native::pred_transform::FUNC_NAME(model); \
   } else { \
-    LOG(FATAL) << "Unrecognized backend: " << backend; \
+    TREELITE_LOG(FATAL) << "Unrecognized backend: " << backend; \
     return std::string(); \
   } \
 }
@@ -113,10 +113,10 @@ treelite::compiler::PredTransformFunction(const std::string& backend,
       for (const auto& e : pred_transform_multiclass_db) {
         oss << "'" << e.first << "', ";
       }
-      LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
-                 << "For multi-class classification, you should set "
-                 << "`pred_transform` to one of the following: "
-                 << "{ " << oss.str() << " }";
+      TREELITE_LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
+                          << "For multi-class classification, you should set "
+                          << "`pred_transform` to one of the following: "
+                          << "{ " << oss.str() << " }";
     }
     return (it->second)(backend, model);
   } else {
@@ -126,10 +126,10 @@ treelite::compiler::PredTransformFunction(const std::string& backend,
       for (const auto& e : pred_transform_db) {
         oss << "'" << e.first << "', ";
       }
-      LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
-                 << "For any task that is NOT multi-class classification, you "
-                 << "should set `pred_transform` to one of the following: "
-                 << "{ " << oss.str() << " }";
+      TREELITE_LOG(FATAL) << "Invalid argument given for `pred_transform` parameter. "
+                          << "For any task that is NOT multi-class classification, you "
+                          << "should set `pred_transform` to one of the following: "
+                          << "{ " << oss.str() << " }";
     }
     return (it->second)(backend, model);
   }

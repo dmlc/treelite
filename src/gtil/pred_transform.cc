@@ -35,7 +35,7 @@ std::size_t hinge(const treelite::Model&, const float* in, float* out) {
 
 std::size_t sigmoid(const treelite::Model& model, const float* in, float* out) {
   const float alpha = model.param.sigmoid_alpha;
-  CHECK(alpha > 0.0f) << "sigmoid: alpha must be strictly positive";
+  TREELITE_CHECK(alpha > 0.0f) << "sigmoid: alpha must be strictly positive";
   *out = 1.0f / (1.0f + std::exp(-alpha * *in));
   return 1;
 }
@@ -52,7 +52,7 @@ std::size_t logarithm_one_plus_exp(const treelite::Model&, const float* in, floa
 
 std::size_t identity_multiclass(const treelite::Model& model, const float* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
-  CHECK(num_class > 1) << "model must be a multi-class classifier";
+  TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   for (std::size_t i = 0; i < num_class; ++i) {
     out[i] = in[i];
   }
@@ -61,7 +61,7 @@ std::size_t identity_multiclass(const treelite::Model& model, const float* in, f
 
 std::size_t max_index(const treelite::Model& model, const float* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
-  CHECK(num_class > 1) << "model must be a multi-class classifier";
+  TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   std::size_t max_index = 0;
   float max_margin = in[0];
   for (std::size_t i = 1; i < num_class; ++i) {
@@ -76,7 +76,7 @@ std::size_t max_index(const treelite::Model& model, const float* in, float* out)
 
 std::size_t softmax(const treelite::Model& model, const float* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
-  CHECK(num_class > 1) << "model must be a multi-class classifier";
+  TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   float max_margin = in[0];
   double norm_const = 0.0;
   float t;
@@ -98,9 +98,9 @@ std::size_t softmax(const treelite::Model& model, const float* in, float* out) {
 
 std::size_t multiclass_ova(const treelite::Model& model, const float* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
-  CHECK(num_class > 1) << "model must be a multi-class classifier";
+  TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   const float alpha = model.param.sigmoid_alpha;
-  CHECK(alpha > 0.0f) << "multiclass_ova: alpha must be strictly positive";
+  TREELITE_CHECK(alpha > 0.0f) << "multiclass_ova: alpha must be strictly positive";
   for (std::size_t i = 0; i < num_class; ++i) {
     out[i] = 1.0f / (1.0f + std::exp(-alpha * in[i]));
   }

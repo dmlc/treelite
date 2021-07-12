@@ -48,9 +48,9 @@ class ASTNativeCompilerImpl {
     CompiledModel cm;
     cm.backend = "native";
 
-    CHECK(model.task_type != TaskType::kMultiClfCategLeaf)
+    TREELITE_CHECK(model.task_type != TaskType::kMultiClfCategLeaf)
       << "Model task type unsupported by ASTNativeCompiler";
-    CHECK(model.task_param.output_type == TaskParam::OutputType::kFloat)
+    TREELITE_CHECK(model.task_param.output_type == TaskParam::OutputType::kFloat)
       << "ASTNativeCompiler only supports models with float output";
 
     num_feature_ = model.num_feature;
@@ -74,8 +74,8 @@ class ASTNativeCompilerImpl {
       annotator.Load(fi);
       const auto annotation = annotator.Get();
       builder.LoadDataCounts(annotation);
-      LOG(INFO) << "Loading node frequencies from `"
-                << param_.annotate_in << "'";
+      TREELITE_LOG(INFO) << "Loading node frequencies from `"
+                         << param_.annotate_in << "'";
     }
     builder.Split(param_.parallel_comp);
     if (param_.quantize > 0) {
@@ -128,7 +128,7 @@ class ASTNativeCompilerImpl {
   }
 
   CompiledModel Compile(const Model& model) {
-    CHECK(model.GetLeafOutputType() != TypeInfo::kUInt32)
+    TREELITE_CHECK(model.GetLeafOutputType() != TypeInfo::kUInt32)
       << "Integer leaf outputs not yet supported";
     this->pred_tranform_func_ = PredTransformFunction("native", model);
     return model.Dispatch([this](const auto& model_handle) {
@@ -178,7 +178,7 @@ class ASTNativeCompilerImpl {
     } else if ( (t7 = dynamic_cast<const CodeFolderNode*>(node)) ) {
       HandleCodeFolderNode<ThresholdType, LeafOutputType>(t7, dest, indent);
     } else {
-      LOG(FATAL) << "Unrecognized AST node type";
+      TREELITE_LOG(FATAL) << "Unrecognized AST node type";
     }
   }
 
@@ -247,24 +247,24 @@ class ASTNativeCompilerImpl {
         "threshold_type_Node"_a = (param_.quantize > 0 ? std::string("int") : threshold_type)),
       indent);
 
-    CHECK_EQ(node->children.size(), 1);
+    TREELITE_CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent + 2);
 
     std::string optional_average_field;
     if (node->average_result) {
       if (task_type_ == TaskType::kMultiClfGrovePerClass) {
-        CHECK(task_param_.grove_per_class);
-        CHECK_EQ(task_param_.leaf_vector_size, 1);
-        CHECK_GT(task_param_.num_class, 1);
-        CHECK_EQ(node->num_tree % task_param_.num_class, 0)
+        TREELITE_CHECK(task_param_.grove_per_class);
+        TREELITE_CHECK_EQ(task_param_.leaf_vector_size, 1);
+        TREELITE_CHECK_GT(task_param_.num_class, 1);
+        TREELITE_CHECK_EQ(node->num_tree % task_param_.num_class, 0)
           << "Expected the number of trees to be divisible by the number of classes";
         int num_boosting_round = node->num_tree / static_cast<int>(task_param_.num_class);
         optional_average_field = fmt::format(" / {}", num_boosting_round);
       } else {
-        CHECK(task_type_ == TaskType::kBinaryClfRegr
-              || task_type_ == TaskType::kMultiClfProbDistLeaf);
-        CHECK_EQ(task_param_.num_class, task_param_.leaf_vector_size);
-        CHECK(!task_param_.grove_per_class);
+        TREELITE_CHECK(task_type_ == TaskType::kBinaryClfRegr
+                       || task_type_ == TaskType::kMultiClfProbDistLeaf);
+        TREELITE_CHECK_EQ(task_param_.num_class, task_param_.leaf_vector_size);
+        TREELITE_CHECK(!task_param_.grove_per_class);
         optional_average_field = fmt::format(" / {}", node->num_tree);
       }
     }
@@ -331,7 +331,7 @@ class ASTNativeCompilerImpl {
             "condition"_a = condition);
     } else {   /* categorical split */
       const CategoricalConditionNode* t2 = dynamic_cast<const CategoricalConditionNode*>(node);
-      CHECK(t2);
+      TREELITE_CHECK(t2);
       condition_with_na_check = ExtractCategoricalCondition(t2);
     }
     if (node->children[0]->data_count && node->children[1]->data_count) {
@@ -344,7 +344,7 @@ class ASTNativeCompilerImpl {
     }
     AppendToBuffer(dest,
       fmt::format("if ({}) {{\n", condition_with_na_check), indent);
-    CHECK_EQ(node->children.size(), 2);
+    TREELITE_CHECK_EQ(node->children.size(), 2);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent + 2);
     AppendToBuffer(dest, "} else {\n", indent);
     WalkAST<ThresholdType, LeafOutputType>(node->children[1], dest, indent + 2);
@@ -356,7 +356,7 @@ class ASTNativeCompilerImpl {
                         const std::string& dest,
                         size_t indent) {
     AppendToBuffer(dest, RenderOutputStatement(node), indent);
-    CHECK_EQ(node->children.size(), 0);
+    TREELITE_CHECK_EQ(node->children.size(), 0);
   }
 
   template <typename ThresholdType, typename LeafOutputType>
@@ -393,7 +393,7 @@ class ASTNativeCompilerImpl {
     AppendToBuffer(new_file,
                    fmt::format("#include \"header.h\"\n"
                                "{} {{\n", unit_function_signature), 0);
-    CHECK_EQ(node->children.size(), 1);
+    TREELITE_CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], new_file, 2);
     if (task_param_.num_class > 1) {
       AppendToBuffer(new_file,
@@ -481,7 +481,7 @@ class ASTNativeCompilerImpl {
                     "{array_th_len}\n"
                     "}};\n", "array_th_len"_a = array_th_len), 0);
     }
-    CHECK_EQ(node->children.size(), 1);
+    TREELITE_CHECK_EQ(node->children.size(), 1);
     WalkAST<ThresholdType, LeafOutputType>(node->children[0], dest, indent);
   }
 
@@ -489,7 +489,7 @@ class ASTNativeCompilerImpl {
   void HandleCodeFolderNode(const CodeFolderNode* node,
                             const std::string& dest,
                             size_t indent) {
-    CHECK_EQ(node->children.size(), 1);
+    TREELITE_CHECK_EQ(node->children.size(), 1);
     const int node_id = node->children[0]->node_id;
     const int tree_id = node->children[0]->tree_id;
 
@@ -616,7 +616,7 @@ class ASTNativeCompilerImpl {
     std::string result;
     std::vector<uint64_t> bitmap
       = common_util::GetCategoricalBitmap(node->matching_categories);
-    CHECK_GE(bitmap.size(), 1);
+    TREELITE_CHECK_GE(bitmap.size(), 1);
     bool all_zeros = true;
     for (uint64_t e : bitmap) {
       all_zeros &= (e == 0);
@@ -670,7 +670,7 @@ class ASTNativeCompilerImpl {
     if (task_param_.num_class > 1) {
       if (node->is_vector) {
         // multi-class classification with random forest
-        CHECK_EQ(node->vector.size(), static_cast<size_t>(task_param_.num_class))
+        TREELITE_CHECK_EQ(node->vector.size(), static_cast<size_t>(task_param_.num_class))
           << "Ill-formed model: leaf vector must be of length [num_class]";
         for (size_t group_id = 0; group_id < task_param_.num_class; ++group_id) {
           output_statement
@@ -700,10 +700,10 @@ class ASTNativeCompilerImpl {
 ASTNativeCompiler::ASTNativeCompiler(const CompilerParam& param)
     : pimpl_(std::make_unique<ASTNativeCompilerImpl>(param)) {
   if (param.verbose > 0) {
-    LOG(INFO) << "Using ASTNativeCompiler";
+    TREELITE_LOG(INFO) << "Using ASTNativeCompiler";
   }
   if (param.dump_array_as_elf > 0) {
-    LOG(INFO) << "Warning: 'dump_array_as_elf' parameter is not applicable "
+    TREELITE_LOG(INFO) << "Warning: 'dump_array_as_elf' parameter is not applicable "
                  "for ASTNativeCompiler";
   }
 }

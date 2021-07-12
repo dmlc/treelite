@@ -144,7 +144,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
       if (tree.IsLeaf(nid)) {
-        CHECK(!tree.HasLeafVector(nid))
+        TREELITE_CHECK(!tree.HasLeafVector(nid))
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
           "sindex"_a = 0,
@@ -152,8 +152,8 @@ inline std::pair<std::string, std::string> FormatNodesArray(
           "cleft"_a = -1,
           "cright"_a = -1);
       } else {
-        CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-              && !tree.HasMatchingCategories(nid))
+        TREELITE_CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
+                       && !tree.HasMatchingCategories(nid))
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
             "sindex"_a
@@ -184,12 +184,12 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
   for (const auto& tree : model.trees) {
     for (int nid = 0; nid < tree.num_nodes; ++nid) {
       if (tree.IsLeaf(nid)) {
-        CHECK(!tree.HasLeafVector(nid))
+        TREELITE_CHECK(!tree.HasLeafVector(nid))
           << "multi-class random forest classifier is not supported in FailSafeCompiler";
         val = {0, static_cast<float>(tree.LeafValue(nid)), -1, -1};
       } else {
-        CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-              && !tree.HasMatchingCategories(nid))
+        TREELITE_CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
+                       && !tree.HasMatchingCategories(nid))
           << "categorical splits are not supported in FailSafeCompiler";
         val = {(tree.SplitIndex(nid) | (static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31)),
                static_cast<float>(tree.Threshold(nid)), tree.LeftChild(nid), tree.RightChild(nid)};
@@ -219,7 +219,7 @@ inline std::string GetCommonOp(const treelite::ModelImpl<float, float>& model) {
     }
   }
   // sanity check: all numerical splits must have identical comparison operators
-  CHECK_EQ(ops.size(), 1)
+  TREELITE_CHECK_EQ(ops.size(), 1)
     << "FailSafeCompiler only supports models where all splits use identical comparison operator.";
   return treelite::OpName(*ops.begin());
 }
@@ -241,8 +241,8 @@ class FailSafeCompilerImpl {
   explicit FailSafeCompilerImpl(const CompilerParam& param) : param_(param) {}
 
   CompiledModel Compile(const Model& model_ptr) {
-    CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
-          && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
+    TREELITE_CHECK(model_ptr.GetThresholdType() == TypeInfo::kFloat32
+                   && model_ptr.GetLeafOutputType() == TypeInfo::kFloat32)
       << "Failsafe compiler only supports models with float32 thresholds and float32 leaf outputs";
     const auto& model = dynamic_cast<const ModelImpl<float, float>&>(model_ptr);
 
@@ -251,12 +251,12 @@ class FailSafeCompilerImpl {
 
     num_feature_ = model.num_feature;
     num_class_ = model.task_param.num_class;
-    CHECK(!model.average_tree_output)
+    TREELITE_CHECK(!model.average_tree_output)
       << "Averaging tree output is not supported in FailSafeCompiler";
-    CHECK(model.task_type == TaskType::kBinaryClfRegr
-          || model.task_type == TaskType::kMultiClfGrovePerClass)
+    TREELITE_CHECK(model.task_type == TaskType::kBinaryClfRegr
+                   || model.task_type == TaskType::kMultiClfGrovePerClass)
       << "Model task type unsupported by FailSafeCompiler";
-    CHECK_EQ(model.task_param.leaf_vector_size, 1)
+    TREELITE_CHECK_EQ(model.task_param.leaf_vector_size, 1)
       << "Model with leaf vectors is not support by FailSafeCompiler";
     pred_tranform_func_ = PredTransformFunction("native", model_ptr);
     files_.clear();
@@ -293,7 +293,7 @@ class FailSafeCompilerImpl {
     std::vector<char> nodes_elf;
     if (param_.dump_array_as_elf > 0) {
       if (param_.verbose > 0) {
-        LOG(INFO) << "Dumping arrays as an ELF relocatable object...";
+        TREELITE_LOG(INFO) << "Dumping arrays as an ELF relocatable object...";
       }
       std::tie(nodes_elf, nodes_row_ptr) = FormatNodesArrayELF(model);
     } else {
@@ -397,22 +397,22 @@ class FailSafeCompilerImpl {
 FailSafeCompiler::FailSafeCompiler(const CompilerParam& param)
     : pimpl_(std::make_unique<FailSafeCompilerImpl>(param)) {
   if (param.verbose > 0) {
-    LOG(INFO) << "Using FailSafeCompiler";
+    TREELITE_LOG(INFO) << "Using FailSafeCompiler";
   }
   if (param.annotate_in != "NULL") {
-    LOG(INFO) << "Warning: 'annotate_in' parameter is not applicable for "
+    TREELITE_LOG(INFO) << "Warning: 'annotate_in' parameter is not applicable for "
                  "FailSafeCompiler";
   }
   if (param.quantize > 0) {
-    LOG(INFO) << "Warning: 'quantize' parameter is not applicable for "
+    TREELITE_LOG(INFO) << "Warning: 'quantize' parameter is not applicable for "
                  "FailSafeCompiler";
   }
   if (param.parallel_comp > 0) {
-    LOG(INFO) << "Warning: 'parallel_comp' parameter is not applicable for "
+    TREELITE_LOG(INFO) << "Warning: 'parallel_comp' parameter is not applicable for "
                  "FailSafeCompiler";
   }
   if (std::isfinite(param.code_folding_req)) {
-    LOG(INFO) << "Warning: 'code_folding_req' parameter is not applicable "
+    TREELITE_LOG(INFO) << "Warning: 'code_folding_req' parameter is not applicable "
                  "for FailSafeCompiler";
   }
 }

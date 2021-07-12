@@ -63,12 +63,12 @@ DEFINE_CHECK_FUNC(_NE, !=)
 
 
 #define CHECK_BINARY_OP(name, op, x, y)                  \
-  if (auto __treelite__log__err = treelite::LogCheck##name(x, y))  \
-      treelite::LogMessageFatal(__FILE__, __LINE__).stream() \
+  if (auto __treelite__log__err = ::treelite::LogCheck##name(x, y))  \
+      ::treelite::LogMessageFatal(__FILE__, __LINE__).stream() \
         << "Check failed: " << #x " " #op " " #y << *__treelite__log__err << ": "
 #define CHECK(x)                                               \
   if (!(x))                                                    \
-    treelite::LogMessageFatal(__FILE__, __LINE__).stream()     \
+    ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()     \
       << "Check failed: " #x << ": "
 #define CHECK_LT(x, y) CHECK_BINARY_OP(_LT, <, x, y)
 #define CHECK_GT(x, y) CHECK_BINARY_OP(_GT, >, x, y)
@@ -77,9 +77,9 @@ DEFINE_CHECK_FUNC(_NE, !=)
 #define CHECK_EQ(x, y) CHECK_BINARY_OP(_EQ, ==, x, y)
 #define CHECK_NE(x, y) CHECK_BINARY_OP(_NE, !=, x, y)
 
-#define LOG_INFO treelite::LogMessage(__FILE__, __LINE__)
+#define LOG_INFO ::treelite::LogMessage(__FILE__, __LINE__)
 #define LOG_ERROR LOG_INFO
-#define LOG_FATAL treelite::LogMessageFatal(__FILE__, __LINE__)
+#define LOG_FATAL ::treelite::LogMessageFatal(__FILE__, __LINE__)
 #define LOG(severity) LOG_##severity.stream()
 
 class DateLogger {

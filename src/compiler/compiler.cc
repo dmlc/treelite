@@ -5,7 +5,7 @@
  */
 #include <treelite/compiler.h>
 #include <treelite/compiler_param.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <rapidjson/document.h>
 #include <limits>
 #include "./ast_native.h"

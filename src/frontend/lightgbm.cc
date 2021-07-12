@@ -6,6 +6,7 @@
  */
 
 #include <dmlc/data.h>
+#include <treelite/logging.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <unordered_map>

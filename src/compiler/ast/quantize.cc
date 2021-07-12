@@ -5,6 +5,8 @@
  */
 #include <treelite/math.h>
 #include <dmlc/registry.h>
+#include <treelite/logging.h>
+#include <set>
 #include <cmath>
 #include "./builder.h"
 

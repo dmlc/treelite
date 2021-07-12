@@ -8,6 +8,7 @@
 #include "xgboost/xgboost.h"
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
+#include <treelite/logging.h>
 #include <algorithm>
 #include <memory>
 #include <queue>

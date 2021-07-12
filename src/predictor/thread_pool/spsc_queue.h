@@ -1,5 +1,5 @@
 /*!
-* Copyright (c) 2018-2020 by Contributors
+* Copyright (c) 2018-2021 by Contributors
 * \file spsc_queue.h
 * \brief Lock-free single-producer-single-consumer queue
 * \author Yida Wang, Hyunsu Cho
@@ -7,7 +7,7 @@
 #ifndef TREELITE_PREDICTOR_THREAD_POOL_SPSC_QUEUE_H_
 #define TREELITE_PREDICTOR_THREAD_POOL_SPSC_QUEUE_H_
 
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <atomic>
 #include <thread>
 #include <mutex>

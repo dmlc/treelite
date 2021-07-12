@@ -4,6 +4,7 @@
  * \brief Split prediction subroutine into multiple translation units (files)
  */
 #include <dmlc/registry.h>
+#include <treelite/logging.h>
 #include "./builder.h"
 
 namespace treelite {

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2020 by Contributors
+ * Copyright (c) 2018-2021 by Contributors
  * \file code_folding_util.h
  * \author Hyunsu Cho
  * \brief Utilities for code folding
@@ -7,8 +7,8 @@
 #ifndef TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 #define TREELITE_COMPILER_COMMON_CODE_FOLDING_UTIL_H_
 
-#include <dmlc/logging.h>
 #include <fmt/format.h>
+#include <treelite/logging.h>
 #include <unordered_map>
 #include <queue>
 #include <set>

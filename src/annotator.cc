@@ -5,6 +5,7 @@
  * \brief Branch annotation tools
  */
 
+#include <treelite/logging.h>
 #include <treelite/annotator.h>
 #include <treelite/math.h>
 #include <treelite/omp.h>

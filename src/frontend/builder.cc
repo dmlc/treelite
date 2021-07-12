@@ -8,6 +8,7 @@
 #include <dmlc/registry.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
+#include <treelite/logging.h>
 #include <memory>
 #include <queue>
 

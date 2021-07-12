@@ -4,6 +4,7 @@
  * \author Hyunsu Cho
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
+#include <treelite/logging.h>
 #include <dmlc/registry.h>
 #include <fstream>
 #include <iterator>

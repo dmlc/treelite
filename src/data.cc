@@ -5,7 +5,6 @@
  * \brief Input data structure of Treelite
  */
 
-#include <dmlc/logging.h>
 #include <treelite/logging.h>
 #include <treelite/data.h>
 #include <memory>

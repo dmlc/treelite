@@ -1,11 +1,10 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file builder.cc
  * \brief model builder frontend
  * \author Hyunsu Cho
  */
 
-#include <dmlc/registry.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <treelite/logging.h>
@@ -65,8 +64,6 @@ struct TreeDraft {
 
 namespace treelite {
 namespace frontend {
-
-DMLC_REGISTRY_FILE_TAG(builder);
 
 struct TreeBuilderImpl {
   TreeDraft tree;

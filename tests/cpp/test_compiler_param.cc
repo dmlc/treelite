@@ -8,7 +8,6 @@
 #include <gmock/gmock.h>
 #include <treelite/compiler_param.h>
 #include <treelite/logging.h>
-#include <dmlc/logging.h>
 #include <fmt/format.h>
 
 using namespace testing;

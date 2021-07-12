@@ -1,19 +1,6 @@
 include(FetchContent)
 include(cmake/FetchContentMakeAvailable.cmake)
 
-FetchContent_Declare(
-  dmlccore
-  GIT_REPOSITORY  https://github.com/dmlc/dmlc-core
-  GIT_TAG         v0.5
-)
-FetchContent_MakeAvailable(dmlccore)
-target_compile_options(dmlc PRIVATE
-                       -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
-if (TARGET dmlc_unit_tests)
-  target_compile_options(dmlc_unit_tests PRIVATE
-                         -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
-endif (TARGET dmlc_unit_tests)
-
 # fmtlib
 find_package(fmt)
 if(fmt_FOUND)

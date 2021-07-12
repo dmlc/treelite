@@ -12,6 +12,7 @@
 #include "./failsafe.h"
 
 namespace treelite {
+
 Compiler* Compiler::Create(const std::string& name, const char* param_json_str) {
   compiler::CompilerParam param = compiler::CompilerParam::ParseFromJSON(param_json_str);
   if (name == "ast_native") {

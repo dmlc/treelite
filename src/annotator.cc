@@ -13,7 +13,6 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/document.h>
-#include <dmlc/io.h>
 #include <limits>
 #include <cstdint>
 

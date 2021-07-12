@@ -1,16 +1,13 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2021 by Contributors
  * \file is_categorical_array.cc
  * \brief AST manipulation logic to determine whether each feature is categorical or not
  * \author Hyunsu Cho
  */
-#include <dmlc/registry.h>
 #include "./builder.h"
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(is_categorical_array);
 
 static void
 scan_thresholds(ASTNode* node, std::vector<bool>* is_categorical) {

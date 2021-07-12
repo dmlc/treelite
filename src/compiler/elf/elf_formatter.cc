@@ -1,11 +1,10 @@
 /*!
- * Copyright (c) 2019-2020 by Contributors
+ * Copyright (c) 2019-2021 by Contributors
  * \file elf_formatter.cc
  * \author Hyunsu Cho
  * \brief Generate a relocatable object file containing a constant, read-only array
  */
 #include <treelite/logging.h>
-#include <dmlc/registry.h>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -40,8 +39,6 @@ void AppendToBuffer(std::vector<char>* dest, const void* src, size_t count) {
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(elf_formatter);
 
 void AllocateELFHeader(std::vector<char>* elf_buffer) {
   elf_buffer->resize(elf_buffer->size() + sizeof(Elf64_Ehdr));

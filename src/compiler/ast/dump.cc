@@ -1,9 +1,8 @@
 /*!
- * Copyright (c) 2019-2020 by Contributors
+ * Copyright (c) 2019-2021 by Contributors
  * \file dump.cc
  * \brief Generate text representation of AST
  */
-#include <dmlc/registry.h>
 #include <treelite/logging.h>
 #include "./builder.h"
 
@@ -23,8 +22,6 @@ void get_dump_from_node(std::ostringstream* oss,
 
 namespace treelite {
 namespace compiler {
-
-DMLC_REGISTRY_FILE_TAG(dump);
 
 template <typename ThresholdType, typename LeafOutputType>
 std::string

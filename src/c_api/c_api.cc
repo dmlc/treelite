@@ -17,7 +17,6 @@
 #include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
-#include <dmlc/io.h>
 #include <memory>
 #include <algorithm>
 #include <fstream>

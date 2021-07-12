@@ -7,7 +7,7 @@
  */
 
 #include <treelite/tree.h>
-#include <dmlc/logging.h>
+#include <treelite/logging.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <ostream>

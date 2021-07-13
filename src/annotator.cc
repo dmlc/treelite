@@ -72,8 +72,8 @@ inline void ComputeBranchLoopImpl(
     const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
-  CHECK_LE(rbegin, rend);
-  CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
+  TREELITE_CHECK_LE(rbegin, rend);
+  TREELITE_CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const size_t num_col = dmat->num_col;
   const ElementType missing_value = dmat->missing_value;
   const bool nan_missing = treelite::math::CheckNAN(missing_value);
@@ -87,7 +87,7 @@ inline void ComputeBranchLoopImpl(
     const size_t off2 = count_row_ptr[ntree] * tid;
     for (size_t j = 0; j < num_col; ++j) {
       if (treelite::math::CheckNAN(row[j])) {
-        CHECK(nan_missing)
+        TREELITE_CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any NaN in the matrix.";
       } else if (nan_missing || row[j] != missing_value) {
         inst[off + j].fvalue = row[j];
@@ -109,8 +109,8 @@ inline void ComputeBranchLoopImpl(
     const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
-  CHECK_LE(rbegin, rend);
-  CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
+  TREELITE_CHECK_LE(rbegin, rend);
+  TREELITE_CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const auto rbegin_i = static_cast<int64_t>(rbegin);
   const auto rend_i = static_cast<int64_t>(rend);
   #pragma omp parallel for schedule(static) num_threads(nthread)
@@ -141,7 +141,7 @@ class ComputeBranchLoopDispatcherWithDenseDMatrix {
       const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
-    CHECK(dmat_) << "Dangling data matrix reference detected";
+    TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
     ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
   }
 };
@@ -155,7 +155,7 @@ class ComputeBranchLoopDispatcherWithCSRDMatrix {
       const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
-    CHECK(dmat_) << "Dangling data matrix reference detected";
+    TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
     ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
   }
 };
@@ -177,7 +177,7 @@ inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutpu
     break;
   }
   default:
-    LOG(FATAL)
+    TREELITE_LOG(FATAL)
       << "Annotator does not support DMatrix of type " << static_cast<int>(dmat->GetType());
     break;
   }
@@ -214,7 +214,7 @@ AnnotateImpl(
     const size_t rend = std::min(rbegin + pstep, num_row);
     ComputeBranchLoop(model, dmat, rbegin, rend, nthread, &count_row_ptr[0], &counts_tloc[0]);
     if (verbose > 0) {
-      LOG(INFO) << rend << " of " << num_row << " rows processed";
+      TREELITE_LOG(INFO) << rend << " of " << num_row << " rows processed";
     }
   }
 
@@ -249,10 +249,10 @@ BranchAnnotator::Load(std::istream& fi) {
   doc.ParseStream(is);
 
   std::string err_msg = "JSON file must contain a list of lists of integers";
-  CHECK(doc.IsArray()) << err_msg;
+  TREELITE_CHECK(doc.IsArray()) << err_msg;
   counts_.clear();
   for (const auto& node_cnt : doc.GetArray()) {
-    CHECK(node_cnt.IsArray()) << err_msg;
+    TREELITE_CHECK(node_cnt.IsArray()) << err_msg;
     counts_.emplace_back();
     for (const auto& e : node_cnt.GetArray()) {
       counts_.back().push_back(e.GetUint64());

@@ -35,8 +35,8 @@ class ThreadPool {
 
   ThreadPool(int num_worker, const TaskContext* context, TaskFunc task)
     : num_worker_(num_worker), context_(context), task_(task) {
-    CHECK(num_worker_ >= 0
-          && static_cast<unsigned>(num_worker_) < std::thread::hardware_concurrency())
+    TREELITE_CHECK(num_worker_ >= 0
+                   && static_cast<unsigned>(num_worker_) < std::thread::hardware_concurrency())
     << "Number of worker threads must be between 0 and "
     << (std::thread::hardware_concurrency() - 1);
     for (int i = 0; i < num_worker_; ++i) {

@@ -49,7 +49,7 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param) {
              || objective_name == "rank:map") {
     SetPredTransformString("identity", param);
   } else {
-    LOG(FATAL) << "Unrecognized XGBoost objective: " << objective_name;
+    TREELITE_LOG(FATAL) << "Unrecognized XGBoost objective: " << objective_name;
   }
 }
 

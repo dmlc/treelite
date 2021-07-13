@@ -48,7 +48,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
   FILE* fp = std::fopen(filename, "r");
 #endif
   if (!fp) {
-    LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
+    TREELITE_LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
   }
 
   auto input_stream = std::make_unique<rapidjson::FileReadStream>(
@@ -215,53 +215,53 @@ bool RegTreeHandler::EndObject(std::size_t) {
     split_type.resize(num_nodes, details::xgboost::FeatureType::kNumerical);
   }
   if (static_cast<size_t>(num_nodes) != loss_changes.size()) {
-    LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << loss_changes.size();
+    TREELITE_LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << loss_changes.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != sum_hessian.size()) {
-    LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << sum_hessian.size();
+    TREELITE_LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << sum_hessian.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != base_weights.size()) {
-    LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << base_weights.size();
+    TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << base_weights.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != left_children.size()) {
-    LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << left_children.size();
+    TREELITE_LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << left_children.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != right_children.size()) {
-    LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << right_children.size();
+    TREELITE_LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: "
+                        << num_nodes << ", Actual: " << right_children.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != parents.size()) {
-    LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << parents.size();
+    TREELITE_LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << parents.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != split_indices.size()) {
-    LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << split_indices.size();
+    TREELITE_LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << split_indices.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != split_type.size()) {
-    LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << split_type.size();
+    TREELITE_LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << split_type.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != split_conditions.size()) {
-    LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << split_conditions.size();
+    TREELITE_LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: "
+                        << num_nodes << ", Actual: " << split_conditions.size();
     return false;
   }
   if (static_cast<size_t>(num_nodes) != default_left.size()) {
-    LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
-               << ", Actual: " << default_left.size();
+    TREELITE_LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
+                        << ", Actual: " << default_left.size();
     return false;
   }
 
@@ -281,7 +281,7 @@ bool RegTreeHandler::EndObject(std::size_t) {
       if (split_type[old_id] == details::xgboost::FeatureType::kCategorical) {
         auto categorical_split_loc
           = math::binary_search(categories_nodes.begin(), categories_nodes.end(), old_id);
-        CHECK(categorical_split_loc != categories_nodes.end())
+        TREELITE_CHECK(categorical_split_loc != categories_nodes.end())
           << "Could not find record for the categorical split in node " << old_id;
         auto categorical_split_id = std::distance(categories_nodes.begin(), categorical_split_loc);
         int offset = categories_segments[categorical_split_id];
@@ -331,7 +331,7 @@ bool GradientBoosterHandler::String(const char *str,
     if (name == "gbtree" || name == "dart") {
       return true;
     } else {
-      LOG(ERROR) << "Only GBTree or DART boosters are currently supported.";
+      TREELITE_LOG(ERROR) << "Only GBTree or DART boosters are currently supported.";
       return false;
     }
   } else {
@@ -346,8 +346,8 @@ bool GradientBoosterHandler::StartObject() {
     // "dart" booster contains a standard gbtree under ["gradient_booster"]["gbtree"]["model"].
     return true;
   } else {
-    LOG(ERROR) << "Key \"" << get_cur_key()
-               << "\" not recognized. Is this a GBTree-type booster?";
+    TREELITE_LOG(ERROR) << "Key \"" << get_cur_key()
+                        << "\" not recognized. Is this a GBTree-type booster?";
     return false;
   }
 }
@@ -357,7 +357,7 @@ bool GradientBoosterHandler::StartArray() {
 bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
-    CHECK_EQ(output.trees.size(), weight_drop.size());
+    TREELITE_CHECK_EQ(output.trees.size(), weight_drop.size());
     for (size_t i = 0; i < output.trees.size(); ++i) {
       for (int nid = 0; nid < output.trees[i].num_nodes; ++nid) {
         if (output.trees[i].IsLeaf(nid)) {
@@ -436,7 +436,7 @@ bool XGBoostModelHandler::StartObject() {
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   if (memberCount != 2) {
-    LOG(ERROR) << "Expected two members in XGBoostModel";
+    TREELITE_LOG(ERROR) << "Expected two members in XGBoostModel";
     return false;
   }
   output.model->average_tree_output = false;
@@ -512,9 +512,9 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
     const auto error_code = result.Code();
     const size_t offset = result.Offset();
     std::string diagnostic = error_handler(offset);
-    LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. Parsing error at offset "
-               << offset << ": " << rapidjson::GetParseError_En(error_code) << "\n"
-               << diagnostic;
+    TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. "
+                        << "Parsing error at offset " << offset << ": "
+                        << rapidjson::GetParseError_En(error_code) << "\n" << diagnostic;
   }
   return handler->get_result();
 }

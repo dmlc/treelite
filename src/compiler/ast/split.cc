@@ -21,22 +21,23 @@ template <typename ThresholdType, typename LeafOutputType>
 void
 ASTBuilder<ThresholdType, LeafOutputType>::Split(int parallel_comp) {
   if (parallel_comp <= 0) {
-    LOG(INFO) << "Parallel compilation disabled; all member trees will be "
-              << "dumped to a single source file. This may increase "
-              << "compilation time and memory usage.";
+    TREELITE_LOG(INFO) << "Parallel compilation disabled; all member trees will be "
+                       << "dumped to a single source file. This may increase "
+                       << "compilation time and memory usage.";
     return;
   }
-  LOG(INFO) << "Parallel compilation enabled; member trees will be "
-            << "divided into " << parallel_comp << " translation units.";
-  CHECK_EQ(this->main_node->children.size(), 1);
+  TREELITE_LOG(INFO) << "Parallel compilation enabled; member trees will be "
+                     << "divided into " << parallel_comp << " translation units.";
+  TREELITE_CHECK_EQ(this->main_node->children.size(), 1);
   ASTNode* top_ac_node = this->main_node->children[0];
-  CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
+  TREELITE_CHECK(dynamic_cast<AccumulatorContextNode*>(top_ac_node));
 
   /* tree_head[i] stores reference to head of tree i */
   std::vector<ASTNode*> tree_head;
   for (ASTNode* node : top_ac_node->children) {
-    CHECK(dynamic_cast<ConditionNode*>(node) || dynamic_cast<OutputNode<LeafOutputType>*>(node)
-          || dynamic_cast<CodeFolderNode*>(node));
+    TREELITE_CHECK(dynamic_cast<ConditionNode*>(node)
+                   || dynamic_cast<OutputNode<LeafOutputType>*>(node)
+                   || dynamic_cast<CodeFolderNode*>(node));
     tree_head.push_back(node);
   }
   /* dynamic_cast<> is used here to check node types. This is to ensure

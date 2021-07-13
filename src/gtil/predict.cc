@@ -38,7 +38,7 @@ inline int NextNode(float fvalue, T threshold, treelite::Operator op,
     case treelite::Operator::kGE:
       return (fvalue >= threshold) ? left_child : right_child;
     default:
-      CHECK(false) << "Unrecognized comparison operator " << static_cast<int>(op);
+      TREELITE_CHECK(false) << "Unrecognized comparison operator " << static_cast<int>(op);
       return -1;
   }
 }
@@ -94,7 +94,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
                                         tree.LeftChild(node_id), tree.RightChild(node_id),
                                         tree.DefaultChild(node_id));
         } else {
-          CHECK(false) << "Unrecognized split type: " << static_cast<int>(split_type);
+          TREELITE_CHECK(false) << "Unrecognized split type: " << static_cast<int>(split_type);
         }
       }
       output_func(tree, tree_id, node_id, sum.data());
@@ -102,18 +102,18 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     if (model.average_tree_output) {
       float average_factor;
       if (model.task_type == treelite::TaskType::kMultiClfGrovePerClass) {
-        CHECK(task_param.grove_per_class);
-        CHECK_EQ(task_param.leaf_vector_size, 1);
-        CHECK_GT(task_param.num_class, 1);
-        CHECK_EQ(num_tree % task_param.num_class, 0)
+        TREELITE_CHECK(task_param.grove_per_class);
+        TREELITE_CHECK_EQ(task_param.leaf_vector_size, 1);
+        TREELITE_CHECK_GT(task_param.num_class, 1);
+        TREELITE_CHECK_EQ(num_tree % task_param.num_class, 0)
           << "Expected the number of trees to be divisible by the number of classes";
         int num_boosting_round = num_tree / static_cast<int>(task_param.num_class);
         average_factor = static_cast<float>(num_boosting_round);
       } else {
-        CHECK(model.task_type == treelite::TaskType::kBinaryClfRegr
-              || model.task_type == treelite::TaskType::kMultiClfProbDistLeaf);
-        CHECK(task_param.num_class == task_param.leaf_vector_size);
-        CHECK(!task_param.grove_per_class);
+        TREELITE_CHECK(model.task_type == treelite::TaskType::kBinaryClfRegr
+                       || model.task_type == treelite::TaskType::kMultiClfProbDistLeaf);
+        TREELITE_CHECK(task_param.num_class == task_param.leaf_vector_size);
+        TREELITE_CHECK(!task_param.grove_per_class);
         average_factor = static_cast<float>(num_tree);
       }
       for (unsigned int i = 0; i < task_param.num_class; ++i) {
@@ -190,7 +190,7 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, boo
       return PredictImpl(model, d2, output, pred_transform);
     });
   } else {
-    LOG(FATAL) << "DMatrix with float64 data is not supported";
+    TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
     return 0;
   }
 }

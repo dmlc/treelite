@@ -22,8 +22,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnModel(
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** impurity, MetaHandlerFunc meta_handler, LeafHandlerFunc leaf_handler) {
-  CHECK_GT(n_trees, 0);
-  CHECK_GT(n_features, 0);
+  TREELITE_CHECK_GT(n_trees, 0);
+  TREELITE_CHECK_GT(n_features, 0);
 
   std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
   meta_handler(model_ptr.get(), n_features, n_classes);
@@ -164,7 +164,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** impurity) {
-  CHECK_GE(n_classes, 2);
+  TREELITE_CHECK_GE(n_classes, 2);
   if (n_classes == 2) {
     return LoadSKLearnRandomForestClassifierBinary(n_estimators, n_features, n_classes, node_count,
         children_left, children_right, feature, threshold, value, n_node_samples, impurity);
@@ -257,7 +257,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** impurity) {
-  CHECK_GE(n_classes, 2);
+  TREELITE_CHECK_GE(n_classes, 2);
   if (n_classes == 2) {
     return LoadSKLearnGradientBoostingClassifierBinary(n_estimators, n_features, n_classes,
         node_count, children_left, children_right, feature, threshold, value, n_node_samples,

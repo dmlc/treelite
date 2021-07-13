@@ -13,7 +13,7 @@ void get_dump_from_node(std::ostringstream* oss,
                         int indent) {
   (*oss) << std::string(indent, ' ') << node->GetDump() << "\n";
   for (const treelite::compiler::ASTNode* child : node->children) {
-    CHECK(child);
+    TREELITE_CHECK(child);
     get_dump_from_node(oss, child, indent + 2);
   }
 }

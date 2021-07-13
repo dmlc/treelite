@@ -62,7 +62,7 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
         break;
       }
     }
-    CHECK_NE(node_loc, -1);  // parent should have a link to current node
+    TREELITE_CHECK_NE(node_loc, -1);  // parent should have a link to current node
     parent_node->children[node_loc]
       = context->create_new_translation_unit ? tu_node : folder_node;
     folder_node->children.push_back(node);

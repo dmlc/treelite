@@ -20,7 +20,7 @@ Compiler* Compiler::Create(const std::string& name, const char* param_json_str) 
   } else if (name == "failsafe") {
     return new compiler::FailSafeCompiler(param);
   } else {
-    LOG(FATAL) << "Unrecognized compiler '" << name << "'";
+    TREELITE_LOG(FATAL) << "Unrecognized compiler '" << name << "'";
     return nullptr;
   }
 }
@@ -41,36 +41,37 @@ CompilerParam::ParseFromJSON(const char* param_json_str) {
 
   rapidjson::Document doc;
   doc.Parse(param_json_str);
-  CHECK(doc.IsObject()) << "Got an invalid JSON string:\n" << param_json_str;
+  TREELITE_CHECK(doc.IsObject()) << "Got an invalid JSON string:\n" << param_json_str;
   for (const auto& e : doc.GetObject()) {
     const std::string key = e.name.GetString();
     if (key == "annotate_in") {
-      CHECK(e.value.IsString()) << "Expected a string for 'annotate_in'";
+      TREELITE_CHECK(e.value.IsString()) << "Expected a string for 'annotate_in'";
       param.annotate_in = e.value.GetString();
     } else if (key == "quantize") {
-      CHECK(e.value.IsInt()) << "Expected an integer for 'quantize'";
+      TREELITE_CHECK(e.value.IsInt()) << "Expected an integer for 'quantize'";
       param.quantize = e.value.GetInt();
-      CHECK_GE(param.quantize, 0) << "'quantize' must be 0 or greater";
+      TREELITE_CHECK_GE(param.quantize, 0) << "'quantize' must be 0 or greater";
     } else if (key == "parallel_comp") {
-      CHECK(e.value.IsInt()) << "Expected an integer for 'parallel_comp'";
+      TREELITE_CHECK(e.value.IsInt()) << "Expected an integer for 'parallel_comp'";
       param.parallel_comp = e.value.GetInt();
-      CHECK_GE(param.parallel_comp, 0) << "'parallel_comp' must be 0 or greater";
+      TREELITE_CHECK_GE(param.parallel_comp, 0) << "'parallel_comp' must be 0 or greater";
     } else if (key == "verbose") {
-      CHECK(e.value.IsInt()) << "Expected an integer for 'verbose'";
+      TREELITE_CHECK(e.value.IsInt()) << "Expected an integer for 'verbose'";
       param.verbose = e.value.GetInt();
     } else if (key == "native_lib_name") {
-      CHECK(e.value.IsString()) << "Expected a string for 'native_lib_name'";
+      TREELITE_CHECK(e.value.IsString()) << "Expected a string for 'native_lib_name'";
       param.native_lib_name = e.value.GetString();
     } else if (key == "code_folding_req") {
-      CHECK(e.value.IsDouble()) << "Expected a floating-point decimal for 'code_folding_req'";
+      TREELITE_CHECK(e.value.IsDouble())
+          << "Expected a floating-point decimal for 'code_folding_req'";
       param.code_folding_req = e.value.GetDouble();
-      CHECK_GE(param.code_folding_req, 0) << "'code_folding_req' must be 0 or greater";
+      TREELITE_CHECK_GE(param.code_folding_req, 0) << "'code_folding_req' must be 0 or greater";
     } else if (key == "dump_array_as_elf") {
-      CHECK(e.value.IsInt()) << "Expected an integer for 'dump_array_as_elf'";
+      TREELITE_CHECK(e.value.IsInt()) << "Expected an integer for 'dump_array_as_elf'";
       param.dump_array_as_elf = e.value.GetInt();
-      CHECK_GE(param.dump_array_as_elf, 0) << "'dump_array_as_elf' must be 0 or greater";
+      TREELITE_CHECK_GE(param.dump_array_as_elf, 0) << "'dump_array_as_elf' must be 0 or greater";
     } else {
-      LOG(FATAL) << "Unrecognized key '" << key << "' in JSON";
+      TREELITE_LOG(FATAL) << "Unrecognized key '" << key << "' in JSON";
     }
   }
 

@@ -43,7 +43,7 @@ inline void HandleSystemError(const std::string& msg) {
 #else
   const std::string msg_err(strerror(errno));
 #endif
-  LOG(FATAL) << msg << "\nReason: " << msg_err;
+  TREELITE_LOG(FATAL) << msg << "\nReason: " << msg_err;
 }
 
 }  // anonymous namespace
@@ -63,8 +63,8 @@ void CreateDirectoryIfNotExist(const char* dirpath) {
     }
   } else {
     if (!(ftyp & FILE_ATTRIBUTE_DIRECTORY)) {
-      LOG(FATAL) << "CreateDirectoryIfNotExist: "
-                 << dirpath << " is a file, not a directory";
+      TREELITE_LOG(FATAL) << "CreateDirectoryIfNotExist: "
+                          << dirpath << " is a file, not a directory";
     }
   }
 #else
@@ -78,8 +78,8 @@ void CreateDirectoryIfNotExist(const char* dirpath) {
     }
   } else {
     if (!S_ISDIR(sb.st_mode)) {
-      LOG(FATAL) << "CreateDirectoryIfNotExist: "
-                 << dirpath << " is a file, not a directory";
+      TREELITE_LOG(FATAL) << "CreateDirectoryIfNotExist: "
+                          << dirpath << " is a file, not a directory";
     }
   }
 #endif

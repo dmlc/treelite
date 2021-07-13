@@ -37,7 +37,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
                        std::string* array_cat_begin,
                        std::string* output_switch_statements,
                        Operator* common_comp_op) {
-  CHECK_EQ(node->children.size(), 1);
+  TREELITE_CHECK_EQ(node->children.size(), 1);
   const int tree_id = node->children[0]->tree_id;
   // list of descendants, with newly assigned ID's
   std::unordered_map<ASTNode*, int> descendants;
@@ -58,12 +58,12 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
     while (!Q.empty()) {
       ASTNode* e = Q.front(); Q.pop();
       // sanity check: all descendants must have same tree_id
-      CHECK_EQ(e->tree_id, tree_id);
+      TREELITE_CHECK_EQ(e->tree_id, tree_id);
       // sanity check: all descendants must be ConditionNode or OutputNode
       ConditionNode* t1 = dynamic_cast<ConditionNode*>(e);
       OutputNode<LeafOutputType>* t2 = dynamic_cast<OutputNode<LeafOutputType>*>(e);
       NumericalConditionNode<ThresholdType>* t3;
-      CHECK(t1 || t2);
+      TREELITE_CHECK(t1 || t2);
       if (t2) {  // e is OutputNode
         descendants[e] = new_leaf_id--;
       } else {
@@ -77,7 +77,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
       }
     }
     // sanity check: all numerical splits must have identical comparison operators
-    CHECK_LE(ops.size(), 1);
+    TREELITE_CHECK_LE(ops.size(), 1);
     *common_comp_op = ops.empty() ? Operator::kLT : *ops.begin();
   }
 
@@ -102,7 +102,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
         output_nodes.push_back(t1);
         // don't render OutputNode but save it for later
       } else {
-        CHECK_EQ(e->children.size(), 2U);
+        TREELITE_CHECK_EQ(e->children.size(), 2U);
         left_child_id = descendants[ e->children[0] ];
         right_child_id = descendants[ e->children[1] ];
         if ( (t2 = dynamic_cast<NumericalConditionNode<ThresholdType>*>(e)) ) {
@@ -112,7 +112,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
            = quantize ? std::to_string(t2->threshold.int_val)
                       : ToStringHighPrecision(t2->threshold.float_val);
         } else {
-          CHECK((t3 = dynamic_cast<CategoricalConditionNode*>(e)));
+          TREELITE_CHECK((t3 = dynamic_cast<CategoricalConditionNode*>(e)));
           default_left = t3->default_left;
           split_index = t3->split_index;
           threshold = "-1";  // dummy value

@@ -205,11 +205,11 @@ namespace treelite {
 namespace compiler {
 
 void AllocateELFHeader(std::vector<char>* elf_buffer) {
-  LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
+  TREELITE_LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
 }
 
 void FormatArrayAsELF(std::vector<char>* elf_buffer) {
-  LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
+  TREELITE_LOG(FATAL) << "dump_array_as_elf is not supported in non-Linux OSes";
 }
 
 }  // namespace compiler

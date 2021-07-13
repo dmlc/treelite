@@ -54,7 +54,7 @@ inline std::string hinge(const Model& model) {
 inline std::string sigmoid(const Model& model) {
   const float alpha = model.param.sigmoid_alpha;
   const TypeInfo threshold_type = model.GetThresholdType();
-  CHECK_GT(alpha, 0.0f) << "sigmoid: alpha must be strictly positive";
+  TREELITE_CHECK_GT(alpha, 0.0f) << "sigmoid: alpha must be strictly positive";
   return fmt::format(
 R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type} margin) {{
   const {threshold_type} alpha = ({threshold_type}){alpha};
@@ -87,7 +87,7 @@ R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type
 }
 
 inline std::string identity_multiclass(const Model& model) {
-  CHECK_GT(model.task_param.num_class, 1)
+  TREELITE_CHECK_GT(model.task_param.num_class, 1)
     << "identity_multiclass: model is not a proper multi-class classifier";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform({threshold_type}* pred) {{
@@ -98,7 +98,7 @@ R"TREELITETEMPLATE(static inline size_t pred_transform({threshold_type}* pred) {
 }
 
 inline std::string max_index(const Model& model) {
-  CHECK_GT(model.task_param.num_class, 1)
+  TREELITE_CHECK_GT(model.task_param.num_class, 1)
     << "max_index: model is not a proper multi-class classifier";
   const TypeInfo threshold_type = model.GetThresholdType();
   return fmt::format(
@@ -120,7 +120,7 @@ R"TREELITETEMPLATE(static inline size_t pred_transform({threshold_type}* pred) {
 }
 
 inline std::string softmax(const Model& model) {
-  CHECK_GT(model.task_param.num_class, 1)
+  TREELITE_CHECK_GT(model.task_param.num_class, 1)
     << "softmax: model is not a proper multi-class classifier";
   const TypeInfo threshold_type = model.GetThresholdType();
   return fmt::format(
@@ -150,12 +150,12 @@ R"TREELITETEMPLATE(static inline size_t pred_transform({threshold_type}* pred) {
 }
 
 inline std::string multiclass_ova(const Model& model) {
-  CHECK(model.task_param.num_class > 1)
+  TREELITE_CHECK(model.task_param.num_class > 1)
     << "multiclass_ova: model is not a proper multi-class classifier";
   const unsigned int num_class = model.task_param.num_class;
   const float alpha = model.param.sigmoid_alpha;
   const TypeInfo threshold_type = model.GetThresholdType();
-  CHECK_GT(alpha, 0.0f) << "multiclass_ova: alpha must be strictly positive";
+  TREELITE_CHECK_GT(alpha, 0.0f) << "multiclass_ova: alpha must be strictly positive";
   return fmt::format(
 R"TREELITETEMPLATE(static inline size_t pred_transform({threshold_type}* pred) {{
   const {threshold_type} alpha = ({threshold_type}){alpha};

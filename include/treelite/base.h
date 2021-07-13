@@ -52,6 +52,20 @@ inline std::string OpName(Operator op) {
 }
 
 /*!
+ * \brief Get string representation of split type
+ * \param type Type of a split
+ * \return String representation
+ */
+inline std::string SplitFeatureTypeName(SplitFeatureType type) {
+  switch (type) {
+    case SplitFeatureType::kNone: return "none";
+    case SplitFeatureType::kNumerical: return "numerical";
+    case SplitFeatureType::kCategorical: return "categorical";
+    default: return "";
+  }
+}
+
+/*!
  * \brief perform comparison between two float's using a comparsion operator
  * The comparison will be in the form [lhs] [op] [rhs].
  * \param lhs float on the left hand side

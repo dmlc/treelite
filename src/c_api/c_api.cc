@@ -20,7 +20,6 @@
 #include <memory>
 #include <algorithm>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <cstdio>
 
@@ -224,10 +223,8 @@ int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
 int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_json_str) {
   API_BEGIN();
   auto* model_ = static_cast<Model*>(handle);
-  std::ostringstream oss;
-  model_->DumpAsJSON(oss, (pretty_print != 0));
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
-  ret_str = oss.str();
+  ret_str = model_->DumpAsJSON(pretty_print != 0);
   *out_json_str = ret_str.c_str();
   API_END();
 }

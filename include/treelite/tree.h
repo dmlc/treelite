@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <utility>
@@ -155,6 +156,16 @@ enum class TaskType : uint8_t {
    */
   kMultiClfCategLeaf = 3
 };
+
+inline std::string TaskTypeToString(TaskType type) {
+  switch (type) {
+    case TaskType::kBinaryClfRegr: return "BinaryClfRegr";
+    case TaskType::kMultiClfGrovePerClass: return "MultiClfGrovePerClass";
+    case TaskType::kMultiClfProbDistLeaf: return "MultiClfProbDistLeaf";
+    case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
+    default: return "";
+  }
+}
 
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
@@ -656,6 +667,12 @@ class Model {
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
   virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
+
+  inline std::string DumpAsJSON(bool pretty_print) const {
+    std::ostringstream oss;
+    DumpAsJSON(oss, pretty_print);
+    return oss.str();
+  }
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();

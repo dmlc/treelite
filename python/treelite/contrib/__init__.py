@@ -180,7 +180,7 @@ def generate_cmakelists(dirpath, options=None):
 
 
 def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=None,
-                  suppress_long_build_time_warning=False):
+                  long_build_time_warning=True):
     """Create shared library.
 
     Parameters
@@ -200,8 +200,8 @@ def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=No
     options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
               optional
         Additional options to pass to toolchain
-    suppress_long_build_time_warning : :py:class:`bool <python:bool>`, optional
-        If set to True, suppress the warning about potentially long build time
+    long_build_time_warning : :py:class:`bool <python:bool>`, optional
+        If set to False, suppress the warning about potentially long build time
 
     Returns
     -------
@@ -256,14 +256,14 @@ def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=No
     else:
         options = []
 
-    # Wwrite warning for potentially long compile time
-    if not suppress_long_build_time_warning:
-        long_time_warning = False
+    # Write warning for potentially long compile time
+    if long_build_time_warning:
+        warn = False
         for source in recipe['sources']:
             if int(source['length']) > 10000:
-                long_time_warning = True
+                warn = True
                 break
-        if long_time_warning:
+        if warn:
             log_info(__file__, lineno(),
                      '\033[1;31mWARNING: some of the source files are long. ' + \
                      'Expect long build time.\u001B[0m ' + \

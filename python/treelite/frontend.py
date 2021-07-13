@@ -180,13 +180,13 @@ class Model:
         _toolchain_exist_check(toolchain)
 
         _params = dict(params) if isinstance(params, list) else params
-        suppress_long_build_time_warning = (_params and 'parallel_comp' in _params)
+        long_build_time_warning = not (_params and 'parallel_comp' in _params)
 
         with TemporaryDirectory(dir=os.path.dirname(libpath)) as temp_dir:
             self.compile(temp_dir, params, compiler, verbose)
             temp_libpath = create_shared(
                 toolchain, temp_dir, nthread=nthread, verbose=verbose, options=options,
-                suppress_long_build_time_warning=suppress_long_build_time_warning)
+                long_build_time_warning=long_build_time_warning)
             if os.path.exists(libpath) and os.path.isfile(libpath):
                 os.remove(libpath)
             shutil.move(temp_libpath, libpath)

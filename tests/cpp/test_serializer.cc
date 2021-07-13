@@ -495,18 +495,18 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
   }}
   )JSON",
     "threshold"_a = static_cast<ThresholdType>(0),
-    "tree0_leaf3"_a = static_cast<ThresholdType>(3),
-    "tree0_leaf4"_a = static_cast<ThresholdType>(1),
-    "tree0_leaf5"_a = static_cast<ThresholdType>(4),
-    "tree0_leaf6"_a = static_cast<ThresholdType>(2),
-    "tree1_leaf3"_a = static_cast<ThresholdType>(3 + 1),
-    "tree1_leaf4"_a = static_cast<ThresholdType>(1 + 1),
-    "tree1_leaf5"_a = static_cast<ThresholdType>(4 + 1),
-    "tree1_leaf6"_a = static_cast<ThresholdType>(2 + 1),
-    "tree2_leaf3"_a = static_cast<ThresholdType>(3 + 2),
-    "tree2_leaf4"_a = static_cast<ThresholdType>(1 + 2),
-    "tree2_leaf5"_a = static_cast<ThresholdType>(4 + 2),
-    "tree2_leaf6"_a = static_cast<ThresholdType>(2 + 2)
+    "tree0_leaf3"_a = static_cast<LeafOutputType>(3),
+    "tree0_leaf4"_a = static_cast<LeafOutputType>(1),
+    "tree0_leaf5"_a = static_cast<LeafOutputType>(4),
+    "tree0_leaf6"_a = static_cast<LeafOutputType>(2),
+    "tree1_leaf3"_a = static_cast<LeafOutputType>(3 + 1),
+    "tree1_leaf4"_a = static_cast<LeafOutputType>(1 + 1),
+    "tree1_leaf5"_a = static_cast<LeafOutputType>(4 + 1),
+    "tree1_leaf6"_a = static_cast<LeafOutputType>(2 + 1),
+    "tree2_leaf3"_a = static_cast<LeafOutputType>(3 + 2),
+    "tree2_leaf4"_a = static_cast<LeafOutputType>(1 + 2),
+    "tree2_leaf5"_a = static_cast<LeafOutputType>(4 + 2),
+    "tree2_leaf6"_a = static_cast<LeafOutputType>(2 + 2)
   );
 
   rapidjson::Document json_dump;

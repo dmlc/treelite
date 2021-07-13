@@ -286,9 +286,9 @@ class Tree {
   ContiguousArray<std::size_t> matching_categories_offset_;
 
   template <typename WriterType, typename X, typename Y>
-  friend void SerializeModelToJSON(WriterType& writer, const ModelImpl<X, Y>& model);
+  friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
   template <typename WriterType, typename X, typename Y>
-  friend void SerializeTreeToJSON(WriterType& writer, const Tree<X, Y>& tree);
+  friend void DumpTreeAsJSON(WriterType& writer, const Tree<X, Y>& tree);
 
   // allocate a new node
   inline int AllocNode();
@@ -655,7 +655,7 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void SerializeToJSON(std::ostream& fo, bool pretty_print) const = 0;
+  virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();
@@ -711,7 +711,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void SerializeToJSON(std::ostream& fo, bool pretty_print) const override;
+  void DumpAsJSON(std::ostream& fo, bool pretty_print) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();
   }

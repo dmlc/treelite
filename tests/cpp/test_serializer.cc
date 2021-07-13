@@ -15,9 +15,9 @@
 
 namespace {
 
-inline std::string TreeliteToBytes(treelite::Model* model) {
+inline std::string DumpTreeliteModelAsJSON(treelite::Model* model) {
   std::ostringstream oss;
-  model->SerializeToJSON(oss, false);
+  model->DumpAsJSON(oss, false);
   return oss.str();
 }
 
@@ -29,7 +29,7 @@ inline void TestRoundTrip(treelite::Model* model) {
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error
-    ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
+    ASSERT_TRUE(DumpTreeliteModelAsJSON(model) == DumpTreeliteModelAsJSON(received_model.get()));
   }
 
   for (int i = 0; i < 2; ++i) {
@@ -46,7 +46,7 @@ inline void TestRoundTrip(treelite::Model* model) {
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error
-    ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
+    ASSERT_TRUE(DumpTreeliteModelAsJSON(model) == DumpTreeliteModelAsJSON(received_model.get()));
   }
 }
 

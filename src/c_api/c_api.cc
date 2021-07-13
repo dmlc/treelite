@@ -225,7 +225,7 @@ int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_js
   API_BEGIN();
   auto* model_ = static_cast<Model*>(handle);
   std::ostringstream oss;
-  model_->SerializeToJSON(oss, (pretty_print != 0));
+  model_->DumpAsJSON(oss, (pretty_print != 0));
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
   ret_str = oss.str();
   *out_json_str = ret_str.c_str();

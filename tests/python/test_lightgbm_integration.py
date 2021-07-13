@@ -11,7 +11,7 @@ from sklearn.datasets import load_svmlight_file, load_boston, load_iris
 from sklearn.model_selection import train_test_split
 from treelite.contrib import _libext
 from .metadata import dataset_db, _qualify_path
-from .util import os_compatible_toolchains, os_platform, check_predictor
+from .util import os_compatible_toolchains, os_platform, check_predictor, has_pandas
 
 try:
     import lightgbm
@@ -151,6 +151,57 @@ def test_categorical_data(tmpdir, quantize, parallel_comp, toolchain):
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
     check_predictor(predictor, dataset)
 
+
+@pytest.mark.skipif(not has_pandas(), reason='Pandas required')
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+def test_categorical_data_pandas_df_with_dummies(tmpdir, toolchain):
+    # pylint: disable=too-many-locals
+    """
+    This toy example contains two features, both of which are categorical.
+    The first has cardinality 3 and the second 5. The label was generated using
+    the formula
+
+       y = f(x0) + g(x1) + [noise with std=0.1]
+
+    where f and g are given by the tables
+
+       x0  f(x0)        x1  g(x1)
+        0    -20         0     -2
+        1    -10         1     -1
+        2      0         2      0
+                         3      1
+                         4      2
+
+    Unlike test_categorical_data(), this test will convert the categorical features into
+    dummies using OneHotEncoder and store them into a Pandas Dataframe.
+    """
+    import pandas as pd
+
+    rng = np.random.default_rng(seed=0)
+    n_row = 100
+    x0 = rng.integers(low=0, high=3, size=n_row)
+    x1 = rng.integers(low=0, high=5, size=n_row)
+    noise = rng.standard_normal(size=n_row) * 0.1
+    y = (x0 * 10 - 20) + (x1 - 2) + noise
+    df = pd.DataFrame({'x0': x0, 'x1': x1}).astype('category')
+    df_dummies = pd.get_dummies(df, prefix=['x0', 'x1'], prefix_sep='=')
+
+    model_path = os.path.join(tmpdir, 'toy_dummies.txt')
+    libpath = os.path.join(tmpdir, 'dummies' + _libext())
+
+    dtrain = lightgbm.Dataset(df_dummies, label=y)
+    param = {'task': 'train', 'boosting_type': 'gbdt', 'objective': 'regression', 'metric': 'rmse',
+             'num_leaves': 7, 'learning_rate': 0.1}
+    bst = lightgbm.train(param, dtrain, num_boost_round=15, valid_sets=[dtrain],
+                         valid_names=['train'])
+    lgb_out = bst.predict(df_dummies)
+    bst.save_model(model_path)
+
+    model = treelite.Model.load(model_path, model_format='lightgbm')
+    model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
+    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
+    tl_out = predictor.predict(treelite_runtime.DMatrix(df_dummies.values, dtype='float32'))
+    np.testing.assert_almost_equal(lgb_out, tl_out, decimal=5)
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('quantize', [True, False])

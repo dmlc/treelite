@@ -63,8 +63,8 @@ void CreateDirectoryIfNotExist(const char* dirpath) {
     }
   } else {
     if (!(ftyp & FILE_ATTRIBUTE_DIRECTORY)) {
-      LOG(FATAL) << "CreateDirectoryIfNotExist: "
-                 << dirpath << " is a file, not a directory";
+      TREELITE_LOG(FATAL) << "CreateDirectoryIfNotExist: "
+                          << dirpath << " is a file, not a directory";
     }
   }
 #else

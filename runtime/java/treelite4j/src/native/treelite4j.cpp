@@ -251,7 +251,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithUInt32
   API_BEGIN();
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jbatch);
-  CHECK_EQ(sizeof(jint), sizeof(uint32_t));
+  TREELITE_CHECK_EQ(sizeof(jint), sizeof(uint32_t));
   jint* out_result = jenv->GetIntArrayElements(jout_result, nullptr);
   jlong* out_result_size = jenv->GetLongArrayElements(jout_result_size, nullptr);
   size_t out_result_size_tmp = 0;

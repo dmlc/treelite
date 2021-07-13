@@ -17,7 +17,7 @@ namespace {
 
 inline std::string TreeliteToBytes(treelite::Model* model) {
   std::ostringstream oss;
-  model->SerializeToJSON(oss);
+  model->SerializeToJSON(oss, false);
   return oss.str();
 }
 

@@ -10,6 +10,7 @@
 #include <treelite/logging.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 #include <ostream>
 #include <cstdint>
 #include <cstddef>
@@ -139,26 +140,24 @@ void SerializeTreeToJSON(WriterType& writer, const Tree<ThresholdType, LeafOutpu
   TREELITE_CHECK_EQ(tree.matching_categories_offset_.Back(), tree.matching_categories_.Size());
 }
 
-template <typename ThresholdType, typename LeafOutputType>
-void ModelImpl<ThresholdType, LeafOutputType>::SerializeToJSON(std::ostream& fo) const {
-  rapidjson::OStreamWrapper os(fo);
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer(os);
-
+template <typename WriterType, typename ThresholdType, typename LeafOutputType>
+void SerializeModelToJSON(WriterType& writer,
+                          const ModelImpl<ThresholdType, LeafOutputType>& model) {
   writer.StartObject();
 
   writer.Key("num_feature");
-  writer.Int(num_feature);
+  writer.Int(model.num_feature);
   writer.Key("task_type");
-  writer.Uint(static_cast<uint8_t>(task_type));
+  writer.Uint(static_cast<uint8_t>(model.task_type));
   writer.Key("average_tree_output");
-  writer.Bool(average_tree_output);
+  writer.Bool(model.average_tree_output);
   writer.Key("task_param");
-  SerializeTaskParamToJSON(writer, task_param);
+  SerializeTaskParamToJSON(writer, model.task_param);
   writer.Key("model_param");
-  SerializeModelParamToJSON(writer, param);
+  SerializeModelParamToJSON(writer, model.param);
   writer.Key("trees");
   writer.StartArray();
-  for (const Tree<ThresholdType, LeafOutputType>& tree : trees) {
+  for (const Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
     SerializeTreeToJSON(writer, tree);
   }
   writer.EndArray();
@@ -166,9 +165,26 @@ void ModelImpl<ThresholdType, LeafOutputType>::SerializeToJSON(std::ostream& fo)
   writer.EndObject();
 }
 
-template void ModelImpl<float, uint32_t>::SerializeToJSON(std::ostream& fo) const;
-template void ModelImpl<float, float>::SerializeToJSON(std::ostream& fo) const;
-template void ModelImpl<double, uint32_t>::SerializeToJSON(std::ostream& fo) const;
-template void ModelImpl<double, double>::SerializeToJSON(std::ostream& fo) const;
+template <typename ThresholdType, typename LeafOutputType>
+void
+ModelImpl<ThresholdType, LeafOutputType>::SerializeToJSON(
+    std::ostream& fo, bool pretty_print) const {
+  rapidjson::OStreamWrapper os(fo);
+  if (pretty_print) {
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(os);
+    writer.SetFormatOptions(rapidjson::PrettyFormatOptions::kFormatSingleLineArray);
+    SerializeModelToJSON(writer, *this);
+  } else {
+    rapidjson::Writer<rapidjson::OStreamWrapper> writer(os);
+    SerializeModelToJSON(writer, *this);
+  }
+}
+
+template void ModelImpl<float, uint32_t>::SerializeToJSON(
+    std::ostream& fo, bool pretty_print) const;
+template void ModelImpl<float, float>::SerializeToJSON(std::ostream& fo, bool pretty_print) const;
+template void ModelImpl<double, uint32_t>::SerializeToJSON(
+    std::ostream& fo, bool pretty_print) const;
+template void ModelImpl<double, double>::SerializeToJSON(std::ostream& fo, bool pretty_print) const;
 
 }  // namespace treelite

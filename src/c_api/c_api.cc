@@ -20,9 +20,24 @@
 #include <memory>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <cstdio>
 
 using namespace treelite;
+
+namespace {
+
+/*! \brief entry to to easily hold returning information */
+struct TreeliteAPIThreadLocalEntry {
+  /*! \brief result holder for returning string */
+  std::string ret_str;
+};
+
+// define threadlocal store for returning information
+using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
+
+}  // anonymous namespace
 
 int TreeliteAnnotateBranch(
     ModelHandle model, DMatrixHandle dmat, int nthread, int verbose, AnnotationHandle* out) {
@@ -203,6 +218,17 @@ int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
   std::unique_ptr<Model> model = Model::DeserializeFromFile(fp);
   std::fclose(fp);
   *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_json_str) {
+  API_BEGIN();
+  auto* model_ = static_cast<Model*>(handle);
+  std::ostringstream oss;
+  model_->SerializeToJSON(oss, (pretty_print != 0));
+  std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
+  ret_str = oss.str();
+  *out_json_str = ret_str.c_str();
   API_END();
 }
 

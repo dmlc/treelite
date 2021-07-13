@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from .util import c_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
+from .util import c_str, py_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
 
@@ -73,6 +73,29 @@ class Model:
             Path to checkpoint
         """
         _check_call(_LIB.TreeliteSerializeModel(c_str(filename), self.handle))
+
+    def dump_as_json(self, *, pretty_print=True):
+        """
+        Dump the model as a JSON string. This is useful for inspecting details of the tree ensemble
+        model.
+
+        Parameters
+        ----------
+        pretty_print : :py:class:`bool <python:bool>`, optional
+            Whether to pretty-print the JSON string, set this to False to make the string compact
+
+        Returns
+        -------
+        json_str : :py:class:`str <python:str>`
+            JSON string representing the model
+        """
+        json_str = ctypes.c_char_p()
+        _check_call(_LIB.TreeliteDumpAsJSON(
+            self.handle,
+            ctypes.c_int(1 if pretty_print else 0),
+            ctypes.byref(json_str)
+        ))
+        return py_str(json_str.value)
 
     @classmethod
     def deserialize(cls, filename):

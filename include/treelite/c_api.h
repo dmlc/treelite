@@ -335,6 +335,16 @@ TREELITE_DLL int TreeliteSerializeModel(const char* filename, ModelHandle handle
 TREELITE_DLL int TreeliteDeserializeModel(const char* filename, ModelHandle* out);
 
 /*!
+ * \brief Dump a model object as a JSON string
+ * \param handle The handle to the model object
+ * \param pretty_print Whether to pretty-print JSON string (0 for false, != 0 for true)
+ * \param out_json_str The JSON string
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print,
+                                    const char** out_json_str);
+
+/*!
  * \brief delete model from memory
  * \param handle model to remove
  * \return 0 for success, -1 for failure

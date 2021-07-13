@@ -30,6 +30,9 @@
 
 namespace treelite {
 
+template <typename ThresholdType, typename LeafOutputType>
+class ModelImpl;
+
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
 struct PyBufferFrame {
@@ -282,6 +285,8 @@ class Tree {
   ContiguousArray<uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
 
+  template <typename WriterType, typename X, typename Y>
+  friend void SerializeModelToJSON(WriterType& writer, const ModelImpl<X, Y>& model);
   template <typename WriterType, typename X, typename Y>
   friend void SerializeTreeToJSON(WriterType& writer, const Tree<X, Y>& tree);
 
@@ -650,7 +655,7 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void SerializeToJSON(std::ostream& fo) const = 0;
+  virtual void SerializeToJSON(std::ostream& fo, bool pretty_print) const = 0;
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();
@@ -706,7 +711,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void SerializeToJSON(std::ostream& fo) const override;
+  void SerializeToJSON(std::ostream& fo, bool pretty_print) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();
   }

@@ -105,7 +105,7 @@ void SerializeTaskParamToJSON(WriterType& writer, treelite::TaskParam task_param
   writer.StartObject();
 
   writer.Key("output_type");
-  writer.Uint(static_cast<uint8_t>(task_param.output_type));
+  WriteString(writer, treelite::OutputTypeToString(task_param.output_type));
   writer.Key("grove_per_class");
   writer.Bool(task_param.grove_per_class);
   writer.Key("num_class");

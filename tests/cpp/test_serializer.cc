@@ -80,7 +80,7 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
     "task_type": "BinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
-        "output_type": 0,
+        "output_type": "float",
         "grove_per_class": false,
         "num_class": 1,
         "leaf_vector_size": 1
@@ -167,7 +167,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
     "task_type": "MultiClfProbDistLeaf",
     "average_tree_output": true,
     "task_param": {{
-        "output_type": 0,
+        "output_type": "float",
         "grove_per_class": false,
         "num_class": 2,
         "leaf_vector_size": 2
@@ -259,7 +259,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
     "task_type": "BinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
-        "output_type": 0,
+        "output_type": "float",
         "grove_per_class": false,
         "num_class": 1,
         "leaf_vector_size": 1
@@ -355,7 +355,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     "task_type": "BinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
-        "output_type": 0,
+        "output_type": "float",
         "grove_per_class": false,
         "num_class": 1,
         "leaf_vector_size": 1

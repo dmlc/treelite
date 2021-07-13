@@ -197,6 +197,14 @@ struct TaskParam {
   unsigned int leaf_vector_size;
 };
 
+inline std::string OutputTypeToString(TaskParam::OutputType type) {
+  switch (type) {
+    case TaskParam::OutputType::kFloat: return "float";
+    case TaskParam::OutputType::kInt: return "int";
+    default: return "";
+  }
+}
+
 static_assert(std::is_pod<TaskParam>::value, "TaskParameter must be POD type");
 
 /*! \brief in-memory representation of a decision tree */

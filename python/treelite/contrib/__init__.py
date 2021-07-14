@@ -179,7 +179,8 @@ def generate_cmakelists(dirpath, options=None):
         ''', file=f)
 
 
-def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None):
+def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=None,
+                  long_build_time_warning=True):
     """Create shared library.
 
     Parameters
@@ -199,6 +200,8 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
     options : :py:class:`list <python:list>` of :py:class:`str <python:str>`, \
               optional
         Additional options to pass to toolchain
+    long_build_time_warning : :py:class:`bool <python:bool>`, optional
+        If set to False, suppress the warning about potentially long build time
 
     Returns
     -------
@@ -253,18 +256,19 @@ def create_shared(toolchain, dirpath, nthread=None, verbose=False, options=None)
     else:
         options = []
 
-    # write warning for potentially long compile time
-    long_time_warning = False
-    for source in recipe['sources']:
-        if int(source['length']) > 10000:
-            long_time_warning = True
-            break
-    if long_time_warning:
-        log_info(__file__, lineno(),
-                 '\033[1;31mWARNING: some of the source files are long. ' + \
-                 'Expect long compilation time.\u001B[0m ' + \
-                 'You may want to adjust the parameter ' + \
-                 '\x1B[33mparallel_comp\u001B[0m.\n')
+    # Write warning for potentially long compile time
+    if long_build_time_warning:
+        warn = False
+        for source in recipe['sources']:
+            if int(source['length']) > 10000:
+                warn = True
+                break
+        if warn:
+            log_info(__file__, lineno(),
+                     '\033[1;31mWARNING: some of the source files are long. ' + \
+                     'Expect long build time.\u001B[0m ' + \
+                     'You may want to adjust the parameter ' + \
+                     '\x1B[33mparallel_comp\u001B[0m.\n')
 
     tstart = time.time()
     _toolchain_exist_check(toolchain)

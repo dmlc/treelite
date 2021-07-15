@@ -185,6 +185,8 @@ def test_categorical_data_pandas_df_with_dummies(tmpdir, toolchain):
     y = (x0 * 10 - 20) + (x1 - 2) + noise
     df = pd.DataFrame({'x0': x0, 'x1': x1}).astype('category')
     df_dummies = pd.get_dummies(df, prefix=['x0', 'x1'], prefix_sep='=')
+    assert df_dummies.columns.tolist() == [
+        'x0=0', 'x0=1', 'x0=2', 'x1=0', 'x1=1', 'x1=2', 'x1=3', 'x1=4']
 
     model_path = os.path.join(tmpdir, 'toy_dummies.txt')
     libpath = os.path.join(tmpdir, 'dummies' + _libext())

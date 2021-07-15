@@ -48,6 +48,15 @@ def libname(fmt):
     return fmt.format(_libext())
 
 
+def has_pandas():
+    """Check whether pandas is available"""
+    try:
+        import pandas  # pylint: disable=unused-import
+        return True
+    except ImportError:
+        return False
+
+
 @contextmanager
 def does_not_raise():
     """Placeholder to indicate that a section of code is not expected to raise any exception"""

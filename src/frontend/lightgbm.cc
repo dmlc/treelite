@@ -243,7 +243,10 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     std::getline(ss, key, '=');
     std::getline(ss, value, '=');
     std::getline(ss, rest);
-    TREELITE_CHECK(rest.empty()) << "Ill-formed LightGBM model file";
+    if (!rest.empty()) {
+      value += "=";
+      value += rest;
+    }
     if (key == "Tree") {
       in_tree = true;
       tree_dict.emplace_back();

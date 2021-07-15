@@ -28,13 +28,7 @@ jobs:
 # dependent brew packages
 addons:
   homebrew:
-    packages:
-      - cmake
-      - libomp
-      - wget
-      - lcov
-      - ninja
-    update: true
+    update: false
   apt:
     sources:
       - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'

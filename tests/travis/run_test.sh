@@ -19,8 +19,10 @@ then
   cmake .. -DTEST_COVERAGE=ON -DBUILD_CPP_TEST=ON -GNinja
   ninja
   cd ..
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm codecov
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
+  python -m pip install codecov
   ./build/treelite_cpp_test
   PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
   lcov --directory . --capture --output-file coverage.info
@@ -90,8 +92,9 @@ then
   python -m pip install ./runtime/python/dist/treelite_runtime-*-py3-none-${TAG}.whl
 
   # Run tests
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 
   # Deploy binary wheel to S3
@@ -120,8 +123,9 @@ if [ ${TASK} == "python_sdist_test" ]; then
   python -m pip install -v treelite_runtime-*.tar.gz
 
   # Run tests
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 
   # Deploy source wheel to S3

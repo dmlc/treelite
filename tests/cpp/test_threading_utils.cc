@@ -14,8 +14,6 @@
 #include <cstdint>
 #include "threading_utils/parallel_for.h"
 
-using namespace testing;
-
 namespace {
 
 class RandomGenerator {
@@ -58,14 +56,10 @@ namespace threading_utils {
 
 TEST(ThreadingUtils, ComputeWorkRange) {
   /* Test error handling */
-  EXPECT_THAT([&]() { ComputeWorkRange(0, 100, 0); },
-              ThrowsMessage<treelite::Error>(HasSubstr("nthread must be positive")));
-  EXPECT_THAT([&]() { ComputeWorkRange(-100, 100, 3); },
-              ThrowsMessage<treelite::Error>(HasSubstr("begin must be 0 or greater")));
-  EXPECT_THAT([&]() { ComputeWorkRange(-200, -100, 3); },
-              ThrowsMessage<treelite::Error>(HasSubstr("end must be 0 or greater")));
-  EXPECT_THAT([&]() { ComputeWorkRange(200, 100, 3); },
-              ThrowsMessage<treelite::Error>(HasSubstr("end cannot be less than begin")));
+  EXPECT_THROW(ComputeWorkRange(0, 100, 0), treelite::Error);
+  EXPECT_THROW(ComputeWorkRange(-100, 100, 3), treelite::Error);
+  EXPECT_THROW(ComputeWorkRange(-200, -100, 3), treelite::Error);
+  EXPECT_THROW(ComputeWorkRange(200, 100, 3), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */
   RandomGenerator rng;
@@ -103,19 +97,12 @@ TEST(ThreadingUtils, ParallelFor) {
   const int max_thread = std::thread::hardware_concurrency();
 
   auto dummy_func = [](int, std::size_t) {};
-  EXPECT_THAT([&]() { ParallelFor(0, 100, 0, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr("nthread must be positive")));
-  EXPECT_THAT([&]() { ParallelFor(200, 100, 3, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr("end cannot be less than begin")));
-  EXPECT_THAT([&]() { ParallelFor(-100, 100, 3, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr("begin must be 0 or greater")));
-  EXPECT_THAT([&]() { ParallelFor(-200, -100, 3, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr("end must be 0 or greater")));
-  EXPECT_THAT([&]() { ParallelFor(200, 100, 3, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr("end cannot be less than begin")));
-  EXPECT_THAT([&]() { ParallelFor(10, 20, 3 * max_thread, dummy_func); },
-              ThrowsMessage<treelite::Error>(HasSubstr(
-                  std::string("nthread cannot exceed ") + std::to_string(max_thread))));
+  EXPECT_THROW(ParallelFor(0, 100, 0, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(200, 100, 3, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(-100, 100, 3, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(-200, -100, 3, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(200, 100, 3, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(10, 20, 3 * max_thread, dummy_func), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */
   constexpr int kVectorLength = 10000;

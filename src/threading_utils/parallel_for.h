@@ -8,6 +8,7 @@
 #define TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
 
 #include <treelite/logging.h>
+#include <future>
 #include <thread>
 #include <algorithm>
 #include <vector>
@@ -27,20 +28,20 @@ void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType f
   if (begin == end) {
     return;
   }
-  /* Divide the rnage [begin, end) equally among the threads.
+  /* Divide the range [begin, end) equally among the threads.
    * The i-th thread gets the range [work_range[i], work_range[i+1]). */
   std::vector<IndexType> work_range = ComputeWorkRange(begin, end, nthread);
 
   // Launch (nthread - 1) threads, as the main thread should also perform work.
-  std::vector<std::thread> threads;
+  std::vector<std::future<void>> async_tasks;
   for (std::size_t thread_id = 1; thread_id < nthread; ++thread_id) {
-    threads.emplace_back([&work_range, &func, thread_id]() {
+    async_tasks.push_back(std::async(std::launch::async, [&work_range, &func, thread_id]() {
       const IndexType begin_ = work_range[thread_id];
       const IndexType end_ = work_range[thread_id + 1];
       for (IndexType i = begin_; i < end_; ++i) {
         func(i, thread_id);
       }
-    });
+    }));
   }
   {
     const IndexType begin_ = work_range[0];
@@ -50,8 +51,8 @@ void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType f
     }
   }
   // Join threads
-  for (std::thread& thread : threads) {
-    thread.join();
+  for (auto& task : async_tasks) {
+    task.get();
   }
 }
 

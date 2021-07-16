@@ -1,11 +1,5 @@
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-
-set(USE_OPENMP @USE_OPENMP@)
-if(USE_OPENMP)
-  find_dependency(OpenMP)
-endif()
 if(NOT TARGET treelite::treelite)
   include(${CMAKE_CURRENT_LIST_DIR}/TreeliteTargets.cmake)
 endif()

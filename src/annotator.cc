@@ -8,7 +8,6 @@
 #include <treelite/logging.h>
 #include <treelite/annotator.h>
 #include <treelite/math.h>
-#include <treelite/omp.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>

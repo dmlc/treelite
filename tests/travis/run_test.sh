@@ -9,7 +9,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake gtest gmock
 
   # Run coverage test
   set -x

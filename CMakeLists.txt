@@ -12,7 +12,6 @@ if(MSVC)
 endif()
 
 option(TEST_COVERAGE "C++ test coverage" OFF)
-option(USE_OPENMP "Use OpenMP" ON)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)

@@ -8,13 +8,14 @@
 #include <treelite/logging.h>
 #include <treelite/annotator.h>
 #include <treelite/math.h>
-#include <treelite/omp.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/document.h>
 #include <limits>
+#include <thread>
 #include <cstdint>
+#include "threading_utils/parallel_for.h"
 
 namespace {
 
@@ -73,18 +74,14 @@ inline void ComputeBranchLoopImpl(
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
-  TREELITE_CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
   const size_t num_col = dmat->num_col;
   const ElementType missing_value = dmat->missing_value;
   const bool nan_missing = treelite::math::CheckNAN(missing_value);
-  const auto rbegin_i = static_cast<int64_t>(rbegin);
-  const auto rend_i = static_cast<int64_t>(rend);
-  #pragma omp parallel for schedule(static) num_threads(nthread)
-  for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
-    const int tid = omp_get_thread_num();
+  treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
+                                         [&](std::size_t rid, std::size_t thread_id) {
     const ElementType* row = &dmat->data[rid * num_col];
-    const size_t off = dmat->num_col * tid;
-    const size_t off2 = count_row_ptr[ntree] * tid;
+    const size_t off = dmat->num_col * thread_id;
+    const size_t off2 = count_row_ptr[ntree] * thread_id;
     for (size_t j = 0; j < num_col; ++j) {
       if (treelite::math::CheckNAN(row[j])) {
         TREELITE_CHECK(nan_missing)
@@ -99,7 +96,7 @@ inline void ComputeBranchLoopImpl(
     for (size_t j = 0; j < num_col; ++j) {
       inst[off + j].missing = -1;
     }
-  }
+  });
 }
 
 template <typename ElementType, typename ThresholdType, typename LeafOutputType>
@@ -110,14 +107,10 @@ inline void ComputeBranchLoopImpl(
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   const size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
-  TREELITE_CHECK_LT(static_cast<int64_t>(rend), std::numeric_limits<int64_t>::max());
-  const auto rbegin_i = static_cast<int64_t>(rbegin);
-  const auto rend_i = static_cast<int64_t>(rend);
-  #pragma omp parallel for schedule(static) num_threads(nthread)
-  for (int64_t rid = rbegin_i; rid < rend_i; ++rid) {
-    const int tid = omp_get_thread_num();
-    const size_t off = dmat->num_col * tid;
-    const size_t off2 = count_row_ptr[ntree] * tid;
+  treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
+                                         [&](std::size_t rid, std::size_t thread_id) {
+    const size_t off = dmat->num_col * thread_id;
+    const size_t off2 = count_row_ptr[ntree] * thread_id;
     const size_t ibegin = dmat->row_ptr[rid];
     const size_t iend = dmat->row_ptr[rid + 1];
     for (size_t i = ibegin; i < iend; ++i) {
@@ -129,7 +122,7 @@ inline void ComputeBranchLoopImpl(
     for (size_t i = ibegin; i < iend; ++i) {
       inst[off + dmat->col_ind[i]].missing = -1;
     }
-  }
+  });
 }
 
 template <typename ElementType>
@@ -199,7 +192,7 @@ AnnotateImpl(
 
   count_row_ptr = {0};
   const size_t ntree = model.trees.size();
-  const int max_thread = omp_get_max_threads();
+  const int max_thread = static_cast<int>(std::thread::hardware_concurrency());
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
   for (const treelite::Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);

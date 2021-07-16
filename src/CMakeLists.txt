@@ -11,6 +11,8 @@ endif(UNIX)
 
 add_library(objtreelite_common OBJECT)  # Component shared by both main package and runtime
 
+find_package(Threads REQUIRED)
+
 if(ENABLE_ALL_WARNINGS)
   foreach(target objtreelite objtreelite_runtime objtreelite_runtime)
     target_compile_options(${target} PRIVATE -Wall -Wextra)
@@ -22,6 +24,7 @@ foreach(lib objtreelite objtreelite_runtime objtreelite_common)
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
+  target_link_libraries(${lib} PUBLIC Threads::Threads)
   if(MSVC)
     target_compile_options(${lib} PRIVATE /MP)
     target_compile_definitions(${lib} PRIVATE -DNOMINMAX)

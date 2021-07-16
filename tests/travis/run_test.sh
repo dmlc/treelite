@@ -15,7 +15,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DTEST_COVERAGE=ON -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
+  cmake .. -DTEST_COVERAGE=ON -DBUILD_CPP_TEST=ON -GNinja
   ninja
   cd ..
   conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
@@ -42,7 +42,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
+  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DBUILD_STATIC_LIBS=ON -GNinja
   ninja install
 
   # Try compiling a sample application
@@ -66,7 +66,7 @@ then
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DUSE_OPENMP=ON -GNinja
+  cmake .. -GNinja
   ninja
   cd ..
   rm -rfv python/dist python/build

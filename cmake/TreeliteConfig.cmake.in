@@ -1,5 +1,9 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+find_dependency(Threads)
+
 if(NOT TARGET treelite::treelite)
   include(${CMAKE_CURRENT_LIST_DIR}/TreeliteTargets.cmake)
 endif()

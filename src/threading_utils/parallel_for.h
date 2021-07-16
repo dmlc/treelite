@@ -1,14 +1,17 @@
-//
-// Created by phcho on 7/15/21.
-//
-
+/*!
+* Copyright (c) 2021 by Contributors
+* \file parallel_for.h
+* \brief Implemenation of parallel for loop
+* \author Hyunsu Cho
+*/
 #ifndef TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
 #define TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
 
+#include <treelite/logging.h>
 #include <thread>
+#include <algorithm>
 #include <vector>
 #include <cstddef>
-#include <treelite/logging.h>
 
 namespace treelite {
 namespace threading_utils {

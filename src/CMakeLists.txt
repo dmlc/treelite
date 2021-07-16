@@ -83,6 +83,7 @@ target_sources(objtreelite
     gtil/predict.cc
     gtil/pred_transform.h
     gtil/pred_transform.cc
+    threading_utils/parallel_for.h
     annotator.cc
     filesystem.cc
     optable.cc

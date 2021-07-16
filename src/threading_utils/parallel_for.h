@@ -8,35 +8,17 @@
 #include <thread>
 #include <vector>
 #include <cstddef>
-
-namespace {
-
-template <typename IndexType>
-std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::size_t nthread) {
-  IndexType num_elem = end - begin;
-  const IndexType portion = num_elem / nthread + !!(num_elem % nthread);
-  // integer division, rounded-up
-
-  std::vector<IndexType> work_range(nthread + 1);
-  work_range[0] = begin;
-  std::size_t acc = begin;
-  for (std::size_t i = 0; i < nthread; ++i) {
-    acc += portion;
-    work_range[i + 1] = std::min(acc, end);
-  }
-  TREELITE_CHECK_EQ(work_range[nthread], end);
-
-  return work_range;
-}
-
-}  // anonymous namespace
+#include <treelite/logging.h>
 
 namespace treelite {
 namespace threading_utils {
 
+template <typename IndexType>
+std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::size_t nthread);
+
 template <typename IndexType, typename FuncType>
 void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType func) {
-  TREELITE_CHECK_GE(end, begin);
+  TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
   if (begin == end) {
     return;
   }
@@ -66,6 +48,28 @@ void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType f
   for (std::thread& thread : threads) {
     thread.join();
   }
+}
+
+template <typename IndexType>
+std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::size_t nthread) {
+  TREELITE_CHECK_GE(end, 0) << "end must be 0 or greater";
+  TREELITE_CHECK_GE(begin, 0) << "begin must be 0 or greater";
+  TREELITE_CHECK_GE(end, begin) << "end cannot be less than begin";
+  TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
+  IndexType num_elem = end - begin;
+  const IndexType portion = num_elem / nthread + !!(num_elem % nthread);
+  // integer division, rounded-up
+
+  std::vector<IndexType> work_range(nthread + 1);
+  work_range[0] = begin;
+  IndexType acc = begin;
+  for (std::size_t i = 0; i < nthread; ++i) {
+    acc += portion;
+    work_range[i + 1] = std::min(acc, end);
+  }
+  TREELITE_CHECK_EQ(work_range[nthread], end);
+
+  return work_range;
 }
 
 }  // namespace threading_utils

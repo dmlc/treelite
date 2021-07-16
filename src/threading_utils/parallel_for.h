@@ -19,6 +19,8 @@ std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::siz
 template <typename IndexType, typename FuncType>
 void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType func) {
   TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
+  TREELITE_CHECK_LE(nthread, std::thread::hardware_concurrency())
+    << "nthread cannot exceed " << std::thread::hardware_concurrency();
   if (begin == end) {
     return;
   }

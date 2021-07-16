@@ -9,6 +9,7 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake
 
   # Run coverage test
   set -x
@@ -18,7 +19,6 @@ then
   cmake .. -DTEST_COVERAGE=ON -DBUILD_CPP_TEST=ON -GNinja
   ninja
   cd ..
-  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
   python -m pip install --pre xgboost
   python -m pip install lightgbm codecov
   ./build/treelite_cpp_test
@@ -36,6 +36,7 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge ninja cmake
 
   # Install Treelite C++ library into the Conda env
   set -x
@@ -60,6 +61,7 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake
 
   # Build binary wheel
   set -x
@@ -88,7 +90,6 @@ then
   python -m pip install ./runtime/python/dist/treelite_runtime-*-py3-none-${TAG}.whl
 
   # Run tests
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
   python -m pip install --pre xgboost
   python -m pip install lightgbm
   python -m pytest -v --fulltrace tests/python
@@ -109,7 +110,7 @@ fi
 if [ ${TASK} == "python_sdist_test" ]; then
   conda activate python3
   python --version
-  conda install numpy scipy
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage cmake ninja
 
   # Build source distribution
   make pippack
@@ -119,7 +120,6 @@ if [ ${TASK} == "python_sdist_test" ]; then
   python -m pip install -v treelite_runtime-*.tar.gz
 
   # Run tests
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
   python -m pip install --pre xgboost
   python -m pip install lightgbm
   python -m pytest -v --fulltrace tests/python

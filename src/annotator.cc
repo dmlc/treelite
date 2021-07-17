@@ -72,11 +72,11 @@ inline void ComputeBranchLoopImpl(
     const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
     const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
-  const size_t ntree = model.trees.size();
+  size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
-  const size_t num_col = dmat->num_col;
-  const ElementType missing_value = dmat->missing_value;
-  const bool nan_missing = treelite::math::CheckNAN(missing_value);
+  size_t num_col = dmat->num_col;
+  ElementType missing_value = dmat->missing_value;
+  bool nan_missing = treelite::math::CheckNAN(missing_value);
   treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
                                          [&](std::size_t rid, std::size_t thread_id) {
     const ElementType* row = &dmat->data[rid * num_col];
@@ -105,7 +105,7 @@ inline void ComputeBranchLoopImpl(
     const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
     const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
-  const size_t ntree = model.trees.size();
+  size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
   treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
                                          [&](std::size_t rid, std::size_t thread_id) {

@@ -60,6 +60,7 @@ class ContiguousArray {
   inline T& Back();
   inline const T& Back() const;
   inline std::size_t Size() const;
+  inline bool Empty() const;
   inline void Reserve(std::size_t newsize);
   inline void Resize(std::size_t newsize);
   inline void Resize(std::size_t newsize, T t);

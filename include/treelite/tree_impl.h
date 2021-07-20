@@ -151,6 +151,12 @@ ContiguousArray<T>::Size() const {
 }
 
 template <typename T>
+inline bool
+ContiguousArray<T>::Empty() const {
+  return (Size() == 0);
+}
+
+template <typename T>
 inline void
 ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
@@ -714,7 +720,9 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                 [new_end_oft](std::size_t& x) { x = new_end_oft; });
-  std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  if (!matching_categories_.Empty()) {
+    std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  }
 
   Node& node = nodes_.at(nid);
   if (default_left) split_index |= (1U << 31U);

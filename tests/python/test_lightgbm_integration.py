@@ -28,8 +28,6 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
     """Test a regressor"""
     model_path = os.path.join(tmpdir, 'boston_lightgbm.txt')
 
-
-
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = lightgbm.Dataset(X_train, y_train, free_raw_data=False)
@@ -295,3 +293,29 @@ def test_constant_tree():
     model_path = _qualify_path('lightgbm_constant_tree', 'model_with_constant_tree.txt')
     model = treelite.Model.load(model_path, model_format='lightgbm')
     assert model.num_tree == 2
+
+
+@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
+def test_nan_handling_with_categorical_splits(tmpdir, toolchain):
+    """Test that NaN inputs are handled correctly in categorical splits"""
+
+    # Test case taken from https://github.com/dmlc/treelite/issues/277
+    X = np.array(30 * [[1]] + 30 * [[2]] + 30 * [[0]])
+    y = np.array(60 * [5] + 30 * [10])
+    train_data = lightgbm.Dataset(X, label=y, categorical_feature=[0])
+    bst = lightgbm.train({}, train_data, 1)
+
+    model_path = os.path.join(tmpdir, 'dummy_categorical.txt')
+    libpath = os.path.join(tmpdir, 'dummy_categorical_lgb' + _libext())
+
+    input_with_nan = np.array([[np.NaN], [0.0]])
+
+    lgb_pred = bst.predict(input_with_nan)
+    bst.save_model(model_path)
+
+    model = treelite.Model.load(model_path, model_format='lightgbm')
+    model.export_lib(toolchain=toolchain, libpath=libpath)
+    predictor = treelite_runtime.Predictor(libpath)
+    dmat = treelite_runtime.DMatrix(input_with_nan)
+    tl_pred = predictor.predict(dmat)
+    np.testing.assert_almost_equal(tl_pred, lgb_pred)

@@ -548,25 +548,19 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
 
         tree.AddChilds(new_id);
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
-          // categorical
+          // categorical split
           const int cat_idx = static_cast<int>(lgb_tree.threshold[old_id]);
           const std::vector<uint32_t> left_categories
             = BitsetToList(lgb_tree.cat_threshold.data()
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
                              - lgb_tree.cat_boundaries[cat_idx]);
-          const bool missing_value_to_zero = missing_type != MissingType::kNaN;
+          // For categorical splits, we ignore the missing type field. NaNs always get mapped to
+          // the right child node.
           bool default_left = false;
-          if (missing_value_to_zero) {
-            // If missing_value_to_zero flag is true, all missing values get mapped to 0.0, so
-            // we need to override the default_left flag
-            default_left
-              = (std::find(left_categories.begin(), left_categories.end(),
-                           static_cast<uint32_t>(0)) != left_categories.end());
-          }
           tree.SetCategoricalSplit(new_id, split_index, default_left, left_categories, false);
         } else {
-          // numerical
+          // numerical split
           const auto threshold = static_cast<double>(lgb_tree.threshold[old_id]);
           bool default_left
             = GetDecisionType(lgb_tree.decision_type[old_id], kDefaultLeftMask);

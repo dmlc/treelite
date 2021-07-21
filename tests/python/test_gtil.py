@@ -340,5 +340,8 @@ def test_lightgbm_sparse_categorical_model():
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True,
                               n_features=tl_model.num_feature)
     expected_pred = load_txt(dataset_db[dataset].expected_margin)
-    out_pred = treelite.gtil.predict(tl_model, X.toarray(), pred_margin=True)
+    # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
+    Xa = X.toarray()
+    Xa[Xa == 0] = 'nan'
+    out_pred = treelite.gtil.predict(tl_model, Xa, pred_margin=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

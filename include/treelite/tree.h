@@ -278,7 +278,11 @@ class Tree {
   // vector of nodes
   ContiguousArray<Node> nodes_;
   ContiguousArray<LeafOutputType> leaf_vector_;
-  ContiguousArray<std::size_t> leaf_vector_offset_;
+  // Map nid to the start and end index in leaf_vector_
+  // We could use std::pair, but it is not POD, so easier to use two vectors
+  // here
+  ContiguousArray<std::size_t> leaf_vector_begin_;
+  ContiguousArray<std::size_t> leaf_vector_end_;
   ContiguousArray<uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
 

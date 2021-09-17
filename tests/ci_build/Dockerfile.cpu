@@ -6,7 +6,7 @@ RUN \
     yum install -y epel-release centos-release-scl && \
     yum-config-manager --enable centos-sclo-rh-testing && \
     yum -y update && \
-    yum install -y tar unzip wget xz git yum-utils which ninja-build devtoolset-8-gcc devtoolset-8-binutils && \
+    yum install -y tar unzip wget xz git yum-utils which ninja-build devtoolset-8-gcc devtoolset-8-binutils devtoolset-8-gcc-c++ && \
     # Python
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/python && \

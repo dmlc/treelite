@@ -70,8 +70,6 @@ void WriteNode(WriterType& writer,
     } else if (split_type == treelite::SplitFeatureType::kCategorical) {
       writer.Key("categories_list_right_child");
       writer.Bool(tree.CategoriesListRightChild(node_id));
-      TREELITE_CHECK(tree.HasMatchingCategories(node_id))
-        << "Test node with categorical test must have a list of matching categories";
       writer.Key("matching_categories");
       writer.StartArray();
       for (uint32_t e : tree.MatchingCategories(node_id)) {

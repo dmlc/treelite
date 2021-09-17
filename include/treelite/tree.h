@@ -452,14 +452,6 @@ class Tree {
       // element, to follow with the range semantic of std::vector<>.
   }
   /*!
-   * \brief tests whether the node has a non-empty list for matching categories. See
-   *        MatchingCategories() for the definition of matching categories.
-   * \param nid ID of node being queried
-   */
-  inline bool HasMatchingCategories(int nid) const {
-    return matching_categories_offset_.at(nid) != matching_categories_offset_.at(nid + 1);
-  }
-  /*!
    * \brief get feature split type
    * \param nid ID of node being queried
    */

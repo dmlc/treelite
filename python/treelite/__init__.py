@@ -12,7 +12,7 @@ from . import sklearn
 from . import gtil
 
 VERSION_FILE = os.path.join(os.path.dirname(__file__), 'VERSION')
-with open(VERSION_FILE, 'r') as _f:
+with open(VERSION_FILE, 'r', encoding='UTF-8') as _f:
     __version__ = _f.read().strip()
 
 __all__ = ['Model', 'ModelBuilder', 'Annotator', 'create_shared', 'generate_makefile',

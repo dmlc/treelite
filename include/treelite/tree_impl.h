@@ -631,7 +631,7 @@ inline void
 Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   leaf_vector_.Clear();
-  sleaf_vector_begin_.Resize(1, {});
+  leaf_vector_begin_.Resize(1, {});
   leaf_vector_end_.Resize(1, {});
   matching_categories_.Clear();
   matching_categories_offset_.Resize(2, 0);

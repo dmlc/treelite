@@ -502,7 +502,7 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr std::size_t kNumFramePerTree = 6;
+constexpr std::size_t kNumFramePerTree = 7;
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>

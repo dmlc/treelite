@@ -1,6 +1,6 @@
 set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.13)
-project(treelite LANGUAGES CXX C VERSION 1.3.0)
+project(treelite LANGUAGES CXX C VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -12,7 +12,6 @@ if(MSVC)
 endif()
 
 option(TEST_COVERAGE "C++ test coverage" OFF)
-option(USE_OPENMP "Use OpenMP" ON)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)

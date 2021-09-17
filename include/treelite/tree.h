@@ -64,6 +64,7 @@ class ContiguousArray {
   inline T& Back();
   inline const T& Back() const;
   inline std::size_t Size() const;
+  inline bool Empty() const;
   inline void Reserve(std::size_t newsize);
   inline void Resize(std::size_t newsize);
   inline void Resize(std::size_t newsize, T t);
@@ -300,7 +301,11 @@ class Tree {
   // vector of nodes
   ContiguousArray<Node> nodes_;
   ContiguousArray<LeafOutputType> leaf_vector_;
-  ContiguousArray<std::size_t> leaf_vector_offset_;
+  // Map nid to the start and end index in leaf_vector_
+  // We could use std::pair, but it is not POD, so easier to use two vectors
+  // here
+  ContiguousArray<std::size_t> leaf_vector_begin_;
+  ContiguousArray<std::size_t> leaf_vector_end_;
   ContiguousArray<uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
 
@@ -393,8 +398,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const std::size_t offset_begin = leaf_vector_offset_.at(nid);
-    const std::size_t offset_end = leaf_vector_offset_.at(nid + 1);
+    const std::size_t offset_begin = leaf_vector_begin_.at(nid);
+    const std::size_t offset_end = leaf_vector_end_.at(nid);
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -409,7 +414,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    return leaf_vector_offset_.at(nid) != leaf_vector_offset_.at(nid + 1);
+    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid);
   }
   /*!
    * \brief get threshold of the node

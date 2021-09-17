@@ -16,7 +16,7 @@ def load_txt(filename):
     if filename is None:
         return None
     content = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='UTF-8') as f:
         for line in f:
             content.append(float(line))
     return np.array(content, dtype=np.float32)
@@ -46,6 +46,15 @@ def os_platform():
 def libname(fmt):
     """Format name for a shared library, using appropriate file extension"""
     return fmt.format(_libext())
+
+
+def has_pandas():
+    """Check whether pandas is available"""
+    try:
+        import pandas  # pylint: disable=unused-import
+        return True
+    except ImportError:
+        return False
 
 
 @contextmanager

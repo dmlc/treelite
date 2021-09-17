@@ -26,10 +26,11 @@ target_sources(treelite_cpp_test
            test_serializer.cc
            test_frontend.cc
            test_compiler_param.cc
+           test_threading_utils.cc
 )
 
 target_include_directories(treelite_cpp_test
-  PRIVATE  ../../src/frontend
+  PRIVATE  ../../src/frontend ../../src/
 )
 
 msvc_use_static_runtime()

@@ -151,6 +151,12 @@ ContiguousArray<T>::Size() const {
 }
 
 template <typename T>
+inline bool
+ContiguousArray<T>::Empty() const {
+  return (Size() == 0);
+}
+
+template <typename T>
 inline void
 ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
@@ -485,7 +491,8 @@ Tree<ThresholdType, LeafOutputType>::Clone() const {
   tree.num_nodes = num_nodes;
   tree.nodes_ = nodes_.Clone();
   tree.leaf_vector_ = leaf_vector_.Clone();
-  tree.leaf_vector_offset_ = leaf_vector_offset_.Clone();
+  tree.leaf_vector_begin_ = leaf_vector_begin_.Clone();
+  tree.leaf_vector_end_ = leaf_vector_end_.Clone();
   tree.matching_categories_ = matching_categories_.Clone();
   tree.matching_categories_offset_ = matching_categories_offset_.Clone();
   return tree;
@@ -501,7 +508,7 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr std::size_t kNumFramePerTree = 6;
+constexpr std::size_t kNumFramePerTree = 7;
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
@@ -512,7 +519,8 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
   scalar_handler(&num_nodes);
   composite_array_handler(&nodes_, GetFormatStringForNode());
   primitive_array_handler(&leaf_vector_);
-  primitive_array_handler(&leaf_vector_offset_);
+  primitive_array_handler(&leaf_vector_begin_);
+  primitive_array_handler(&leaf_vector_end_);
   primitive_array_handler(&matching_categories_);
   primitive_array_handler(&matching_categories_offset_);
 }
@@ -528,7 +536,8 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
     throw std::runtime_error("Could not load the correct number of nodes");
   }
   array_handler(&leaf_vector_);
-  array_handler(&leaf_vector_offset_);
+  array_handler(&leaf_vector_begin_);
+  array_handler(&leaf_vector_end_);
   array_handler(&matching_categories_);
   array_handler(&matching_categories_offset_);
 }
@@ -614,7 +623,8 @@ Tree<ThresholdType, LeafOutputType>::AllocNode() {
     throw std::runtime_error("Invariant violated: nodes_ contains incorrect number of nodes");
   }
   for (int nid = nd; nid < num_nodes; ++nid) {
-    leaf_vector_offset_.PushBack(leaf_vector_offset_.Back());
+    leaf_vector_begin_.PushBack(0);
+    leaf_vector_end_.PushBack(0);
     matching_categories_offset_.PushBack(matching_categories_offset_.Back());
     nodes_.Resize(nodes_.Size() + 1);
     nodes_.Back().Init();
@@ -627,7 +637,8 @@ inline void
 Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   leaf_vector_.Clear();
-  leaf_vector_offset_.Resize(2, 0);
+  leaf_vector_begin_.Resize(1, {});
+  leaf_vector_end_.Resize(1, {});
   matching_categories_.Clear();
   matching_categories_offset_.Resize(2, 0);
   nodes_.Resize(1);
@@ -714,7 +725,9 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                 [new_end_oft](std::size_t& x) { x = new_end_oft; });
-  std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  if (!matching_categories_.Empty()) {
+    std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  }
 
   Node& node = nodes_.at(nid);
   if (default_left) split_index |= (1U << 31U);
@@ -737,24 +750,12 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetLeafVector(
     int nid, const std::vector<LeafOutputType>& node_leaf_vector) {
-  const std::size_t end_oft = leaf_vector_offset_.Back();
-  const std::size_t new_end_oft = end_oft + node_leaf_vector.size();
-  if (end_oft != leaf_vector_.Size()) {
-    throw std::runtime_error("Invariant violated");
-  }
-  if (!std::all_of(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                   [end_oft](std::size_t x) { return (x == end_oft); })) {
-    throw std::runtime_error("Invariant violated");
-  }
-  // Hopefully we won't have to move any element as we add leaf vector elements for node nid
+  std::size_t begin = leaf_vector_.Size();
+  std::size_t end = begin + node_leaf_vector.size();
   leaf_vector_.Extend(node_leaf_vector);
-  if (new_end_oft != leaf_vector_.Size()) {
-    throw std::runtime_error("Invariant violated");
-  }
-  std::for_each(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                [new_end_oft](std::size_t& x) { x = new_end_oft; });
-
-  Node& node = nodes_.at(nid);
+  leaf_vector_begin_[nid] = begin;
+  leaf_vector_end_[nid] = end;
+  Node &node = nodes_.at(nid);
   node.cleft_ = -1;
   node.cright_ = -1;
   node.split_type_ = SplitFeatureType::kNone;

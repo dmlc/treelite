@@ -196,15 +196,20 @@ class Model:
 
            model.compile(dirpath='/temporary/directory', params={}, verbose=True)
            treelite.create_shared(toolchain='msvc', dirpath='/temporary/directory',
-                         verbose=True)
+                                  verbose=True)
            # move the library out of the temporary directory
            shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
         """
         _toolchain_exist_check(toolchain)
+
+        _params = dict(params) if isinstance(params, list) else params
+        long_build_time_warning = not (_params and 'parallel_comp' in _params)
+
         with TemporaryDirectory(dir=os.path.dirname(libpath)) as temp_dir:
             self.compile(temp_dir, params, compiler, verbose)
-            temp_libpath = create_shared(toolchain, temp_dir, nthread,
-                                         verbose, options)
+            temp_libpath = create_shared(
+                toolchain, temp_dir, nthread=nthread, verbose=verbose, options=options,
+                long_build_time_warning=long_build_time_warning)
             if os.path.exists(libpath) and os.path.isfile(libpath):
                 os.remove(libpath)
             shutil.move(temp_libpath, libpath)

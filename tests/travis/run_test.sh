@@ -9,18 +9,20 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake
 
   # Run coverage test
   set -x
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DTEST_COVERAGE=ON -DUSE_OPENMP=ON -DBUILD_CPP_TEST=ON -GNinja
+  cmake .. -DTEST_COVERAGE=ON -DBUILD_CPP_TEST=ON -GNinja
   ninja
   cd ..
-  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm codecov
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
+  python -m pip install codecov
   ./build/treelite_cpp_test
   PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python
   lcov --directory . --capture --output-file coverage.info
@@ -36,13 +38,14 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge ninja cmake
 
   # Install Treelite C++ library into the Conda env
   set -x
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DUSE_OPENMP=ON -DBUILD_STATIC_LIBS=ON -GNinja
+  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DBUILD_STATIC_LIBS=ON -GNinja
   ninja install
 
   # Try compiling a sample application
@@ -60,13 +63,14 @@ then
   conda activate python3
   conda --version
   python --version
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake
 
   # Build binary wheel
   set -x
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DUSE_OPENMP=ON -GNinja
+  cmake .. -GNinja
   ninja
   cd ..
   rm -rfv python/dist python/build
@@ -88,9 +92,9 @@ then
   python -m pip install ./runtime/python/dist/treelite_runtime-*-py3-none-${TAG}.whl
 
   # Run tests
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 
   # Deploy binary wheel to S3
@@ -109,7 +113,7 @@ fi
 if [ ${TASK} == "python_sdist_test" ]; then
   conda activate python3
   python --version
-  conda install numpy scipy
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage cmake ninja
 
   # Build source distribution
   make pippack
@@ -119,9 +123,9 @@ if [ ${TASK} == "python_sdist_test" ]; then
   python -m pip install -v treelite_runtime-*.tar.gz
 
   # Run tests
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage
-  python -m pip install --pre xgboost
-  python -m pip install lightgbm
+  # Install XGBoost and LightGBM without OpenMP
+  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 
   # Deploy source wheel to S3

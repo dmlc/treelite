@@ -85,7 +85,7 @@ def _wait(proc, args):
     tid = args['tid']
     dirpath = args['dirpath']
     stdout, _ = proc.communicate()
-    with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(tid)), 'r') as f:
+    with open(os.path.join(dirpath, 'retcode_cpu{}.txt'.format(tid)), 'r', encoding='UTF-8') as f:
         retcode = [int(line) for line in f]
     return {'stdout': stdout.decode(), 'retcode': retcode}
 
@@ -124,7 +124,8 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
 
     for tid in range(ncpu):
         if not all(x == 0 for x in result[tid]['retcode']):
-            with open(os.path.join(dirpath, 'log_cpu{}.txt'.format(tid)), 'w') as f:
+            log_path = os.path.join(dirpath, f'log_cpu{tid}.txt')
+            with open(log_path, 'w', encoding='UTF-8') as f:
                 f.write(result[tid]['stdout'] + '\n')
             raise TreeliteError('Error occured in worker #{}: '.format(tid) + \
                                 '{}'.format(result[tid]['stdout']))
@@ -150,7 +151,7 @@ def _create_shared_base(dirpath, recipe, nthread, verbose):
     result = _wait(proc, workqueue)
 
     if result['retcode'][0] != 0:
-        with open(os.path.join(dirpath, 'log_cpu0.txt'), 'w') as f:
+        with open(os.path.join(dirpath, 'log_cpu0.txt'), 'w', encoding='UTF-8') as f:
             f.write(result['stdout'] + '\n')
         raise TreeliteError('Error occured while creating dynamic library: ' + \
                             '{}'.format(result['stdout']))

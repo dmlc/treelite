@@ -175,8 +175,6 @@ class InstallLib(install_lib.install_lib):
 
         outfiles = super().install()
 
-        global BUILD_TEMP_DIR   # pylint: disable=global-statement
-
         # Copy shared library
         libtreelite_name = lib_name()
         dst_dir = os.path.join(self.install_dir, 'treelite', 'lib')
@@ -196,6 +194,7 @@ class InstallLib(install_lib.install_lib):
             self.logger.info('Using %s built by CMake', libtreelite_name)
         else:
             # The library was built by setup.py
+            assert BUILD_TEMP_DIR is not None
             build_dir = BUILD_TEMP_DIR
             src = os.path.join(build_dir, libtreelite_name)
             assert os.path.exists(src)
@@ -244,7 +243,7 @@ if __name__ == '__main__':
     # From source tree `treelite/python`:
     # - python setup.py install
     # - python setup.py bdist_wheel && pip install <wheel-name>
-    with open(os.path.join(CURRENT_DIR, 'treelite/VERSION')) as f:
+    with open(os.path.join(CURRENT_DIR, 'treelite/VERSION'), 'r', encoding='UTF-8') as f:
         version = f.read().strip()
     logging.basicConfig(level=logging.INFO)
     setup(name='treelite',

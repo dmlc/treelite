@@ -9,6 +9,8 @@
 #include <treelite/frontend.h>
 #include <fmt/format.h>
 #include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 #include <cstdio>
 #include <string>
 #include <memory>
@@ -254,6 +256,18 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   TestRoundTrip(model.get());
 
   /* Test correctness of JSON dump */
+  std::string matching_categories_str;
+  {
+    std::ostringstream oss;
+    rapidjson::OStreamWrapper os_wrapper(oss);
+    rapidjson::Writer<rapidjson::OStreamWrapper> writer(os_wrapper);
+    writer.StartArray();
+    for (auto e : left_categories) {
+      writer.Uint(static_cast<unsigned int>(e));
+    }
+    writer.EndArray();
+    matching_categories_str = oss.str();
+  }
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
     "num_feature": 2,
@@ -278,7 +292,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
                     "default_left": false,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0, 1],
+                    "matching_categories": {matching_categories},
                     "left_child": 1,
                     "right_child": 2
                 }}, {{
@@ -292,7 +306,8 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   }}
   )JSON",
     "leaf_value0"_a = static_cast<LeafOutputType>(2),
-    "leaf_value1"_a = static_cast<LeafOutputType>(3)
+    "leaf_value1"_a = static_cast<LeafOutputType>(3),
+    "matching_categories"_a = matching_categories_str
   );
 
   rapidjson::Document json_dump;

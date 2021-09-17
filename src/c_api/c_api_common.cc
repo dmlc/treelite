@@ -13,15 +13,6 @@
 
 using namespace treelite;
 
-/*! \brief entry to to easily hold returning information */
-struct TreeliteAPIThreadLocalEntry {
-  /*! \brief result holder for returning string */
-  std::string ret_str;
-};
-
-// define threadlocal store for returning information
-using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
-
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();

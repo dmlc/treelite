@@ -7,19 +7,18 @@
 #include <gtest/gtest.h>
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
-#include <sstream>
+#include <fmt/format.h>
+#include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 #include <cstdio>
 #include <string>
 #include <memory>
 #include <stdexcept>
 
-namespace {
+using namespace fmt::literals;
 
-inline std::string TreeliteToBytes(treelite::Model* model) {
-  std::ostringstream oss;
-  model->SerializeToJSON(oss);
-  return oss.str();
-}
+namespace {
 
 inline void TestRoundTrip(treelite::Model* model) {
   for (int i = 0; i < 2; ++i) {
@@ -29,7 +28,7 @@ inline void TestRoundTrip(treelite::Model* model) {
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error
-    ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
+    ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
   }
 
   for (int i = 0; i < 2; ++i) {
@@ -46,7 +45,7 @@ inline void TestRoundTrip(treelite::Model* model) {
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error
-    ASSERT_TRUE(TreeliteToBytes(model) == TreeliteToBytes(received_model.get()));
+    ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
   }
 }
 
@@ -69,12 +68,62 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
   tree->CreateNode(2);
   tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<ThresholdType>(0), true, 1, 2);
   tree->SetRootNode(0);
-  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(-1));
-  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
+  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(1));
+  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(2));
   builder->InsertTree(tree.get());
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+
+  /* Test correctness of JSON dump */
+  std::string expected_json_dump_str = fmt::format(R"JSON(
+  {{
+    "num_feature": 2,
+    "task_type": "BinaryClfRegr",
+    "average_tree_output": false,
+    "task_param": {{
+        "output_type": "float",
+        "grove_per_class": false,
+        "num_class": 1,
+        "leaf_vector_size": 1
+    }},
+    "model_param": {{
+        "pred_transform": "identity",
+        "sigmoid_alpha": 1.0,
+        "global_bias": 0.0
+    }},
+    "trees": [{{
+            "num_nodes": 3,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "numerical",
+                    "comparison_op": "<",
+                    "threshold": {threshold},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "leaf_value": {leaf_value0}
+                }}, {{
+                    "node_id": 2,
+                    "leaf_value": {leaf_value1}
+                }}]
+        }}]
+  }}
+  )JSON",
+    "threshold"_a = static_cast<ThresholdType>(0),
+    "leaf_value0"_a = static_cast<LeafOutputType>(1),
+    "leaf_value1"_a = static_cast<LeafOutputType>(2)
+  );
+
+  rapidjson::Document json_dump;
+  json_dump.Parse(model->DumpAsJSON(false).c_str());
+
+  rapidjson::Document expected_json_dump;
+  expected_json_dump.Parse(expected_json_dump_str.c_str());
+  EXPECT_TRUE(json_dump == expected_json_dump);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStump) {
@@ -104,14 +153,66 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
   tree->CreateNode(2);
   tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<ThresholdType>(0), true, 1, 2);
   tree->SetRootNode(0);
-  tree->SetLeafVectorNode(1, {frontend::Value::Create<LeafOutputType>(-1),
+  tree->SetLeafVectorNode(1, {frontend::Value::Create<LeafOutputType>(1),
+                              frontend::Value::Create<LeafOutputType>(2)});
+  tree->SetLeafVectorNode(2, {frontend::Value::Create<LeafOutputType>(2),
                               frontend::Value::Create<LeafOutputType>(1)});
-  tree->SetLeafVectorNode(2, {frontend::Value::Create<LeafOutputType>(1),
-                              frontend::Value::Create<LeafOutputType>(-1)});
   builder->InsertTree(tree.get());
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+
+  /* Test correctness of JSON dump */
+  std::string expected_json_dump_str = fmt::format(R"JSON(
+  {{
+    "num_feature": 2,
+    "task_type": "MultiClfProbDistLeaf",
+    "average_tree_output": true,
+    "task_param": {{
+        "output_type": "float",
+        "grove_per_class": false,
+        "num_class": 2,
+        "leaf_vector_size": 2
+    }},
+    "model_param": {{
+        "pred_transform": "identity",
+        "sigmoid_alpha": 1.0,
+        "global_bias": 0.0
+    }},
+    "trees": [{{
+            "num_nodes": 3,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "numerical",
+                    "comparison_op": "<",
+                    "threshold": {threshold},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "leaf_value": [{leaf_value0}, {leaf_value1}]
+                }}, {{
+                    "node_id": 2,
+                    "leaf_value": [{leaf_value2}, {leaf_value3}]
+                }}]
+        }}]
+  }}
+  )JSON",
+    "threshold"_a = static_cast<ThresholdType>(0),
+    "leaf_value0"_a = static_cast<LeafOutputType>(1),
+    "leaf_value1"_a = static_cast<LeafOutputType>(2),
+    "leaf_value2"_a = static_cast<LeafOutputType>(2),
+    "leaf_value3"_a = static_cast<LeafOutputType>(1)
+  );
+
+  rapidjson::Document json_dump;
+  json_dump.Parse(model->DumpAsJSON(false).c_str());
+
+  rapidjson::Document expected_json_dump;
+  expected_json_dump.Parse(expected_json_dump_str.c_str());
+  EXPECT_TRUE(json_dump == expected_json_dump);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
@@ -145,14 +246,76 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   tree->CreateNode(0);
   tree->CreateNode(1);
   tree->CreateNode(2);
-  tree->SetCategoricalTestNode(0, 0, left_categories, true, 1, 2);
+  tree->SetCategoricalTestNode(0, 0, left_categories, false, 1, 2);
   tree->SetRootNode(0);
-  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(-1));
-  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
+  tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(2));
+  tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(3));
   builder->InsertTree(tree.get());
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+
+  /* Test correctness of JSON dump */
+  std::string matching_categories_str;
+  {
+    std::ostringstream oss;
+    rapidjson::OStreamWrapper os_wrapper(oss);
+    rapidjson::Writer<rapidjson::OStreamWrapper> writer(os_wrapper);
+    writer.StartArray();
+    for (auto e : left_categories) {
+      writer.Uint(static_cast<unsigned int>(e));
+    }
+    writer.EndArray();
+    matching_categories_str = oss.str();
+  }
+  std::string expected_json_dump_str = fmt::format(R"JSON(
+  {{
+    "num_feature": 2,
+    "task_type": "BinaryClfRegr",
+    "average_tree_output": false,
+    "task_param": {{
+        "output_type": "float",
+        "grove_per_class": false,
+        "num_class": 1,
+        "leaf_vector_size": 1
+    }},
+    "model_param": {{
+        "pred_transform": "identity",
+        "sigmoid_alpha": 1.0,
+        "global_bias": 0.0
+    }},
+    "trees": [{{
+            "num_nodes": 3,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": false,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": {matching_categories},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "leaf_value": {leaf_value0}
+                }}, {{
+                    "node_id": 2,
+                    "leaf_value": {leaf_value1}
+                }}]
+        }}]
+  }}
+  )JSON",
+    "leaf_value0"_a = static_cast<LeafOutputType>(2),
+    "leaf_value1"_a = static_cast<LeafOutputType>(3),
+    "matching_categories"_a = matching_categories_str
+  );
+
+  rapidjson::Document json_dump;
+  json_dump.Parse(model->DumpAsJSON(false).c_str());
+
+  rapidjson::Document expected_json_dump;
+  expected_json_dump.Parse(expected_json_dump_str.c_str());
+  EXPECT_TRUE(json_dump == expected_json_dump);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStumpCategoricalSplit) {
@@ -208,6 +371,173 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+
+  std::string expected_json_dump_str = fmt::format(R"JSON(
+  {{
+    "num_feature": 2,
+    "task_type": "BinaryClfRegr",
+    "average_tree_output": false,
+    "task_param": {{
+        "output_type": "float",
+        "grove_per_class": false,
+        "num_class": 1,
+        "leaf_vector_size": 1
+    }},
+    "model_param": {{
+        "pred_transform": "sigmoid",
+        "sigmoid_alpha": 1.0,
+        "global_bias": 0.5
+    }},
+    "trees": [{{
+            "num_nodes": 7,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "numerical",
+                    "comparison_op": "<",
+                    "threshold": {threshold},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0, 1],
+                    "left_child": 3,
+                    "right_child": 4
+                }}, {{
+                    "node_id": 2,
+                    "split_feature_id": 1,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0],
+                    "left_child": 5,
+                    "right_child": 6
+                }}, {{
+                    "node_id": 3,
+                    "leaf_value": {tree0_leaf3}
+                }}, {{
+                    "node_id": 4,
+                    "leaf_value": {tree0_leaf4}
+                }}, {{
+                    "node_id": 5,
+                    "leaf_value": {tree0_leaf5}
+                }}, {{
+                    "node_id": 6,
+                    "leaf_value": {tree0_leaf6}
+                }}]
+        }}, {{
+            "num_nodes": 7,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "numerical",
+                    "comparison_op": "<",
+                    "threshold": {threshold},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0, 1],
+                    "left_child": 3,
+                    "right_child": 4
+                }}, {{
+                    "node_id": 2,
+                    "split_feature_id": 1,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0],
+                    "left_child": 5,
+                    "right_child": 6
+                }}, {{
+                    "node_id": 3,
+                    "leaf_value": {tree1_leaf3}
+                }}, {{
+                    "node_id": 4,
+                    "leaf_value": {tree1_leaf4}
+                }}, {{
+                    "node_id": 5,
+                    "leaf_value": {tree1_leaf5}
+                }}, {{
+                    "node_id": 6,
+                    "leaf_value": {tree1_leaf6}
+                }}]
+        }}, {{
+            "num_nodes": 7,
+            "nodes": [{{
+                    "node_id": 0,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "numerical",
+                    "comparison_op": "<",
+                    "threshold": {threshold},
+                    "left_child": 1,
+                    "right_child": 2
+                }}, {{
+                    "node_id": 1,
+                    "split_feature_id": 0,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0, 1],
+                    "left_child": 3,
+                    "right_child": 4
+                }}, {{
+                    "node_id": 2,
+                    "split_feature_id": 1,
+                    "default_left": true,
+                    "split_type": "categorical",
+                    "categories_list_right_child": false,
+                    "matching_categories": [0],
+                    "left_child": 5,
+                    "right_child": 6
+                }}, {{
+                    "node_id": 3,
+                    "leaf_value": {tree2_leaf3}
+                }}, {{
+                    "node_id": 4,
+                    "leaf_value": {tree2_leaf4}
+                }}, {{
+                    "node_id": 5,
+                    "leaf_value": {tree2_leaf5}
+                }}, {{
+                    "node_id": 6,
+                    "leaf_value": {tree2_leaf6}
+                }}]
+        }}]
+  }}
+  )JSON",
+    "threshold"_a = static_cast<ThresholdType>(0),
+    "tree0_leaf3"_a = static_cast<LeafOutputType>(3),
+    "tree0_leaf4"_a = static_cast<LeafOutputType>(1),
+    "tree0_leaf5"_a = static_cast<LeafOutputType>(4),
+    "tree0_leaf6"_a = static_cast<LeafOutputType>(2),
+    "tree1_leaf3"_a = static_cast<LeafOutputType>(3 + 1),
+    "tree1_leaf4"_a = static_cast<LeafOutputType>(1 + 1),
+    "tree1_leaf5"_a = static_cast<LeafOutputType>(4 + 1),
+    "tree1_leaf6"_a = static_cast<LeafOutputType>(2 + 1),
+    "tree2_leaf3"_a = static_cast<LeafOutputType>(3 + 2),
+    "tree2_leaf4"_a = static_cast<LeafOutputType>(1 + 2),
+    "tree2_leaf5"_a = static_cast<LeafOutputType>(4 + 2),
+    "tree2_leaf6"_a = static_cast<LeafOutputType>(2 + 2)
+  );
+
+  rapidjson::Document json_dump;
+  json_dump.Parse(model->DumpAsJSON(false).c_str());
+
+  rapidjson::Document expected_json_dump;
+  expected_json_dump.Parse(expected_json_dump_str.c_str());
+  EXPECT_TRUE(json_dump == expected_json_dump);
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeDepth2) {

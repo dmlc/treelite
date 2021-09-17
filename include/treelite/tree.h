@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <utility>
@@ -29,6 +30,9 @@
 #define TREELITE_MAX_PRED_TRANSFORM_LENGTH 256
 
 namespace treelite {
+
+template <typename ThresholdType, typename LeafOutputType>
+class ModelImpl;
 
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
@@ -154,6 +158,16 @@ enum class TaskType : uint8_t {
   kMultiClfCategLeaf = 3
 };
 
+inline std::string TaskTypeToString(TaskType type) {
+  switch (type) {
+    case TaskType::kBinaryClfRegr: return "BinaryClfRegr";
+    case TaskType::kMultiClfGrovePerClass: return "MultiClfGrovePerClass";
+    case TaskType::kMultiClfProbDistLeaf: return "MultiClfProbDistLeaf";
+    case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
+    default: return "";
+  }
+}
+
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
   enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
@@ -183,6 +197,14 @@ struct TaskParam {
    */
   unsigned int leaf_vector_size;
 };
+
+inline std::string OutputTypeToString(TaskParam::OutputType type) {
+  switch (type) {
+    case TaskParam::OutputType::kFloat: return "float";
+    case TaskParam::OutputType::kInt: return "int";
+    default: return "";
+  }
+}
 
 static_assert(std::is_pod<TaskParam>::value, "TaskParameter must be POD type");
 
@@ -288,7 +310,9 @@ class Tree {
   ContiguousArray<std::size_t> matching_categories_offset_;
 
   template <typename WriterType, typename X, typename Y>
-  friend void SerializeTreeToJSON(WriterType& writer, const Tree<X, Y>& tree);
+  friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
+  template <typename WriterType, typename X, typename Y>
+  friend void DumpTreeAsJSON(WriterType& writer, const Tree<X, Y>& tree);
 
   // allocate a new node
   inline int AllocNode();
@@ -426,14 +450,6 @@ class Tree {
                                  &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
-  }
-  /*!
-   * \brief tests whether the node has a non-empty list for matching categories. See
-   *        MatchingCategories() for the definition of matching categories.
-   * \param nid ID of node being queried
-   */
-  inline bool HasMatchingCategories(int nid) const {
-    return matching_categories_offset_.at(nid) != matching_categories_offset_.at(nid + 1);
   }
   /*!
    * \brief get feature split type
@@ -655,7 +671,13 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void SerializeToJSON(std::ostream& fo) const = 0;
+  virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
+
+  inline std::string DumpAsJSON(bool pretty_print) const {
+    std::ostringstream oss;
+    DumpAsJSON(oss, pretty_print);
+    return oss.str();
+  }
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();
@@ -711,7 +733,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void SerializeToJSON(std::ostream& fo) const override;
+  void DumpAsJSON(std::ostream& fo, bool pretty_print) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();
   }

@@ -8,11 +8,15 @@
 #include <treelite/c_api_error.h>
 #include <string>
 
+namespace {
+
 struct TreeliteAPIErrorEntry {
   std::string last_error;
 };
 
 using TreeliteAPIErrorStore = treelite::ThreadLocalStore<TreeliteAPIErrorEntry>;
+
+}  // anonymous namespace
 
 const char* TreeliteGetLastError() {
   return TreeliteAPIErrorStore::Get()->last_error.c_str();

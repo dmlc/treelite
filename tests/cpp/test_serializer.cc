@@ -132,7 +132,8 @@ TEST(PyBufferInterfaceRoundTrip, TreeStumpLeafVec) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
+void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
+    const std::vector<uint32_t>& left_categories) {
   TypeInfo threshold_type = TypeToInfo<ThresholdType>();
   TypeInfo leaf_output_type = TypeToInfo<LeafOutputType>();
   std::unique_ptr<frontend::ModelBuilder> builder{
@@ -144,7 +145,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
   tree->CreateNode(0);
   tree->CreateNode(1);
   tree->CreateNode(2);
-  tree->SetCategoricalTestNode(0, 0, {0, 1}, true, 1, 2);
+  tree->SetCategoricalTestNode(0, 0, left_categories, true, 1, 2);
   tree->SetRootNode(0);
   tree->SetLeafNode(1, frontend::Value::Create<LeafOutputType>(-1));
   tree->SetLeafNode(2, frontend::Value::Create<LeafOutputType>(1));
@@ -155,20 +156,27 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit() {
 }
 
 TEST(PyBufferInterfaceRoundTrip, TreeStumpCategoricalSplit) {
-  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, float>();
-  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, uint32_t>();
-  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, double>();
-  PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, uint32_t>();
-  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, double>()),
-               std::runtime_error);
-  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, float>()),
-               std::runtime_error);
-  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, uint32_t>()),
-               std::runtime_error);
-  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, float>()),
-               std::runtime_error);
-  ASSERT_THROW((PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, double>()),
-               std::runtime_error);
+  for (const auto& left_categories : std::vector<std::vector<uint32_t>>{ {}, {1}, {0, 1} }) {
+    PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, float>(left_categories);
+    PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, uint32_t>(left_categories);
+    PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, double>(left_categories);
+    PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, uint32_t>(left_categories);
+    ASSERT_THROW(
+        (PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<float, double>(left_categories)),
+        std::runtime_error);
+    ASSERT_THROW(
+        (PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<double, float>(left_categories)),
+        std::runtime_error);
+    ASSERT_THROW(
+        (PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, uint32_t>(left_categories)),
+        std::runtime_error);
+    ASSERT_THROW(
+        (PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, float>(left_categories)),
+        std::runtime_error);
+    ASSERT_THROW(
+        (PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit<uint32_t, double>(left_categories)),
+        std::runtime_error);
+  }
 }
 
 template <typename ThresholdType, typename LeafOutputType>

@@ -389,7 +389,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid + 1);
+    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid);
   }
   /*!
    * \brief get threshold of the node

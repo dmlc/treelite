@@ -5,6 +5,6 @@ set -x
 rm -rf build
 mkdir build
 cd build
-cmake .. "$@"
-make -j$(nproc)
+cmake .. -GNinja "$@"
+ninja -v
 cd ..

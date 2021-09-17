@@ -116,8 +116,10 @@ void SerializeTreeToJSON(WriterType& writer, const Tree<ThresholdType, LeafOutpu
   writer.Int(tree.num_nodes);
   writer.Key("leaf_vector");
   WriteContiguousArray(writer, tree.leaf_vector_);
-  writer.Key("leaf_vector_offset");
-  WriteContiguousArray(writer, tree.leaf_vector_offset_);
+  writer.Key("leaf_vector_begin");
+  WriteContiguousArray(writer, tree.leaf_vector_begin_);
+  writer.Key("leaf_vector_end");
+  WriteContiguousArray(writer, tree.leaf_vector_end_);
   writer.Key("matching_categories");
   WriteContiguousArray(writer, tree.matching_categories_);
   writer.Key("matching_categories_offset");
@@ -131,10 +133,8 @@ void SerializeTreeToJSON(WriterType& writer, const Tree<ThresholdType, LeafOutpu
 
   writer.EndObject();
 
-  // Sanity check
+  // Basic checks
   TREELITE_CHECK_EQ(tree.nodes_.Size(), tree.num_nodes);
-  TREELITE_CHECK_EQ(tree.nodes_.Size() + 1, tree.leaf_vector_offset_.Size());
-  TREELITE_CHECK_EQ(tree.leaf_vector_offset_.Back(), tree.leaf_vector_.Size());
   TREELITE_CHECK_EQ(tree.nodes_.Size() + 1, tree.matching_categories_offset_.Size());
   TREELITE_CHECK_EQ(tree.matching_categories_offset_.Back(), tree.matching_categories_.Size());
 }

@@ -63,7 +63,7 @@ def generate_makefile(dirpath, platform, toolchain, options=None):  # pylint: di
     if not os.path.isdir(dirpath):
         raise TreeliteError('Directory {} does not exist'.format(dirpath))
     try:
-        with open(os.path.join(dirpath, 'recipe.json')) as f:
+        with open(os.path.join(dirpath, 'recipe.json'), 'r', encoding='UTF-8') as f:
             recipe = json.load(f)
     except IOError as e:
         raise TreeliteError('Failed to open recipe.json') from e
@@ -99,7 +99,7 @@ def generate_makefile(dirpath, platform, toolchain, options=None):  # pylint: di
         from .gcc import _obj_ext, _obj_cmd, _lib_cmd
     obj_ext = _obj_ext()
 
-    with open(os.path.join(dirpath, 'Makefile'), 'w') as f:
+    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='UTF-8') as f:
         objects = [x['name'] + obj_ext for x in recipe['sources']] \
                   + recipe.get('extra', [])
         f.write('{}: {}\n'.format(recipe['target'] + lib_ext, ' '.join(objects)))
@@ -135,7 +135,7 @@ def generate_cmakelists(dirpath, options=None):
     if not os.path.isdir(dirpath):
         raise TreeliteError(f'Directory {dirpath} does not exist')
     try:
-        with open(os.path.join(dirpath, 'recipe.json')) as f:
+        with open(os.path.join(dirpath, 'recipe.json'), 'r', encoding='UTF-8') as f:
             recipe = json.load(f)
     except IOError as e:
         raise TreeliteError('Failed to open recipe.json') from e
@@ -154,7 +154,7 @@ def generate_cmakelists(dirpath, options=None):
     target = recipe['target']
     sources = ' '.join([x['name'] + '.c' for x in recipe['sources']])
     options = ' '.join(options)
-    with open(os.path.join(dirpath, 'CMakeLists.txt'), 'w') as f:
+    with open(os.path.join(dirpath, 'CMakeLists.txt'), 'w', encoding='UTF-8') as f:
         print('cmake_minimum_required(VERSION 3.13)', file=f)
         print('project(mushroom LANGUAGES C)\n', file=f)
         print(f'add_library({target} SHARED)', file=f)
@@ -240,7 +240,7 @@ def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=No
     if not os.path.isdir(dirpath):
         raise TreeliteError('Directory {} does not exist'.format(dirpath))
     try:
-        with open(os.path.join(dirpath, 'recipe.json')) as f:
+        with open(os.path.join(dirpath, 'recipe.json'), 'r', encoding='UTF-8') as f:
             recipe = json.load(f)
     except IOError as e:
         raise TreeliteError('Failed to open recipe.json') from e

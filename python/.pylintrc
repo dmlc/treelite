@@ -1,7 +1,7 @@
 [MASTER]
 extension-pkg-whitelist=numpy
 
-disable=unexpected-special-method-signature,too-many-nested-blocks,useless-object-inheritance,import-outside-toplevel,unsubscriptable-object,attribute-defined-outside-init,unbalanced-tuple-unpacking
+disable=unexpected-special-method-signature,too-many-nested-blocks,useless-object-inheritance,import-outside-toplevel,unsubscriptable-object,attribute-defined-outside-init,unbalanced-tuple-unpacking,consider-using-f-string
 
 dummy-variables-rgx=(unused|)_.*
 

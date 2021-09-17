@@ -25,7 +25,7 @@ def annotation():
             annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
             annotation_path = os.path.join(tmpdir, f'{dataset}.json')
             annotator.save(annotation_path)
-            with open(annotation_path, 'r') as f:
+            with open(annotation_path, 'r', encoding='UTF-8') as f:
                 return f.read()
         annotation_db = {k: compute_annotation(k) for k in dataset_db}
     return annotation_db

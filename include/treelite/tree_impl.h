@@ -229,6 +229,9 @@ ContiguousArray<T>::Extend(const std::vector<T>& other) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot add elements when using a foreign buffer; clone first");
   }
+  if (other.empty()) {
+    return;  // appending an empty vector is a no-op
+  }
   std::size_t newsize = size_ + other.size();
   if (newsize > capacity_) {
     std::size_t newcapacity = capacity_;
@@ -465,6 +468,9 @@ inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
   }
   vec->Clear();
   vec->Resize(nelem);
+  if (nelem == 0) {
+    return;  // handle empty arrays
+  }
   const auto nelem_size_t = static_cast<std::size_t>(nelem);
   if (std::fread(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
     throw std::runtime_error("Could not read an array");
@@ -477,6 +483,9 @@ inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
   const auto nelem = static_cast<uint64_t>(vec->Size());
   if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
     throw std::runtime_error("Could not write the number of elements");
+  }
+  if (nelem == 0) {
+    return;  // handle empty arrays
   }
   const auto nelem_size_t = vec->Size();
   if (std::fwrite(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {

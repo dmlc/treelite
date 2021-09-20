@@ -17,6 +17,14 @@ option(BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
 option(BUILD_JVM_RUNTIME "Build Treelite runtime for JVM" OFF)
 option(ENABLE_ALL_WARNINGS "Enable all compiler warnings. Only effective for GCC/Clang" OFF)
+option(USE_SANITIZER "Use sanitizer flags" OFF)
+SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
+        "Semicolon separated list of sanitizer names. E.g 'address;leak'.")
+
+if(USE_SANITIZER)
+  include(cmake/Sanitizer.cmake)
+  enable_sanitizers("${ENABLED_SANITIZERS}")
+endif()
 
 if(ENABLE_ALL_WARNINGS)
   if((NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))

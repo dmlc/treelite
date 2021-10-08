@@ -332,7 +332,7 @@ link the program against the prediction library ``mymodel.so``, simply run
 
 .. code-block:: bash
 
-  gcc -o myprog myprog.c mymodel.so -I. -std=c99
+  gcc -o myprog myprog.c mymodel.so -I. -std=c99 -lm
 
 As long as the program ``myprog`` is in the same directory of the prediction
 library ``mymodel.so``, we'll be good to go.

@@ -1,9 +1,9 @@
 # coding: utf-8
 """Converter to ingest scikit-learn models into Treelite"""
 
-from scipy.special import psi
 import ctypes
 import numpy as np
+from scipy.special import psi
 
 from ..util import TreeliteError
 from ..core import _LIB, c_array, _check_call

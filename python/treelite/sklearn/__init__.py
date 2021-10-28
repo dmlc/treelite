@@ -16,7 +16,7 @@ from .rf_multi_classifier import SKLRFMultiClassifierMixin
 from .rf_iforest import SKLiForestMixin
 
 
-def import_model_with_model_builder(sklearn_model):
+def import_model_with_model_builder(sklearn_model):  # pylint: disable=R0911
     """
     Load a tree ensemble model from a scikit-learn model object using the model builder API.
 

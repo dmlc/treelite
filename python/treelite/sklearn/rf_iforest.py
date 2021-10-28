@@ -1,19 +1,21 @@
 # coding: utf-8
 """Converter for sklearn.ensemble.IsolationForest"""
-import treelite
 from scipy.special import psi
 from numpy import euler_gamma, zeros
+import treelite
 
 
 class SKLiForestMixin:
     """Mixin class to implement the converter for IsolationForest"""
 
     @classmethod
-    def harmonic(cls, n):
-        return psi(n+1) + euler_gamma
+    def harmonic(cls, number):
+        """Calculates the n-th harmonic number"""
+        return psi(number+1) + euler_gamma
 
     @classmethod
-    def expected_depth(cls, n_remainder):
+    def expected_depth(cls, n_remainder): # pylint: disable=R1705
+        """Calculates the expected isolation depth for a remainder of uniform points"""
         if n_remainder <= 1:
             return 0
         elif n_remainder == 2:
@@ -24,6 +26,7 @@ class SKLiForestMixin:
 
     @classmethod
     def calculate_depths(cls, isolation_depths, tree, curr_node, curr_depth):
+        """Fill in an array of isolation depths for a scikit-learn isolation forest model"""
         if tree.children_left[curr_node] == -1:
             isolation_depths[curr_node] \
                 = curr_depth + cls.expected_depth(tree.n_node_samples[curr_node])
@@ -62,7 +65,7 @@ class SKLiForestMixin:
 
     @classmethod
     def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id,
-        sklearn_model, isolation_depths):
+        sklearn_model, isolation_depths):  # pylint: disable=R0913
         # pylint: disable=W0613
         """Process a test node with a given node ID"""
         # The `value` attribute stores the output for every leaf node.

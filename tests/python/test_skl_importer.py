@@ -144,11 +144,11 @@ def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('import_method', ['import_old', 'import_new'])
-def test_skl_converter_iforest(tmpdir, import_method,toolchain):
+def test_skl_converter_iforest(tmpdir, import_method,toolchain):  # pylint: disable=W0212
     # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
-    X, y = load_boston(return_X_y=True)
-    clf = IsolationForest(max_depth=5, max_samples=64, random_state=0, n_estimators=10)
+    X = load_boston(return_X_y=True)[0]
+    clf = IsolationForest(max_samples=64, random_state=0, n_estimators=10)
     clf.fit(X)
     expected_pred = clf._compute_chunked_score_samples(X)
 

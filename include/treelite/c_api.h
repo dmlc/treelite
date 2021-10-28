@@ -219,8 +219,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
 TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity, const double ratio_c,
-    ModelHandle* out);
+    const double** value, const int64_t** n_node_samples, const double** impurity,
+    const double ratio_c, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to

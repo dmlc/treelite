@@ -48,8 +48,9 @@ def import_model(sklearn_model):
     Note
     ----
     For 'IsolationForest', it will calculate the outlier score using the standardized ratio as
-    proposed in the original reference, which matches with 'IsolationForest._compute_chunked_score_samples'
-    but is a bit different from 'IsolationForest.decision_function'.
+    proposed in the original reference, which matches with
+    'IsolationForest._compute_chunked_score_samples' but is a bit different from
+    'IsolationForest.decision_function'.
 
     Parameters
     ----------
@@ -107,7 +108,7 @@ def import_model(sklearn_model):
         raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
 
     if isinstance(sklearn_model, IsolationForest):
-        ratio_c = SKLiForestMixin._expected_depth(sklearn_model.max_samples)
+        ratio_c = SKLiForestMixin.expected_depth(sklearn_model.max_samples)
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -129,7 +130,7 @@ def import_model(sklearn_model):
                 estimator.tree_.n_node_samples.shape[0],
                 dtype = 'float64'
             )
-            SKLiForestMixin._calculate_depths(isolation_depths, estimator.tree_, 0, 0.0)
+            SKLiForestMixin.calculate_depths(isolation_depths, estimator.tree_, 0, 0.0)
         for sub_estimator in estimator_range:
             tree = sub_estimator.tree_
             node_count.append(tree.node_count)
@@ -160,8 +161,8 @@ def import_model(sklearn_model):
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
-            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(), ctypes.c_double(ratio_c),
-            ctypes.byref(handle)))
+            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
+            ctypes.c_double(ratio_c), ctypes.byref(handle)))
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),

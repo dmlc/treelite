@@ -29,8 +29,9 @@ def import_model_with_model_builder(sklearn_model):
     Note
     ----
     For 'IsolationForest', it will calculate the outlier score using the standardized ratio as
-    proposed in the original reference, which matches with 'IsolationForest._compute_chunked_score_samples'
-    but is a bit different from 'IsolationForest.decision_function'.
+    proposed in the original reference, which matches with
+    'IsolationForest._compute_chunked_score_samples' but is a bit different from
+    'IsolationForest.decision_function'.
 
     Parameters
     ----------

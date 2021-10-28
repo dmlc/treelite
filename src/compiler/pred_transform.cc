@@ -110,7 +110,6 @@ pred_transform_multiclass_db = {
 std::string
 treelite::compiler::PredTransformFunction(const std::string& backend,
                                           const Model& model) {
-
   ModelParam param = model.param;
   if (model.task_param.num_class > 1) {  // multi-class classification
     auto it = pred_transform_multiclass_db.find(param.pred_transform);

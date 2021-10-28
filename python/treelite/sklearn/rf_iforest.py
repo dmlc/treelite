@@ -9,26 +9,29 @@ class SKLiForestMixin:
     """Mixin class to implement the converter for IsolationForest"""
 
     @classmethod
-    def _harmonic(cls, n):
+    def harmonic(cls, n):
         return psi(n+1) + euler_gamma
 
     @classmethod
-    def _expected_depth(cls, n_remainder):
+    def expected_depth(cls, n_remainder):
         if n_remainder <= 1:
             return 0
         elif n_remainder == 2:
             return 1
         else:
-            return float(2 * (cls._harmonic(n_remainder) - 1))
+            return float(2 * (cls.harmonic(n_remainder) - 1))
 
 
     @classmethod
-    def _calculate_depths(cls, isolation_depths, tree, curr_node, curr_depth):
+    def calculate_depths(cls, isolation_depths, tree, curr_node, curr_depth):
         if tree.children_left[curr_node] == -1:
-            isolation_depths[curr_node] = curr_depth + cls._expected_depth(tree.n_node_samples[curr_node])
+            isolation_depths[curr_node] \
+                = curr_depth + cls.expected_depth(tree.n_node_samples[curr_node])
         else:
-            cls._calculate_depths(isolation_depths, tree, tree.children_left[curr_node], curr_depth+1)
-            cls._calculate_depths(isolation_depths, tree, tree.children_right[curr_node], curr_depth+1)
+            cls.calculate_depths(
+                isolation_depths, tree, tree.children_left[curr_node], curr_depth+1)
+            cls.calculate_depths(
+                isolation_depths, tree, tree.children_right[curr_node], curr_depth+1)
 
     @classmethod
     def process_model(cls, sklearn_model):
@@ -39,7 +42,7 @@ class SKLiForestMixin:
             num_feature=sklearn_model.n_features_, average_tree_output=True,
             threshold_type='float64', leaf_output_type='float64',
             pred_transform = 'exponential_standard_ratio',
-            ratio_c = cls._expected_depth(sklearn_model.max_samples_))
+            ratio_c = cls.expected_depth(sklearn_model.max_samples_))
 
         # Iterate over individual trees
         for i in range(sklearn_model.n_estimators):
@@ -48,7 +51,7 @@ class SKLiForestMixin:
                 sklearn_model.estimators_[i].tree_.n_node_samples.shape[0],
                 dtype = 'float64'
             )
-            cls._calculate_depths(isolation_depths, sklearn_model.estimators_[i].tree_, 0, 0.0)
+            cls.calculate_depths(isolation_depths, sklearn_model.estimators_[i].tree_, 0, 0.0)
 
             # Process the i-th tree and add to the builder
             # process_tree() to be defined later
@@ -58,7 +61,8 @@ class SKLiForestMixin:
         return builder.commit()
 
     @classmethod
-    def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id, sklearn_model, isolation_depths):
+    def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id,
+        sklearn_model, isolation_depths):
         # pylint: disable=W0613
         """Process a test node with a given node ID"""
         # The `value` attribute stores the output for every leaf node.

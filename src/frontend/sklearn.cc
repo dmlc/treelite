@@ -98,7 +98,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
 std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity, const double ratio_c) {
+    const double** value, const int64_t** n_node_samples, const double** impurity,
+    const double ratio_c) {
   auto meta_handler = [ratio_c](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
     model->average_tree_output = true;
@@ -107,7 +108,9 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
     model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
     model->task_param.num_class = 1;
     model->task_param.leaf_vector_size = 1;
-    std::strncpy(model->param.pred_transform, "exponential_standard_ratio", sizeof(model->param.pred_transform));
+    std::strncpy(
+      model->param.pred_transform, "exponential_standard_ratio",
+      sizeof(model->param.pred_transform));
     model->param.ratio_c = ratio_c;
   };
   auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, const double** value,

@@ -111,7 +111,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
 std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity, const double ratio_c);
+    const double** value, const int64_t** n_node_samples, const double** impurity,
+    const double ratio_c);
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to

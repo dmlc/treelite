@@ -150,7 +150,7 @@ def test_skl_converter_iforest(tmpdir, import_method,toolchain):  # pylint: disa
     X = load_boston(return_X_y=True)[0]
     clf = IsolationForest(max_samples=64, random_state=0, n_estimators=10)
     clf.fit(X)
-    expected_pred = clf._compute_chunked_score_samples(X)
+    expected_pred = clf._compute_chunked_score_samples(X) # pylint: disable=W0212
 
     if import_method == 'import_new':
         model = treelite.sklearn.import_model(clf)

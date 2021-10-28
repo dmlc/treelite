@@ -16,7 +16,7 @@ class SKLiForestMixin:
     @classmethod
     def expected_depth(cls, n_remainder): # pylint: disable=R1705
         """Calculates the expected isolation depth for a remainder of uniform points"""
-        if n_remainder <= 1:
+        if n_remainder <= 1: # pylint: disable=R1705
             return 0
         elif n_remainder == 2:
             return 1
@@ -64,7 +64,7 @@ class SKLiForestMixin:
         return builder.commit()
 
     @classmethod
-    def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id,
+    def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id, # pylint: disable=R0913
         sklearn_model, isolation_depths):  # pylint: disable=R0913
         # pylint: disable=W0613
         """Process a test node with a given node ID"""

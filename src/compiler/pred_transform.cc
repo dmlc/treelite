@@ -73,6 +73,7 @@ pred_transform_db = {
   - exponential_standard_ratio
     Apply the exponential base 2 function (exp2) element-wise to a standardized
     version of the margin vector. The output will be a vector of length [number of data points].
+    Each output element is exp2(-x / c), where x is the margin and c is the standardization constant.
   - logarithm_one_plus_exp
     Apply the function f(x) = log(1 + exp(x)) element-wise to the margin vector.
     The output will be a vector of length [number of data points].

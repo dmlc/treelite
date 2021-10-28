@@ -14,14 +14,13 @@ class SKLiForestMixin:
         return psi(number+1) + euler_gamma
 
     @classmethod
-    def expected_depth(cls, n_remainder): # pylint: disable=R1705
+    def expected_depth(cls, n_remainder):
         """Calculates the expected isolation depth for a remainder of uniform points"""
-        if n_remainder <= 1: # pylint: disable=R1705
+        if n_remainder <= 1:
             return 0
         elif n_remainder == 2:
             return 1
-        else:
-            return float(2 * (cls.harmonic(n_remainder) - 1))
+        return float(2 * (cls.harmonic(n_remainder) - 1))
 
 
     @classmethod

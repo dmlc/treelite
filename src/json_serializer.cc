@@ -94,6 +94,11 @@ void WriteNode(WriterType& writer,
     writer.Key("gain");
     writer.Double(tree.Gain(node_id));
   }
+  auto parent = tree.Parent(node_id);
+  if (parent != -1) {
+    writer.Key("parent");
+    writer.Int(tree.Parent(node_id));
+  }
 
   writer.EndObject();
 }

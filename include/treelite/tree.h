@@ -224,6 +224,8 @@ class Tree {
     };
     /*! \brief pointer to left and right children */
     int32_t cleft_, cright_;
+    /*! \brief pointer to parent */
+    int32_t parent_;
     /*!
      * \brief feature index used for the split
      * highest bit indicates default direction for missing values
@@ -277,7 +279,7 @@ class Tree {
   static_assert(std::is_same<ThresholdType, LeafOutputType>::value
                 || std::is_same<LeafOutputType, uint32_t>::value,
                 "Unsupported combination of ThresholdType and LeafOutputType");
-  static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
+  static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 56)
                 || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
                 "Node size incorrect");
 
@@ -357,6 +359,13 @@ class Tree {
    */
   inline int RightChild(int nid) const {
     return nodes_.at(nid).cright_;
+  }
+  /*!
+   * \brief index of the node's parent
+   * \param nid ID of node being queried
+   */
+  inline int Parent(int nid) const {
+    return nodes_.at(nid).parent_;
   }
   /*!
    * \brief index of the node's "default" child, used when feature is missing

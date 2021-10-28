@@ -105,10 +105,12 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
                     "right_child": 2
                 }}, {{
                     "node_id": 1,
-                    "leaf_value": {leaf_value0}
+                    "leaf_value": {leaf_value0},
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
-                    "leaf_value": {leaf_value1}
+                    "leaf_value": {leaf_value1},
+                    "parent": 0
                 }}]
         }}]
   }}
@@ -192,10 +194,12 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
                     "right_child": 2
                 }}, {{
                     "node_id": 1,
-                    "leaf_value": [{leaf_value0}, {leaf_value1}]
+                    "leaf_value": [{leaf_value0}, {leaf_value1}],
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
-                    "leaf_value": [{leaf_value2}, {leaf_value3}]
+                    "leaf_value": [{leaf_value2}, {leaf_value3}],
+                    "parent": 0
                 }}]
         }}]
   }}
@@ -297,10 +301,12 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
                     "right_child": 2
                 }}, {{
                     "node_id": 1,
-                    "leaf_value": {leaf_value0}
+                    "leaf_value": {leaf_value0},
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
-                    "leaf_value": {leaf_value1}
+                    "leaf_value": {leaf_value1},
+                    "parent": 0
                 }}]
         }}]
   }}
@@ -407,7 +413,8 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0, 1],
                     "left_child": 3,
-                    "right_child": 4
+                    "right_child": 4,
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
                     "split_feature_id": 1,
@@ -416,19 +423,24 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0],
                     "left_child": 5,
-                    "right_child": 6
+                    "right_child": 6,
+                    "parent": 0
                 }}, {{
                     "node_id": 3,
-                    "leaf_value": {tree0_leaf3}
+                    "leaf_value": {tree0_leaf3},
+                    "parent": 1
                 }}, {{
                     "node_id": 4,
-                    "leaf_value": {tree0_leaf4}
+                    "leaf_value": {tree0_leaf4},
+                    "parent": 1
                 }}, {{
                     "node_id": 5,
-                    "leaf_value": {tree0_leaf5}
+                    "leaf_value": {tree0_leaf5},
+                    "parent": 2
                 }}, {{
                     "node_id": 6,
-                    "leaf_value": {tree0_leaf6}
+                    "leaf_value": {tree0_leaf6},
+                    "parent": 2
                 }}]
         }}, {{
             "num_nodes": 7,
@@ -449,7 +461,8 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0, 1],
                     "left_child": 3,
-                    "right_child": 4
+                    "right_child": 4,
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
                     "split_feature_id": 1,
@@ -458,19 +471,24 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0],
                     "left_child": 5,
-                    "right_child": 6
+                    "right_child": 6,
+                    "parent": 0
                 }}, {{
                     "node_id": 3,
-                    "leaf_value": {tree1_leaf3}
+                    "leaf_value": {tree1_leaf3},
+                    "parent": 1
                 }}, {{
                     "node_id": 4,
-                    "leaf_value": {tree1_leaf4}
+                    "leaf_value": {tree1_leaf4},
+                    "parent": 1
                 }}, {{
                     "node_id": 5,
-                    "leaf_value": {tree1_leaf5}
+                    "leaf_value": {tree1_leaf5},
+                    "parent": 2
                 }}, {{
                     "node_id": 6,
-                    "leaf_value": {tree1_leaf6}
+                    "leaf_value": {tree1_leaf6},
+                    "parent": 2
                 }}]
         }}, {{
             "num_nodes": 7,
@@ -491,7 +509,8 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0, 1],
                     "left_child": 3,
-                    "right_child": 4
+                    "right_child": 4,
+                    "parent": 0
                 }}, {{
                     "node_id": 2,
                     "split_feature_id": 1,
@@ -500,19 +519,24 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "categories_list_right_child": false,
                     "matching_categories": [0],
                     "left_child": 5,
-                    "right_child": 6
+                    "right_child": 6,
+                    "parent": 0
                 }}, {{
                     "node_id": 3,
-                    "leaf_value": {tree2_leaf3}
+                    "leaf_value": {tree2_leaf3},
+                    "parent": 1
                 }}, {{
                     "node_id": 4,
-                    "leaf_value": {tree2_leaf4}
+                    "leaf_value": {tree2_leaf4},
+                    "parent": 1
                 }}, {{
                     "node_id": 5,
-                    "leaf_value": {tree2_leaf5}
+                    "leaf_value": {tree2_leaf5},
+                    "parent": 2
                 }}, {{
                     "node_id": 6,
-                    "leaf_value": {tree2_leaf6}
+                    "leaf_value": {tree2_leaf6},
+                    "parent": 2
                 }}]
         }}]
   }}

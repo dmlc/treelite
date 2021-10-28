@@ -502,9 +502,9 @@ template <typename ThresholdType, typename LeafOutputType>
 inline const char*
 Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {
-    return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
+    return "T{=l=l=l=L=fxxxx=Q=d=d=b=b=?=?=?=?xx}";
   } else {
-    return "T{=l=l=Lxxxx=d=Q=d=d=b=b=?=?=?=?xx}";
+    return "T{=l=l=l=L=d=Q=d=d=b=b=?=?=?=?xx}";
   }
 }
 
@@ -604,6 +604,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
   std::memset(this, 0, sizeof(Node));
   cleft_ = cright_ = -1;
+  parent_ = -1;
   sindex_ = 0;
   info_.leaf_value = static_cast<LeafOutputType>(0);
   info_.threshold = static_cast<ThresholdType>(0);
@@ -653,6 +654,8 @@ Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
   const int cright = this->AllocNode();
   nodes_.at(nid).cleft_ = cleft;
   nodes_.at(nid).cright_ = cright;
+  nodes_.at(cleft).parent_ = nid;
+  nodes_.at(cright).parent_ = nid;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

@@ -1,13 +1,13 @@
 # coding: utf-8
 """Converter to ingest scikit-learn models into Treelite"""
 
+from scipy.special import psi
 import ctypes
 import numpy as np
 
 from ..util import TreeliteError
 from ..core import _LIB, c_array, _check_call
 from ..frontend import Model
-from .rf_iforest import SKLiForestMixin
 
 
 class ArrayOfArrays:
@@ -38,6 +38,30 @@ class ArrayOfArrays:
     def as_c_array(self):
         """Prepare the collection to pass as an argument of a C function"""
         return c_array(self.ptr_type, self.collection)
+
+# Helpers for isolation forests
+def harmonic(number):
+    """Calculates the n-th harmonic number"""
+    return psi(number+1) + np.euler_gamma
+
+def expected_depth(n_remainder):
+    """Calculates the expected isolation depth for a remainder of uniform points"""
+    if n_remainder <= 1:
+        return 0
+    if n_remainder == 2:
+        return 1
+    return float(2 * (harmonic(n_remainder) - 1))
+
+def calculate_depths(isolation_depths, tree, curr_node, curr_depth):
+    """Fill in an array of isolation depths for a scikit-learn isolation forest model"""
+    if tree.children_left[curr_node] == -1:
+        isolation_depths[curr_node] \
+            = curr_depth + expected_depth(tree.n_node_samples[curr_node])
+    else:
+        calculate_depths(
+            isolation_depths, tree, tree.children_left[curr_node], curr_depth+1)
+        calculate_depths(
+            isolation_depths, tree, tree.children_right[curr_node], curr_depth+1)
 
 
 def import_model(sklearn_model):
@@ -108,7 +132,7 @@ def import_model(sklearn_model):
         raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
 
     if isinstance(sklearn_model, IsolationForest):
-        ratio_c = SKLiForestMixin.expected_depth(sklearn_model.max_samples)
+        ratio_c = expected_depth(sklearn_model.max_samples)
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -130,7 +154,7 @@ def import_model(sklearn_model):
                 estimator.tree_.n_node_samples.shape[0],
                 dtype = 'float64'
             )
-            SKLiForestMixin.calculate_depths(isolation_depths, estimator.tree_, 0, 0.0)
+            calculate_depths(isolation_depths, estimator.tree_, 0, 0.0)
         for sub_estimator in estimator_range:
             tree = sub_estimator.tree_
             node_count.append(tree.node_count)

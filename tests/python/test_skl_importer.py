@@ -143,7 +143,6 @@ def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('import_method', ['import_old', 'import_new'])
 def test_skl_converter_iforest(tmpdir, import_method,toolchain):  # pylint: disable=W0212
     # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
@@ -152,10 +151,7 @@ def test_skl_converter_iforest(tmpdir, import_method,toolchain):  # pylint: disa
     clf.fit(X)
     expected_pred = clf._compute_chunked_score_samples(X) # pylint: disable=W0212
 
-    if import_method == 'import_new':
-        model = treelite.sklearn.import_model(clf)
-    else:
-        model = treelite.sklearn.import_model_with_model_builder(clf)
+    model = treelite.sklearn.import_model(clf)
     assert model.num_feature == clf.n_features_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators

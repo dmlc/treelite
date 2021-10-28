@@ -18,7 +18,7 @@ class SKLiForestMixin:
         """Calculates the expected isolation depth for a remainder of uniform points"""
         if n_remainder <= 1:
             return 0
-        elif n_remainder == 2:
+        if n_remainder == 2:
             return 1
         return float(2 * (cls.harmonic(n_remainder) - 1))
 

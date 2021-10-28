@@ -30,6 +30,9 @@ class Predictor private[treelite4j](private[treelite4j] val pred: JPredictor)
   def sigmoidAlpha: Float = pred.GetSigmoidAlpha()
 
   @throws(classOf[TreeliteError])
+  def ratioC: Float = pred.GetRatioC()
+
+  @throws(classOf[TreeliteError])
   def globalBias: Float = pred.GetGlobalBias()
 
   @throws(classOf[TreeliteError])

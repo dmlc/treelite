@@ -132,6 +132,12 @@ class Predictor:
             self.handle,
             ctypes.byref(sigmoid_alpha)))
         self.sigmoid_alpha_ = sigmoid_alpha.value
+        # save # of ratio c
+        ratio_c = ctypes.c_float()
+        _check_call(_LIB.TreelitePredictorQueryRatioC(
+            self.handle,
+            ctypes.byref(ratio_c)))
+        self.ratio_c_ = ratio_c.value
         # save # of global bias
         global_bias = ctypes.c_float()
         _check_call(_LIB.TreelitePredictorQueryGlobalBias(
@@ -226,6 +232,11 @@ class Predictor:
     def sigmoid_alpha(self):
         """Query sigmoid alpha of the model"""
         return self.sigmoid_alpha_
+
+    @property
+    def ratio_c(self):
+        """Query sigmoid alpha of the model"""
+        return self.ratio_c_
 
     @property
     def threshold_type(self):

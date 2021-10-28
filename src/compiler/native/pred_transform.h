@@ -75,6 +75,18 @@ R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type
   "exp"_a = native::CExpForTypeInfo(threshold_type));
 }
 
+inline std::string exponential_standard_ratio(const Model& model) {
+  const float ratio_c = model.param.ratio_c;
+  const TypeInfo threshold_type = model.GetThresholdType();
+  return fmt::format(
+R"TREELITETEMPLATE(static inline {threshold_type} pred_transform({threshold_type} margin) {{
+  return {exp2}(-margin / ({threshold_type}){ratio_c});
+}})TREELITETEMPLATE",
+  "threshold_type"_a = native::TypeInfoToCTypeString(threshold_type),
+  "ratio_c"_a = ratio_c,
+  "exp2"_a = native::CExp2ForTypeInfo(threshold_type));
+}
+
 inline std::string logarithm_one_plus_exp(const Model& model) {
   const TypeInfo threshold_type = model.GetThresholdType();
   return fmt::format(

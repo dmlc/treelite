@@ -42,6 +42,7 @@ public class PredictorTest {
     TestCase.assertEquals(127, predictor.GetNumFeature());
     TestCase.assertEquals("sigmoid", predictor.GetPredTransform());
     TestCase.assertEquals(1.0f, predictor.GetSigmoidAlpha());
+    TestCase.assertEquals(1.0f, predictor.GetRatioC());
     TestCase.assertEquals(0.0f, predictor.GetGlobalBias());
   }
 
@@ -98,6 +99,7 @@ public class PredictorTest {
     TestCase.assertEquals(predictor.GetNumClass(), predictor2.GetNumClass());
     TestCase.assertEquals(predictor.GetPredTransform(), predictor2.GetPredTransform());
     TestCase.assertEquals(predictor.GetSigmoidAlpha(), predictor2.GetSigmoidAlpha());
+    TestCase.assertEquals(predictor.GetRatioC(), predictor2.GetRatioC());
     TestCase.assertEquals(predictor.GetGlobalBias(), predictor2.GetGlobalBias());
 
     List<DataPoint> dataset = DMatrixBuilder.LoadDatasetFromLibSVM(mushroomTestDataLocation);

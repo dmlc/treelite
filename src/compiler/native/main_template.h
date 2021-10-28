@@ -30,6 +30,10 @@ float get_sigmoid_alpha(void) {{
   return {sigmoid_alpha};
 }}
 
+float get_ratio_c(void) {{
+  return {ratio_c};
+}}
+
 float get_global_bias(void) {{
   return {global_bias};
 }}

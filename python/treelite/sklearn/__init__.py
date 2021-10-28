@@ -13,6 +13,7 @@ from .gbm_multi_classifier import SKLGBMMultiClassifierMixin
 from .rf_regressor import SKLRFRegressorMixin
 from .rf_classifier import SKLRFClassifierMixin
 from .rf_multi_classifier import SKLRFMultiClassifierMixin
+from .rf_iforest import SKLiForestMixin
 
 
 def import_model_with_model_builder(sklearn_model):
@@ -25,6 +26,12 @@ def import_model_with_model_builder(sklearn_model):
         large models. For production, please use :py:func:`~treelite.sklearn.import_model`
         which is significantly faster.
 
+    Note
+    ----
+    For 'IsolationForest', it will calculate the outlier score using the standardized ratio as
+    proposed in the original reference, which matches with 'IsolationForest._compute_chunked_score_samples'
+    but is a bit different from 'IsolationForest.decision_function'.
+
     Parameters
     ----------
     sklearn_model : object of type \
@@ -33,7 +40,8 @@ def import_model_with_model_builder(sklearn_model):
                     :py:class:`~sklearn.ensemble.ExtraTreesRegressor` / \
                     :py:class:`~sklearn.ensemble.ExtraTreesClassifier` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
+                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier` / \
+                    :py:class:`~sklearn.ensemble.IsolationForest`
         Python handle to scikit-learn model
 
     Returns
@@ -63,6 +71,7 @@ def import_model_with_model_builder(sklearn_model):
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
         from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
+        from sklearn.ensemble import IsolationForest
     except ImportError as e:
         raise TreeliteError('This function requires scikit-learn package') from e
 
@@ -82,6 +91,8 @@ def import_model_with_model_builder(sklearn_model):
         if sklearn_model.n_classes_ > 2:
             return SKLGBMMultiClassifierConverter.process_model(sklearn_model)
         raise TreeliteError('n_classes_ must be at least 2')
+    if isinstance(sklearn_model, IsolationForest):
+        return SKLiForestConverter.process_model(sklearn_model)
     raise TreeliteError(f'Unsupported model type {sklearn_model.__class__.__name__}: currently ' +
                         'random forests, extremely randomized trees, and gradient boosted trees ' +
                         'are supported')
@@ -109,6 +120,10 @@ class SKLRFClassifierConverter(SKLRFClassifierMixin, SKLConverterBase):  # pylin
 
 
 class SKLRFMultiClassifierConverter(SKLRFMultiClassifierMixin, SKLConverterBase):
+    # pylint: disable=C0111
+    pass
+
+class SKLiForestConverter(SKLiForestMixin, SKLConverterBase):
     # pylint: disable=C0111
     pass
 

@@ -86,6 +86,33 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** impurity);
 /*!
+ * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
+ *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the mearning of the arrays in detail.
+ * \param n_estimators number of trees in the isolation forest
+ * \param n_features number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the expected isolation depth of node k of the i-th tree. This is
+ *              only defined if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param impurity not used, but must be passed as array of arrays for each tree and node.
+ * \param ratio_c standardizing constant to use for calculation of the anomaly score.
+ * \return loaded model
+ */
+std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** impurity, const double ratio_c);
+/*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
  *        learn the mearning of the arrays in detail. Note that this function can also be used to

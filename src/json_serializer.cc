@@ -122,6 +122,8 @@ void SerializeModelParamToJSON(WriterType& writer, treelite::ModelParam model_pa
   WriteString(writer, std::string(model_param.pred_transform));
   writer.Key("sigmoid_alpha");
   writer.Double(model_param.sigmoid_alpha);
+  writer.Key("ratio_c");
+  writer.Double(model_param.ratio_c);
   writer.Key("global_bias");
   writer.Double(model_param.global_bias);
 

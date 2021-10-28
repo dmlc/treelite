@@ -7,6 +7,7 @@ import numpy as np
 from ..util import TreeliteError
 from ..core import _LIB, c_array, _check_call
 from ..frontend import Model
+from .rf_iforest import SKLiForestMixin
 
 
 class ArrayOfArrays:
@@ -44,6 +45,12 @@ def import_model(sklearn_model):
     """
     Load a tree ensemble model from a scikit-learn model object
 
+    Note
+    ----
+    For 'IsolationForest', it will calculate the outlier score using the standardized ratio as
+    proposed in the original reference, which matches with 'IsolationForest._compute_chunked_score_samples'
+    but is a bit different from 'IsolationForest.decision_function'.
+
     Parameters
     ----------
     sklearn_model : object of type \
@@ -52,7 +59,8 @@ def import_model(sklearn_model):
                     :py:class:`~sklearn.ensemble.ExtraTreesRegressor` / \
                     :py:class:`~sklearn.ensemble.ExtraTreesClassifier` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
+                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier` / \
+                    :py:class:`~sklearn.ensemble.IsolationForest`
         Python handle to scikit-learn model
 
     Returns
@@ -82,11 +90,12 @@ def import_model(sklearn_model):
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
         from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
+        from sklearn.ensemble import IsolationForest
     except ImportError as e:
         raise TreeliteError('This function requires scikit-learn package') from e
 
     if isinstance(sklearn_model,
-            (RandomForestR, ExtraTreesR, GradientBoostingR, GradientBoostingC)):
+            (RandomForestR, ExtraTreesR, GradientBoostingR, GradientBoostingC, IsolationForest)):
         leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
@@ -96,6 +105,9 @@ def import_model(sklearn_model):
     if isinstance(sklearn_model,
             (GradientBoostingR, GradientBoostingC)) and sklearn_model.init != 'zero':
         raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
+
+    if isinstance(sklearn_model, IsolationForest):
+        ratio_c = SKLiForestMixin._expected_depth(sklearn_model.max_samples)
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
@@ -112,6 +124,12 @@ def import_model(sklearn_model):
         else:
             estimator_range = [estimator]
             learning_rate = 1.0
+        if isinstance(sklearn_model, IsolationForest):
+            isolation_depths = np.zeros(
+                estimator.tree_.n_node_samples.shape[0],
+                dtype = 'float64'
+            )
+            SKLiForestMixin._calculate_depths(isolation_depths, estimator.tree_, 0, 0.0)
         for sub_estimator in estimator_range:
             tree = sub_estimator.tree_
             node_count.append(tree.node_count)
@@ -119,9 +137,13 @@ def import_model(sklearn_model):
             children_right.add(tree.children_right, expected_shape=(tree.node_count,))
             feature.add(tree.feature, expected_shape=(tree.node_count,))
             threshold.add(tree.threshold, expected_shape=(tree.node_count,))
-            # Note: for gradient boosted trees, we shrink each leaf output by the learning rate
-            value.add(tree.value * learning_rate,
-                      expected_shape=leaf_value_expected_shape(tree.node_count))
+            if not isinstance(sklearn_model, IsolationForest):
+                # Note: for gradient boosted trees, we shrink each leaf output by the learning rate
+                value.add(tree.value * learning_rate,
+                          expected_shape=leaf_value_expected_shape(tree.node_count))
+            else:
+                value.add(isolation_depths.reshape((-1,1,1)),
+                          expected_shape=leaf_value_expected_shape(tree.node_count))
             n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
             impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
@@ -132,6 +154,13 @@ def import_model(sklearn_model):
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
             value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
+            ctypes.byref(handle)))
+    elif isinstance(sklearn_model, IsolationForest):
+        _check_call(_LIB.TreeliteLoadSKLearnIsolationForest(
+            ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
+            c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
+            children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
+            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(), ctypes.c_double(ratio_c),
             ctypes.byref(handle)))
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(

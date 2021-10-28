@@ -25,6 +25,10 @@ float get_sigmoid_alpha(void) {
   return 1;
 }
 
+float get_ratio_c(void) {
+  return 1;
+}
+
 float get_global_bias(void) {
   return -0;
 }

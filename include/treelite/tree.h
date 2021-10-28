@@ -613,6 +613,14 @@ struct ModelParam {
    */
   float sigmoid_alpha;
   /*!
+   * \brief scaling parameter for exponential standard ratio transformation
+   * `expstdratio(x) = exp2(-x / c)`
+   *
+   * This parameter is used only when `pred_transform` is set to `'exponential_standard_ratio'`.
+   * If unspecified, it is set to 1.0.
+   */
+  float ratio_c;
+  /*!
    * \brief global bias of the model
    *
    * Predicted margin scores of all instances will be adjusted by the global
@@ -621,7 +629,7 @@ struct ModelParam {
   float global_bias;
   /*! \} */
 
-  ModelParam() : sigmoid_alpha(1.0f), global_bias(0.0f) {
+  ModelParam() : sigmoid_alpha(1.0f), ratio_c(1.0f), global_bias(0.0f) {
     std::memset(pred_transform, 0, TREELITE_MAX_PRED_TRANSFORM_LENGTH * sizeof(char));
     std::strncpy(pred_transform, "identity", sizeof(pred_transform));
   }

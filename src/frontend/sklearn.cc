@@ -95,6 +95,30 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
       feature, threshold, value, n_node_samples, impurity, meta_handler, leaf_handler);
 }
 
+std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** impurity, const double ratio_c) {
+  auto meta_handler = [ratio_c](treelite::Model* model, int n_features, int n_classes) {
+    model->num_feature = n_features;
+    model->average_tree_output = true;
+    model->task_type = treelite::TaskType::kBinaryClfRegr;
+    model->task_param.grove_per_class = false;
+    model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
+    model->task_param.num_class = 1;
+    model->task_param.leaf_vector_size = 1;
+    std::strncpy(model->param.pred_transform, "exponential_standard_ratio", sizeof(model->param.pred_transform));
+    model->param.ratio_c = ratio_c;
+  };
+  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, const double** value,
+      int n_classes, treelite::Tree<double, double>& dest_tree) {
+    const double leaf_value = value[tree_id][node_id];
+    dest_tree.SetLeaf(new_node_id, leaf_value);
+  };
+  return LoadSKLearnModel(n_estimators, n_features, 1, node_count, children_left, children_right,
+      feature, threshold, value, n_node_samples, impurity, meta_handler, leaf_handler);
+}
+
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierBinary(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,

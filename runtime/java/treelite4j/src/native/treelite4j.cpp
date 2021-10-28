@@ -368,6 +368,25 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQuerySigmoidAlpha(
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreelitePredictorQueryRatioC
+ * Signature: (J[F)I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryRatioC(
+    JNIEnv* jenv, jclass jcls, jlong jpredictor, jfloatArray jout) {
+  PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
+  float ratio_c = std::numeric_limits<float>::quiet_NaN();
+  const int ret = TreelitePredictorQueryRatioC(predictor, &alpha);
+  // store data
+  jfloat* out = jenv->GetFloatArrayElements(jout, nullptr);
+  out[0] = static_cast<jfloat>(ratio_c);
+  jenv->ReleaseFloatArrayElements(jout, out, 0);
+
+  return static_cast<jint>(ret);
+}
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryGlobalBias
  * Signature: (J[F)I
  */

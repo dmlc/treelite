@@ -303,6 +303,8 @@ ModelParam::InitAllowUnknown(const Container& kwargs) {
       this->pred_transform[TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1] = '\0';
     } else if (e.first == "sigmoid_alpha") {
       this->sigmoid_alpha = std::stof(e.second, nullptr);
+    } else if (e.first == "ratio_c") {
+      this->ratio_c = std::stof(e.second, nullptr);
     } else if (e.first == "global_bias") {
       this->global_bias = std::stof(e.second, nullptr);
     }
@@ -315,6 +317,7 @@ ModelParam::__DICT__() const {
   std::map<std::string, std::string> ret;
   ret.emplace("pred_transform", std::string(this->pred_transform));
   ret.emplace("sigmoid_alpha", GetString(this->sigmoid_alpha));
+  ret.emplace("ratio_c", GetString(this->ratio_c));
   ret.emplace("global_bias", GetString(this->global_bias));
   return ret;
 }

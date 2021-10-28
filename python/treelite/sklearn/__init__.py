@@ -15,7 +15,7 @@ from .rf_classifier import SKLRFClassifierMixin
 from .rf_multi_classifier import SKLRFMultiClassifierMixin
 
 
-def import_model_with_model_builder(sklearn_model):  # pylint: disable=R0911
+def import_model_with_model_builder(sklearn_model):
     """
     Load a tree ensemble model from a scikit-learn model object using the model builder API.
 
@@ -63,7 +63,6 @@ def import_model_with_model_builder(sklearn_model):  # pylint: disable=R0911
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
         from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
-        from sklearn.ensemble import IsolationForest
     except ImportError as e:
         raise TreeliteError('This function requires scikit-learn package') from e
 

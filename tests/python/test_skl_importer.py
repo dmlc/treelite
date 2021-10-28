@@ -143,7 +143,7 @@ def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_skl_converter_iforest(tmpdir, import_method,toolchain):  # pylint: disable=W0212
+def test_skl_converter_iforest(tmpdir, toolchain):  # pylint: disable=W0212
     # pylint: disable=too-many-locals
     """Convert scikit-learn regressor"""
     X = load_boston(return_X_y=True)[0]

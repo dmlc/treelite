@@ -376,7 +376,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryRatioC(
     JNIEnv* jenv, jclass jcls, jlong jpredictor, jfloatArray jout) {
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
   float ratio_c = std::numeric_limits<float>::quiet_NaN();
-  const int ret = TreelitePredictorQueryRatioC(predictor, &alpha);
+  const int ret = TreelitePredictorQueryRatioC(predictor, &ratio_c);
   // store data
   jfloat* out = jenv->GetFloatArrayElements(jout, nullptr);
   out[0] = static_cast<jfloat>(ratio_c);

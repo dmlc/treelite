@@ -151,6 +151,14 @@ TREELITE_DLL int TreelitePredictorQueryPredTransform(PredictorHandle handle, con
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle, float* out);
+/*!
+ * \brief Get c value of exponential standard ratio transformation used to train
+ *        the loaded model
+ * \param handle predictor
+ * \param out C value of transformation
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreelitePredictorQueryRatioC(PredictorHandle handle, float* out);
 
 /*!
  * \brief Get global bias which adjusting predicted margin scores

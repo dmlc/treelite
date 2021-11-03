@@ -18,6 +18,7 @@ R"TREELITETEMPLATE(
 {dllexport}size_t get_num_feature(void);
 {dllexport}const char* get_pred_transform(void);
 {dllexport}float get_sigmoid_alpha(void);
+{dllexport}float get_ratio_c(void);
 {dllexport}float get_global_bias(void);
 {dllexport}const char* get_threshold_type(void);
 {dllexport}const char* get_leaf_output_type(void);

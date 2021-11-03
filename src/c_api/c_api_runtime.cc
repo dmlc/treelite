@@ -106,6 +106,13 @@ int TreelitePredictorQuerySigmoidAlpha(PredictorHandle handle, float* out) {
   API_END();
 }
 
+int TreelitePredictorQueryRatioC(PredictorHandle handle, float* out) {
+  API_BEGIN()
+  const auto* predictor = static_cast<const predictor::Predictor*>(handle);
+  *out = predictor->QueryRatioC();
+  API_END();
+}
+
 int TreelitePredictorQueryGlobalBias(PredictorHandle handle, float* out) {
   API_BEGIN()
   const auto* predictor = static_cast<const predictor::Predictor*>(handle);

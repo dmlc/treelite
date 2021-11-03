@@ -36,6 +36,7 @@ TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(signed_square)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(hinge)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(sigmoid)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(exponential)
+TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(exponential_standard_ratio)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(logarithm_one_plus_exp)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(identity_multiclass)
 TREELITE_PRED_TRANSFORM_REGISTRY_DEFAULT_TEMPLATE(max_index)
@@ -49,6 +50,7 @@ pred_transform_db = {
   PRED_TRANSFORM_FUNC(hinge),
   PRED_TRANSFORM_FUNC(sigmoid),
   PRED_TRANSFORM_FUNC(exponential),
+  PRED_TRANSFORM_FUNC(exponential_standard_ratio),
   PRED_TRANSFORM_FUNC(logarithm_one_plus_exp)
 };
 /*! [pred_transform_db]
@@ -68,6 +70,10 @@ pred_transform_db = {
   - exponential
     Apply the exponential function (exp) element-wise to the margin vector. The
     output will be a vector of length [number of data points].
+  - exponential_standard_ratio
+    Apply the exponential base 2 function (exp2) element-wise to a standardized
+    version of the margin vector. The output will be a vector of length [number of data points].
+    Each output element is exp2(-x / c), where x is the margin and c is the standardization constant.
   - logarithm_one_plus_exp
     Apply the function f(x) = log(1 + exp(x)) element-wise to the margin vector.
     The output will be a vector of length [number of data points].

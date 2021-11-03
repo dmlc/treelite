@@ -90,6 +90,7 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
     "model_param": {{
         "pred_transform": "identity",
         "sigmoid_alpha": 1.0,
+        "ratio_c": 1.0,
         "global_bias": 0.0
     }},
     "trees": [{{
@@ -177,6 +178,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
     "model_param": {{
         "pred_transform": "identity",
         "sigmoid_alpha": 1.0,
+        "ratio_c": 1.0,
         "global_bias": 0.0
     }},
     "trees": [{{
@@ -282,6 +284,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
     "model_param": {{
         "pred_transform": "identity",
         "sigmoid_alpha": 1.0,
+        "ratio_c": 1.0,
         "global_bias": 0.0
     }},
     "trees": [{{
@@ -386,6 +389,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     "model_param": {{
         "pred_transform": "sigmoid",
         "sigmoid_alpha": 1.0,
+        "ratio_c": 1.0,
         "global_bias": 0.5
     }},
     "trees": [{{

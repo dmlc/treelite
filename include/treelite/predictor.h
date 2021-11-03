@@ -200,6 +200,13 @@ class Predictor {
     return sigmoid_alpha_;
   }
   /*!
+   * \brief Get c value in exponential standard ratio used to train the loaded model
+   * \return c value in exponential standard ratio transformation
+   */
+  inline float QueryRatioC() const {
+    return ratio_c_;
+  }
+  /*!
    * \brief Get global bias which adjusting predicted margin scores
    * \return global bias
    */
@@ -240,6 +247,7 @@ class Predictor {
   size_t num_feature_;
   std::string pred_transform_;
   float sigmoid_alpha_;
+  float ratio_c_;
   float global_bias_;
   int num_worker_thread_;
   TypeInfo threshold_type_;

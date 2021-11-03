@@ -146,6 +146,14 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredicto
 
 /*
  * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
+ * Method:    TreelitePredictorQueryRatioC
+ * Signature: (J[F)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryRatioC
+  (JNIEnv *, jclass, jlong, jfloatArray);
+
+/*
+ * Class:     ml_dmlc_treelite4j_java_TreeliteJNI
  * Method:    TreelitePredictorQueryGlobalBias
  * Signature: (J[F)I
  */

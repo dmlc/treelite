@@ -22,6 +22,7 @@ class PredictorTest extends FunSuite with Matchers {
     predictor.numFeature shouldEqual 127
     predictor.predTransform shouldEqual "sigmoid"
     predictor.sigmoidAlpha shouldEqual 1.0f
+    predictor.ratioC shouldEqual 1.0f
     predictor.globalBias shouldEqual 0.0f
   }
 

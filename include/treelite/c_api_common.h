@@ -51,6 +51,10 @@ TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
  */
 TREELITE_DLL const char* TreeliteQueryTreeliteVersion(void);
 
+extern "C" {
+  extern const char* TREELITE_VERSION;
+}
+
 /*!
  * \defgroup dmatrix
  * Data matrix interface

@@ -10,6 +10,10 @@
 #include <string>
 #include <sstream>
 
+// Stringify an integer macro constant
+#define STR_IMPL_(x) #x
+#define STR(x) STR_IMPL_(x)
+
 namespace {
 
 struct TreeliteAPIErrorEntry {
@@ -36,3 +40,6 @@ const char* TreeliteQueryTreeliteVersion() {
   version_str = oss.str();
   return version_str.c_str();
 }
+
+const char* TREELITE_VERSION = "TREELITE_VERSION_" STR(TREELITE_VER_MAJOR) "."
+    STR(TREELITE_VER_MINOR) "." STR(TREELITE_VER_PATCH);

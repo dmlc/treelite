@@ -6,12 +6,15 @@
  */
 #include <treelite/thread_local.h>
 #include <treelite/c_api_error.h>
+#include <treelite/version.h>
 #include <string>
+#include <sstream>
 
 namespace {
 
 struct TreeliteAPIErrorEntry {
   std::string last_error;
+  std::string version_str;
 };
 
 using TreeliteAPIErrorStore = treelite::ThreadLocalStore<TreeliteAPIErrorEntry>;
@@ -24,4 +27,12 @@ const char* TreeliteGetLastError() {
 
 void TreeliteAPISetLastError(const char* msg) {
   TreeliteAPIErrorStore::Get()->last_error = msg;
+}
+
+const char* TreeliteQueryTreeliteVersion() {
+  std::ostringstream oss;
+  oss << TREELITE_VER_MAJOR << "." << TREELITE_VER_MINOR << "." <<  TREELITE_VER_PATCH;
+  std::string& version_str = TreeliteAPIErrorStore::Get()->version_str;
+  version_str = oss.str();
+  return version_str.c_str();
 }

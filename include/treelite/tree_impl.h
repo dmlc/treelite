@@ -840,7 +840,13 @@ Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_fiel
   header_primitive_field_handler(&minor_ver);
   header_primitive_field_handler(&patch_ver);
   if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
-    throw std::runtime_error("Cannot deserialize model from a different version of Treelite");
+    std::ostringstream oss;
+    oss << "Cannot deserialize model from a different version of Treelite." << std::endl
+        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
+        << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
+        << "The model checkpoint was generated from Treelite version " << major_ver << "."
+        << minor_ver << "." << patch_ver;
+    throw std::runtime_error(oss.str());
   }
   header_primitive_field_handler(&threshold_type);
   header_primitive_field_handler(&leaf_output_type);

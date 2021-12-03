@@ -132,7 +132,7 @@ def import_model(sklearn_model):
         raise TreeliteError("Gradient boosted trees must be trained with the option init='zero'")
 
     if isinstance(sklearn_model, IsolationForest):
-        ratio_c = expected_depth(sklearn_model.max_samples)
+        ratio_c = expected_depth(sklearn_model.max_samples_)
 
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)

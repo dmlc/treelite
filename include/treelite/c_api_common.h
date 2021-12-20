@@ -46,6 +46,16 @@ TREELITE_DLL const char* TreeliteGetLastError(void);
 TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
 
 /*!
+ * \brief Get the version string for the Treelite library.
+ * \return version string, of form MAJOR.MINOR.PATCH
+ */
+TREELITE_DLL const char* TreeliteQueryTreeliteVersion(void);
+
+extern "C" {
+  extern const char* TREELITE_VERSION;
+}
+
+/*!
  * \defgroup dmatrix
  * Data matrix interface
  * \{

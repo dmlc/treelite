@@ -77,6 +77,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \return loaded model
@@ -84,7 +86,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity);
 /*!
  * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -104,6 +107,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
  *              only defined if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity not used, but must be passed as array of arrays for each tree and node.
  * \param ratio_c standardizing constant to use for calculation of the anomaly score.
  * \return loaded model
@@ -111,8 +116,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(
 std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    const double ratio_c);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, const double ratio_c);
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -134,6 +139,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \return loaded model
@@ -142,7 +149,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity);
+    const double** weighted_n_node_samples, const double** impurity);
 /*!
  * \brief Load a scikit-learn gradient boosting regressor model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -162,6 +169,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \return loaded model
@@ -169,7 +178,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity);
 /*!
  * \brief Load a scikit-learn gradient boosting classifier model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -190,6 +200,8 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \return loaded model
@@ -198,7 +210,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity);
+    const double** weighted_n_node_samples, const double** impurity);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

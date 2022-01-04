@@ -26,10 +26,6 @@ except ImportError:
 def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
     # pylint: disable=too-many-locals
     """Test a regressor"""
-    model_path = os.path.join(tmpdir, 'boston_lightgbm.txt')
-
-
-
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = lightgbm.Dataset(X_train, y_train, free_raw_data=False)
@@ -38,9 +34,8 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt, toolchain):
              'metric': 'rmse', 'num_leaves': 31, 'learning_rate': 0.05}
     bst = lightgbm.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
                          valid_names=['train', 'test'])
-    bst.save_model(model_path)
 
-    model = treelite.Model.load(model_path, model_format='lightgbm')
+    model = treelite.Model.from_lightgbm(bst)
     libpath = os.path.join(tmpdir, f'boston_{objective}' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'quantize': 1}, verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)

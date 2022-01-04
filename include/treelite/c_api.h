@@ -162,6 +162,16 @@ TREELITE_DLL int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf,
                                                           ModelHandle* out);
 
 /*!
+ * \brief Load a LightGBM model from a string. The string should be created with the
+ *        model_to_string() method in LightGBM.
+ * \param model_str the model string
+ * \param out loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadLightGBMModelFromString(const char* model_str,
+                                                     ModelHandle* out);
+
+/*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
  *        learn the mearning of the arrays in detail. Note that this function can also be used to

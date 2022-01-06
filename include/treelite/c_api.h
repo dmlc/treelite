@@ -191,6 +191,8 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromString(const char* model_str,
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \param out pointer to store the loaded model
@@ -199,8 +201,8 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromString(const char* model_str,
 TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    ModelHandle* out);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
@@ -221,6 +223,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
  *              only defined if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity not used, but must be passed as array of arrays for each tree and node.
  * \param ratio_c standardizing constant to use for calculation of the anomaly score.
  * \param out pointer to store the loaded model
@@ -229,8 +233,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
 TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    const double ratio_c, ModelHandle* out);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, const double ratio_c, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
@@ -253,6 +257,8 @@ TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \param out pointer to store the loaded model
@@ -262,7 +268,7 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity, ModelHandle* out);
+    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn gradient boosting regressor model from a collection of arrays. Refer
@@ -283,6 +289,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \param out pointer to store the loaded model
@@ -291,8 +299,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
 TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    ModelHandle* out);
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn gradient boosting classifier model from a collection of arrays. Refer
@@ -314,6 +322,8 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
  *              if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
  * \param out pointer to store the loaded model
@@ -323,7 +333,7 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity, ModelHandle* out);
+    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out);
 
 /*!
  * \brief Query the number of trees in the model

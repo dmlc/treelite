@@ -141,6 +141,7 @@ def import_model(sklearn_model):
     threshold = ArrayOfArrays(dtype=np.float64)
     value = ArrayOfArrays(dtype=np.float64)
     n_node_samples = ArrayOfArrays(dtype=np.int64)
+    weighted_n_node_samples = ArrayOfArrays(dtype=np.float64)
     impurity = ArrayOfArrays(dtype=np.float64)
     for estimator in sklearn_model.estimators_:
         if isinstance(sklearn_model, (GradientBoostingR, GradientBoostingC)):
@@ -170,6 +171,8 @@ def import_model(sklearn_model):
                 value.add(isolation_depths.reshape((-1,1,1)),
                           expected_shape=leaf_value_expected_shape(tree.node_count))
             n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
+            weighted_n_node_samples.add(tree.weighted_n_node_samples,
+                                        expected_shape=(tree.node_count,))
             impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
@@ -178,36 +181,36 @@ def import_model(sklearn_model):
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
-            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
-            ctypes.byref(handle)))
+            value.as_c_array(), n_node_samples.as_c_array(), weighted_n_node_samples.as_c_array(),
+            impurity.as_c_array(), ctypes.byref(handle)))
     elif isinstance(sklearn_model, IsolationForest):
         _check_call(_LIB.TreeliteLoadSKLearnIsolationForest(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
-            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
-            ctypes.c_double(ratio_c), ctypes.byref(handle)))
+            value.as_c_array(), n_node_samples.as_c_array(), weighted_n_node_samples.as_c_array(),
+            impurity.as_c_array(), ctypes.c_double(ratio_c), ctypes.byref(handle)))
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         _check_call(_LIB.TreeliteLoadSKLearnRandomForestClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
             children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
             threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
-            impurity.as_c_array(), ctypes.byref(handle)))
+            weighted_n_node_samples.as_c_array(), impurity.as_c_array(), ctypes.byref(handle)))
     elif isinstance(sklearn_model, GradientBoostingR):
         _check_call(_LIB.TreeliteLoadSKLearnGradientBoostingRegressor(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             c_array(ctypes.c_int64, node_count), children_left.as_c_array(),
             children_right.as_c_array(), feature.as_c_array(), threshold.as_c_array(),
-            value.as_c_array(), n_node_samples.as_c_array(), impurity.as_c_array(),
-            ctypes.byref(handle)))
+            value.as_c_array(), n_node_samples.as_c_array(), weighted_n_node_samples.as_c_array(),
+            impurity.as_c_array(), ctypes.byref(handle)))
     elif isinstance(sklearn_model, GradientBoostingC):
         _check_call(_LIB.TreeliteLoadSKLearnGradientBoostingClassifier(
             ctypes.c_int(sklearn_model.n_estimators), ctypes.c_int(sklearn_model.n_features_),
             ctypes.c_int(sklearn_model.n_classes_), c_array(ctypes.c_int64, node_count),
             children_left.as_c_array(), children_right.as_c_array(), feature.as_c_array(),
             threshold.as_c_array(), value.as_c_array(), n_node_samples.as_c_array(),
-            impurity.as_c_array(), ctypes.byref(handle)))
+            weighted_n_node_samples.as_c_array(), impurity.as_c_array(), ctypes.byref(handle)))
     else:
         raise TreeliteError(f'Unsupported model type {sklearn_model.__class__.__name__}: ' +
                             'currently random forests, extremely randomized trees, and gradient ' +

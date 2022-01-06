@@ -148,6 +148,13 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelH
   API_END();
 }
 
+int TreeliteLoadLightGBMModelFromString(const char* model_str, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadLightGBMModelFromString(model_str);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteLoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,

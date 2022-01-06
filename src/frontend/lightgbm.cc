@@ -13,6 +13,7 @@
 #include <queue>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 namespace {
 
@@ -27,6 +28,11 @@ namespace frontend {
 std::unique_ptr<treelite::Model> LoadLightGBMModel(const char* filename) {
   std::ifstream fi(filename, std::ios::in);
   return ParseStream(fi);
+}
+
+std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(const char* model_str) {
+  std::istringstream is(model_str);
+  return ParseStream(is);
 }
 
 }  // namespace frontend

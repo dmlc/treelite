@@ -23,3 +23,6 @@ variable-rgx=[a-zA-Z_][a-z0-9_]{0,30}$
 [TYPECHECK]
 generated-members=np.float32,np.uintc,np.uintp,np.uint32
 
+[MESSAGES CONTROL]
+# globally disable pylint checks (comma separated)
+disable=fixme

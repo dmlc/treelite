@@ -370,7 +370,6 @@ class Model:
            bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
            tl_model = Model.from_xgboost(bst)
         """
-        handle = ctypes.c_void_p()
         # attempt to import xgboost
         try:
             import xgboost

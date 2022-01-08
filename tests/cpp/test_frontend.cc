@@ -465,7 +465,7 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
     std::make_shared<MockDelegator>();
 
   ModelImpl<float, float> output_model;
-  details::XGBoostModelHandle output{&output_model, ""};
+  details::XGBoostModelHandle output{&output_model, {}, ""};
   details::XGBoostModelHandler wrapped_handler{delegator, output};
   MockObjectStarter handler{delegator, wrapped_handler};
 

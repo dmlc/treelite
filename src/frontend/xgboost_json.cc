@@ -391,6 +391,14 @@ bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {
 bool LearnerParamHandler::String(const char *str,
                                  std::size_t,
                                  bool) {
+  int num_target = 1;
+  if (assign_value("num_target", std::atoi(str), num_target)) {
+    if (num_target != 1) {
+      TREELITE_LOG(ERROR) << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
+      return false;
+    }
+    return true;
+  }
   return (assign_value("base_score", strtof(str, nullptr),
                        output.param.global_bias) ||
           assign_value("num_class", static_cast<unsigned int>(std::max(std::atoi(str), 1)),

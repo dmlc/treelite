@@ -423,15 +423,30 @@ bool LearnerHandler::StartArray() {
 }
 
 /******************************************************************************
+ * XGBoostCheckpointHandler
+ * ***************************************************************************/
+
+bool XGBoostCheckpointHandler::StartArray() {
+  return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
+      "version", output.version);
+}
+
+bool XGBoostCheckpointHandler::StartObject() {
+  return push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output);
+}
+
+/******************************************************************************
  * XGBoostModelHandler
  * ***************************************************************************/
 bool XGBoostModelHandler::StartArray() {
   return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
-      "version", version);
+      "version", output.version);
 }
 
 bool XGBoostModelHandler::StartObject() {
-  return push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output);
+  return (push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output) ||
+          push_key_handler<IgnoreHandler>("Config") ||
+          push_key_handler<XGBoostCheckpointHandler, XGBoostModelHandle>("Model", output));
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
@@ -453,7 +468,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   }
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
-  const bool need_transform_to_margin = (version[0] >= 1);
+  const bool need_transform_to_margin = (output.version[0] >= 1);
   if (need_transform_to_margin) {
     treelite::details::xgboost::TransformGlobalBiasToMargin(&output.model->param);
   }
@@ -464,7 +479,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  handle = {dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()), ""};
+  handle = {dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()), {}, ""};
   return push_handler<XGBoostModelHandler, XGBoostModelHandle>(handle);
 }
 

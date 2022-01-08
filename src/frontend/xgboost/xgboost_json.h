@@ -303,6 +303,7 @@ class LearnerParamHandler : public OutputHandler<treelite::ModelImpl<float, floa
 
 struct XGBoostModelHandle {
   treelite::ModelImpl<float, float>* model;
+  std::vector<unsigned> version;
   std::string objective_name;
 };
 
@@ -318,6 +319,14 @@ class LearnerHandler : public OutputHandler<XGBoostModelHandle> {
   std::string objective;
 };
 
+/*! \brief handler for XGBoost checkpoint */
+class XGBoostCheckpointHandler : public OutputHandler<XGBoostModelHandle> {
+ public:
+  using OutputHandler<XGBoostModelHandle>::OutputHandler;
+  bool StartArray() override;
+  bool StartObject() override;
+};
+
 /*! \brief handler for XGBoostModel objects from XGBoost schema */
 class XGBoostModelHandler : public OutputHandler<XGBoostModelHandle> {
  public:
@@ -325,9 +334,6 @@ class XGBoostModelHandler : public OutputHandler<XGBoostModelHandle> {
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
-
- private:
-  std::vector<unsigned> version;
 };
 
 /*! \brief handler for root object of XGBoost schema*/

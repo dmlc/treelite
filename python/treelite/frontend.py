@@ -379,14 +379,10 @@ class Model:
                                 '`xgboost.Booster` object') from e
         if not isinstance(booster, xgboost.Booster):
             raise ValueError('booster must be of type `xgboost.Booster`')
-        buffer = booster.save_raw()
-        ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
-        length = ctypes.c_size_t(len(buffer))
-        _check_call(_LIB.TreeliteLoadXGBoostModelFromMemoryBuffer(
-            ptr,
-            length,
-            ctypes.byref(handle)))
-        return Model(handle)
+        # TODO(hcho3): Remove this line once XGBoost implements a method to save JSON model
+        # in-memory. (Right now, save_model() always saves to the disk.)
+        model_json_str = booster.__getstate__()['handle'].decode('utf-8')
+        return cls.from_xgboost_json(model_json_str)
 
     @classmethod
     def from_xgboost_json(cls, json_str):

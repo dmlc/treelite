@@ -394,7 +394,8 @@ bool LearnerParamHandler::String(const char *str,
   int num_target = 1;
   if (assign_value("num_target", std::atoi(str), num_target)) {
     if (num_target != 1) {
-      TREELITE_LOG(ERROR) << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
+      TREELITE_LOG(ERROR)
+        << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
       return false;
     }
     return true;

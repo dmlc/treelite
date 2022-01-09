@@ -7,6 +7,7 @@ import shutil
 import os
 import json
 from tempfile import TemporaryDirectory
+from pkg_resources import parse_version
 
 import numpy as np
 
@@ -378,10 +379,21 @@ class Model:
                                 '`xgboost.Booster` object') from e
         if not isinstance(booster, xgboost.Booster):
             raise ValueError('booster must be of type `xgboost.Booster`')
-        # TODO(hcho3): Remove this line once XGBoost implements a method to save JSON model
-        # in-memory. (Right now, save_model() always saves to the disk.)
-        model_json_str = booster.__getstate__()['handle'].decode('utf-8')
-        return cls.from_xgboost_json(model_json_str)
+        if parse_version(xgboost.__version__) >= parse_version('1.0.0'):
+            # TODO(hcho3): Remove this line once XGBoost implements a method to save JSON model
+            # in-memory. (Right now, save_model() always saves to the disk.)
+            model_json_str = booster.__getstate__()['handle'].decode('utf-8')
+            return cls.from_xgboost_json(model_json_str)
+        # If pre-1.0.0 version of XGBoost is used, use legacy serialization
+        handle = ctypes.c_void_p()
+        buffer = booster.save_raw()
+        ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
+        length = ctypes.c_size_t(len(buffer))
+        _check_call(_LIB.TreeliteLoadXGBoostModelFromMemoryBuffer(
+            ptr,
+            length,
+            ctypes.byref(handle)))
+        return Model(handle)
 
     @classmethod
     def from_xgboost_json(cls, json_str):

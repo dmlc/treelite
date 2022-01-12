@@ -14,6 +14,7 @@
 #include <vector>
 #include <cmath>
 #include <cstddef>
+#include <cfloat>
 #include "./pred_transform.h"
 
 namespace {
@@ -50,7 +51,8 @@ inline int NextNodeCategorical(float fvalue, const std::vector<uint32_t>& matchi
     return default_child;
   }
   bool is_matching_category;
-  if (fvalue < 0) {
+  float max_representable_int = static_cast<float>(uint32_t(1) << FLT_MANT_DIG);
+  if (fvalue < 0 || std::fabs(fvalue) > max_representable_int || std::isinf(fvalue)) {
     is_matching_category = false;
   } else {
     const auto category_value = static_cast<uint32_t>(fvalue);

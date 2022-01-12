@@ -13,9 +13,9 @@ from .util import os_compatible_toolchains
 
 @pytest.fixture(name='toy_model')
 def toy_model_fixture():
-    builder = treelite.ModelBuilder(num_feature=1)
+    builder = treelite.ModelBuilder(num_feature=2)
     tree = treelite.ModelBuilder.Tree()
-    tree[0].set_categorical_test_node(feature_id=0, left_categories=[0], default_left=True,
+    tree[0].set_categorical_test_node(feature_id=1, left_categories=[0], default_left=True,
                                       left_child_key=1, right_child_key=2)
     tree[1].set_leaf_node(-1.0)
     tree[2].set_leaf_node(1.0)
@@ -27,7 +27,9 @@ def toy_model_fixture():
 
 @pytest.fixture(name='test_data')
 def test_data_fixture():
-    return np.array([[-1], [-0.6], [-0.5], [0], [0.3], [0.7], [1]], dtype=np.float32)
+    dummy_column = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+    categorical_column = np.array([-1, -0.6, -0.5, 0, 0.3, 0.7, 1], dtype=np.float32)
+    return np.column_stack((dummy_column, categorical_column))
 
 @pytest.fixture(name='ref_pred')
 def ref_pred_fixture():

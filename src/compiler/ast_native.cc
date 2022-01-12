@@ -643,7 +643,7 @@ class ASTNativeCompilerImpl {
           "right_categories_flag"_a = right_categories_flag);
       }
 
-      oss << "((data[0].fvalue >= 0) && (";
+      oss << "((data[" << node->split_index << "].fvalue >= 0) && (";
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
           << bitmap[0] << "U >> tmp) & 1) )";
       for (size_t i = 1; i < bitmap.size(); ++i) {

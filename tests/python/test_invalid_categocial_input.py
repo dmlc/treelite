@@ -29,7 +29,7 @@ def toy_model_fixture():
 def test_data_fixture():
     categorical_column = np.array([-1, -0.6, -0.5, 0, 0.3, 0.7, 1, np.nan, np.inf, 1e10, -1e10],
                                   dtype=np.float32)
-    dummy_column = np.zeros(categorical_column.shape[0])
+    dummy_column = np.zeros(categorical_column.shape[0], dtype=np.float32)
     return np.column_stack((dummy_column, categorical_column))
 
 @pytest.fixture(name='ref_pred')

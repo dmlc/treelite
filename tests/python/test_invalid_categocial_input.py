@@ -27,7 +27,8 @@ def toy_model_fixture():
 
 @pytest.fixture(name='test_data')
 def test_data_fixture():
-    categorical_column = np.array([-1, -0.6, -0.5, 0, 0.3, 0.7, 1, np.nan, np.inf, 1e10, -1e10], dtype=np.float32)
+    categorical_column = np.array([-1, -0.6, -0.5, 0, 0.3, 0.7, 1, np.nan, np.inf, 1e10, -1e10],
+                                  dtype=np.float32)
     dummy_column = np.zeros(categorical_column.shape[0])
     return np.column_stack((dummy_column, categorical_column))
 
@@ -36,7 +37,8 @@ def ref_pred_fixture():
     # Negative inputs are mapped to the right child node
     # 0.3 and 0.7 are mapped to the left child node, since they get rounded toward the zero.
     # Missing value gets mapped to the left child node, since default_left=True
-    # inf, 1e10, and -1e10 don't match any element of left_categories, so they get mapped to the right child.
+    # inf, 1e10, and -1e10 don't match any element of left_categories, so they get mapped to the
+    # right child.
     return np.array([1, 1, 1, -1, -1, -1, 1, -1, 1, 1, 1], dtype=np.float32)
 
 def test_gtil(toy_model, test_data, ref_pred):

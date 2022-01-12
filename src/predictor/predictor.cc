@@ -289,6 +289,7 @@ Predictor::Predictor(int num_worker_thread)
                          num_class_(0),
                          num_feature_(0),
                          sigmoid_alpha_(std::numeric_limits<float>::quiet_NaN()),
+                         ratio_c_(std::numeric_limits<float>::quiet_NaN()),
                          global_bias_(std::numeric_limits<float>::quiet_NaN()),
                          num_worker_thread_(num_worker_thread),
                          threshold_type_(TypeInfo::kInvalid),
@@ -328,11 +329,16 @@ Predictor::Load(const char* libpath) {
     = lib_.LoadFunctionWithSignature<FloatQueryFunc>("get_sigmoid_alpha");
   sigmoid_alpha_ = sigmoid_alpha_query_func();
 
-  /* 5. query # of global_bias */
+  /* 5. query # of ratio_c */
+  auto* ratio_c_query_func
+    = lib_.LoadFunctionWithSignature<FloatQueryFunc>("get_ratio_c");
+  ratio_c_ = ratio_c_query_func();
+
+  /* 6. query # of global_bias */
   auto* global_bias_query_func = lib_.LoadFunctionWithSignature<FloatQueryFunc>("get_global_bias");
   global_bias_ = global_bias_query_func();
 
-  /* 6. Query the data type for thresholds and leaf outputs */
+  /* 7. Query the data type for thresholds and leaf outputs */
   auto* threshold_type_query_func
     = lib_.LoadFunctionWithSignature<StringQueryFunc>("get_threshold_type");
   threshold_type_ = GetTypeInfoByName(threshold_type_query_func());
@@ -340,7 +346,7 @@ Predictor::Load(const char* libpath) {
     = lib_.LoadFunctionWithSignature<StringQueryFunc>("get_leaf_output_type");
   leaf_output_type_ = GetTypeInfoByName(leaf_output_type_query_func());
 
-  /* 7. load appropriate function for margin prediction */
+  /* 8. load appropriate function for margin prediction */
   TREELITE_CHECK_GT(num_class_, 0) << "num_class cannot be zero";
   pred_func_ = PredFunction::Create(
       threshold_type_, leaf_output_type_, lib_,

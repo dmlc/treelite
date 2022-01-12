@@ -7,10 +7,11 @@ import shutil
 import os
 import json
 from tempfile import TemporaryDirectory
+from pkg_resources import parse_version
 
 import numpy as np
 
-from .util import c_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
+from .util import c_str, py_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
 
@@ -73,6 +74,29 @@ class Model:
             Path to checkpoint
         """
         _check_call(_LIB.TreeliteSerializeModel(c_str(filename), self.handle))
+
+    def dump_as_json(self, *, pretty_print=True):
+        """
+        Dump the model as a JSON string. This is useful for inspecting details of the tree ensemble
+        model.
+
+        Parameters
+        ----------
+        pretty_print : :py:class:`bool <python:bool>`, optional
+            Whether to pretty-print the JSON string, set this to False to make the string compact
+
+        Returns
+        -------
+        json_str : :py:class:`str <python:str>`
+            JSON string representing the model
+        """
+        json_str = ctypes.c_char_p()
+        _check_call(_LIB.TreeliteDumpAsJSON(
+            self.handle,
+            ctypes.c_int(1 if pretty_print else 0),
+            ctypes.byref(json_str)
+        ))
+        return py_str(json_str.value)
 
     @classmethod
     def deserialize(cls, filename):
@@ -345,10 +369,9 @@ class Model:
            :emphasize-lines: 2
 
            bst = xgboost.train(params, dtrain, 10, [(dtrain, 'train')])
-           xgb_model = Model.from_xgboost(bst)
+           tl_model = Model.from_xgboost(bst)
         """
-        handle = ctypes.c_void_p()
-        # attempt to load xgboost
+        # attempt to import xgboost
         try:
             import xgboost
         except ImportError as e:
@@ -356,6 +379,13 @@ class Model:
                                 '`xgboost.Booster` object') from e
         if not isinstance(booster, xgboost.Booster):
             raise ValueError('booster must be of type `xgboost.Booster`')
+        if parse_version(xgboost.__version__) >= parse_version('1.0.0'):
+            # TODO(hcho3): Remove this line once XGBoost implements a method to save JSON model
+            # in-memory. (Right now, save_model() always saves to the disk.)
+            model_json_str = booster.__getstate__()['handle'].decode('utf-8')
+            return cls.from_xgboost_json(model_json_str)
+        # If pre-1.0.0 version of XGBoost is used, use legacy serialization
+        handle = ctypes.c_void_p()
         buffer = booster.save_raw()
         ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
         length = ctypes.c_size_t(len(buffer))
@@ -390,13 +420,53 @@ class Model:
            bst.save_model('model.json')
            with open('model.json') as file_:
                json_str = file_.read()
-           xgb_model = Model.from_xgboost_json(json_str)
+           tl_model = Model.from_xgboost_json(json_str)
         """
         handle = ctypes.c_void_p()
         length = ctypes.c_size_t(len(json_str))
         _check_call(_LIB.TreeliteLoadXGBoostJSONString(
             c_str(json_str),
             length,
+            ctypes.byref(handle)))
+        return Model(handle)
+
+    @classmethod
+    def from_lightgbm(cls, booster):
+        """
+        Load a tree ensemble model from a LightGBM Booster object
+
+        Parameters
+        ----------
+        booster : object of type :py:class:`lightgbm.Booster`
+            Python handle to LightGBM model
+
+        Returns
+        -------
+        model : :py:class:`Model` object
+            loaded model
+
+        Example
+        -------
+
+        .. code-block:: python
+           :emphasize-lines: 3
+
+           bst = lightgbm.train(params, dtrain, 10, valid_sets=[dtrain],
+                                valid_names=['train'])
+           tl_model = Model.from_lightgbm(bst)
+        """
+        handle = ctypes.c_void_p()
+        # attempt to import lightgbm
+        try:
+            import lightgbm
+        except ImportError as e:
+            raise TreeliteError('lightgbm module must be installed to read from ' +
+                                '`lightgbm.Booster` object') from e
+        if not isinstance(booster, lightgbm.Booster):
+            raise ValueError('booster must be of type `lightgbm.Booster`')
+        model_str = booster.model_to_string()
+        _check_call(_LIB.TreeliteLoadLightGBMModelFromString(
+            c_str(model_str),
             ctypes.byref(handle)))
         return Model(handle)
 

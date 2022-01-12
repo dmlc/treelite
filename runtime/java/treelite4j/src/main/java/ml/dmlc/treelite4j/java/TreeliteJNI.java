@@ -79,6 +79,9 @@ class TreeliteJNI {
   public static native int TreelitePredictorQuerySigmoidAlpha(
       long handle, float[] out);
 
+  public static native int TreelitePredictorQueryRatioC(
+      long handle, float[] out);
+
   public static native int TreelitePredictorQueryGlobalBias(
       long handle, float[] out);
 

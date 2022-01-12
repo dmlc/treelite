@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <utility>
@@ -29,6 +30,9 @@
 #define TREELITE_MAX_PRED_TRANSFORM_LENGTH 256
 
 namespace treelite {
+
+template <typename ThresholdType, typename LeafOutputType>
+class ModelImpl;
 
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
@@ -60,6 +64,7 @@ class ContiguousArray {
   inline T& Back();
   inline const T& Back() const;
   inline std::size_t Size() const;
+  inline bool Empty() const;
   inline void Reserve(std::size_t newsize);
   inline void Resize(std::size_t newsize);
   inline void Resize(std::size_t newsize, T t);
@@ -153,6 +158,16 @@ enum class TaskType : uint8_t {
   kMultiClfCategLeaf = 3
 };
 
+inline std::string TaskTypeToString(TaskType type) {
+  switch (type) {
+    case TaskType::kBinaryClfRegr: return "BinaryClfRegr";
+    case TaskType::kMultiClfGrovePerClass: return "MultiClfGrovePerClass";
+    case TaskType::kMultiClfProbDistLeaf: return "MultiClfProbDistLeaf";
+    case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
+    default: return "";
+  }
+}
+
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
   enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
@@ -182,6 +197,14 @@ struct TaskParam {
    */
   unsigned int leaf_vector_size;
 };
+
+inline std::string OutputTypeToString(TaskParam::OutputType type) {
+  switch (type) {
+    case TaskParam::OutputType::kFloat: return "float";
+    case TaskParam::OutputType::kInt: return "int";
+    default: return "";
+  }
+}
 
 static_assert(std::is_pod<TaskParam>::value, "TaskParameter must be POD type");
 
@@ -278,12 +301,18 @@ class Tree {
   // vector of nodes
   ContiguousArray<Node> nodes_;
   ContiguousArray<LeafOutputType> leaf_vector_;
-  ContiguousArray<std::size_t> leaf_vector_offset_;
+  // Map nid to the start and end index in leaf_vector_
+  // We could use std::pair, but it is not POD, so easier to use two vectors
+  // here
+  ContiguousArray<std::size_t> leaf_vector_begin_;
+  ContiguousArray<std::size_t> leaf_vector_end_;
   ContiguousArray<uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
 
   template <typename WriterType, typename X, typename Y>
-  friend void SerializeTreeToJSON(WriterType& writer, const Tree<X, Y>& tree);
+  friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
+  template <typename WriterType, typename X, typename Y>
+  friend void DumpTreeAsJSON(WriterType& writer, const Tree<X, Y>& tree);
 
   // allocate a new node
   inline int AllocNode();
@@ -369,8 +398,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const std::size_t offset_begin = leaf_vector_offset_.at(nid);
-    const std::size_t offset_end = leaf_vector_offset_.at(nid + 1);
+    const std::size_t offset_begin = leaf_vector_begin_.at(nid);
+    const std::size_t offset_end = leaf_vector_end_.at(nid);
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -385,7 +414,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    return leaf_vector_offset_.at(nid) != leaf_vector_offset_.at(nid + 1);
+    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid);
   }
   /*!
    * \brief get threshold of the node
@@ -421,14 +450,6 @@ class Tree {
                                  &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
-  }
-  /*!
-   * \brief tests whether the node has a non-empty list for matching categories. See
-   *        MatchingCategories() for the definition of matching categories.
-   * \param nid ID of node being queried
-   */
-  inline bool HasMatchingCategories(int nid) const {
-    return matching_categories_offset_.at(nid) != matching_categories_offset_.at(nid + 1);
   }
   /*!
    * \brief get feature split type
@@ -592,6 +613,14 @@ struct ModelParam {
    */
   float sigmoid_alpha;
   /*!
+   * \brief scaling parameter for exponential standard ratio transformation
+   * `expstdratio(x) = exp2(-x / c)`
+   *
+   * This parameter is used only when `pred_transform` is set to `'exponential_standard_ratio'`.
+   * If unspecified, it is set to 1.0.
+   */
+  float ratio_c;
+  /*!
    * \brief global bias of the model
    *
    * Predicted margin scores of all instances will be adjusted by the global
@@ -600,7 +629,7 @@ struct ModelParam {
   float global_bias;
   /*! \} */
 
-  ModelParam() : sigmoid_alpha(1.0f), global_bias(0.0f) {
+  ModelParam() : sigmoid_alpha(1.0f), ratio_c(1.0f), global_bias(0.0f) {
     std::memset(pred_transform, 0, TREELITE_MAX_PRED_TRANSFORM_LENGTH * sizeof(char));
     std::strncpy(pred_transform, "identity", sizeof(pred_transform));
   }
@@ -650,7 +679,13 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void SerializeToJSON(std::ostream& fo) const = 0;
+  virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
+
+  inline std::string DumpAsJSON(bool pretty_print) const {
+    std::ostringstream oss;
+    DumpAsJSON(oss, pretty_print);
+    return oss.str();
+  }
 
   /* In-memory serialization, zero-copy */
   std::vector<PyBufferFrame> GetPyBuffer();
@@ -706,7 +741,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
-  void SerializeToJSON(std::ostream& fo) const override;
+  void DumpAsJSON(std::ostream& fo, bool pretty_print) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();
   }

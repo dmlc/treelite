@@ -45,6 +45,12 @@ std::size_t exponential(const treelite::Model&, const float* in, float* out) {
   return 1;
 }
 
+std::size_t exponential_standard_ratio(const treelite::Model& model, const float* in, float* out) {
+  const float ratio_c = model.param.ratio_c;
+  *out = std::exp2(- *in / ratio_c);
+  return 1;
+}
+
 std::size_t logarithm_one_plus_exp(const treelite::Model&, const float* in, float* out) {
   *out = std::log1p(std::exp(*in));
   return 1;
@@ -115,6 +121,7 @@ const std::unordered_map<std::string, PredTransformFuncType> pred_transform_func
     {"hinge", pred_transform::hinge},
     {"sigmoid", pred_transform::sigmoid},
     {"exponential", pred_transform::exponential},
+    {"exponential_standard_ratio", pred_transform::exponential_standard_ratio},
     {"logarithm_one_plus_exp", pred_transform::logarithm_one_plus_exp},
     {"identity_multiclass", pred_transform::identity_multiclass},
     {"max_index", pred_transform::max_index},

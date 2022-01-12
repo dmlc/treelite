@@ -58,6 +58,7 @@ class ASTNativeCompilerImpl {
     task_param_ = model.task_param;
     pred_transform_ = model.param.pred_transform;
     sigmoid_alpha_ = model.param.sigmoid_alpha;
+    ratio_c_ = model.param.ratio_c;
     global_bias_ = model.param.global_bias;
     files_.clear();
 
@@ -147,6 +148,7 @@ class ASTNativeCompilerImpl {
   TaskParam task_param_;
   std::string pred_transform_;
   float sigmoid_alpha_;
+  float ratio_c_;
   float global_bias_;
   std::string pred_tranform_func_;
   std::string array_is_categorical_;
@@ -224,6 +226,7 @@ class ASTNativeCompilerImpl {
           "num_feature"_a = num_feature_,
           "pred_transform"_a = pred_transform_,
           "sigmoid_alpha"_a = sigmoid_alpha_,
+          "ratio_c"_a = ratio_c_,
           "global_bias"_a = global_bias_,
           "threshold_type_str"_a = TypeInfoToString(TypeToInfo<ThresholdType>()),
           "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<LeafOutputType>()));

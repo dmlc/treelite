@@ -151,6 +151,12 @@ ContiguousArray<T>::Size() const {
 }
 
 template <typename T>
+inline bool
+ContiguousArray<T>::Empty() const {
+  return (Size() == 0);
+}
+
+template <typename T>
 inline void
 ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
@@ -222,6 +228,9 @@ inline void
 ContiguousArray<T>::Extend(const std::vector<T>& other) {
   if (!owned_buffer_) {
     throw std::runtime_error("Cannot add elements when using a foreign buffer; clone first");
+  }
+  if (other.empty()) {
+    return;  // appending an empty vector is a no-op
   }
   std::size_t newsize = size_ + other.size();
   if (newsize > capacity_) {
@@ -297,6 +306,8 @@ ModelParam::InitAllowUnknown(const Container& kwargs) {
       this->pred_transform[TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1] = '\0';
     } else if (e.first == "sigmoid_alpha") {
       this->sigmoid_alpha = std::stof(e.second, nullptr);
+    } else if (e.first == "ratio_c") {
+      this->ratio_c = std::stof(e.second, nullptr);
     } else if (e.first == "global_bias") {
       this->global_bias = std::stof(e.second, nullptr);
     }
@@ -309,6 +320,7 @@ ModelParam::__DICT__() const {
   std::map<std::string, std::string> ret;
   ret.emplace("pred_transform", std::string(this->pred_transform));
   ret.emplace("sigmoid_alpha", GetString(this->sigmoid_alpha));
+  ret.emplace("ratio_c", GetString(this->ratio_c));
   ret.emplace("global_bias", GetString(this->global_bias));
   return ret;
 }
@@ -459,6 +471,9 @@ inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
   }
   vec->Clear();
   vec->Resize(nelem);
+  if (nelem == 0) {
+    return;  // handle empty arrays
+  }
   const auto nelem_size_t = static_cast<std::size_t>(nelem);
   if (std::fread(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
     throw std::runtime_error("Could not read an array");
@@ -471,6 +486,9 @@ inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
   const auto nelem = static_cast<uint64_t>(vec->Size());
   if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
     throw std::runtime_error("Could not write the number of elements");
+  }
+  if (nelem == 0) {
+    return;  // handle empty arrays
   }
   const auto nelem_size_t = vec->Size();
   if (std::fwrite(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
@@ -485,7 +503,8 @@ Tree<ThresholdType, LeafOutputType>::Clone() const {
   tree.num_nodes = num_nodes;
   tree.nodes_ = nodes_.Clone();
   tree.leaf_vector_ = leaf_vector_.Clone();
-  tree.leaf_vector_offset_ = leaf_vector_offset_.Clone();
+  tree.leaf_vector_begin_ = leaf_vector_begin_.Clone();
+  tree.leaf_vector_end_ = leaf_vector_end_.Clone();
   tree.matching_categories_ = matching_categories_.Clone();
   tree.matching_categories_offset_ = matching_categories_offset_.Clone();
   return tree;
@@ -501,7 +520,7 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr std::size_t kNumFramePerTree = 6;
+constexpr std::size_t kNumFramePerTree = 7;
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
@@ -512,7 +531,8 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
   scalar_handler(&num_nodes);
   composite_array_handler(&nodes_, GetFormatStringForNode());
   primitive_array_handler(&leaf_vector_);
-  primitive_array_handler(&leaf_vector_offset_);
+  primitive_array_handler(&leaf_vector_begin_);
+  primitive_array_handler(&leaf_vector_end_);
   primitive_array_handler(&matching_categories_);
   primitive_array_handler(&matching_categories_offset_);
 }
@@ -528,7 +548,8 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
     throw std::runtime_error("Could not load the correct number of nodes");
   }
   array_handler(&leaf_vector_);
-  array_handler(&leaf_vector_offset_);
+  array_handler(&leaf_vector_begin_);
+  array_handler(&leaf_vector_end_);
   array_handler(&matching_categories_);
   array_handler(&matching_categories_offset_);
 }
@@ -614,7 +635,8 @@ Tree<ThresholdType, LeafOutputType>::AllocNode() {
     throw std::runtime_error("Invariant violated: nodes_ contains incorrect number of nodes");
   }
   for (int nid = nd; nid < num_nodes; ++nid) {
-    leaf_vector_offset_.PushBack(leaf_vector_offset_.Back());
+    leaf_vector_begin_.PushBack(0);
+    leaf_vector_end_.PushBack(0);
     matching_categories_offset_.PushBack(matching_categories_offset_.Back());
     nodes_.Resize(nodes_.Size() + 1);
     nodes_.Back().Init();
@@ -627,7 +649,8 @@ inline void
 Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   leaf_vector_.Clear();
-  leaf_vector_offset_.Resize(2, 0);
+  leaf_vector_begin_.Resize(1, {});
+  leaf_vector_end_.Resize(1, {});
   matching_categories_.Clear();
   matching_categories_offset_.Resize(2, 0);
   nodes_.Resize(1);
@@ -714,7 +737,9 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                 [new_end_oft](std::size_t& x) { x = new_end_oft; });
-  std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  if (!matching_categories_.Empty()) {
+    std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
+  }
 
   Node& node = nodes_.at(nid);
   if (default_left) split_index |= (1U << 31U);
@@ -737,24 +762,12 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetLeafVector(
     int nid, const std::vector<LeafOutputType>& node_leaf_vector) {
-  const std::size_t end_oft = leaf_vector_offset_.Back();
-  const std::size_t new_end_oft = end_oft + node_leaf_vector.size();
-  if (end_oft != leaf_vector_.Size()) {
-    throw std::runtime_error("Invariant violated");
-  }
-  if (!std::all_of(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                   [end_oft](std::size_t x) { return (x == end_oft); })) {
-    throw std::runtime_error("Invariant violated");
-  }
-  // Hopefully we won't have to move any element as we add leaf vector elements for node nid
+  std::size_t begin = leaf_vector_.Size();
+  std::size_t end = begin + node_leaf_vector.size();
   leaf_vector_.Extend(node_leaf_vector);
-  if (new_end_oft != leaf_vector_.Size()) {
-    throw std::runtime_error("Invariant violated");
-  }
-  std::for_each(&leaf_vector_offset_.at(nid + 1), leaf_vector_offset_.End(),
-                [new_end_oft](std::size_t& x) { x = new_end_oft; });
-
-  Node& node = nodes_.at(nid);
+  leaf_vector_begin_[nid] = begin;
+  leaf_vector_end_[nid] = end;
+  Node &node = nodes_.at(nid);
   node.cleft_ = -1;
   node.cright_ = -1;
   node.split_type_ = SplitFeatureType::kNone;
@@ -827,7 +840,13 @@ Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_fiel
   header_primitive_field_handler(&minor_ver);
   header_primitive_field_handler(&patch_ver);
   if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
-    throw std::runtime_error("Cannot deserialize model from a different version of Treelite");
+    std::ostringstream oss;
+    oss << "Cannot deserialize model from a different version of Treelite." << std::endl
+        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
+        << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
+        << "The model checkpoint was generated from Treelite version " << major_ver << "."
+        << minor_ver << "." << patch_ver;
+    throw std::runtime_error(oss.str());
   }
   header_primitive_field_handler(&threshold_type);
   header_primitive_field_handler(&leaf_output_type);

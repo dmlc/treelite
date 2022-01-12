@@ -1,7 +1,7 @@
 [MASTER]
 extension-pkg-whitelist=numpy
 
-disable=unexpected-special-method-signature,too-many-nested-blocks,useless-object-inheritance,import-outside-toplevel,unsubscriptable-object,attribute-defined-outside-init,unbalanced-tuple-unpacking
+disable=unexpected-special-method-signature,too-many-nested-blocks,useless-object-inheritance,import-outside-toplevel,unsubscriptable-object,attribute-defined-outside-init,unbalanced-tuple-unpacking,consider-using-f-string
 
 dummy-variables-rgx=(unused|)_.*
 
@@ -23,3 +23,6 @@ variable-rgx=[a-zA-Z_][a-z0-9_]{0,30}$
 [TYPECHECK]
 generated-members=np.float32,np.uintc,np.uintp,np.uint32
 
+[MESSAGES CONTROL]
+# globally disable pylint checks (comma separated)
+disable=fixme

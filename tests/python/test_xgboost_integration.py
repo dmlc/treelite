@@ -204,7 +204,7 @@ def test_xgb_deserializers(tmpdir, toolchain):
     model_json = treelite.Model.load(
         model_json_path, model_format='xgboost_json'
     )
-    with open(model_json_path) as file_:
+    with open(model_json_path, 'r', encoding='UTF-8') as file_:
         json_str = file_.read()
     model_json_str = treelite.Model.from_xgboost_json(json_str)
 

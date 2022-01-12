@@ -27,6 +27,7 @@ public class Predictor implements Serializable, KryoSerializable {
   private transient int num_feature;
   private transient String pred_transform;
   private transient float sigmoid_alpha;
+  private transient float ratio_c;
   private transient float global_bias;
   private transient int num_thread;
   private transient boolean verbose;
@@ -109,6 +110,9 @@ public class Predictor implements Serializable, KryoSerializable {
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQuerySigmoidAlpha(
             handle, fp_out));
     sigmoid_alpha = fp_out[0];
+    TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryRatioC(
+            handle, fp_out));
+    ratio_c = fp_out[0];
     TreeliteJNI.checkCall(TreeliteJNI.TreelitePredictorQueryGlobalBias(
             handle, fp_out));
     global_bias = fp_out[0];
@@ -156,6 +160,15 @@ public class Predictor implements Serializable, KryoSerializable {
    */
   public float GetSigmoidAlpha() {
     return this.sigmoid_alpha;
+  }
+
+  /**
+   * Get c value in exponential standard ratio transformation used to train the loaded model.
+   *
+   * @return C value of sigmoid transformation
+   */
+  public float GetRatioC() {
+    return this.ratio_c;
   }
 
   /**

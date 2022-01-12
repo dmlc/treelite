@@ -153,7 +153,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(
           "cright"_a = -1);
       } else {
         TREELITE_CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-                       && !tree.HasMatchingCategories(nid))
+                       && tree.MatchingCategories(nid).empty())
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
             "sindex"_a
@@ -189,7 +189,7 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
         val = {0, static_cast<float>(tree.LeafValue(nid)), -1, -1};
       } else {
         TREELITE_CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
-                       && !tree.HasMatchingCategories(nid))
+                       && tree.MatchingCategories(nid).empty())
           << "categorical splits are not supported in FailSafeCompiler";
         val = {(tree.SplitIndex(nid) | (static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31)),
                static_cast<float>(tree.Threshold(nid)), tree.LeftChild(nid), tree.RightChild(nid)};
@@ -307,6 +307,7 @@ class FailSafeCompilerImpl {
           "num_feature"_a = num_feature_,
           "pred_transform"_a = model_param.pred_transform,
           "sigmoid_alpha"_a = model_param.sigmoid_alpha,
+          "ratio_c"_a = model_param.ratio_c,
           "global_bias"_a = model_param.global_bias,
           "threshold_type_str"_a = TypeInfoToString(TypeToInfo<float>()),
           "leaf_output_type_str"_a = TypeInfoToString(TypeToInfo<float>()));

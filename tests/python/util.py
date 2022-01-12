@@ -16,7 +16,7 @@ def load_txt(filename):
     if filename is None:
         return None
     content = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='UTF-8') as f:
         for line in f:
             content.append(float(line))
     return np.array(content, dtype=np.float32)

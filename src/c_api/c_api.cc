@@ -20,9 +20,23 @@
 #include <memory>
 #include <algorithm>
 #include <fstream>
+#include <string>
 #include <cstdio>
 
 using namespace treelite;
+
+namespace {
+
+/*! \brief entry to to easily hold returning information */
+struct TreeliteAPIThreadLocalEntry {
+  /*! \brief result holder for returning string */
+  std::string ret_str;
+};
+
+// define threadlocal store for returning information
+using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
+
+}  // anonymous namespace
 
 int TreeliteAnnotateBranch(
     ModelHandle model, DMatrixHandle dmat, int nthread, int verbose, AnnotationHandle* out) {
@@ -134,15 +148,35 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelH
   API_END();
 }
 
+int TreeliteLoadLightGBMModelFromString(const char* model_str, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadLightGBMModelFromString(model_str);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteLoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    ModelHandle* out) {
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestRegressor(
       n_estimators, n_features, node_count, children_left, children_right, feature, threshold,
-      value, n_node_samples, impurity);
+      value, n_node_samples, weighted_n_node_samples, impurity);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnIsolationForest(
+    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, const double ratio_c, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnIsolationForest(
+      n_estimators, n_features, node_count, children_left, children_right, feature, threshold,
+      value, n_node_samples, weighted_n_node_samples, impurity, ratio_c);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -151,11 +185,11 @@ int TreeliteLoadSKLearnRandomForestClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity, ModelHandle* out) {
+    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestClassifier(
       n_estimators, n_features, n_classes, node_count, children_left, children_right, feature,
-      threshold, value, n_node_samples, impurity);
+      threshold, value, n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -163,12 +197,12 @@ int TreeliteLoadSKLearnRandomForestClassifier(
 int TreeliteLoadSKLearnGradientBoostingRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** impurity,
-    ModelHandle* out) {
+    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
+    const double** impurity, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingRegressor(
       n_estimators, n_features, node_count, children_left, children_right, feature, threshold,
-      value, n_node_samples, impurity);
+      value, n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -177,11 +211,11 @@ int TreeliteLoadSKLearnGradientBoostingClassifier(
     int n_estimators, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** impurity, ModelHandle* out) {
+    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingClassifier(
       n_estimators, n_features, n_classes, node_count, children_left, children_right, feature,
-      threshold, value, n_node_samples, impurity);
+      threshold, value, n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -203,6 +237,15 @@ int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
   std::unique_ptr<Model> model = Model::DeserializeFromFile(fp);
   std::fclose(fp);
   *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_json_str) {
+  API_BEGIN();
+  auto* model_ = static_cast<Model*>(handle);
+  std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
+  ret_str = model_->DumpAsJSON(pretty_print != 0);
+  *out_json_str = ret_str.c_str();
   API_END();
 }
 

@@ -52,7 +52,7 @@ inline int NextNodeCategorical(float fvalue, const std::vector<uint32_t>& matchi
   }
   bool is_matching_category;
   float max_representable_int = static_cast<float>(uint32_t(1) << FLT_MANT_DIG);
-  if (fvalue < 0 || std::fabs(fvalue) > max_representable_int || std::isinf(fvalue)) {
+  if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
     is_matching_category = false;
   } else {
     const auto category_value = static_cast<uint32_t>(fvalue);

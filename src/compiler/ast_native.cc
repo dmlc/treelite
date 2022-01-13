@@ -644,7 +644,7 @@ class ASTNativeCompilerImpl {
       }
 
       oss << fmt::format(
-          "((data[{split_index}].fvalue >= 0) && !isinf(data[{split_index}].fvalue) &&"
+          "((data[{split_index}].fvalue >= 0) && "
           "(fabsf(data[{split_index}].fvalue) <= (float)(1U << FLT_MANT_DIG)) && (",
           "split_index"_a = node->split_index);
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"

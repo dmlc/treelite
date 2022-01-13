@@ -349,14 +349,18 @@ class RootHandler : public OutputHandler<std::unique_ptr<treelite::Model>> {
 class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
       public Delegator {
-
  public:
-  /*! \brief create DelegatedHandler with initial RootHandler on stack */
-  static std::shared_ptr<DelegatedHandler> create() {
+  /*! \brief create DelegatedHandler with empty stack */
+  static std::shared_ptr<DelegatedHandler> create_empty() {
     struct make_shared_enabler : public DelegatedHandler {};
-
     std::shared_ptr<DelegatedHandler> new_handler =
       std::make_shared<make_shared_enabler>();
+    return new_handler;
+  }
+
+  /*! \brief create DelegatedHandler with initial RootHandler on stack */
+  static std::shared_ptr<DelegatedHandler> create() {
+    std::shared_ptr<DelegatedHandler> new_handler = create_empty();
     new_handler->push_delegate(std::make_shared<RootHandler>(
       new_handler,
       new_handler->result));

@@ -642,6 +642,11 @@ class ASTNativeCompilerImpl {
           "split_index"_a = node->split_index,
           "right_categories_flag"_a = right_categories_flag);
       }
+
+      oss << fmt::format(
+          "((data[{split_index}].fvalue >= 0) && "
+          "(fabsf(data[{split_index}].fvalue) <= (float)(1U << FLT_MANT_DIG)) && (",
+          "split_index"_a = node->split_index);
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
           << bitmap[0] << "U >> tmp) & 1) )";
       for (size_t i = 1; i < bitmap.size(); ++i) {
@@ -650,7 +655,7 @@ class ASTNativeCompilerImpl {
             << " && (( (uint64_t)" << bitmap[i]
             << "U >> (tmp - " << (i * 64) << ") ) & 1) )";
       }
-      oss << ")";
+      oss << ")))";
       result = oss.str();
     }
     return result;

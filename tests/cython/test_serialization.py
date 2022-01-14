@@ -15,6 +15,3 @@ def test_serialize_as_buffer():
     # This call should succeed
     tl_model2 = treelite_deserialize(frames)
     # This call should succeed too
-
-if __name__ == '__main__':
-    test_serialize_as_buffer()

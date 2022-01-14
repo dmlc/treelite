@@ -866,7 +866,7 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
   header_primitive_field_handler(&average_tree_output);
   header_composite_field_handler(&task_param, "T{=B=?xx=I=I}");
   header_composite_field_handler(
-      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f}");
+      &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f=f}");
 
   /* Body */
   for (Tree<ThresholdType, LeafOutputType>& tree : trees) {

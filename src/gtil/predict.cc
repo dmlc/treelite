@@ -155,7 +155,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
       }
     }
     input->ClearRow(row_id, row);
-  }); 
+  });
   return output_size_per_row * num_row;
 }
 
@@ -204,7 +204,7 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
   if (nthread <= 0) {
     nthread = std::thread::hardware_concurrency();
   }
-  
+
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);

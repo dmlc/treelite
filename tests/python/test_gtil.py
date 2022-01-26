@@ -5,8 +5,6 @@ prediction results for a variety of tree models.
 import os
 import pytest
 import treelite
-import xgboost as xgb
-import lightgbm as lgb
 import numpy as np
 import scipy
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
@@ -17,6 +15,18 @@ from sklearn.model_selection import train_test_split
 
 from .metadata import dataset_db
 from .util import load_txt
+
+try:
+    import xgboost as xgb
+except ImportError:
+    # skip this test suite if XGBoost is not installed
+    pytest.skip('XGBoost not installed; skipping', allow_module_level=True)
+
+try:
+    import lightgbm as lgb
+except ImportError:
+    # skip this test suite if LightGBM is not installed
+    pytest.skip('LightGBM not installed; skipping', allow_module_level=True)
 
 
 @pytest.mark.parametrize('clazz', [RandomForestRegressor, ExtraTreesRegressor,

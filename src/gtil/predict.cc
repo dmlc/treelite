@@ -79,8 +79,19 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
   const treelite::TaskParam task_param = model.task_param;
   std::vector<float> sum(task_param.num_class);
 
+  // Query the size of output per input row.
+  // This is guaranteed to be at most GetPredictOutputSize(num_row=1).
+  std::size_t output_size_per_row;
+  if (pred_transform) {
+    std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, 1));
+    PredTransformFuncType pred_transform_func
+      = treelite::gtil::LookupPredTransform(model.param.pred_transform);
+    output_size_per_row = pred_transform_func(model, sum.data(), temp.data());
+  } else {
+    output_size_per_row = task_param.num_class;
+  }
+
   // TODO(phcho): Use parallelism
-  std::size_t output_offset = 0;
   for (size_t row_id = 0; row_id < num_row; ++row_id) {
     input->FillRow(row_id, row.data());
     std::fill(sum.begin(), sum.end(), 0.0f);
@@ -133,16 +144,15 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     if (pred_transform) {
       PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-      output_offset += pred_transform_func(model, sum.data(), &output[output_offset]);
+      pred_transform_func(model, sum.data(), &output[row_id * output_size_per_row]);
     } else {
       for (unsigned int i = 0; i < task_param.num_class; ++i) {
-        output[output_offset + i] = sum[i];
+        output[row_id * output_size_per_row + i] = sum[i];
       }
-      output_offset += task_param.num_class;
     }
     input->ClearRow(row_id, row.data());
   }
-  return output_offset;
+  return output_size_per_row * num_row;
 }
 
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>

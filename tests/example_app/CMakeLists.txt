@@ -10,10 +10,10 @@ endif()
 
 find_package(Treelite REQUIRED)
 
-add_executable(example example.cc)
-target_link_libraries(example PRIVATE treelite::treelite_static treelite::treelite_runtime_static)
+add_executable(cpp_example example.cc)
+target_link_libraries(cpp_example PRIVATE treelite::treelite treelite::treelite_runtime)
 
-set_target_properties(example PROPERTIES
+set_target_properties(cpp_example PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED YES
 )

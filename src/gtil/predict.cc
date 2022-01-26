@@ -11,10 +11,12 @@
 #include <treelite/data.h>
 #include <treelite/logging.h>
 #include <limits>
+#include <thread>
 #include <vector>
 #include <cmath>
 #include <cstddef>
 #include <cfloat>
+#include "../threading_utils/parallel_for.h"
 #include "./pred_transform.h"
 
 namespace {
@@ -70,14 +72,14 @@ inline int NextNodeCategorical(float fvalue, const std::vector<uint32_t>& matchi
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType,
           typename OutputFunc>
 inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                                    const DMatrixType* input, float* output, bool pred_transform,
-                                    OutputFunc output_func) {
+                                    const DMatrixType* input, float* output, int nthread,
+                                    bool pred_transform, OutputFunc output_func) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const size_t num_row = input->GetNumRow();
   const size_t num_col = input->GetNumCol();
-  std::vector<ThresholdType> row(num_col);
+  std::vector<ThresholdType> row_tloc(num_col * nthread);
   const treelite::TaskParam task_param = model.task_param;
-  std::vector<float> sum(task_param.num_class);
+  std::vector<float> sum_tloc(task_param.num_class * nthread);
 
   // Query the size of output per input row.
   // This is guaranteed to be at most GetPredictOutputSize(num_row=1).
@@ -86,15 +88,17 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, 1));
     PredTransformFuncType pred_transform_func
       = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-    output_size_per_row = pred_transform_func(model, sum.data(), temp.data());
+    output_size_per_row = pred_transform_func(model, sum_tloc.data(), temp.data());
   } else {
     output_size_per_row = task_param.num_class;
   }
 
-  // TODO(phcho): Use parallelism
-  for (size_t row_id = 0; row_id < num_row; ++row_id) {
-    input->FillRow(row_id, row.data());
-    std::fill(sum.begin(), sum.end(), 0.0f);
+  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, nthread,
+                                         [&](std::size_t row_id, std::size_t thread_id) {
+    ThresholdType* row = &row_tloc[thread_id * num_col];
+    float* sum = &sum_tloc[thread_id * task_param.num_class];
+    input->FillRow(row_id, row);
+    std::fill(sum, sum + task_param.num_class, 0.0f);
     const std::size_t num_tree = model.trees.size();
     for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
       const TreeType& tree = model.trees[tree_id];
@@ -115,7 +119,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
           TREELITE_CHECK(false) << "Unrecognized split type: " << static_cast<int>(split_type);
         }
       }
-      output_func(tree, tree_id, node_id, sum.data());
+      output_func(tree, tree_id, node_id, sum);
     }
     if (model.average_tree_output) {
       float average_factor;
@@ -144,20 +148,20 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     if (pred_transform) {
       PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-      pred_transform_func(model, sum.data(), &output[row_id * output_size_per_row]);
+      pred_transform_func(model, sum, &output[row_id * output_size_per_row]);
     } else {
       for (unsigned int i = 0; i < task_param.num_class; ++i) {
         output[row_id * output_size_per_row + i] = sum[i];
       }
     }
-    input->ClearRow(row_id, row.data());
-  }
+    input->ClearRow(row_id, row);
+  }); 
   return output_size_per_row * num_row;
 }
 
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                               const DMatrixType* input, float* output,
+                               const DMatrixType* input, float* output, int nthread,
                                bool pred_transform) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const treelite::TaskParam task_param = model.task_param;
@@ -171,21 +175,21 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
           sum[i] += leaf_vector[i];
         }
       };
-      return PredictImplInner(model, input, output, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
     } else {
       // multi-class classification with gradient boosted trees
       auto output_logic = [task_param](
           const TreeType& tree, int tree_id, int node_id, float* sum) {
         sum[tree_id % task_param.num_class] += tree.LeafValue(node_id);
       };
-      return PredictImplInner(model, input, output, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
     }
   } else {
     auto output_logic = [task_param](
         const TreeType& tree, int tree_id, int node_id, float* sum) {
       sum[0] += tree.LeafValue(node_id);
     };
-    return PredictImplInner(model, input, output, pred_transform, output_logic);
+    return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
   }
 }
 
@@ -194,17 +198,23 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
 namespace treelite {
 namespace gtil {
 
-std::size_t Predict(const Model* model, const DMatrix* input, float* output, bool pred_transform) {
+std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
+                    bool pred_transform) {
+  // If nthread <= 0, then use all CPU cores in the system
+  if (nthread <= 0) {
+    nthread = std::thread::hardware_concurrency();
+  }
+  
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
   if (d1) {
-    return model->Dispatch([d1, output, pred_transform](const auto& model) {
-      return PredictImpl(model, d1, output, pred_transform);
+    return model->Dispatch([d1, output, nthread, pred_transform](const auto& model) {
+      return PredictImpl(model, d1, output, nthread, pred_transform);
     });
   } else if (d2) {
-    return model->Dispatch([d2, output, pred_transform](const auto& model) {
-      return PredictImpl(model, d2, output, pred_transform);
+    return model->Dispatch([d2, output, nthread, pred_transform](const auto& model) {
+      return PredictImpl(model, d2, output, nthread, pred_transform);
     });
   } else {
     TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
@@ -213,14 +223,14 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, boo
 }
 
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    bool pred_transform) {
+                    int nthread, bool pred_transform) {
   std::unique_ptr<DenseDMatrixImpl<float>> dmat =
       std::make_unique<DenseDMatrixImpl<float>>(
           std::vector<float>(input, input + num_row * model->num_feature),
           std::numeric_limits<float>::quiet_NaN(),
           num_row,
           model->num_feature);
-  return Predict(model, dmat.get(), output, pred_transform);
+  return Predict(model, dmat.get(), output, nthread, pred_transform);
 }
 
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row) {

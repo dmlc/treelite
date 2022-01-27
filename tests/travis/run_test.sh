@@ -56,6 +56,7 @@ then
   cmake .. -GNinja
   ninja
   ./cpp_example
+  ./c_example
 fi
 
 if [ ${TASK} == "python_test" ]

@@ -38,14 +38,14 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge ninja cmake
+  conda install -c conda-forge ninja cmake rapidjson fmt
 
   # Install Treelite C++ library into the Conda env
   set -x
   rm -rf build/
   mkdir build
   cd build
-  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -DBUILD_STATIC_LIBS=ON -GNinja
+  cmake .. -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX" -DCMAKE_INSTALL_LIBDIR="lib" -GNinja
   ninja install
 
   # Try compiling a sample application
@@ -55,7 +55,8 @@ then
   cd build
   cmake .. -GNinja
   ninja
-  ./example
+  ./cpp_example
+  ./c_example
 fi
 
 if [ ${TASK} == "python_test" ]

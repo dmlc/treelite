@@ -64,6 +64,8 @@ int main() {
   output = (float*)malloc(output_alloc_size * sizeof(float));
   safe_treelite(TreeliteGTILPredict(model, input, num_row, output, 0, &out_result_size));
 
+  printf("TREELITE_VERSION = %s\n", TREELITE_VERSION);
+
   for (size_t i = 0; i < num_row; ++i) {
     printf("Input %d: [%f", (int)i, input[i * num_col]);
     for (size_t j = 1; j < num_col; ++j) {

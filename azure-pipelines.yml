@@ -213,8 +213,8 @@ jobs:
       TAG=manylinux2014_x86_64
       python tests/ci_build/rename_whl.py main/*.whl $(Build.SourceVersion) ${TAG}
       python tests/ci_build/rename_whl.py runtime/*.whl $(Build.SourceVersion) ${TAG}
-      python -m awscli s3 cp main/*.whl s3://treelite-wheels/ --acl public-read
-      python -m awscli s3 cp runtime/*.whl s3://treelite-wheels/ --acl public-read
+      python -m awscli s3 cp main/*.whl s3://treelite-wheels/ --acl public-read || true
+      python -m awscli s3 cp runtime/*.whl s3://treelite-wheels/ --acl public-read || true
     displayName: 'Uploading Python wheels...'
 - job: win_python_wheel_test
   dependsOn: win_build
@@ -256,6 +256,6 @@ jobs:
       call activate
       for /R %%i in (main\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
       for /R %%i in (runtime\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
-      for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read
-      for /R %%i in (runtime\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read
+      for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
+      for /R %%i in (runtime\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
     displayName: 'Uploading Python wheels...'

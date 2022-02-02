@@ -191,24 +191,34 @@ jobs:
       addToPath: true
   - checkout: self
   - script: |
-      python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn lightgbm
+      python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn lightgbm awscli
       python -m pip install --pre xgboost
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
       artifactName: 'python_linux_whl'
-      targetPath: $(System.DefaultWorkingDirectory)
+      targetPath: $(System.DefaultWorkingDirectory)/main
     displayName: 'Downloading Treelite Python wheel for Linux...'
   - task: DownloadPipelineArtifact@1
     inputs:
       artifactName: 'runtime_python_linux_whl'
-      targetPath: $(System.DefaultWorkingDirectory)
+      targetPath: $(System.DefaultWorkingDirectory)/runtime
     displayName: 'Downloading Treelite runtime Python wheel for Linux...'
   - script: |
-      python -m pip install *.whl
+      python -m pip install main/*.whl runtime/*.whl
     displayName: 'Installing Treelite into Python environment...'
   - script: python -m pytest -v --fulltrace tests/python/test_basic.py
     displayName: 'Running Python tests...'
+  - script: |
+      TAG=manylinux2014_x86_64
+      python tests/ci_build/rename_whl.py main/*.whl $(Build.SourceVersion) ${TAG}
+      python tests/ci_build/rename_whl.py runtime/*.whl $(Build.SourceVersion) ${TAG}
+      python -m awscli s3 cp main/*.whl s3://treelite-wheels/ --acl public-read || true
+      python -m awscli s3 cp runtime/*.whl s3://treelite-wheels/ --acl public-read || true
+    displayName: 'Uploading Python wheels...'
+    env:
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
 - job: win_python_wheel_test
   dependsOn: win_build
   pool:
@@ -218,7 +228,7 @@ jobs:
     displayName: 'Add conda to PATH'
   - script: |
       call activate
-      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest
+      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest awscli
     displayName: 'Setting up Python environment...'
   - script: |
       call activate
@@ -228,19 +238,30 @@ jobs:
   - task: DownloadPipelineArtifact@0
     inputs:
       artifactName: 'python_win_whl'
-      targetPath: $(System.DefaultWorkingDirectory)
+      targetPath: $(System.DefaultWorkingDirectory)/main
     displayName: 'Downloading Treelite Python wheel for Windows...'
   - task: DownloadPipelineArtifact@1
     inputs:
       artifactName: 'runtime_python_win_whl'
-      targetPath: $(System.DefaultWorkingDirectory)
+      targetPath: $(System.DefaultWorkingDirectory)/runtime
     displayName: 'Downloading Treelite runtime Python wheel for Windows...'
   - script: |
       call activate
-      for /R %%i in (*.whl) DO python -m pip install "%%i"
+      for /R %%i in (main\\*.whl) DO python -m pip install "%%i"
+      for /R %%i in (runtime\\*.whl) DO python -m pip install "%%i"
     displayName: 'Installing Treelite into Python environment...'
   - script: |
       call activate
       mkdir temp
       python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" -v --fulltrace tests\python\test_basic.py
     displayName: 'Running Python tests...'
+  - script: |
+      call activate
+      for /R %%i in (main\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
+      for /R %%i in (runtime\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
+      for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
+      for /R %%i in (runtime\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
+    displayName: 'Uploading Python wheels...'
+    env:
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)

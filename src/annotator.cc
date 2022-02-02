@@ -77,7 +77,8 @@ inline void ComputeBranchLoopImpl(
   size_t num_col = dmat->num_col;
   ElementType missing_value = dmat->missing_value;
   bool nan_missing = treelite::math::CheckNAN(missing_value);
-  treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
+  auto sched = treelite::threading_utils::ParallelSchedule::Static();
+  treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
                                          [&](std::size_t rid, std::size_t thread_id) {
     const ElementType* row = &dmat->data[rid * num_col];
     const size_t off = dmat->num_col * thread_id;
@@ -107,7 +108,8 @@ inline void ComputeBranchLoopImpl(
   std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
   size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
-  treelite::threading_utils::ParallelFor(rbegin, rend, nthread,
+  auto sched = treelite::threading_utils::ParallelSchedule::Static();
+  treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
                                          [&](std::size_t rid, std::size_t thread_id) {
     const size_t off = dmat->num_col * thread_id;
     const size_t off2 = count_row_ptr[ntree] * thread_id;
@@ -192,7 +194,7 @@ AnnotateImpl(
 
   count_row_ptr = {0};
   const size_t ntree = model.trees.size();
-  const int max_thread = static_cast<int>(std::thread::hardware_concurrency());
+  const int max_thread = static_cast<int>(threading_utils::MaxNumThread());
   nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
   for (const treelite::Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);

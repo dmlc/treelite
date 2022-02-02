@@ -8,7 +8,6 @@
 #include <gmock/gmock.h>
 #include <vector>
 #include <algorithm>
-#include <thread>
 #include <random>
 #include <cstddef>
 #include <cstdint>
@@ -53,56 +52,19 @@ class RandomGenerator {
 
 namespace treelite {
 namespace threading_utils {
-
-TEST(ThreadingUtils, ComputeWorkRange) {
-  /* Test error handling */
-  EXPECT_THROW(ComputeWorkRange(0, 100, 0), treelite::Error);
-  EXPECT_THROW(ComputeWorkRange(-100, 100, 3), treelite::Error);
-  EXPECT_THROW(ComputeWorkRange(-200, -100, 3), treelite::Error);
-  EXPECT_THROW(ComputeWorkRange(200, 100, 3), treelite::Error);
-
-  /* Property-based testing with randomly generated parameters */
-  RandomGenerator rng;
-
-  constexpr int kNumTrial = 200;
-  for (int i = 0; i < kNumTrial; ++i) {
-    int64_t begin = rng.DrawInteger(0, 10000);
-    std::size_t nthread = static_cast<std::size_t>(rng.DrawInteger(1, 100));
-    int64_t end = rng.DrawInteger(begin, 10000);
-    auto range = ComputeWorkRange(begin, end, nthread);
-    EXPECT_EQ(range.size(), nthread + 1);
-    EXPECT_EQ(range[0], begin);
-    EXPECT_EQ(range[nthread], end);
-    for (std::size_t i = 0; i < nthread; ++i) {
-      EXPECT_GE(range[i + 1], range[i]);
-    }
-  }
-  // Test the case with begin == end
-  for (int i = 0; i < 10; ++i) {
-    int64_t begin = rng.DrawInteger(0, 10000);
-    int64_t end = begin;
-    std::size_t nthread = static_cast<std::size_t>(rng.DrawInteger(1, 100));
-    auto range = ComputeWorkRange(begin, end, nthread);
-    EXPECT_EQ(range.size(), nthread + 1);
-    EXPECT_EQ(range[0], begin);
-    EXPECT_EQ(range[nthread], begin);
-    for (std::size_t i = 0; i < nthread; ++i) {
-      EXPECT_EQ(range[i + 1], range[i]);
-    }
-  }
-}
-
 TEST(ThreadingUtils, ParallelFor) {
   /* Test error handling */
-  const int max_thread = std::thread::hardware_concurrency();
+  const int max_thread = treelite::threading_utils::MaxNumThread();
+
+  auto sched = treelite::threading_utils::ParallelSchedule::Guided();
 
   auto dummy_func = [](int, std::size_t) {};
-  EXPECT_THROW(ParallelFor(0, 100, 0, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(200, 100, 3, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(-100, 100, 3, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(-200, -100, 3, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(200, 100, 3, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(10, 20, 3 * max_thread, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(0, 100, 0, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(200, 100, 3, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(-100, 100, 3, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(-200, -100, 3, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(200, 100, 3, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(ParallelFor(10, 20, 3 * max_thread, sched, dummy_func), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */
   constexpr int kVectorLength = 10000;
@@ -123,7 +85,7 @@ TEST(ThreadingUtils, ParallelFor) {
     std::size_t nthread = static_cast<std::size_t>(rng.DrawInteger(1, max_thread + 1));
     int64_t end = rng.DrawInteger(begin, kVectorLength);
 
-    ParallelFor(begin, end, nthread, [&a, &b, &c](int64_t i, std::size_t) {
+    ParallelFor(begin, end, nthread, sched, [&a, &b, &c](int64_t i, std::size_t) {
       c[i] = a[i] + b[i];
     });
 

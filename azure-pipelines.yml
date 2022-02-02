@@ -216,6 +216,9 @@ jobs:
       python -m awscli s3 cp main/*.whl s3://treelite-wheels/ --acl public-read || true
       python -m awscli s3 cp runtime/*.whl s3://treelite-wheels/ --acl public-read || true
     displayName: 'Uploading Python wheels...'
+    env:
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
 - job: win_python_wheel_test
   dependsOn: win_build
   pool:
@@ -259,3 +262,6 @@ jobs:
       for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
       for /R %%i in (runtime\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
     displayName: 'Uploading Python wheels...'
+    env:
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)

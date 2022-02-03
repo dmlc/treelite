@@ -63,6 +63,7 @@ else
     exit 2
 fi
 
+conda activate python3
 python -m pip install cibuildwheel
 python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime

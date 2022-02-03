@@ -186,7 +186,7 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
       return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
     }
   } else {
-    auto output_logic = [task_param](
+    auto output_logic = [](
         const TreeType& tree, int tree_id, int node_id, float* sum) {
       sum[0] += tree.LeafValue(node_id);
     };
@@ -203,7 +203,7 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
                     bool pred_transform) {
   // If nthread <= 0, then use all CPU cores in the system
   if (nthread <= 0) {
-    nthread = std::thread::hardware_concurrency();
+    nthread = threading_utils::MaxNumThread();
   }
 
   // Check type of DMatrix

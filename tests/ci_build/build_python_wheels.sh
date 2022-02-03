@@ -50,6 +50,7 @@ if [[ "$platform_id" == macosx_* ]]; then
     export CIBW_BUILD_VERBOSITY=3
 
     sudo conda create -n build $OPENMP_URL
+    conda info -e
     PREFIX="/usr/local/miniconda/envs/build"
 
     # Set up build flags for cibuildwheel

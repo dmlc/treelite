@@ -93,8 +93,9 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     output_size_per_row = task_param.num_class;
   }
 
-  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, nthread,
-                                         [&](std::size_t row_id, std::size_t thread_id) {
+  auto sched = treelite::threading_utils::ParallelSchedule::Static();
+  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, nthread, sched,
+                                         [&](std::size_t row_id, int thread_id) {
     ThresholdType* row = &row_tloc[thread_id * num_col];
     float* sum = &sum_tloc[thread_id * task_param.num_class];
     input->FillRow(row_id, row);

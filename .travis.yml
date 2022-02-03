@@ -24,6 +24,14 @@ jobs:
     - os: osx
       env: TASK=python_coverage_test
       osx_image: xcode10.2
+    # Build Python wheels for MacOS Intel and Apple Silicon
+    # pypa/cibuildwheel is used, hence CIBW prefix
+    - os: osx
+      env: TASK=python_wheels CIBW_PLATFORM_ID=macosx_x86_64
+      osx_image: xcode12.5
+    - os: osx
+      env: TASK=python_wheels CIBW_PLATFORM_ID=macosx_arm64
+      osx_image: xcode12.5
 
 # dependent brew packages
 addons:

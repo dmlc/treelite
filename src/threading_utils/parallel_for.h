@@ -7,75 +7,134 @@
 #ifndef TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
 #define TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
 
+#include <treelite/omp.h>
 #include <treelite/logging.h>
-#include <future>
-#include <thread>
-#include <algorithm>
-#include <vector>
+#include <type_traits>
+#include <exception>
+#include <mutex>
 #include <cstddef>
 
 namespace treelite {
 namespace threading_utils {
 
-template <typename IndexType>
-std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::size_t nthread);
+/*!
+ * \brief OMP Exception class catches, saves and rethrows exception from OMP blocks
+ */
+class OMPException {
+ private:
+  // exception_ptr member to store the exception
+  std::exception_ptr omp_exception_;
+  // mutex to be acquired during catch to set the exception_ptr
+  std::mutex mutex_;
+
+ public:
+  /*!
+   * \brief Parallel OMP blocks should be placed within Run to save exception
+   */
+  template <typename Function, typename... Parameters>
+  void Run(Function f, Parameters... params) {
+    try {
+      f(params...);
+    } catch (std::exception& ex) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (!omp_exception_) {
+        omp_exception_ = std::current_exception();
+      }
+    }
+  }
+
+  /*!
+   * \brief should be called from the main thread to rethrow the exception
+   */
+  void Rethrow() {
+    if (this->omp_exception_) {
+      std::rethrow_exception(this->omp_exception_);
+    }
+  }
+};
+
+inline int MaxNumThread() {
+  return omp_get_max_threads();
+}
+
+// OpenMP schedule
+struct ParallelSchedule {
+  enum {
+    kAuto,
+    kDynamic,
+    kStatic,
+    kGuided,
+  } sched;
+  std::size_t chunk{0};
+
+  ParallelSchedule static Auto() { return ParallelSchedule{kAuto}; }
+  ParallelSchedule static Dynamic(std::size_t n = 0) { return ParallelSchedule{kDynamic, n}; }
+  ParallelSchedule static Static(std::size_t n = 0) { return ParallelSchedule{kStatic, n}; }
+  ParallelSchedule static Guided() { return ParallelSchedule{kGuided}; }
+};
 
 template <typename IndexType, typename FuncType>
-void ParallelFor(IndexType begin, IndexType end, std::size_t nthread, FuncType func) {
+inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSchedule sched,
+                        FuncType func) {
   TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
-  TREELITE_CHECK_LE(nthread, std::thread::hardware_concurrency())
-    << "nthread cannot exceed " << std::thread::hardware_concurrency();
+  TREELITE_CHECK_LE(nthread, MaxNumThread()) << "nthread cannot exceed " << MaxNumThread();
   if (begin == end) {
     return;
   }
-  /* Divide the range [begin, end) equally among the threads.
-   * The i-th thread gets the range [work_range[i], work_range[i+1]). */
-  std::vector<IndexType> work_range = ComputeWorkRange(begin, end, nthread);
 
-  // Launch (nthread - 1) threads, as the main thread should also perform work.
-  std::vector<std::future<void>> async_tasks;
-  for (std::size_t thread_id = 1; thread_id < nthread; ++thread_id) {
-    async_tasks.push_back(std::async(std::launch::async, [&work_range, &func, thread_id]() {
-      const IndexType begin_ = work_range[thread_id];
-      const IndexType end_ = work_range[thread_id + 1];
-      for (IndexType i = begin_; i < end_; ++i) {
-        func(i, thread_id);
-      }
-    }));
-  }
-  {
-    const IndexType begin_ = work_range[0];
-    const IndexType end_ = work_range[1];
-    for (IndexType i = begin_; i < end_; ++i) {
-      func(i, 0);
+#if defined(_MSC_VER)
+  // msvc doesn't support unsigned integer as openmp index.
+  using OmpInd = std::conditional_t<std::is_signed<IndexType>::value, IndexType, std::int64_t>;
+#else
+  using OmpInd = IndexType;
+#endif
+
+  OMPException exc;
+  switch (sched.sched) {
+  case ParallelSchedule::kAuto: {
+#pragma omp parallel for num_threads(nthread)
+    for (OmpInd i = begin; i < end; ++i) {
+      exc.Run(func, i, omp_get_thread_num());
     }
+    break;
   }
-  // Join threads
-  for (auto& task : async_tasks) {
-    task.get();
+  case ParallelSchedule::kDynamic: {
+    if (sched.chunk == 0) {
+#pragma omp parallel for num_threads(nthread) schedule(dynamic)
+      for (OmpInd i = begin; i < end; ++i) {
+        exc.Run(func, i, omp_get_thread_num());
+      }
+    } else {
+#pragma omp parallel for num_threads(nthread) schedule(dynamic, sched.chunk)
+      for (OmpInd i = begin; i < end; ++i) {
+        exc.Run(func, i, omp_get_thread_num());
+      }
+    }
+    break;
   }
-}
-
-template <typename IndexType>
-std::vector<IndexType> ComputeWorkRange(IndexType begin, IndexType end, std::size_t nthread) {
-  TREELITE_CHECK_GE(end, 0) << "end must be 0 or greater";
-  TREELITE_CHECK_GE(begin, 0) << "begin must be 0 or greater";
-  TREELITE_CHECK_GE(end, begin) << "end cannot be less than begin";
-  TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
-  IndexType num_elem = end - begin;
-  const IndexType portion = num_elem / nthread + !!(num_elem % nthread);
-  // integer division, rounded-up
-
-  std::vector<IndexType> work_range(nthread + 1);
-  work_range[0] = begin;
-  IndexType acc = begin;
-  for (std::size_t i = 0; i < nthread; ++i) {
-    acc += portion;
-    work_range[i + 1] = std::min(acc, end);
+  case ParallelSchedule::kStatic: {
+    if (sched.chunk == 0) {
+#pragma omp parallel for num_threads(nthread) schedule(static)
+      for (OmpInd i = begin; i < end; ++i) {
+        exc.Run(func, i, omp_get_thread_num());
+      }
+    } else {
+#pragma omp parallel for num_threads(nthread) schedule(static, sched.chunk)
+      for (OmpInd i = begin; i < end; ++i) {
+        exc.Run(func, i, omp_get_thread_num());
+      }
+    }
+    break;
   }
-  TREELITE_CHECK_EQ(work_range[nthread], end);
-
-  return work_range;
+  case ParallelSchedule::kGuided: {
+#pragma omp parallel for num_threads(nthread) schedule(guided)
+    for (OmpInd i = begin; i < end; ++i) {
+      exc.Run(func, i, omp_get_thread_num());
+    }
+    break;
+  }
+  }
+  exc.Rethrow();
 }
 
 }  // namespace threading_utils

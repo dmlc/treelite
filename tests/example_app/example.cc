@@ -1,6 +1,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <treelite/compiler.h>
+#include <treelite/c_api_common.h>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -11,6 +12,7 @@ using treelite::frontend::Value;
 using treelite::TypeInfo;
 
 int main(void) {
+  std::cout << "TREELITE_VERSION = " << TREELITE_VERSION << std::endl;
   auto tree = std::make_unique<TreeBuilder>(TypeInfo::kFloat32, TypeInfo::kFloat32);
   tree->CreateNode(0);
   tree->CreateNode(1);

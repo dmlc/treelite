@@ -9,7 +9,6 @@
 
 #include <treelite/base.h>
 #include <treelite/version.h>
-#include <treelite/optional.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -451,17 +450,6 @@ class Tree {
                                  &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
-  }
-  /*!
-   * \brief Get the largest category value used in all categorical splits in this tree.
-   *        If there are no categorical splits, returns null.
-   */
-  inline optional<uint32_t> MaxCategory() const {
-    if (matching_categories_.Empty()) {
-      return optional<uint32_t>{};
-    }
-    return optional<uint32_t>{*std::max_element(matching_categories_.Data(),
-                                                matching_categories_.End())};
   }
   /*!
    * \brief get feature split type

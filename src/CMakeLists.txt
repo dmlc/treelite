@@ -11,7 +11,16 @@ endif(UNIX)
 
 add_library(objtreelite_common OBJECT)  # Component shared by both main package and runtime
 
-find_package(Threads REQUIRED)
+if(USE_OPENMP)
+  if (APPLE)
+    # Require CMake 3.16+ on Mac OSX, as previous versions of CMake had trouble locating
+    # OpenMP on Mac. See https://github.com/dmlc/xgboost/pull/5146#issuecomment-568312706
+    cmake_minimum_required(VERSION 3.16)
+  endif (APPLE)
+  find_package(OpenMP REQUIRED)
+else()
+  message(STATUS "Disabling OpenMP")
+endif()
 
 if(ENABLE_ALL_WARNINGS)
   foreach(target objtreelite objtreelite_runtime objtreelite_runtime)
@@ -24,13 +33,16 @@ foreach(lib objtreelite objtreelite_runtime objtreelite_common)
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
-  target_link_libraries(${lib} PUBLIC Threads::Threads)
   if(MSVC)
     target_compile_options(${lib} PRIVATE /MP)
     target_compile_definitions(${lib} PRIVATE -DNOMINMAX)
     target_compile_options(${lib} PRIVATE /utf-8 -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
   else()
     target_compile_options(${lib} PRIVATE -funroll-loops)
+  endif()
+  if(USE_OPENMP)
+    target_link_libraries(${lib} PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(${lib} PRIVATE -DTREELITE_OPENMP_SUPPORT)
   endif()
   if(TEST_COVERAGE)
     if(MSVC)
@@ -101,6 +113,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
     ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
     ${PROJECT_SOURCE_DIR}/include/treelite/optional.h
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h

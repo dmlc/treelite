@@ -9,7 +9,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake llvm-openmp
 
   # Run coverage test
   set -x
@@ -38,7 +38,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge ninja cmake rapidjson fmt
+  conda install -c conda-forge ninja cmake rapidjson fmt llvm-openmp
 
   # Install Treelite C++ library into the Conda env
   set -x
@@ -64,7 +64,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake llvm-openmp
 
   # Build binary wheel
   set -x

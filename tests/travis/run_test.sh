@@ -9,7 +9,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake
+  conda install -c conda-forge numpy scipy pandas pytest pytest-cov scikit-learn coverage ninja lcov cmake llvm-openmp
 
   # Run coverage test
   set -x
@@ -38,7 +38,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge ninja cmake rapidjson fmt
+  conda install -c conda-forge ninja cmake rapidjson fmt llvm-openmp
 
   # Install Treelite C++ library into the Conda env
   set -x
@@ -64,7 +64,7 @@ then
   conda activate python3
   conda --version
   python --version
-  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake
+  conda install -c conda-forge numpy scipy pandas pytest scikit-learn coverage ninja cmake llvm-openmp
 
   # Build binary wheel
   set -x
@@ -97,18 +97,6 @@ then
   python -m pip install --pre xgboost --no-binary :all:
   python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
-
-  # Deploy binary wheel to S3
-  python -m pip install awscli
-  if [ "${TRAVIS_BRANCH}" == "mainline" ]
-  then
-    S3_DEST="s3://treelite-wheels/"
-  elif [ -z "${TRAVIS_TAG}" ]
-  then
-    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
-  fi
-  python -m awscli s3 cp python/dist/treelite-*.whl "${S3_DEST}" --acl public-read || true
-  python -m awscli s3 cp runtime/python/dist/treelite_runtime*.whl "${S3_DEST}" --acl public-read || true
 fi
 
 if [ ${TASK} == "python_sdist_test" ]; then
@@ -144,4 +132,21 @@ if [ ${TASK} == "python_sdist_test" ]; then
   done
   python -m awscli s3 cp treelite-*.tar.gz "${S3_DEST}" --acl public-read || true
   python -m awscli s3 cp treelite_runtime-*.tar.gz "${S3_DEST}" --acl public-read || true
+fi
+
+if [ ${TASK} == "python_wheels" ]; then
+  tests/ci_build/build_python_wheels.sh ${CIBW_PLATFORM_ID} ${TRAVIS_COMMIT}
+  # Deploy binary wheels to S3
+  conda activate python3
+  python --version
+  python -m pip install awscli
+  if [ "${TRAVIS_BRANCH}" == "mainline" ]
+  then
+    S3_DEST="s3://treelite-wheels/"
+  elif [ -z "${TRAVIS_TAG}" ]
+  then
+    S3_DEST="s3://treelite-wheels/${TRAVIS_BRANCH}/"
+  fi
+  python -m awscli s3 cp treelite-*.whl "${S3_DEST}" --acl public-read || true
+  python -m awscli s3 cp treelite_runtime-*.whl "${S3_DEST}" --acl public-read || true
 fi

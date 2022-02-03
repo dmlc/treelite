@@ -58,7 +58,7 @@ TEST(ThreadingUtils, ParallelFor) {
 
   auto sched = treelite::threading_utils::ParallelSchedule::Guided();
 
-  auto dummy_func = [](int, std::size_t) {};
+  auto dummy_func = [](int, int) {};
   EXPECT_THROW(ParallelFor(0, 100, 0, sched, dummy_func), treelite::Error);
   EXPECT_THROW(ParallelFor(200, 100, 3, sched, dummy_func), treelite::Error);
   EXPECT_THROW(ParallelFor(-100, 100, 3, sched, dummy_func), treelite::Error);
@@ -85,7 +85,7 @@ TEST(ThreadingUtils, ParallelFor) {
     std::size_t nthread = static_cast<std::size_t>(rng.DrawInteger(1, max_thread + 1));
     int64_t end = rng.DrawInteger(begin, kVectorLength);
 
-    ParallelFor(begin, end, nthread, sched, [&a, &b, &c](int64_t i, std::size_t) {
+    ParallelFor(begin, end, nthread, sched, [&a, &b, &c](int64_t i, int) {
       c[i] = a[i] + b[i];
     });
 

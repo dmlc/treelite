@@ -79,7 +79,7 @@ inline void ComputeBranchLoopImpl(
   bool nan_missing = treelite::math::CheckNAN(missing_value);
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
   treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
-                                         [&](std::size_t rid, std::size_t thread_id) {
+                                         [&](std::size_t rid, int thread_id) {
     const ElementType* row = &dmat->data[rid * num_col];
     const size_t off = dmat->num_col * thread_id;
     const size_t off2 = count_row_ptr[ntree] * thread_id;
@@ -110,7 +110,7 @@ inline void ComputeBranchLoopImpl(
   TREELITE_CHECK_LE(rbegin, rend);
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
   treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
-                                         [&](std::size_t rid, std::size_t thread_id) {
+                                         [&](std::size_t rid, int thread_id) {
     const size_t off = dmat->num_col * thread_id;
     const size_t off2 = count_row_ptr[ntree] * thread_id;
     const size_t ibegin = dmat->row_ptr[rid];

@@ -64,7 +64,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename);
  * \param length length of JSON char array
  * \return loaded model
  */
-std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, std::size_t length);
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str,
+                                                            std::size_t length);
 /*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to

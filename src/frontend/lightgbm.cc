@@ -451,7 +451,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         break;
       }
     }
-    TREELITE_CHECK(num_class >= 0 && static_cast<std::size_t>(num_class) == model->task_param.num_class)
+    TREELITE_CHECK(num_class >= 0
+                   && static_cast<std::size_t>(num_class) == model->task_param.num_class)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));

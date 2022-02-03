@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdint>
+#include <cstddef>
 #include "./ast_native.h"
 #include "./pred_transform.h"
 #include "./ast/builder.h"
@@ -108,7 +109,7 @@ class ASTNativeCompilerImpl {
       writer.StartArray();
       for (const auto& kv : files_) {
         if (kv.first.compare(kv.first.length() - 2, 2, ".c") == 0) {
-          const size_t line_count
+          const std::size_t line_count
             = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
           writer.StartObject();
           writer.Key("name");
@@ -157,7 +158,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void WalkAST(const ASTNode* node,
                const std::string& dest,
-               size_t indent) {
+               std::size_t indent) {
     const MainNode* t1;
     const AccumulatorContextNode* t2;
     const ConditionNode* t3;
@@ -187,14 +188,14 @@ class ASTNativeCompilerImpl {
   // append content to a given buffer, with given level of indentation
   inline void AppendToBuffer(const std::string& dest,
                              const std::string& content,
-                             size_t indent) {
+                             std::size_t indent) {
     files_[dest].content += common_util::IndentMultiLineString(content, indent);
   }
 
   // prepend content to a given buffer, with given level of indentation
   inline void PrependToBuffer(const std::string& dest,
                               const std::string& content,
-                              size_t indent) {
+                              std::size_t indent) {
     files_[dest].content
       = common_util::IndentMultiLineString(content, indent) + files_[dest].content;
   }
@@ -202,7 +203,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleMainNode(const MainNode* node,
                       const std::string& dest,
-                      size_t indent) {
+                      std::size_t indent) {
     const std::string threshold_type
       = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     const std::string leaf_output_type
@@ -292,7 +293,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleACNode(const AccumulatorContextNode* node,
                     const std::string& dest,
-                    size_t indent) {
+                    std::size_t indent) {
     const std::string leaf_output_type
       = native::TypeInfoToCTypeString(TypeToInfo<LeafOutputType>());
     if (task_param_.num_class > 1) {
@@ -318,7 +319,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleCondNode(const ConditionNode* node,
                       const std::string& dest,
-                      size_t indent) {
+                      std::size_t indent) {
     const NumericalConditionNode<ThresholdType>* t;
     std::string condition_with_na_check;
     if ( (t = dynamic_cast<const NumericalConditionNode<ThresholdType>*>(node)) ) {
@@ -338,8 +339,8 @@ class ASTNativeCompilerImpl {
       condition_with_na_check = ExtractCategoricalCondition(t2);
     }
     if (node->children[0]->data_count && node->children[1]->data_count) {
-      const uint64_t left_freq = *node->children[0]->data_count;
-      const uint64_t right_freq = *node->children[1]->data_count;
+      const std::uint64_t left_freq = *node->children[0]->data_count;
+      const std::uint64_t right_freq = *node->children[1]->data_count;
       condition_with_na_check
         = fmt::format(" {keyword}( {condition} ) ",
             "keyword"_a = ((left_freq > right_freq) ? "LIKELY" : "UNLIKELY"),
@@ -357,7 +358,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleOutputNode(const OutputNode<LeafOutputType>* node,
                         const std::string& dest,
-                        size_t indent) {
+                        std::size_t indent) {
     AppendToBuffer(dest, RenderOutputStatement(node), indent);
     TREELITE_CHECK_EQ(node->children.size(), 0);
   }
@@ -365,7 +366,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleTUNode(const TranslationUnitNode* node,
                     const std::string& dest,
-                    size_t indent) {
+                    std::size_t indent) {
     const int unit_id = node->unit_id;
     const std::string new_file = fmt::format("tu{}.c", unit_id);
     const std::string leaf_output_type
@@ -414,7 +415,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleQNode(const QuantizerNode<ThresholdType>* node,
                    const std::string& dest,
-                   size_t indent) {
+                   std::size_t indent) {
     const std::string threshold_type
       = native::TypeInfoToCTypeString(TypeToInfo<ThresholdType>());
     /* render arrays needed to convert feature values into bin indices */
@@ -423,7 +424,7 @@ class ASTNativeCompilerImpl {
     //   ensemble model. For each feature, an ascending list of unique
     //   thresholds is generated. The range th_begin[i]:(th_begin[i]+th_len[i])
     //   of the threshold[] array stores the threshold list for feature i.
-    size_t total_num_threshold;
+    std::size_t total_num_threshold;
       // to hold total number of (distinct) thresholds
     {
       common_util::ArrayFormatter formatter(80, 2);
@@ -438,7 +439,7 @@ class ASTNativeCompilerImpl {
     }
     {
       common_util::ArrayFormatter formatter(80, 2);
-      size_t accum = 0;  // used to compute cumulative sum over threshold counts
+      std::size_t accum = 0;  // used to compute cumulative sum over threshold counts
       for (const auto& e : node->cut_pts) {
         formatter << accum;
         accum += e.size();  // e.size() = number of thresholds for each feature
@@ -491,7 +492,7 @@ class ASTNativeCompilerImpl {
   template <typename ThresholdType, typename LeafOutputType>
   void HandleCodeFolderNode(const CodeFolderNode* node,
                             const std::string& dest,
-                            size_t indent) {
+                            std::size_t indent) {
     TREELITE_CHECK_EQ(node->children.size(), 1);
     const int node_id = node->children[0]->node_id;
     const int tree_id = node->children[0]->tree_id;
@@ -617,11 +618,11 @@ class ASTNativeCompilerImpl {
   inline std::string
   ExtractCategoricalCondition(const CategoricalConditionNode* node) {
     std::string result;
-    std::vector<uint64_t> bitmap
+    std::vector<std::uint64_t> bitmap
       = common_util::GetCategoricalBitmap(node->matching_categories);
     TREELITE_CHECK_GE(bitmap.size(), 1);
     bool all_zeros = true;
-    for (uint64_t e : bitmap) {
+    for (std::uint64_t e : bitmap) {
       all_zeros &= (e == 0);
     }
     if (all_zeros) {
@@ -649,7 +650,7 @@ class ASTNativeCompilerImpl {
           "split_index"_a = node->split_index);
       oss << "(tmp >= 0 && tmp < 64 && (( (uint64_t)"
           << bitmap[0] << "U >> tmp) & 1) )";
-      for (size_t i = 1; i < bitmap.size(); ++i) {
+      for (std::size_t i = 1; i < bitmap.size(); ++i) {
         oss << " || (tmp >= " << (i * 64)
             << " && tmp < " << ((i + 1) * 64)
             << " && (( (uint64_t)" << bitmap[i]
@@ -678,9 +679,9 @@ class ASTNativeCompilerImpl {
     if (task_param_.num_class > 1) {
       if (node->is_vector) {
         // multi-class classification with random forest
-        TREELITE_CHECK_EQ(node->vector.size(), static_cast<size_t>(task_param_.num_class))
+        TREELITE_CHECK_EQ(node->vector.size(), static_cast<std::size_t>(task_param_.num_class))
           << "Ill-formed model: leaf vector must be of length [num_class]";
-        for (size_t group_id = 0; group_id < task_param_.num_class; ++group_id) {
+        for (std::size_t group_id = 0; group_id < task_param_.num_class; ++group_id) {
           output_statement
             += fmt::format("sum[{group_id}] += ({leaf_output_type}){output};\n",
                  "group_id"_a = group_id,

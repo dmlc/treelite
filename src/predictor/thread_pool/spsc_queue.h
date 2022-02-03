@@ -43,12 +43,12 @@ class SpscQueue {
     }
   }
 
-  bool Pop(T* output, uint32_t spin_count = 300000) {
+  bool Pop(T* output, std::uint32_t spin_count = 300000) {
     // Busy wait a bit when the queue is empty.
     // If a new element comes to the queue quickly, this wait avoid the worker
     // from sleeping.
     // The default spin count is set by following the typical omp convention
-    for (uint32_t i = 0; i < spin_count && pending_.load() == 0; ++i) {
+    for (std::uint32_t i = 0; i < spin_count && pending_.load() == 0; ++i) {
       std::this_thread::yield();
     }
     if (pending_.fetch_sub(1) == 0) {
@@ -60,7 +60,7 @@ class SpscQueue {
     if (exit_now_.load(std::memory_order_relaxed)) {
       return false;
     }
-    const uint32_t head = head_.load(std::memory_order_relaxed);
+    const std::uint32_t head = head_.load(std::memory_order_relaxed);
     // sanity check if the queue is empty
     TREELITE_CHECK(tail_.load(std::memory_order_acquire) != head);
     *output = buffer_[head];
@@ -79,7 +79,7 @@ class SpscQueue {
 
  protected:
   bool Enqueue(const T& input) {
-    const uint32_t tail = tail_.load(std::memory_order_relaxed);
+    const std::uint32_t tail = tail_.load(std::memory_order_relaxed);
 
     if ((tail + 1) % kRingSize != (head_.load(std::memory_order_acquire))) {
       buffer_[tail] = input;
@@ -100,15 +100,15 @@ class SpscQueue {
 
   cache_line_pad_t pad1_;
   // queue head, where one gets an element from the queue
-  std::atomic<uint32_t> head_;
+  std::atomic<std::uint32_t> head_;
 
   cache_line_pad_t pad2_;
   // queue tail, when one puts an element to the queue
-  std::atomic<uint32_t> tail_;
+  std::atomic<std::uint32_t> tail_;
 
   cache_line_pad_t pad3_;
   // pending elements in the queue
-  std::atomic<int8_t> pending_{0};
+  std::atomic<std::int8_t> pending_{0};
 
   cache_line_pad_t pad4_;
   // signal for exit now

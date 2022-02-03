@@ -19,13 +19,13 @@
 namespace treelite {
 
 /*! \brief Types used by thresholds and leaf outputs */
-enum class TypeInfo : uint8_t {
+enum class TypeInfo : std::uint8_t {
   kInvalid = 0,
   kUInt32 = 1,
   kFloat32 = 2,
   kFloat64 = 3
 };
-static_assert(std::is_same<std::underlying_type<TypeInfo>::type, uint8_t>::value,
+static_assert(std::is_same<std::underlying_type<TypeInfo>::type, std::uint8_t>::value,
               "TypeInfo must use uint8_t as underlying type");
 
 /*! \brief conversion table from string to TypeInfo, defined in tables.cc */
@@ -59,7 +59,7 @@ inline std::string TypeInfoToString(treelite::TypeInfo type) {
  */
 template <typename T>
 inline TypeInfo TypeToInfo() {
-  if (std::is_same<T, uint32_t>::value) {
+  if (std::is_same<T, std::uint32_t>::value) {
     return TypeInfo::kUInt32;
   } else if (std::is_same<T, float>::value) {
     return TypeInfo::kFloat32;
@@ -87,7 +87,7 @@ template <template<class> class Dispatcher, typename ...Args>
 inline auto DispatchWithTypeInfo(TypeInfo type, Args&& ...args) {
   switch (type) {
   case TypeInfo::kUInt32:
-    return Dispatcher<uint32_t>::Dispatch(std::forward<Args>(args)...);
+    return Dispatcher<std::uint32_t>::Dispatch(std::forward<Args>(args)...);
   case TypeInfo::kFloat32:
     return Dispatcher<float>::Dispatch(std::forward<Args>(args)...);
   case TypeInfo::kFloat64:
@@ -131,7 +131,7 @@ inline auto DispatchWithModelTypes(
   case treelite::TypeInfo::kFloat32:
     switch (leaf_output_type) {
     case treelite::TypeInfo::kUInt32:
-      return Dispatcher<float, uint32_t>::Dispatch(std::forward<Args>(args)...);
+      return Dispatcher<float, std::uint32_t>::Dispatch(std::forward<Args>(args)...);
     case treelite::TypeInfo::kFloat32:
       return Dispatcher<float, float>::Dispatch(std::forward<Args>(args)...);
     default:
@@ -142,7 +142,7 @@ inline auto DispatchWithModelTypes(
   case treelite::TypeInfo::kFloat64:
     switch (leaf_output_type) {
     case treelite::TypeInfo::kUInt32:
-      return Dispatcher<double, uint32_t>::Dispatch(std::forward<Args>(args)...);
+      return Dispatcher<double, std::uint32_t>::Dispatch(std::forward<Args>(args)...);
     case treelite::TypeInfo::kFloat64:
       return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);
     default:

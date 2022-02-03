@@ -10,6 +10,7 @@
 #include <treelite/data.h>
 #include <treelite/typeinfo.h>
 #include <cstdint>
+#include <cstddef>
 #include <algorithm>
 #include <memory>
 #include <fstream>
@@ -36,36 +37,37 @@ struct InputToken {
   const treelite::DMatrix* dmat;  // input data
   bool pred_margin;  // whether to store raw margin or transformed scores
   const treelite::predictor::PredFunction* pred_func_;
-  size_t rbegin, rend;  // range of instances (rows) assigned to each worker
+  std::size_t rbegin, rend;  // range of instances (rows) assigned to each worker
   PredictorOutputHandle out_pred;  // buffer to store output from each worker
 };
 
 struct OutputToken {
-  size_t query_result_size;
+  std::size_t query_result_size;
 };
 
 using PredThreadPool
   = treelite::predictor::ThreadPool<InputToken, OutputToken, treelite::predictor::Predictor>;
 
 template <typename ElementType, typename ThresholdType, typename LeafOutputType, typename PredFunc>
-inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int num_feature,
-                       size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
-  TREELITE_CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
+inline std::size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int num_feature,
+                            std::size_t rbegin, std::size_t rend, LeafOutputType* out_pred,
+                            PredFunc func) {
+  TREELITE_CHECK_LE(dmat->num_col, static_cast<std::size_t>(num_feature));
   std::vector<treelite::predictor::Entry<ThresholdType>> inst(
-    std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
+    std::max(dmat->num_col, static_cast<std::size_t>(num_feature)), {-1});
   TREELITE_CHECK(rbegin < rend && rend <= dmat->num_row);
   const ElementType* data = dmat->data.data();
-  const uint32_t* col_ind = dmat->col_ind.data();
-  const size_t* row_ptr = dmat->row_ptr.data();
-  size_t total_output_size = 0;
-  for (size_t rid = rbegin; rid < rend; ++rid) {
-    const size_t ibegin = row_ptr[rid];
-    const size_t iend = row_ptr[rid + 1];
-    for (size_t i = ibegin; i < iend; ++i) {
+  const std::uint32_t* col_ind = dmat->col_ind.data();
+  const std::size_t* row_ptr = dmat->row_ptr.data();
+  std::size_t total_output_size = 0;
+  for (std::size_t rid = rbegin; rid < rend; ++rid) {
+    const std::size_t ibegin = row_ptr[rid];
+    const std::size_t iend = row_ptr[rid + 1];
+    for (std::size_t i = ibegin; i < iend; ++i) {
       inst[col_ind[i]].fvalue = static_cast<ThresholdType>(data[i]);
     }
     total_output_size += func(rid, &inst[0], out_pred);
-    for (size_t i = ibegin; i < iend; ++i) {
+    for (std::size_t i = ibegin; i < iend; ++i) {
       inst[col_ind[i]].missing = -1;
     }
   }
@@ -73,21 +75,22 @@ inline size_t PredLoop(const treelite::CSRDMatrixImpl<ElementType>* dmat, int nu
 }
 
 template <typename ElementType, typename ThresholdType, typename LeafOutputType, typename PredFunc>
-inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int num_feature,
-                       size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
+inline std::size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int num_feature,
+                            std::size_t rbegin, std::size_t rend, LeafOutputType* out_pred,
+                            PredFunc func) {
   const bool nan_missing = treelite::math::CheckNAN(dmat->missing_value);
-  TREELITE_CHECK_LE(dmat->num_col, static_cast<size_t>(num_feature));
+  TREELITE_CHECK_LE(dmat->num_col, static_cast<std::size_t>(num_feature));
   std::vector<treelite::predictor::Entry<ThresholdType>> inst(
-      std::max(dmat->num_col, static_cast<size_t>(num_feature)), {-1});
+      std::max(dmat->num_col, static_cast<std::size_t>(num_feature)), {-1});
   TREELITE_CHECK(rbegin < rend && rend <= dmat->num_row);
-  const size_t num_col = dmat->num_col;
+  const std::size_t num_col = dmat->num_col;
   const ElementType missing_value = dmat->missing_value;
   const ElementType* data = dmat->data.data();
   const ElementType* row = nullptr;
-  size_t total_output_size = 0;
-  for (size_t rid = rbegin; rid < rend; ++rid) {
+  std::size_t total_output_size = 0;
+  for (std::size_t rid = rbegin; rid < rend; ++rid) {
     row = &data[rid * num_col];
-    for (size_t j = 0; j < num_col; ++j) {
+    for (std::size_t j = 0; j < num_col; ++j) {
       if (treelite::math::CheckNAN(row[j])) {
         TREELITE_CHECK(nan_missing)
           << "The missing_value argument must be set to NaN if there is any NaN in the matrix.";
@@ -96,7 +99,7 @@ inline size_t PredLoop(const treelite::DenseDMatrixImpl<ElementType>* dmat, int 
       }
     }
     total_output_size += func(rid, &inst[0], out_pred);
-    for (size_t j = 0; j < num_col; ++j) {
+    for (std::size_t j = 0; j < num_col; ++j) {
       inst[j].missing = -1;
     }
   }
@@ -107,9 +110,9 @@ template <typename ElementType>
 class PredLoopDispatcherWithDenseDMatrix {
  public:
   template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
-  inline static size_t Dispatch(
-      const treelite::DMatrix* dmat, ThresholdType, int num_feature, size_t rbegin, size_t rend,
-      LeafOutputType* out_pred, PredFunc func) {
+  inline static std::size_t Dispatch(
+      const treelite::DMatrix* dmat, ThresholdType, int num_feature, std::size_t rbegin,
+      std::size_t rend, LeafOutputType* out_pred, PredFunc func) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
     return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
         dmat_, num_feature, rbegin, rend, out_pred, func);
@@ -120,9 +123,9 @@ template <typename ElementType>
 class PredLoopDispatcherWithCSRDMatrix {
  public:
   template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
-  inline static size_t Dispatch(
-      const treelite::DMatrix* dmat, ThresholdType, int num_feature, size_t rbegin, size_t rend,
-      LeafOutputType* out_pred, PredFunc func) {
+  inline static std::size_t Dispatch(
+      const treelite::DMatrix* dmat, ThresholdType, int num_feature, std::size_t rbegin,
+      std::size_t rend, LeafOutputType* out_pred, PredFunc func) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
     return PredLoop<ElementType, ThresholdType, LeafOutputType, PredFunc>(
         dmat_, num_feature, rbegin, rend, out_pred, func);
@@ -130,8 +133,9 @@ class PredLoopDispatcherWithCSRDMatrix {
 };
 
 template <typename ThresholdType, typename LeafOutputType, typename PredFunc>
-inline size_t PredLoop(const treelite::DMatrix* dmat, ThresholdType test_val, int num_feature,
-                       size_t rbegin, size_t rend, LeafOutputType* out_pred, PredFunc func) {
+inline std::size_t PredLoop(const treelite::DMatrix* dmat, ThresholdType test_val, int num_feature,
+                            std::size_t rbegin, std::size_t rend, LeafOutputType* out_pred,
+                            PredFunc func) {
   treelite::DMatrixType dmat_type = dmat->GetType();
   switch (dmat_type) {
   case treelite::DMatrixType::kDense: {
@@ -243,25 +247,26 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::GetLeafOutputType() const {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-size_t
+std::size_t
 PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
-    const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
+    const DMatrix* dmat, std::size_t rbegin, std::size_t rend, bool pred_margin,
     PredictorOutputHandle out_pred) const {
   /* Pass the correct prediction function to PredLoop.
      We also need to specify how the function should be called. */
-  size_t result_size;
+  std::size_t result_size;
   // Dimension of output vector:
   // can be either [num_data] or [num_class]*[num_data].
   // Note that size of prediction may be smaller than out_pred (this occurs
   // when pred_function is set to "max_index").
   TREELITE_CHECK(rbegin < rend && rend <= dmat->GetNumRow());
   if (num_class_ > 1) {  // multi-class classification
-    using PredFunc = size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
+    using PredFunc = std::size_t (*)(Entry<ThresholdType>*, int, LeafOutputType*);
     auto pred_func = reinterpret_cast<PredFunc>(handle_);
     TREELITE_CHECK(pred_func) << "The predict_multiclass() function has incorrect signature.";
     auto pred_func_wrapper
       = [pred_func, num_class = num_class_, pred_margin]
-            (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
+            (std::int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred)
+            -> std::size_t {
           return pred_func(inst, static_cast<int>(pred_margin),
                            &out_pred[rid * num_class]);
         };
@@ -273,7 +278,8 @@ PredFunctionImpl<ThresholdType, LeafOutputType>::PredictBatch(
     TREELITE_CHECK(pred_func) << "The predict() function has incorrect signature.";
     auto pred_func_wrapper
       = [pred_func, pred_margin]
-            (int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred) -> size_t {
+            (std::int64_t rid, Entry<ThresholdType>* inst, LeafOutputType* out_pred)
+            -> std::size_t {
           out_pred[rid] = pred_func(inst, static_cast<int>(pred_margin));
           return 1;
         };
@@ -304,7 +310,7 @@ void
 Predictor::Load(const char* libpath) {
   lib_.Load(libpath);
 
-  using UnsignedQueryFunc = size_t (*)();
+  using UnsignedQueryFunc = std::size_t (*)();
   using StringQueryFunc = const char* (*)();
   using FloatQueryFunc = float (*)();
 
@@ -363,9 +369,9 @@ Predictor::Load(const char* libpath) {
       predictor->exception_catcher_.Run([&]() {
         InputToken input;
         while (incoming_queue->Pop(&input)) {
-          const size_t rbegin = input.rbegin;
-          const size_t rend = input.rend;
-          size_t query_result_size
+          const std::size_t rbegin = input.rbegin;
+          const std::size_t rend = input.rend;
+          std::size_t query_result_size
               = predictor->pred_func_->PredictBatch(
                   input.dmat, rbegin, rend, input.pred_margin, input.out_pred);
           outgoing_queue->Push(OutputToken{query_result_size});
@@ -380,18 +386,18 @@ Predictor::Free() {
 }
 
 static inline
-std::vector<size_t> SplitBatch(const DMatrix* dmat, size_t split_factor) {
-  const size_t num_row = dmat->GetNumRow();
+std::vector<std::size_t> SplitBatch(const DMatrix* dmat, std::size_t split_factor) {
+  const std::size_t num_row = dmat->GetNumRow();
   TREELITE_CHECK_LE(split_factor, num_row);
-  const size_t portion = num_row / split_factor;
-  const size_t remainder = num_row % split_factor;
-  std::vector<size_t> workload(split_factor, portion);
-  std::vector<size_t> row_ptr(split_factor + 1, 0);
-  for (size_t i = 0; i < remainder; ++i) {
+  const std::size_t portion = num_row / split_factor;
+  const std::size_t remainder = num_row % split_factor;
+  std::vector<std::size_t> workload(split_factor, portion);
+  std::vector<std::size_t> row_ptr(split_factor + 1, 0);
+  for (std::size_t i = 0; i < remainder; ++i) {
     ++workload[i];
   }
-  size_t accum = 0;
-  for (size_t i = 0; i < split_factor; ++i) {
+  std::size_t accum = 0;
+  for (std::size_t i = 0; i < split_factor; ++i) {
     accum += workload[i];
     row_ptr[i + 1] = accum;
   }
@@ -402,14 +408,14 @@ template <typename LeafOutputType>
 class ShrinkResultToFit {
  public:
   inline static void Dispatch(
-      size_t num_row, size_t query_size_per_instance, size_t num_class,
+      std::size_t num_row, std::size_t query_size_per_instance, std::size_t num_class,
       PredictorOutputHandle out_result);
 };
 
 template <typename LeafOutputType>
 class AllocateOutputVector {
  public:
-  inline static PredictorOutputHandle Dispatch(size_t size);
+  inline static PredictorOutputHandle Dispatch(std::size_t size);
 };
 
 template <typename LeafOutputType>
@@ -418,29 +424,29 @@ class DeallocateOutputVector {
   inline static void Dispatch(PredictorOutputHandle output_vector);
 };
 
-size_t
+std::size_t
 Predictor::PredictBatch(
     const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutputHandle out_result) const {
   const double tstart = GetTime();
 
-  const size_t num_row = dmat->GetNumRow();
+  const std::size_t num_row = dmat->GetNumRow();
   auto* pool = static_cast<PredThreadPool*>(thread_pool_handle_);
   InputToken request{dmat, pred_margin, pred_func_.get(), 0, num_row, out_result};
   OutputToken response;
   TREELITE_CHECK_GT(num_row, 0);
   const int nthread = std::min(num_worker_thread_, static_cast<int>(num_row));
-  const std::vector<size_t> row_ptr = SplitBatch(dmat, nthread);
+  const std::vector<std::size_t> row_ptr = SplitBatch(dmat, nthread);
   for (int tid = 0; tid < nthread - 1; ++tid) {
     request.rbegin = row_ptr[tid];
     request.rend = row_ptr[tid + 1];
     pool->SubmitTask(tid, request);
   }
-  size_t total_size = 0;
+  std::size_t total_size = 0;
   {
     // assign work to the main thread
-    const size_t rbegin = row_ptr[nthread - 1];
-    const size_t rend = row_ptr[nthread];
-    const size_t query_result_size
+    const std::size_t rbegin = row_ptr[nthread - 1];
+    const std::size_t rend = row_ptr[nthread];
+    const std::size_t query_result_size
       = pred_func_->PredictBatch(dmat, rbegin, rend, pred_margin, out_result);
     total_size += query_result_size;
   }
@@ -453,7 +459,7 @@ Predictor::PredictBatch(
   if (total_size < QueryResultSize(dmat, 0, num_row)) {
     TREELITE_CHECK_GT(num_class_, 1);
     TREELITE_CHECK_EQ(total_size % num_row, 0);
-    const size_t query_size_per_instance = total_size / num_row;
+    const std::size_t query_size_per_instance = total_size / num_row;
     TREELITE_CHECK_GT(query_size_per_instance, 0);
     TREELITE_CHECK_LT(query_size_per_instance, num_class_);
     DispatchWithTypeInfo<ShrinkResultToFit>(
@@ -468,7 +474,7 @@ Predictor::PredictBatch(
 
 PredictorOutputHandle
 Predictor::CreateOutputVector(const DMatrix* dmat) const {
-  const size_t output_vector_size = this->QueryResultSize(dmat);
+  const std::size_t output_vector_size = this->QueryResultSize(dmat);
   return DispatchWithTypeInfo<AllocateOutputVector>(leaf_output_type_, output_vector_size);
 }
 
@@ -480,11 +486,11 @@ Predictor::DeleteOutputVector(PredictorOutputHandle output_vector) const {
 template <typename LeafOutputType>
 void
 ShrinkResultToFit<LeafOutputType>::Dispatch(
-    size_t num_row, size_t query_size_per_instance, size_t num_class,
+    std::size_t num_row, std::size_t query_size_per_instance, std::size_t num_class,
     PredictorOutputHandle out_result) {
   auto* out_result_ = static_cast<LeafOutputType*>(out_result);
-  for (size_t rid = 0; rid < num_row; ++rid) {
-    for (size_t k = 0; k < query_size_per_instance; ++k) {
+  for (std::size_t rid = 0; rid < num_row; ++rid) {
+    for (std::size_t k = 0; k < query_size_per_instance; ++k) {
       out_result_[rid * query_size_per_instance + k] = out_result_[rid * num_class + k];
     }
   }
@@ -492,7 +498,7 @@ ShrinkResultToFit<LeafOutputType>::Dispatch(
 
 template <typename LeafOutputType>
 PredictorOutputHandle
-AllocateOutputVector<LeafOutputType>::Dispatch(size_t size) {
+AllocateOutputVector<LeafOutputType>::Dispatch(std::size_t size) {
   return static_cast<PredictorOutputHandle>(new LeafOutputType[size]);
 }
 

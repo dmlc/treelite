@@ -13,6 +13,7 @@
 #include <limits>
 #include <vector>
 #include <cmath>
+#include <cstdint>
 #include <cstddef>
 #include <cfloat>
 #include "./pred_transform.h"
@@ -44,18 +45,18 @@ inline int NextNode(float fvalue, T threshold, treelite::Operator op,
   }
 }
 
-inline int NextNodeCategorical(float fvalue, const std::vector<uint32_t>& matching_categories,
+inline int NextNodeCategorical(float fvalue, const std::vector<std::uint32_t>& matching_categories,
                                bool categories_list_right_child, int left_child, int right_child,
                                int default_child) {
   if (std::isnan(fvalue)) {
     return default_child;
   }
   bool is_matching_category;
-  float max_representable_int = static_cast<float>(uint32_t(1) << FLT_MANT_DIG);
+  float max_representable_int = static_cast<float>(std::uint32_t(1) << FLT_MANT_DIG);
   if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
     is_matching_category = false;
   } else {
-    const auto category_value = static_cast<uint32_t>(fvalue);
+    const auto category_value = static_cast<std::uint32_t>(fvalue);
     is_matching_category = (
         std::find(matching_categories.begin(), matching_categories.end(), category_value)
         != matching_categories.end());
@@ -73,15 +74,15 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
                                     const DMatrixType* input, float* output, bool pred_transform,
                                     OutputFunc output_func) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
-  const size_t num_row = input->GetNumRow();
-  const size_t num_col = input->GetNumCol();
+  const std::size_t num_row = input->GetNumRow();
+  const std::size_t num_col = input->GetNumCol();
   std::vector<ThresholdType> row(num_col);
   const treelite::TaskParam task_param = model.task_param;
   std::vector<float> sum(task_param.num_class);
 
   // TODO(phcho): Use parallelism
   std::size_t output_offset = 0;
-  for (size_t row_id = 0; row_id < num_row; ++row_id) {
+  for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
     input->FillRow(row_id, row.data());
     std::fill(sum.begin(), sum.end(), 0.0f);
     const std::size_t num_tree = model.trees.size();

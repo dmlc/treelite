@@ -95,7 +95,7 @@ class ContiguousArray {
  * The task type places constraints on the parameters of TaskParameter. See the docstring for each
  * enum constants for more details.
  */
-enum class TaskType : uint8_t {
+enum class TaskType : std::uint8_t {
   /*!
    * \brief Catch-all task type encoding all tasks that are not multi-class classification, such as
    *        binary classification, regression, and learning-to-rank.
@@ -170,7 +170,7 @@ inline std::string TaskTypeToString(TaskType type) {
 
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
-  enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
+  enum class OutputType : std::uint8_t { kFloat = 0, kInt = 1 };
   /*! \brief The type of output from each leaf node. */
   OutputType output_type;
   /*!
@@ -223,19 +223,19 @@ class Tree {
       ThresholdType threshold;   // for non-leaf nodes
     };
     /*! \brief pointer to left and right children */
-    int32_t cleft_, cright_;
+    std::int32_t cleft_, cright_;
     /*!
      * \brief feature index used for the split
      * highest bit indicates default direction for missing values
      */
-    uint32_t sindex_;
+    std::uint32_t sindex_;
     /*! \brief storage for leaf value or decision threshold */
     Info info_;
     /*!
      * \brief number of data points whose traversal paths include this node.
      *        LightGBM models natively store this statistics.
      */
-    uint64_t data_count_;
+    std::uint64_t data_count_;
     /*!
      * \brief sum of hessian values for all data points whose traversal paths
      *        include this node. This value is generally correlated positively
@@ -270,12 +270,12 @@ class Tree {
   static_assert(std::is_same<ThresholdType, float>::value
                 || std::is_same<ThresholdType, double>::value,
                 "ThresholdType must be either float32 or float64");
-  static_assert(std::is_same<LeafOutputType, uint32_t>::value
+  static_assert(std::is_same<LeafOutputType, std::uint32_t>::value
                 || std::is_same<LeafOutputType, float>::value
                 || std::is_same<LeafOutputType, double>::value,
                 "LeafOutputType must be one of uint32_t, float32 or float64");
   static_assert(std::is_same<ThresholdType, LeafOutputType>::value
-                || std::is_same<LeafOutputType, uint32_t>::value,
+                || std::is_same<LeafOutputType, std::uint32_t>::value,
                 "Unsupported combination of ThresholdType and LeafOutputType");
   static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
                 || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
@@ -306,7 +306,7 @@ class Tree {
   // here
   ContiguousArray<std::size_t> leaf_vector_begin_;
   ContiguousArray<std::size_t> leaf_vector_end_;
-  ContiguousArray<uint32_t> matching_categories_;
+  ContiguousArray<std::uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
 
   template <typename WriterType, typename X, typename Y>
@@ -369,7 +369,7 @@ class Tree {
    * \brief feature index of the node's split condition
    * \param nid ID of node being queried
    */
-  inline uint32_t SplitIndex(int nid) const {
+  inline std::uint32_t SplitIndex(int nid) const {
     return (nodes_.at(nid).sindex_ & ((1U << 31U) - 1U));
   }
   /*!
@@ -438,16 +438,16 @@ class Tree {
    *        assumed to be in ascending order.
    * \param nid ID of node being queried
    */
-  inline std::vector<uint32_t> MatchingCategories(int nid) const {
+  inline std::vector<std::uint32_t> MatchingCategories(int nid) const {
     const std::size_t offset_begin = matching_categories_offset_.at(nid);
     const std::size_t offset_end = matching_categories_offset_.at(nid + 1);
     if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
       // Return empty vector, to indicate the lack of any matching categories
       // The node might be a numerical split
-      return std::vector<uint32_t>();
+      return std::vector<std::uint32_t>();
     }
-    return std::vector<uint32_t>(&matching_categories_[offset_begin],
-                                 &matching_categories_[offset_end]);
+    return std::vector<std::uint32_t>(&matching_categories_[offset_begin],
+                                      &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
   }
@@ -469,7 +469,7 @@ class Tree {
    * \brief get data count
    * \param nid ID of node being queried
    */
-  inline uint64_t DataCount(int nid) const {
+  inline std::uint64_t DataCount(int nid) const {
     return nodes_.at(nid).data_count_;
   }
 
@@ -535,7 +535,7 @@ class Tree {
    *                                    (false)
    */
   inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                                  const std::vector<uint32_t>& categories_list,
+                                  const std::vector<std::uint32_t>& categories_list,
                                   bool categories_list_right_child);
   /*!
    * \brief set the leaf value of the node
@@ -564,7 +564,7 @@ class Tree {
    * \param nid ID of node being updated
    * \param data_count data count
    */
-  inline void SetDataCount(int nid, uint64_t data_count) {
+  inline void SetDataCount(int nid, std::uint64_t data_count) {
     Node& node = nodes_.at(nid);
     node.data_count_ = data_count;
     node.data_count_present_ = true;
@@ -764,7 +764,7 @@ class ModelImpl : public Model {
       TreeHandlerFunc tree_handler);
   template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
   inline void DeserializeTemplate(
-      size_t num_tree,
+      std::size_t num_tree,
       HeaderFieldHandlerFunc header_field_handler,
       TreeHandlerFunc tree_handler);
 };

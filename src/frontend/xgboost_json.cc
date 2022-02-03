@@ -20,6 +20,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -53,8 +55,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
 
   auto input_stream = std::make_unique<rapidjson::FileReadStream>(
       fp, read_buffer, sizeof(read_buffer));
-  auto error_handler = [fp](size_t offset) -> std::string {
-    size_t cur = (offset >= 50 ? (offset - 50) : 0);
+  auto error_handler = [fp](std::size_t offset) -> std::string {
+    std::size_t cur = (offset >= 50 ? (offset - 50) : 0);
     std::fseek(fp, cur, SEEK_SET);
     int c;
     std::ostringstream oss, oss2;
@@ -79,10 +81,11 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
   return parsed_model;
 }
 
-std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length) {
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str,
+                                                            std::size_t length) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
-  auto error_handler = [json_str](size_t offset) -> std::string {
-    size_t cur = (offset >= 50 ? (offset - 50) : 0);
+  auto error_handler = [json_str](std::size_t offset) -> std::string {
+    std::size_t cur = (offset >= 50 ? (offset - 50) : 0);
     std::ostringstream oss, oss2;
     for (int i = 0; i < 100; ++i) {
       if (!json_str[cur]) {
@@ -159,8 +162,8 @@ bool IgnoreHandler::Null() { return true; }
 bool IgnoreHandler::Bool(bool) { return true; }
 bool IgnoreHandler::Int(int) { return true; }
 bool IgnoreHandler::Uint(unsigned) { return true; }
-bool IgnoreHandler::Int64(int64_t) { return true; }
-bool IgnoreHandler::Uint64(uint64_t) { return true; }
+bool IgnoreHandler::Int64(std::int64_t) { return true; }
+bool IgnoreHandler::Uint64(std::uint64_t) { return true; }
 bool IgnoreHandler::Double(double) { return true; }
 bool IgnoreHandler::String(const char *, std::size_t, bool) {
   return true; }
@@ -214,52 +217,52 @@ bool RegTreeHandler::EndObject(std::size_t) {
   if (split_type.empty()) {
     split_type.resize(num_nodes, details::xgboost::FeatureType::kNumerical);
   }
-  if (static_cast<size_t>(num_nodes) != loss_changes.size()) {
+  if (static_cast<std::size_t>(num_nodes) != loss_changes.size()) {
     TREELITE_LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << loss_changes.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != sum_hessian.size()) {
+  if (static_cast<std::size_t>(num_nodes) != sum_hessian.size()) {
     TREELITE_LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << sum_hessian.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != base_weights.size()) {
+  if (static_cast<std::size_t>(num_nodes) != base_weights.size()) {
     TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << base_weights.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != left_children.size()) {
+  if (static_cast<std::size_t>(num_nodes) != left_children.size()) {
     TREELITE_LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << left_children.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != right_children.size()) {
+  if (static_cast<std::size_t>(num_nodes) != right_children.size()) {
     TREELITE_LOG(ERROR) << "Field right_children has an incorrect dimension. Expected: "
                         << num_nodes << ", Actual: " << right_children.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != parents.size()) {
+  if (static_cast<std::size_t>(num_nodes) != parents.size()) {
     TREELITE_LOG(ERROR) << "Field parents has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << parents.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != split_indices.size()) {
+  if (static_cast<std::size_t>(num_nodes) != split_indices.size()) {
     TREELITE_LOG(ERROR) << "Field split_indices has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << split_indices.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != split_type.size()) {
+  if (static_cast<std::size_t>(num_nodes) != split_type.size()) {
     TREELITE_LOG(ERROR) << "Field split_type has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << split_type.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != split_conditions.size()) {
+  if (static_cast<std::size_t>(num_nodes) != split_conditions.size()) {
     TREELITE_LOG(ERROR) << "Field split_conditions has an incorrect dimension. Expected: "
                         << num_nodes << ", Actual: " << split_conditions.size();
     return false;
   }
-  if (static_cast<size_t>(num_nodes) != default_left.size()) {
+  if (static_cast<std::size_t>(num_nodes) != default_left.size()) {
     TREELITE_LOG(ERROR) << "Field default_left has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << default_left.size();
     return false;
@@ -286,10 +289,10 @@ bool RegTreeHandler::EndObject(std::size_t) {
         auto categorical_split_id = std::distance(categories_nodes.begin(), categorical_split_loc);
         int offset = categories_segments[categorical_split_id];
         int num_categories = categories_sizes[categorical_split_id];
-        std::vector<uint32_t> right_categories;
+        std::vector<std::uint32_t> right_categories;
         right_categories.reserve(num_categories);
         for (int i = 0; i < num_categories; ++i) {
-          right_categories.push_back(static_cast<uint32_t>(categories[offset + i]));
+          right_categories.push_back(static_cast<std::uint32_t>(categories[offset + i]));
         }
         output.SetCategoricalSplit(
             new_id, split_indices[old_id], default_left[old_id], right_categories, true);
@@ -358,7 +361,7 @@ bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
     TREELITE_CHECK_EQ(output.trees.size(), weight_drop.size());
-    for (size_t i = 0; i < output.trees.size(); ++i) {
+    for (std::size_t i = 0; i < output.trees.size(); ++i) {
       for (int nid = 0; nid < output.trees[i].num_nodes; ++nid) {
         if (output.trees[i].IsLeaf(nid)) {
           output.trees[i].SetLeaf(nid, weight_drop[i] * output.trees[i].LeafValue(nid));
@@ -500,8 +503,8 @@ bool DelegatedHandler::Null() { return delegates.top()->Null(); }
 bool DelegatedHandler::Bool(bool b) { return delegates.top()->Bool(b); }
 bool DelegatedHandler::Int(int i) { return delegates.top()->Int(i); }
 bool DelegatedHandler::Uint(unsigned u) { return delegates.top()->Uint(u); }
-bool DelegatedHandler::Int64(int64_t i) { return delegates.top()->Int64(i); }
-bool DelegatedHandler::Uint64(uint64_t u) { return delegates.top()->Uint64(u); }
+bool DelegatedHandler::Int64(std::int64_t i) { return delegates.top()->Int64(i); }
+bool DelegatedHandler::Uint64(std::uint64_t u) { return delegates.top()->Uint64(u); }
 bool DelegatedHandler::Double(double d) { return delegates.top()->Double(d); }
 bool DelegatedHandler::String(const char *str, std::size_t length, bool copy) {
   return delegates.top()->String(str, length, copy);
@@ -534,7 +537,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
     = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
   if (!result) {
     const auto error_code = result.Code();
-    const size_t offset = result.Offset();
+    const std::size_t offset = result.Offset();
     std::string diagnostic = error_handler(offset);
     TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. "
                         << "Parsing error at offset " << offset << ": "

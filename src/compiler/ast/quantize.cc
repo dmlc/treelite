@@ -7,6 +7,7 @@
 #include <treelite/logging.h>
 #include <set>
 #include <cmath>
+#include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
@@ -88,9 +89,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::QuantizeThresholds() {
   this->main_node->children[0] = quantizer_node;
 }
 
-template void ASTBuilder<float, uint32_t>::QuantizeThresholds();
+template void ASTBuilder<float, std::uint32_t>::QuantizeThresholds();
 template void ASTBuilder<float, float>::QuantizeThresholds();
-template void ASTBuilder<double, uint32_t>::QuantizeThresholds();
+template void ASTBuilder<double, std::uint32_t>::QuantizeThresholds();
 template void ASTBuilder<double, double>::QuantizeThresholds();
 
 }  // namespace compiler

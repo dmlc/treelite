@@ -6,6 +6,7 @@
  */
 
 #include <treelite/tree.h>
+#include <cstddef>
 
 namespace treelite {
 

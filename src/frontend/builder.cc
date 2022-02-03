@@ -10,12 +10,14 @@
 #include <treelite/logging.h>
 #include <memory>
 #include <queue>
+#include <cstddef>
+#include <cstdint>
 
 /* data structures with underscore prefixes are internal use only and don't have external linkage */
 namespace {
 
 struct NodeDraft {
-  enum class Status : int8_t {
+  enum class Status : std::int8_t {
     kEmpty, kNumericalTest, kCategoricalTest, kLeaf
   };
   /*
@@ -45,7 +47,7 @@ struct NodeDraft {
   // All others not in the list belong to the right child node.
   // Categories are integers ranging from 0 to (n-1), where n is the number of
   // categories in that particular feature. Let's assume n <= 64.
-  std::vector<uint32_t> left_categories;
+  std::vector<std::uint32_t> left_categories;
 
   inline NodeDraft()
     : status(Status::kEmpty), parent(nullptr), left_child(nullptr), right_child(nullptr) {}
@@ -99,10 +101,10 @@ struct ModelBuilderImpl {
 template <typename ThresholdType, typename LeafOutputType>
 void SetLeafVector(Tree<ThresholdType, LeafOutputType>* tree, int nid,
                    const std::vector<Value>& leaf_vector) {
-  const size_t leaf_vector_size = leaf_vector.size();
+  const std::size_t leaf_vector_size = leaf_vector.size();
   const TypeInfo expected_leaf_type = TypeToInfo<LeafOutputType>();
   std::vector<LeafOutputType> out_leaf_vector;
-  for (size_t i = 0; i < leaf_vector_size; ++i) {
+  for (std::size_t i = 0; i < leaf_vector_size; ++i) {
     const Value& leaf_value = leaf_vector[i];
     TREELITE_CHECK(leaf_value.GetValueType() == expected_leaf_type)
       << "Leaf value at index " << i << " has incorrect type. Expected: "
@@ -262,8 +264,8 @@ TreeBuilder::SetNumericalTestNode(int node_key, unsigned feature_id, Operator op
 
 void
 TreeBuilder::SetCategoricalTestNode(int node_key, unsigned feature_id,
-                                    const std::vector<uint32_t>& left_categories, bool default_left,
-                                    int left_child_key, int right_child_key) {
+                                    const std::vector<std::uint32_t>& left_categories,
+                                    bool default_left, int left_child_key, int right_child_key) {
   auto &tree = pimpl_->tree;
   auto &nodes = tree.nodes;
   TREELITE_CHECK_GT(nodes.count(node_key), 0)
@@ -313,8 +315,8 @@ void
 TreeBuilder::SetLeafVectorNode(int node_key, const std::vector<Value>& leaf_vector) {
   auto& tree = pimpl_->tree;
   auto& nodes = tree.nodes;
-  const size_t leaf_vector_len = leaf_vector.size();
-  for (size_t i = 0; i < leaf_vector_len; ++i) {
+  const std::size_t leaf_vector_len = leaf_vector.size();
+  for (std::size_t i = 0; i < leaf_vector_len; ++i) {
     const Value& leaf_value = leaf_vector[i];
     TREELITE_CHECK(tree.leaf_output_type == leaf_value.GetValueType())
       << "SetLeafVectorNode: the element " << i << " in leaf_vector has an incorrect type. "
@@ -390,7 +392,7 @@ ModelBuilder::InsertTree(TreeBuilder* tree_builder, int index) {
     tree_builder->ensemble_id_ = this;
     return static_cast<int>(trees.size());
   } else {
-    if (static_cast<size_t>(index) <= trees.size()) {
+    if (static_cast<std::size_t>(index) <= trees.size()) {
       trees.insert(trees.begin() + index, std::move(*tree_builder));
       tree_builder->ensemble_id_ = this;
       return index;
@@ -414,7 +416,7 @@ ModelBuilder::GetTree(int index) const {
 void
 ModelBuilder::DeleteTree(int index) {
   auto& trees = pimpl_->trees;
-  TREELITE_CHECK_LT(static_cast<size_t>(index), trees.size())
+  TREELITE_CHECK_LT(static_cast<std::size_t>(index), trees.size())
     << "DeleteTree: index out of bound";
   trees.erase(trees.begin() + index);
 }
@@ -444,7 +446,7 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
   // 0: no leaf should use leaf vector
   // 1: every leaf should use leaf vector
   // -1: indeterminate
-  int8_t flag_leaf_vector = -1;
+  std::int8_t flag_leaf_vector = -1;
 
   for (const auto& tree_builder : this->trees) {
     const auto& _tree = tree_builder.pimpl_->tree;
@@ -547,7 +549,7 @@ ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_
   }
 }
 
-template Value Value::Create(uint32_t init_value);
+template Value Value::Create(std::uint32_t init_value);
 template Value Value::Create(float init_value);
 template Value Value::Create(double init_value);
 

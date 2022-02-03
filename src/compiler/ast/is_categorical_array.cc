@@ -4,6 +4,7 @@
  * \brief AST manipulation logic to determine whether each feature is categorical or not
  * \author Hyunsu Cho
  */
+#include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
@@ -29,9 +30,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::GenerateIsCategoricalArray() {
   return this->is_categorical;
 }
 
-template std::vector<bool> ASTBuilder<float, uint32_t>::GenerateIsCategoricalArray();
+template std::vector<bool> ASTBuilder<float, std::uint32_t>::GenerateIsCategoricalArray();
 template std::vector<bool> ASTBuilder<float, float>::GenerateIsCategoricalArray();
-template std::vector<bool> ASTBuilder<double, uint32_t>::GenerateIsCategoricalArray();
+template std::vector<bool> ASTBuilder<double, std::uint32_t>::GenerateIsCategoricalArray();
 template std::vector<bool> ASTBuilder<double, double>::GenerateIsCategoricalArray();
 
 }  // namespace compiler

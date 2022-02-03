@@ -25,7 +25,7 @@ class ASTNode {
   std::vector<ASTNode*> children;
   int node_id;
   int tree_id;
-  optional<uint64_t> data_count;
+  optional<std::uint64_t> data_count;
   optional<double> sum_hess;
   virtual std::string GetDump() const = 0;
   virtual ~ASTNode() = 0;  // force ASTNode to be abstract class
@@ -154,12 +154,12 @@ class NumericalConditionNode : public ConditionNode {
 class CategoricalConditionNode : public ConditionNode {
  public:
   CategoricalConditionNode(unsigned split_index, bool default_left,
-                           const std::vector<uint32_t>& matching_categories,
+                           const std::vector<std::uint32_t>& matching_categories,
                            bool categories_list_right_child)
     : ConditionNode(split_index, default_left),
       matching_categories(matching_categories),
       categories_list_right_child(categories_list_right_child) {}
-  std::vector<uint32_t> matching_categories;
+  std::vector<std::uint32_t> matching_categories;
   bool categories_list_right_child;
 
   std::string GetDump() const override {

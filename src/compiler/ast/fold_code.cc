@@ -7,6 +7,8 @@
 #include <treelite/logging.h>
 #include <limits>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
@@ -55,8 +57,8 @@ bool fold_code(ASTNode* node, CodeFoldingContext* context,
     } else {
       folder_node = builder->template AddNode<CodeFolderNode>(parent_node);
     }
-    size_t node_loc = -1;  // is current node 1st child or 2nd child or so forth
-    for (size_t i = 0; i < parent_node->children.size(); ++i) {
+    std::size_t node_loc = -1;  // is current node 1st child or 2nd child or so forth
+    for (std::size_t i = 0; i < parent_node->children.size(); ++i) {
       if (parent_node->children[i] == node) {
         node_loc = i;
         break;
@@ -91,9 +93,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::FoldCode(
   return fold_code(this->main_node, &context, this);
 }
 
-template bool ASTBuilder<float, uint32_t>::FoldCode(double, bool);
+template bool ASTBuilder<float, std::uint32_t>::FoldCode(double, bool);
 template bool ASTBuilder<float, float>::FoldCode(double, bool);
-template bool ASTBuilder<double, uint32_t>::FoldCode(double, bool);
+template bool ASTBuilder<double, std::uint32_t>::FoldCode(double, bool);
 template bool ASTBuilder<double, double>::FoldCode(double, bool);
 
 }  // namespace compiler

@@ -4,6 +4,7 @@
  * \brief Generate text representation of AST
  */
 #include <treelite/logging.h>
+#include <cstdint>
 #include "./builder.h"
 
 namespace {
@@ -31,9 +32,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::GetDump() const {
   return oss.str();
 }
 
-template std::string ASTBuilder<float, uint32_t>::GetDump() const;
+template std::string ASTBuilder<float, std::uint32_t>::GetDump() const;
 template std::string ASTBuilder<float, float>::GetDump() const;
-template std::string ASTBuilder<double, uint32_t>::GetDump() const;
+template std::string ASTBuilder<double, std::uint32_t>::GetDump() const;
 template std::string ASTBuilder<double, double>::GetDump() const;
 
 }  // namespace compiler

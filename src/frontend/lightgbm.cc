@@ -1,4 +1,6 @@
 /*!
+ * #include <cstddef>
+ * #include <cstdint>
  * Copyright (c) 2017-2021 by Contributors
  * \file lightgbm.cc
  * \brief Frontend for LightGBM model
@@ -14,6 +16,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cstddef>
+#include <cstdint>
 
 namespace {
 
@@ -46,9 +50,9 @@ inline T TextToNumber(const std::string& str) {
   static_assert(std::is_same<T, float>::value
                 || std::is_same<T, double>::value
                 || std::is_same<T, int>::value
-                || std::is_same<T, int8_t>::value
-                || std::is_same<T, uint32_t>::value
-                || std::is_same<T, uint64_t>::value,
+                || std::is_same<T, std::int8_t>::value
+                || std::is_same<T, std::uint32_t>::value
+                || std::is_same<T, std::uint64_t>::value,
                 "unsupported data type for TextToNumber; use float, double, "
                 "int, int8_t, uint32_t, or uint64_t");
 }
@@ -100,49 +104,49 @@ inline int TextToNumber(const std::string& str) {
 }
 
 template <>
-inline int8_t TextToNumber(const std::string& str) {
+inline std::int8_t TextToNumber(const std::string& str) {
   errno = 0;
   char *endptr;
   auto val = std::strtol(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val < std::numeric_limits<int8_t>::min()
-      || val > std::numeric_limits<int8_t>::max()) {
+  if (errno == ERANGE || val < std::numeric_limits<std::int8_t>::min()
+      || val > std::numeric_limits<std::int8_t>::max()) {
     TREELITE_LOG(FATAL) << "Range error while converting string to int8_t";
   } else if (errno != 0) {
     TREELITE_LOG(FATAL) << "Unknown error";
   } else if (*endptr != '\0') {
     TREELITE_LOG(FATAL) << "String does not represent a valid integer";
   }
-  return static_cast<int8_t>(val);
+  return static_cast<std::int8_t>(val);
 }
 
 template <>
-inline uint32_t TextToNumber(const std::string& str) {
+inline std::uint32_t TextToNumber(const std::string& str) {
   errno = 0;
   char *endptr;
   auto val = std::strtoul(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val > std::numeric_limits<uint32_t>::max()) {
+  if (errno == ERANGE || val > std::numeric_limits<std::uint32_t>::max()) {
     TREELITE_LOG(FATAL) << "Range error while converting string to uint32_t";
   } else if (errno != 0) {
     TREELITE_LOG(FATAL) << "Unknown error";
   } else if (*endptr != '\0') {
     TREELITE_LOG(FATAL) << "String does not represent a valid integer";
   }
-  return static_cast<uint32_t>(val);
+  return static_cast<std::uint32_t>(val);
 }
 
 template <>
-inline uint64_t TextToNumber(const std::string& str) {
+inline std::uint64_t TextToNumber(const std::string& str) {
   errno = 0;
   char *endptr;
   auto val = std::strtoull(str.c_str(), &endptr, 10);
-  if (errno == ERANGE || val > std::numeric_limits<uint64_t>::max()) {
+  if (errno == ERANGE || val > std::numeric_limits<std::uint64_t>::max()) {
     TREELITE_LOG(FATAL) << "Range error while converting string to uint64_t";
   } else if (errno != 0) {
     TREELITE_LOG(FATAL) << "Unknown error";
   } else if (*endptr != '\0') {
     TREELITE_LOG(FATAL) << "String does not represent a valid integer";
   }
-  return static_cast<uint64_t>(val);
+  return static_cast<std::uint64_t>(val);
 }
 
 inline std::vector<std::string> Split(const std::string& text, char delim) {
@@ -170,12 +174,12 @@ inline std::vector<T> TextToArray(const std::string& text, int num_entry) {
   return array;
 }
 
-enum Masks : uint8_t {
+enum Masks : std::uint8_t {
   kCategoricalMask = 1,
   kDefaultLeftMask = 2
 };
 
-enum class MissingType : uint8_t {
+enum class MissingType : std::uint8_t {
   kNone,
   kZero,
   kNaN
@@ -185,9 +189,9 @@ struct LGBTree {
   int num_leaves;
   int num_cat;  // number of categorical splits
   std::vector<double> leaf_value;
-  std::vector<int8_t> decision_type;
-  std::vector<uint64_t> cat_boundaries;
-  std::vector<uint32_t> cat_threshold;
+  std::vector<std::int8_t> decision_type;
+  std::vector<std::uint64_t> cat_boundaries;
+  std::vector<std::uint32_t> cat_threshold;
   std::vector<int> split_feature;
   std::vector<double> threshold;
   std::vector<int> left_child;
@@ -197,23 +201,23 @@ struct LGBTree {
   std::vector<int> leaf_count;
 };
 
-inline bool GetDecisionType(int8_t decision_type, int8_t mask) {
+inline bool GetDecisionType(std::int8_t decision_type, std::int8_t mask) {
   return (decision_type & mask) > 0;
 }
 
-inline MissingType GetMissingType(int8_t decision_type) {
+inline MissingType GetMissingType(std::int8_t decision_type) {
   return static_cast<MissingType>((decision_type >> 2) & 3);
 }
 
-inline std::vector<uint32_t> BitsetToList(const uint32_t* bits,
-                                          size_t nslots) {
-  std::vector<uint32_t> result;
-  const size_t nbits = nslots * 32;
-  for (size_t i = 0; i < nbits; ++i) {
-    const size_t i1 = i / 32;
-    const uint32_t i2 = static_cast<uint32_t>(i % 32);
+inline std::vector<std::uint32_t> BitsetToList(const std::uint32_t* bits,
+                                          std::size_t nslots) {
+  std::vector<std::uint32_t> result;
+  const std::size_t nbits = nslots * 32;
+  for (std::size_t i = 0; i < nbits; ++i) {
+    const std::size_t i1 = i / 32;
+    const std::uint32_t i2 = static_cast<std::uint32_t>(i % 32);
     if ((bits[i1] >> i2) & 1) {
-      result.push_back(static_cast<uint32_t>(i));
+      result.push_back(static_cast<std::uint32_t>(i));
     }
   }
   return result;
@@ -309,15 +313,15 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
 
     it = dict.find("decision_type");
     if (tree.num_leaves <= 1) {
-      tree.decision_type = std::vector<int8_t>();
+      tree.decision_type = std::vector<std::int8_t>();
     } else {
       TREELITE_CHECK_GT(tree.num_leaves, 1);
       if (it == dict.end()) {
-        tree.decision_type = std::vector<int8_t>(tree.num_leaves - 1, 0);
+        tree.decision_type = std::vector<std::int8_t>(tree.num_leaves - 1, 0);
       } else {
         TREELITE_CHECK(!it->second.empty())
           << "Ill-formed LightGBM model file: decision_type cannot be empty string";
-        tree.decision_type = TextToArray<int8_t>(it->second, tree.num_leaves - 1);
+        tree.decision_type = TextToArray<std::int8_t>(it->second, tree.num_leaves - 1);
       }
     }
 
@@ -326,12 +330,13 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       TREELITE_CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_boundaries";
       tree.cat_boundaries
-        = TextToArray<uint64_t>(it->second, tree.num_cat + 1);
+        = TextToArray<std::uint64_t>(it->second, tree.num_cat + 1);
       it = dict.find("cat_threshold");
       TREELITE_CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need cat_threshold";
       tree.cat_threshold
-        = TextToArray<uint32_t>(it->second, static_cast<uint32_t>(tree.cat_boundaries.back()));
+        = TextToArray<std::uint32_t>(it->second,
+                                     static_cast<std::uint32_t>(tree.cat_boundaries.back()));
     }
 
     it = dict.find("split_feature");
@@ -446,7 +451,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         break;
       }
     }
-    TREELITE_CHECK(num_class >= 0 && static_cast<size_t>(num_class) == model->task_param.num_class)
+    TREELITE_CHECK(num_class >= 0 && static_cast<std::size_t>(num_class) == model->task_param.num_class)
       << "Ill-formed LightGBM model file: not a valid multiclass objective";
 
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
@@ -468,7 +473,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         }
       }
     }
-    TREELITE_CHECK(num_class >= 0 && static_cast<size_t>(num_class) == model->task_param.num_class
+    TREELITE_CHECK(num_class >= 0
+                   && static_cast<std::size_t>(num_class) == model->task_param.num_class
                    && alpha > 0.0f)
       << "Ill-formed LightGBM model file: not a valid multiclassova objective";
 
@@ -546,7 +552,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         if (!lgb_tree.leaf_count.empty()) {
           const int data_count = lgb_tree.leaf_count[~old_id];
           TREELITE_CHECK_GE(data_count, 0);
-          tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+          tree.SetDataCount(new_id, static_cast<std::size_t>(data_count));
         }
       } else {  // non-leaf
         const auto split_index = static_cast<unsigned>(lgb_tree.split_feature[old_id]);
@@ -556,7 +562,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         if (GetDecisionType(lgb_tree.decision_type[old_id], kCategoricalMask)) {
           // categorical split
           const int cat_idx = static_cast<int>(lgb_tree.threshold[old_id]);
-          const std::vector<uint32_t> left_categories
+          const std::vector<std::uint32_t> left_categories
             = BitsetToList(lgb_tree.cat_threshold.data()
                              + lgb_tree.cat_boundaries[cat_idx],
                            lgb_tree.cat_boundaries[cat_idx + 1]
@@ -582,7 +588,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         if (!lgb_tree.internal_count.empty()) {
           const int data_count = lgb_tree.internal_count[old_id];
           TREELITE_CHECK_GE(data_count, 0);
-          tree.SetDataCount(new_id, static_cast<size_t>(data_count));
+          tree.SetDataCount(new_id, static_cast<std::size_t>(data_count));
         }
         if (!lgb_tree.split_gain.empty()) {
           tree.SetGain(new_id, static_cast<double>(lgb_tree.split_gain[old_id]));

@@ -8,23 +8,25 @@
 #define TREELITE_COMPILER_COMMON_CATEGORICAL_BITMAP_H_
 
 #include <vector>
+#include <cstddef>
+#include <cstdint>
 
 namespace treelite {
 namespace compiler {
 namespace common_util {
 
-inline std::vector<uint64_t>
-GetCategoricalBitmap(const std::vector<uint32_t>& matching_categories) {
-  const size_t num_matching_categories = matching_categories.size();
+inline std::vector<std::uint64_t>
+GetCategoricalBitmap(const std::vector<std::uint32_t>& matching_categories) {
+  const std::size_t num_matching_categories = matching_categories.size();
   if (num_matching_categories == 0) {
-    return std::vector<uint64_t>{0};
+    return std::vector<std::uint64_t>{0};
   }
-  const uint32_t max_matching_category = matching_categories[num_matching_categories - 1];
-  std::vector<uint64_t> bitmap((max_matching_category + 1 + 63) / 64, 0);
-  for (uint32_t cat : matching_categories) {
-    const size_t idx = cat / 64;
-    const uint32_t offset = cat % 64;
-    bitmap[idx] |= (static_cast<uint64_t>(1) << offset);
+  const std::uint32_t max_matching_category = matching_categories[num_matching_categories - 1];
+  std::vector<std::uint64_t> bitmap((max_matching_category + 1 + 63) / 64, 0);
+  for (std::uint32_t cat : matching_categories) {
+    const std::size_t idx = cat / 64;
+    const std::uint32_t offset = cat % 64;
+    bitmap[idx] |= (static_cast<std::uint64_t>(1) << offset);
   }
   return bitmap;
 }

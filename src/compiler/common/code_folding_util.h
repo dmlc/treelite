@@ -14,6 +14,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <cstddef>
 #include "../ast/ast.h"
 #include "./format_util.h"
 #include "./categorical_bitmap.h"
@@ -44,8 +46,8 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   // list of all OutputNode's among the descendants
   std::vector<OutputNode<LeafOutputType>*> output_nodes;
   // two arrays used to store categorical split info
-  std::vector<uint64_t> cat_bitmap;
-  std::vector<size_t> cat_begin{0};
+  std::vector<std::uint64_t> cat_bitmap;
+  std::vector<std::size_t> cat_begin{0};
 
   // 1. Assign new continuous node ID's (0, 1, 2, ...) by traversing the
   // subtree breadth-first
@@ -116,7 +118,7 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
           default_left = t3->default_left;
           split_index = t3->split_index;
           threshold = "-1";  // dummy value
-          std::vector<uint64_t> bitmap = GetCategoricalBitmap(t3->matching_categories);
+          std::vector<std::uint64_t> bitmap = GetCategoricalBitmap(t3->matching_categories);
           cat_bitmap.insert(cat_bitmap.end(), bitmap.begin(), bitmap.end());
           cat_begin.push_back(cat_bitmap.size());
         }
@@ -146,14 +148,14 @@ RenderCodeFolderArrays(const CodeFolderNode* node,
   } else {
     {
       ArrayFormatter formatter(80, 2);
-      for (uint64_t e : cat_bitmap) {
+      for (std::uint64_t e : cat_bitmap) {
         formatter << fmt::format("{:#X}", e);
       }
       *array_cat_bitmap = formatter.str();
     }
     {
       ArrayFormatter formatter(80, 2);
-      for (size_t e : cat_begin) {
+      for (std::size_t e : cat_begin) {
         formatter << e;
       }
       *array_cat_begin = formatter.str();

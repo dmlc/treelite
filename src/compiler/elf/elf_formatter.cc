@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstring>
+#include <cstddef>
 #include "./elf_formatter.h"
 
 #ifdef __linux__
@@ -29,8 +30,8 @@ const char ident_str[EI_NIDENT] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // EI_PAD: reserved
 };
 
-void AppendToBuffer(std::vector<char>* dest, const void* src, size_t count) {
-  const size_t beg = dest->size();
+void AppendToBuffer(std::vector<char>* dest, const void* src, std::size_t count) {
+  const std::size_t beg = dest->size();
   dest->resize(beg + count);
   std::memcpy(dest->data() + beg, src, count);
 }
@@ -45,12 +46,12 @@ void AllocateELFHeader(std::vector<char>* elf_buffer) {
 }
 
 void FormatArrayAsELF(std::vector<char>* elf_buffer) {
-  const size_t array_size = elf_buffer->size() - sizeof(Elf64_Ehdr);
+  const std::size_t array_size = elf_buffer->size() - sizeof(Elf64_Ehdr);
 
   /* Format compiler information string */
   const char comment[] = "\0GCC: (Ubuntu 7.4.0-1ubuntu1~18.04.1) 7.4.0\0\0\0\0";
     // padding added at the end so that the following section (.symtab) is 8-byte aligned.
-  const size_t comment_padding = 4;  // remember how many NUL letters we added for padding
+  const std::size_t comment_padding = 4;  // remember how many NUL letters we added for padding
   static_assert(sizeof(comment) == 48, ".comment section has incorrect size");
 
   /* Format symbol table */
@@ -85,14 +86,14 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
   const char shstrtab[] = "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.lrodata\0.comment\0"
                           ".note.GNU-stack\0\0";
     // padding added at the end to ensure 4-byte alignment everywhere
-  const size_t shstrtab_padding = 2;  // remember how many NUL letters we added for padding
+  const std::size_t shstrtab_padding = 2;  // remember how many NUL letters we added for padding
   static_assert(sizeof(shstrtab) == 80, ".shstrtab has incorrect size");
 
   /* Format ELF header */
   Elf64_Ehdr elf_header;
   // Compute e_shoff, section header table's offset.
-  const size_t e_shoff = sizeof(elf_header) + array_size + sizeof(comment)
-                         + sizeof(symtab) + sizeof(strtab) + sizeof(shstrtab);
+  const std::size_t e_shoff = sizeof(elf_header) + array_size + sizeof(comment)
+                              + sizeof(symtab) + sizeof(strtab) + sizeof(shstrtab);
 
   std::memcpy(elf_header.e_ident, ident_str, EI_NIDENT);
   elf_header.e_type = ET_REL;         // A relocatable (object) file
@@ -148,7 +149,7 @@ void FormatArrayAsELF(std::vector<char>* elf_buffer) {
   };
   // Compute offsets via cumulative sums
   section_header[1].sh_offset = 0x40;
-  for (size_t i = 2; i < sizeof(section_header) / sizeof(Elf64_Shdr); ++i) {
+  for (std::size_t i = 2; i < sizeof(section_header) / sizeof(Elf64_Shdr); ++i) {
     section_header[i].sh_offset = section_header[i - 1].sh_offset + section_header[i - 1].sh_size;
   }
   // Adjust size info so that padding is excluded

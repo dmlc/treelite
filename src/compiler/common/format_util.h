@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cstddef>
 
 namespace treelite {
 namespace compiler {
@@ -24,7 +25,7 @@ namespace common_util {
  * \return indented string
  */
 inline std::string IndentMultiLineString(const std::string& str,
-                                         size_t indent = 2) {
+                                         std::size_t indent = 2) {
   std::ostringstream oss;
   if (str[0] != '\n') {
     oss << std::string(indent, ' ');
@@ -64,7 +65,7 @@ class ArrayFormatter {
    * \param indent indentation level
    * \param delimiter delimiter between elements
    */
-  ArrayFormatter(size_t text_width, size_t indent, char delimiter = ',')
+  ArrayFormatter(std::size_t text_width, std::size_t indent, char delimiter = ',')
     : oss_(), text_width_(text_width), indent_(indent), delimiter_(delimiter),
       default_precision_(static_cast<int>(oss_.precision())), line_length_(indent),
       is_empty_(true) {}
@@ -102,11 +103,11 @@ class ArrayFormatter {
 
  private:
   std::ostringstream oss_;  // string stream to store wrapped text
-  const size_t text_width_;  // maximum length of each line
-  const size_t indent_;  // indent level, to indent each line
+  const std::size_t text_width_;  // maximum length of each line
+  const std::size_t indent_;  // indent level, to indent each line
   const char delimiter_;  // delimiter (defaults to comma)
   const int default_precision_;  // default precision used by string stream
-  size_t line_length_;  // width of current line
+  std::size_t line_length_;  // width of current line
   bool is_empty_;  // true if no entry has been added yet
 
   template <typename T>

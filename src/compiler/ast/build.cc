@@ -3,6 +3,8 @@
  * \file build.cc
  * \brief Build AST from a given model
  */
+#include <cstddef>
+#include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
@@ -22,7 +24,7 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildAST(
                                                model.num_feature);
   ASTNode* ac = AddNode<AccumulatorContextNode>(this->main_node);
   this->main_node->children.push_back(ac);
-  for (size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
+  for (std::size_t tree_id = 0; tree_id < model.trees.size(); ++tree_id) {
     ASTNode* tree_head = BuildASTFromTree(model.trees[tree_id], static_cast<int>(tree_id), 0, ac);
     ac->children.push_back(tree_head);
   }
@@ -76,16 +78,16 @@ ASTBuilder<ThresholdType, LeafOutputType>::BuildASTFromTree(
 }
 
 
-template void ASTBuilder<float, uint32_t>::BuildAST(const ModelImpl<float, uint32_t>&);
+template void ASTBuilder<float, std::uint32_t>::BuildAST(const ModelImpl<float, std::uint32_t>&);
 template void ASTBuilder<float, float>::BuildAST(const ModelImpl<float, float>&);
-template void ASTBuilder<double, uint32_t>::BuildAST(const ModelImpl<double, uint32_t>&);
+template void ASTBuilder<double, std::uint32_t>::BuildAST(const ModelImpl<double, std::uint32_t>&);
 template void ASTBuilder<double, double>::BuildAST(const ModelImpl<double, double>&);
-template ASTNode* ASTBuilder<float, uint32_t>::BuildASTFromTree(
-    const Tree<float, uint32_t>&, int, int, ASTNode*);
+template ASTNode* ASTBuilder<float, std::uint32_t>::BuildASTFromTree(
+    const Tree<float, std::uint32_t>&, int, int, ASTNode*);
 template ASTNode* ASTBuilder<float, float>::BuildASTFromTree(
     const Tree<float, float>&, int, int, ASTNode*);
-template ASTNode* ASTBuilder<double, uint32_t>::BuildASTFromTree(
-    const Tree<double, uint32_t>&, int, int, ASTNode*);
+template ASTNode* ASTBuilder<double, std::uint32_t>::BuildASTFromTree(
+    const Tree<double, std::uint32_t>&, int, int, ASTNode*);
 template ASTNode* ASTBuilder<double, double>::BuildASTFromTree(
     const Tree<double, double>&, int, int, ASTNode*);
 

@@ -9,6 +9,7 @@
 #define TREELITE_FRONTEND_IMPL_H_
 
 #include <string>
+#include <cstdint>
 
 namespace treelite {
 namespace frontend {
@@ -18,7 +19,7 @@ inline auto
 Value::Dispatch(Func func) {
   switch (type_) {
   case TypeInfo::kUInt32:
-    return func(Get<uint32_t>());
+    return func(Get<std::uint32_t>());
   case TypeInfo::kFloat32:
     return func(Get<float>());
   case TypeInfo::kFloat64:
@@ -35,7 +36,7 @@ inline auto
 Value::Dispatch(Func func) const {
   switch (type_) {
   case TypeInfo::kUInt32:
-    return func(Get<uint32_t>());
+    return func(Get<std::uint32_t>());
   case TypeInfo::kFloat32:
     return func(Get<float>());
   case TypeInfo::kFloat64:

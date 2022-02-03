@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <limits>
 #include <vector>
+#include <cstdint>
+#include <cstddef>
 #include "./treelite4j.h"
 
 namespace {
@@ -15,7 +17,7 @@ void setHandle(JNIEnv* jenv, jlongArray jhandle, void* handle) {
 #ifdef __APPLE__
   auto out = static_cast<jlong>(reinterpret_cast<long>(handle));
 #else
-  auto out = reinterpret_cast<int64_t>(handle);
+  auto out = reinterpret_cast<std::int64_t>(handle);
 #endif
   jenv->SetLongArrayRegion(jhandle, 0, 1, &out);
 }
@@ -52,9 +54,9 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromCSRWithFloat32
   jlong* row_ptr = jenv->GetLongArrayElements(jrow_ptr, nullptr);
   DMatrixHandle out = nullptr;
   const int ret = TreeliteDMatrixCreateFromCSR(
-      static_cast<const void*>(data), "float32", reinterpret_cast<const uint32_t*>(col_ind),
-      reinterpret_cast<const size_t*>(row_ptr), static_cast<size_t>(jnum_row),
-      static_cast<size_t>(jnum_col), &out);
+      static_cast<const void*>(data), "float32", reinterpret_cast<const std::uint32_t*>(col_ind),
+      reinterpret_cast<const std::size_t*>(row_ptr), static_cast<std::size_t>(jnum_row),
+      static_cast<std::size_t>(jnum_col), &out);
   setHandle(jenv, jout, out);
   // release arrays
   jenv->ReleaseFloatArrayElements(jdata, data, 0);
@@ -78,9 +80,9 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromCSRWithFloat64
   jlong* row_ptr = jenv->GetLongArrayElements(jrow_ptr, nullptr);
   DMatrixHandle out = nullptr;
   const int ret = TreeliteDMatrixCreateFromCSR(
-      static_cast<const void*>(data), "float64", reinterpret_cast<const uint32_t*>(col_ind),
-      reinterpret_cast<const size_t*>(row_ptr), static_cast<size_t>(jnum_row),
-      static_cast<size_t>(jnum_col), &out);
+      static_cast<const void*>(data), "float64", reinterpret_cast<const std::uint32_t*>(col_ind),
+      reinterpret_cast<const std::size_t*>(row_ptr), static_cast<std::size_t>(jnum_row),
+      static_cast<std::size_t>(jnum_col), &out);
   setHandle(jenv, jout, out);
   // release arrays
   jenv->ReleaseDoubleArrayElements(jdata, data, 0);
@@ -103,8 +105,8 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromMatWithFloat32
   float missing_value = static_cast<float>(jmissing_value);
   DMatrixHandle out = nullptr;
   const int ret = TreeliteDMatrixCreateFromMat(
-      static_cast<const void*>(data), "float32", static_cast<size_t>(jnum_row),
-      static_cast<size_t>(jnum_col), &missing_value, &out);
+      static_cast<const void*>(data), "float32", static_cast<std::size_t>(jnum_row),
+      static_cast<std::size_t>(jnum_col), &missing_value, &out);
   setHandle(jenv, jout, out);
   // release arrays
   jenv->ReleaseFloatArrayElements(jdata, data, 0);
@@ -125,8 +127,8 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixCreateFromMatWithFloat64
   double missing_value = static_cast<double>(jmissing_value);
   DMatrixHandle out = nullptr;
   const int ret = TreeliteDMatrixCreateFromMat(
-      static_cast<const void*>(data), "float64", static_cast<size_t>(jnum_row),
-      static_cast<size_t>(jnum_col), &missing_value, &out);
+      static_cast<const void*>(data), "float64", static_cast<std::size_t>(jnum_row),
+      static_cast<std::size_t>(jnum_col), &missing_value, &out);
   setHandle(jenv, jout, out);
   // release arrays
   jenv->ReleaseDoubleArrayElements(jdata, data, 0);
@@ -144,7 +146,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreeliteDMatrixGetDimension(
     JNIEnv* jenv, jclass jcls, jlong jmat, jlongArray jout_num_row, jlongArray jout_num_col,
     jlongArray jout_nelem) {
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jmat);
-  size_t num_row = 0, num_col = 0, num_elem = 0;
+  std::size_t num_row = 0, num_col = 0, num_elem = 0;
   const int ret = TreeliteDMatrixGetDimension(dmat, &num_row, &num_col, &num_elem);
   // save dimensions
   jlong* out_num_row = jenv->GetLongArrayElements(jout_num_row, nullptr);
@@ -200,7 +202,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithFloat3
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jbatch);
   jfloat* out_result = jenv->GetFloatArrayElements(jout_result, nullptr);
   jlong* out_result_size = jenv->GetLongArrayElements(jout_result_size, nullptr);
-  size_t out_result_size_tmp = 0;
+  std::size_t out_result_size_tmp = 0;
   const int ret = TreelitePredictorPredictBatch(
       predictor, dmat, (jverbose == JNI_TRUE ? 1 : 0),
       (jpred_margin == JNI_TRUE ? 1 : 0), static_cast<void*>(out_result),
@@ -226,7 +228,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithFloat6
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jbatch);
   jdouble* out_result = jenv->GetDoubleArrayElements(jout_result, nullptr);
   jlong* out_result_size = jenv->GetLongArrayElements(jout_result_size, nullptr);
-  size_t out_result_size_tmp = 0;
+  std::size_t out_result_size_tmp = 0;
   const int ret = TreelitePredictorPredictBatch(
       predictor, dmat, (jverbose == JNI_TRUE ? 1 : 0),
       (jpred_margin == JNI_TRUE ? 1 : 0), static_cast<void*>(out_result),
@@ -251,10 +253,10 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorPredictBatchWithUInt32
   API_BEGIN();
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jbatch);
-  TREELITE_CHECK_EQ(sizeof(jint), sizeof(uint32_t));
+  TREELITE_CHECK_EQ(sizeof(jint), sizeof(std::uint32_t));
   jint* out_result = jenv->GetIntArrayElements(jout_result, nullptr);
   jlong* out_result_size = jenv->GetLongArrayElements(jout_result_size, nullptr);
-  size_t out_result_size_tmp = 0;
+  std::size_t out_result_size_tmp = 0;
   const int ret = TreelitePredictorPredictBatch(
       predictor, dmat, (jverbose == JNI_TRUE ? 1 : 0),
       (jpred_margin == JNI_TRUE ? 1 : 0), static_cast<void*>(out_result),
@@ -278,7 +280,7 @@ Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryResultSize(
     JNIEnv* jenv, jclass jcls, jlong jpredictor, jlong jbatch, jlongArray jout) {
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
   DMatrixHandle dmat = reinterpret_cast<DMatrixHandle>(jbatch);
-  size_t result_size = 0;
+  std::size_t result_size = 0;
   const int ret = TreelitePredictorQueryResultSize(predictor, dmat, &result_size);
   // store dimension
   jlong* out = jenv->GetLongArrayElements(jout, nullptr);
@@ -297,7 +299,7 @@ JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumClass(
     JNIEnv* jenv, jclass jcls, jlong jpredictor, jlongArray jout) {
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
-  size_t num_class = 0;
+  std::size_t num_class = 0;
   const int ret = TreelitePredictorQueryNumClass(predictor, &num_class);
   // store dimension
   jlong* out = jenv->GetLongArrayElements(jout, nullptr);
@@ -316,7 +318,7 @@ JNIEXPORT jint JNICALL
 Java_ml_dmlc_treelite4j_java_TreeliteJNI_TreelitePredictorQueryNumFeature(
     JNIEnv* jenv, jclass jcls, jlong jpredictor, jlongArray jout) {
   PredictorHandle predictor = reinterpret_cast<PredictorHandle>(jpredictor);
-  size_t num_feature = 0;
+  std::size_t num_feature = 0;
   const int ret = TreelitePredictorQueryNumFeature(predictor, &num_feature);
   // store dimension
   jlong* out = jenv->GetLongArrayElements(jout, nullptr);

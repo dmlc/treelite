@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstddef>
+#include <cstdint>
 
 namespace {
 
@@ -465,7 +466,7 @@ inline void WriteScalarToFile(T* scalar, FILE* fp) {
 
 template <typename T>
 inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
-  uint64_t nelem;
+  std::uint64_t nelem;
   if (std::fread(&nelem, sizeof(nelem), 1, fp) < 1) {
     throw std::runtime_error("Could not read the number of elements");
   }
@@ -482,8 +483,8 @@ inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
 
 template <typename T>
 inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
-  static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too large");
-  const auto nelem = static_cast<uint64_t>(vec->Size());
+  static_assert(sizeof(std::uint64_t) >= sizeof(std::size_t), "size_t too large");
+  const auto nelem = static_cast<std::uint64_t>(vec->Size());
   if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
     throw std::runtime_error("Could not write the number of elements");
   }
@@ -675,7 +676,7 @@ Tree<ThresholdType, LeafOutputType>::GetCategoricalFeatures() const {
     const SplitFeatureType type = SplitType(nid);
     if (type != SplitFeatureType::kNone) {
       const bool flag = (type == SplitFeatureType::kCategorical);
-      const uint32_t split_index = SplitIndex(nid);
+      const std::uint32_t split_index = SplitIndex(nid);
       if (tmp.count(split_index) == 0) {
         tmp[split_index] = flag;
       } else {
@@ -716,7 +717,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     int nid, unsigned split_index, bool default_left,
-    const std::vector<uint32_t>& categories_list, bool categories_list_right_child) {
+    const std::vector<std::uint32_t>& categories_list, bool categories_list_right_child) {
   if (split_index >= ((1U << 31U) - 1)) {
     throw std::runtime_error("split_index too big");
   }
@@ -913,7 +914,7 @@ ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
-  const auto num_tree = static_cast<uint64_t>(this->trees.size());
+  const auto num_tree = static_cast<std::uint64_t>(this->trees.size());
   WriteScalarToFile(&num_tree, dest_fp);
   auto header_primitive_field_handler = [dest_fp](auto* field) {
     WriteScalarToFile(field, dest_fp);
@@ -955,7 +956,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) {
-  uint64_t num_tree;
+  std::uint64_t num_tree;
   ReadScalarFromFile(&num_tree, src_fp);
 
   auto header_field_handler = [src_fp](auto* field) {

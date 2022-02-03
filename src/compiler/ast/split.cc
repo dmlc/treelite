@@ -4,6 +4,7 @@
  * \brief Split prediction subroutine into multiple translation units (files)
  */
 #include <treelite/logging.h>
+#include <cstdint>
 #include "./builder.h"
 
 namespace treelite {
@@ -67,9 +68,9 @@ ASTBuilder<ThresholdType, LeafOutputType>::Split(int parallel_comp) {
   top_ac_node->children = tu_list;
 }
 
-template void ASTBuilder<float, uint32_t>::Split(int);
+template void ASTBuilder<float, std::uint32_t>::Split(int);
 template void ASTBuilder<float, float>::Split(int);
-template void ASTBuilder<double, uint32_t>::Split(int);
+template void ASTBuilder<double, std::uint32_t>::Split(int);
 template void ASTBuilder<double, double>::Split(int);
 
 }  // namespace compiler

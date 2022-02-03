@@ -13,6 +13,7 @@
 #include <exception>
 #include <mutex>
 #include <cstddef>
+#include <cstdint>
 
 namespace treelite {
 namespace threading_utils {

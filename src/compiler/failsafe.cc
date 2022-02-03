@@ -18,6 +18,8 @@
 #include <tuple>
 #include <utility>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include "./failsafe.h"
 #include "./pred_transform.h"
 #include "./common/format_util.h"
@@ -157,7 +159,7 @@ inline std::pair<std::string, std::string> FormatNodesArray(
           << "categorical splits are not supported in FailSafeCompiler";
         nodes << fmt::format("{{ 0x{sindex:X}, {info}, {cleft}, {cright} }}",
             "sindex"_a
-              = (tree.SplitIndex(nid) |(static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31U)),
+              = (tree.SplitIndex(nid) |(static_cast<std::uint32_t>(tree.DefaultLeft(nid)) << 31U)),
             "info"_a = treelite::compiler::common_util::ToStringHighPrecision(tree.Threshold(nid)),
             "cleft"_a = tree.LeftChild(nid),
             "cright"_a = tree.RightChild(nid));
@@ -191,10 +193,10 @@ inline std::pair<std::vector<char>, std::string> FormatNodesArrayELF(
         TREELITE_CHECK(tree.SplitType(nid) == treelite::SplitFeatureType::kNumerical
                        && tree.MatchingCategories(nid).empty())
           << "categorical splits are not supported in FailSafeCompiler";
-        val = {(tree.SplitIndex(nid) | (static_cast<uint32_t>(tree.DefaultLeft(nid)) << 31)),
+        val = {(tree.SplitIndex(nid) | (static_cast<std::uint32_t>(tree.DefaultLeft(nid)) << 31)),
                static_cast<float>(tree.Threshold(nid)), tree.LeftChild(nid), tree.RightChild(nid)};
       }
-      const size_t beg = nodes_elf.size();
+      const std::size_t beg = nodes_elf.size();
       nodes_elf.resize(beg + sizeof(NodeStructValue));
       std::memcpy(&nodes_elf[beg], &val, sizeof(NodeStructValue));
     }
@@ -353,7 +355,7 @@ class FailSafeCompilerImpl {
       std::vector<std::string> extra_file_list;
       for (const auto& kv : files_) {
         if (EndsWith(kv.first, ".c")) {
-          const size_t line_count
+          const std::size_t line_count
             = std::count(kv.second.content.begin(), kv.second.content.end(), '\n');
           writer.StartObject();
           writer.Key("name");

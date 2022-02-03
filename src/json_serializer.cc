@@ -21,7 +21,7 @@ namespace {
 template <typename WriterType, typename T,
     typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
 void WriteElement(WriterType& writer, T e) {
-  writer.Uint64(static_cast<uint64_t>(e));
+  writer.Uint64(static_cast<std::uint64_t>(e));
 }
 
 template <typename WriterType, typename T,
@@ -72,7 +72,7 @@ void WriteNode(WriterType& writer,
       writer.Bool(tree.CategoriesListRightChild(node_id));
       writer.Key("matching_categories");
       writer.StartArray();
-      for (uint32_t e : tree.MatchingCategories(node_id)) {
+      for (std::uint32_t e : tree.MatchingCategories(node_id)) {
         writer.Uint(e);
       }
       writer.EndArray();
@@ -194,9 +194,9 @@ ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(std::ostream& fo, bool pret
   }
 }
 
-template void ModelImpl<float, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<float, float>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, double>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
+template void ModelImpl<float, std::uint32_t>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<float, float>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<double, std::uint32_t>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<double, double>::DumpAsJSON(std::ostream&, bool) const;
 
 }  // namespace treelite

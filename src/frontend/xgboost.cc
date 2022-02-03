@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cstring>
 #include <cstdint>
+#include <cstddef>
 
 namespace {
 
@@ -31,7 +32,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(const char* filename) {
   return ParseStream(fi);
 }
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(const void* buf, size_t len) {
+std::unique_ptr<treelite::Model> LoadXGBoostModel(const void* buf, std::size_t len) {
   std::istringstream fi(std::string(static_cast<const char*>(buf), len));
   return ParseStream(fi);
 }
@@ -47,13 +48,13 @@ typedef float bst_float;
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
  public:
-  const size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
+  const std::size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
 
   explicit PeekableInputStream(std::istream& fi)
     : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
 
-  inline size_t Read(void* ptr, size_t size) {
-    const size_t bytes_buffered = BytesBuffered();
+  inline std::size_t Read(void* ptr, std::size_t size) {
+    const std::size_t bytes_buffered = BytesBuffered();
     char* cptr = static_cast<char*>(ptr);
     if (size <= bytes_buffered) {
       // all content already buffered; consume buffer
@@ -68,7 +69,7 @@ class PeekableInputStream {
       }
       return size;
     } else {  // consume buffer entirely and read more bytes
-      const size_t bytes_to_read = size - bytes_buffered;
+      const std::size_t bytes_to_read = size - bytes_buffered;
       if (begin_ptr_ <= end_ptr_) {
         std::memcpy(cptr, &buf_[begin_ptr_], bytes_buffered);
       } else {
@@ -82,15 +83,15 @@ class PeekableInputStream {
     }
   }
 
-  inline size_t PeekRead(void* ptr, size_t size) {
+  inline std::size_t PeekRead(void* ptr, std::size_t size) {
     TREELITE_CHECK_LE(size, MAX_PEEK_WINDOW)
       << "PeekableInputStream allows peeking up to "
       << MAX_PEEK_WINDOW << " bytes";
     char* cptr = static_cast<char*>(ptr);
-    const size_t bytes_buffered = BytesBuffered();
+    const std::size_t bytes_buffered = BytesBuffered();
     /* fill buffer with additional bytes, up to size */
     if (size > bytes_buffered) {
-      const size_t bytes_to_read = size - bytes_buffered;
+      const std::size_t bytes_to_read = size - bytes_buffered;
       if (end_ptr_ + bytes_to_read < MAX_PEEK_WINDOW + 1) {
         istm_.read(&buf_[end_ptr_], bytes_to_read);
         TREELITE_CHECK_EQ(istm_.gcount(), bytes_to_read)
@@ -98,9 +99,9 @@ class PeekableInputStream {
         end_ptr_ += bytes_to_read;
       } else {
         istm_.read(&buf_[end_ptr_], MAX_PEEK_WINDOW + 1 - end_ptr_);
-        size_t first_read = istm_.gcount();
+        std::size_t first_read = istm_.gcount();
         istm_.read(&buf_[0], bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1);
-        size_t second_read = istm_.gcount();
+        std::size_t second_read = istm_.gcount();
         TREELITE_CHECK_EQ(first_read + second_read, bytes_to_read)
           << "Ill-formed XGBoost model: Failed to peek " << size << " bytes";
         end_ptr_ = bytes_to_read + end_ptr_ - MAX_PEEK_WINDOW - 1;
@@ -120,9 +121,9 @@ class PeekableInputStream {
  private:
   std::istream& istm_;
   std::vector<char> buf_;
-  size_t begin_ptr_, end_ptr_;
+  std::size_t begin_ptr_, end_ptr_;
 
-  inline size_t BytesBuffered() {
+  inline std::size_t BytesBuffered() {
     if (begin_ptr_ <= end_ptr_) {  // usual case
       return end_ptr_ - begin_ptr_;
     } else {  // context wrapped around the end
@@ -132,7 +133,7 @@ class PeekableInputStream {
 };
 
 template <typename T>
-inline void CONSUME_BYTES(const T& fi, size_t size) {
+inline void CONSUME_BYTES(const T& fi, std::size_t size) {
   static std::vector<char> dummy(500);
   if (size > dummy.size()) dummy.resize(size);
   TREELITE_CHECK_EQ(fi->Read(&dummy[0], size), size)
@@ -146,8 +147,8 @@ struct LearnerModelParam {
   int num_class;
   int contain_extra_attrs;
   int contain_eval_metrics;
-  uint32_t major_version;
-  uint32_t minor_version;
+  std::uint32_t major_version;
+  std::uint32_t minor_version;
   int pad2[27];
 };
 static_assert(sizeof(LearnerModelParam) == 136, "This is the size defined in XGBoost.");
@@ -157,7 +158,7 @@ struct GBTreeModelParam {
   int num_roots;
   int num_feature;
   int pad1;
-  int64_t pad2;
+  std::int64_t pad2;
   int num_output_group;
   int size_leaf_vector;
   int pad3[32];
@@ -310,7 +311,7 @@ class XGBTree {
              sizeof(NodeStat) * stats.size())
      << "Ill-formed XGBoost model file: cannot read specified number of nodes";
     if (param.size_leaf_vector != 0) {
-      uint64_t len;
+      std::uint64_t len;
       TREELITE_CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
        << "Ill-formed XGBoost model file";
       if (len > 0) {
@@ -346,7 +347,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   TREELITE_CHECK_EQ(fp->Read(&mparam_, sizeof(mparam_)), sizeof(mparam_))
       << "Ill-formed XGBoost model file: corrupted header";
   {
-    uint64_t len;
+    std::uint64_t len;
     TREELITE_CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
      << "Ill-formed XGBoost model file: corrupted header";
     if (len != 0) {
@@ -357,7 +358,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   {
-    uint64_t len;
+    std::uint64_t len;
     TREELITE_CHECK_EQ(fp->Read(&len, sizeof(len)), sizeof(len))
       << "Ill-formed XGBoost model file: corrupted header";
     name_gbm_.resize(len);
@@ -385,18 +386,18 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {
-    TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
-             sizeof(int32_t) * tree_info.size());
+    TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(std::int32_t) * tree_info.size()),
+             sizeof(std::int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.
   std::vector<bst_float> weight_drop;
   if (name_gbm_ == "dart") {
     weight_drop.resize(gbm_param_.num_trees);
-    uint64_t sz;
-    fi.read(reinterpret_cast<char*>(&sz), sizeof(uint64_t));
+    std::uint64_t sz;
+    fi.read(reinterpret_cast<char*>(&sz), sizeof(std::uint64_t));
     TREELITE_CHECK_EQ(sz, gbm_param_.num_trees);
     if (gbm_param_.num_trees != 0) {
-      for (uint64_t i = 0; i < sz; ++i) {
+      for (std::uint64_t i = 0; i < sz; ++i) {
         fi.read(reinterpret_cast<char*>(&weight_drop[i]), sizeof(bst_float));
       }
     }

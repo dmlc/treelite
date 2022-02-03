@@ -15,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <cstdint>
+#include <cstddef>
 
 namespace treelite {
 namespace predictor {
@@ -94,8 +95,8 @@ class PredFunction {
   virtual ~PredFunction() = default;
   virtual TypeInfo GetThresholdType() const = 0;
   virtual TypeInfo GetLeafOutputType() const = 0;
-  virtual size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-                              PredictorOutputHandle out_pred) const = 0;
+  virtual std::size_t PredictBatch(const DMatrix* dmat, std::size_t rbegin, std::size_t rend,
+                                   bool pred_margin, PredictorOutputHandle out_pred) const = 0;
 };
 
 template<typename ThresholdType, typename LeafOutputType>
@@ -105,8 +106,8 @@ class PredFunctionImpl : public PredFunction {
   PredFunctionImpl(const SharedLibrary& library, int num_feature, int num_class);
   TypeInfo GetThresholdType() const override;
   TypeInfo GetLeafOutputType() const override;
-  size_t PredictBatch(const DMatrix* dmat, size_t rbegin, size_t rend, bool pred_margin,
-                      PredictorOutputHandle out_pred) const override;
+  std::size_t PredictBatch(const DMatrix* dmat, std::size_t rbegin, std::size_t rend,
+                           bool pred_margin, PredictorOutputHandle out_pred) const override;
 
  private:
   PredFuncHandle handle_;
@@ -143,7 +144,7 @@ class Predictor {
    * \return length of the output vector, which is guaranteed to be less than
    *         or equal to QueryResultSize()
    */
-  size_t PredictBatch(
+  std::size_t PredictBatch(
       const DMatrix* dmat, int verbose, bool pred_margin, PredictorOutputHandle out_result) const;
   /*!
    * \brief Given a batch of data rows, query the necessary size of array to
@@ -151,7 +152,7 @@ class Predictor {
    * \param dmat a batch of rows
    * \return length of prediction array
    */
-  inline size_t QueryResultSize(const DMatrix* dmat) const {
+  inline std::size_t QueryResultSize(const DMatrix* dmat) const {
     TREELITE_CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
     return dmat->GetNumRow() * num_class_;
   }
@@ -163,7 +164,8 @@ class Predictor {
    * \param rend end of range of rows
    * \return length of prediction array
    */
-  inline size_t QueryResultSize(const DMatrix* dmat, size_t rbegin, size_t rend) const {
+  inline std::size_t QueryResultSize(
+      const DMatrix* dmat, std::size_t rbegin, std::size_t rend) const {
     TREELITE_CHECK(pred_func_) << "A shared library needs to be loaded first using Load()";
     TREELITE_CHECK(rbegin < rend && rend <= dmat->GetNumRow());
     return (rend - rbegin) * num_class_;
@@ -174,7 +176,7 @@ class Predictor {
    * it is greater than 1 for multiclass classification.
    * \return length of prediction array
    */
-  inline size_t QueryNumClass() const {
+  inline std::size_t QueryNumClass() const {
     return num_class_;
   }
   /*!
@@ -182,7 +184,7 @@ class Predictor {
    *        the loaded model
    * \return number of features
    */
-  inline size_t QueryNumFeature() const {
+  inline std::size_t QueryNumFeature() const {
     return num_feature_;
   }
   /*!
@@ -243,8 +245,8 @@ class Predictor {
   SharedLibrary lib_;
   std::unique_ptr<PredFunction> pred_func_;
   ThreadPoolHandle thread_pool_handle_;
-  size_t num_class_;
-  size_t num_feature_;
+  std::size_t num_class_;
+  std::size_t num_feature_;
   std::string pred_transform_;
   float sigmoid_alpha_;
   float ratio_c_;

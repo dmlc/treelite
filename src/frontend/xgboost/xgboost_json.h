@@ -12,6 +12,8 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <cstddef>
 
 #ifndef TREELITE_FRONTEND_XGBOOST_XGBOOST_JSON_H_
 #define TREELITE_FRONTEND_XGBOOST_XGBOOST_JSON_H_
@@ -44,8 +46,8 @@ class BaseHandler
   virtual bool Bool(bool) { return false; }
   virtual bool Int(int) { return false; }
   virtual bool Uint(unsigned) { return false; }
-  virtual bool Int64(int64_t) { return false; }
-  virtual bool Uint64(uint64_t) { return false; }
+  virtual bool Int64(std::int64_t) { return false; }
+  virtual bool Uint64(std::uint64_t) { return false; }
   virtual bool Double(double) { return false; }
   virtual bool String(const char *, std::size_t, bool) {
     return false;
@@ -129,8 +131,8 @@ class IgnoreHandler : public BaseHandler {
   bool Bool(bool b) override;
   bool Int(int i) override;
   bool Uint(unsigned u) override;
-  bool Int64(int64_t i) override;
-  bool Uint64(uint64_t u) override;
+  bool Int64(std::int64_t i) override;
+  bool Uint64(std::uint64_t u) override;
   bool Double(double d) override;
   bool String(const char *str, std::size_t length, bool copy) override;
   bool StartObject() override;
@@ -184,8 +186,8 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
   bool Int(int i) override { return store_int<int>(i); }
   bool Uint(unsigned u) override { return store_int<unsigned>(u); }
-  bool Int64(int64_t i) override { return store_int<int64_t>(i); }
-  bool Uint64(uint64_t u) override { return store_int<uint64_t>(u); }
+  bool Int64(std::int64_t i) override { return store_int<std::int64_t>(i); }
+  bool Uint64(std::uint64_t u) override { return store_int<std::uint64_t>(u); }
 
   /* Note: This method will only be instantiated (and therefore override the
    * base `bool Double(double)` method) if ElemType is double. */
@@ -385,8 +387,8 @@ class DelegatedHandler
   bool Bool(bool b);
   bool Int(int i);
   bool Uint(unsigned u);
-  bool Int64(int64_t i);
-  bool Uint64(uint64_t u);
+  bool Int64(std::int64_t i);
+  bool Uint64(std::uint64_t u);
   bool Double(double d);
   bool String(const char *str, std::size_t length, bool copy);
   bool StartObject();

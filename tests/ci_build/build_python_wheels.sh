@@ -3,14 +3,16 @@
 set -e
 set -x
 
-if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 [platform_id] [commit ID]"
+if [[ $# -ne 3 ]]; then
+  echo "Usage: $0 [platform_id] [commit ID] [python package location]"
   exit 1
 fi
 
 platform_id=$1
 shift
 commit_id=$1
+shift
+python_pkg_root=$1
 shift
 
 # Bundle libomp 11.1.0 when targeting MacOS.
@@ -49,18 +51,20 @@ if [[ "$platform_id" == macosx_* ]]; then
     export CIBW_TEST_SKIP='*-macosx_arm64'
     export CIBW_BUILD_VERBOSITY=3
 
-    sudo conda create -n build $OPENMP_URL
-    conda info -e
-    PREFIX="$HOME/miniconda/envs/build"
+    if [[ "${NO_OPENMP}" != 1 ]]; then
+        sudo conda create -n build $OPENMP_URL
+        conda info -e
+        PREFIX="$HOME/miniconda/envs/build"
 
-    # Set up build flags for cibuildwheel
-    # This is needed to bundle libomp lib we downloaded earlier
-    export CC=/usr/bin/clang
-    export CXX=/usr/bin/clang++
-    export CPPFLAGS="$CPPFLAGS -Xpreprocessor -fopenmp"
-    export CFLAGS="$CFLAGS -I$PREFIX/include"
-    export CXXFLAGS="$CXXFLAGS -I$PREFIX/include"
-    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib -lomp"
+        # Set up build flags for cibuildwheel
+        # This is needed to bundle libomp lib we downloaded earlier
+        export CC=/usr/bin/clang
+        export CXX=/usr/bin/clang++
+        export CPPFLAGS="$CPPFLAGS -Xpreprocessor -fopenmp"
+        export CFLAGS="$CFLAGS -I$PREFIX/include"
+        export CXXFLAGS="$CXXFLAGS -I$PREFIX/include"
+        export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib -lomp"
+    fi
 else
     echo "Platform not supported: $platform_id"
     exit 2
@@ -69,9 +73,6 @@ fi
 source $HOME/miniconda/bin/activate
 conda activate python3
 python -m pip install cibuildwheel
-python -m cibuildwheel python --output-dir wheelhouse
-python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
+python -m cibuildwheel ${python_pkg_root} --output-dir wheelhouse
 python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}
-python tests/ci_build/rename_whl.py wheelhouse-runtime/*.whl ${commit_id} ${wheel_tag}
 mv -v wheelhouse/*.whl .
-mv -v wheelhouse-runtime/*.whl .

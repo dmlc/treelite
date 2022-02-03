@@ -135,7 +135,8 @@ if [ ${TASK} == "python_sdist_test" ]; then
 fi
 
 if [ ${TASK} == "python_wheels" ]; then
-  tests/ci_build/build_python_wheels.sh ${CIBW_PLATFORM_ID} ${TRAVIS_COMMIT}
+  tests/ci_build/build_python_wheels.sh ${CIBW_PLATFORM_ID} ${TRAVIS_COMMIT} python
+  NO_OPENMP=1 tests/ci_build/build_python_wheels.sh ${CIBW_PLATFORM_ID} ${TRAVIS_COMMIT} runtime/python
   # Deploy binary wheels to S3
   conda activate python3
   python --version

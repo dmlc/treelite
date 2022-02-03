@@ -9,7 +9,9 @@ if [[ $# -ne 2 ]]; then
 fi
 
 platform_id=$1
-commit_id=$2
+shift
+commit_id=$1
+shift
 
 # Bundle libomp 11.1.0 when targeting MacOS.
 # This is a workaround in order to prevent segfaults when running inside a Conda environment.

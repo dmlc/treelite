@@ -413,7 +413,8 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 TREELITE_DLL int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out);
 
 TREELITE_DLL int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row,
-                                     float* output, int pred_transform, size_t* out_result_size);
+                                     float* output, int nthread, int pred_transform,
+                                     size_t* out_result_size);
 
 /*! \} */
 

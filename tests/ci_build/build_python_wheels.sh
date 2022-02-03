@@ -63,6 +63,7 @@ else
     exit 2
 fi
 
+source $HOME/miniconda/bin/activate
 conda activate python3
 python -m pip install cibuildwheel
 python -m cibuildwheel python --output-dir wheelhouse

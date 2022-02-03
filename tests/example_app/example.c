@@ -60,9 +60,10 @@ int main() {
                       2.0f, 0.0f};
   float* output;
   size_t out_result_size;
+  int nthread = 2;
   safe_treelite(TreeliteGTILGetPredictOutputSize(model, num_row, &output_alloc_size));
   output = (float*)malloc(output_alloc_size * sizeof(float));
-  safe_treelite(TreeliteGTILPredict(model, input, num_row, output, 0, &out_result_size));
+  safe_treelite(TreeliteGTILPredict(model, input, num_row, output, nthread, 0, &out_result_size));
 
   printf("TREELITE_VERSION = %s\n", TREELITE_VERSION);
 

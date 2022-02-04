@@ -76,93 +76,109 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
                                     ThreadConfig thread_config, bool pred_transform,
                                     OutputFunc output_func) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
-  const size_t num_row = input->GetNumRow();
-  const size_t num_col = input->GetNumCol();
-  std::vector<ThresholdType> row(num_col);
+  const std::size_t num_row = input->GetNumRow();
+  const std::size_t num_col = input->GetNumCol();
+  const std::size_t num_tree = model.trees.size();
   const treelite::TaskParam task_param = model.task_param;
-  std::vector<float> sum_tloc(task_param.num_class * thread_config.nthread);
-  std::vector<float> sum_tot(task_param.num_class);
+  const unsigned num_class = task_param.num_class;
+  std::vector<ThresholdType> row_tloc(num_col * thread_config.nthread);
+  std::vector<float> sum_tloc(thread_config.nthread * num_row * num_class, 0.0f);
+  std::vector<float> sum_tot(num_row * num_class, 0.0f);
 
   // Query the size of output per input row.
-  // This is guaranteed to be at most GetPredictOutputSize(num_row=1).
   std::size_t output_size_per_row;
   if (pred_transform) {
-    std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, 1));
+    std::vector<float> temp_before_transform(num_class);
+    std::vector<float> temp_after_transform(num_class);
     PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-    output_size_per_row = pred_transform_func(model, sum_tloc.data(), temp.data());
+    output_size_per_row = pred_transform_func(model, temp_before_transform.data(),
+                                              temp_after_transform.data());
   } else {
-    output_size_per_row = task_param.num_class;
+    output_size_per_row = num_class;
   }
 
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
-  for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
-    input->FillRow(row_id, row.data());
-    std::fill(sum_tloc.begin(), sum_tloc.end(), 0.0f);
-    std::fill(sum_tot.begin(), sum_tot.end(), 0.0f);
-    const std::size_t num_tree = model.trees.size();
-    treelite::threading_utils::ParallelFor(std::size_t(0), num_tree, thread_config, sched,
-                                           [&](std::size_t tree_id, int thread_id) {
-      float* sum = &sum_tloc[thread_id * task_param.num_class];
-      const TreeType& tree = model.trees[tree_id];
-      int node_id = 0;
-      while (!tree.IsLeaf(node_id)) {
-        treelite::SplitFeatureType split_type = tree.SplitType(node_id);
-        if (split_type == treelite::SplitFeatureType::kNumerical) {
-          node_id = NextNode(row[tree.SplitIndex(node_id)], tree.Threshold(node_id),
-                             tree.ComparisonOp(node_id), tree.LeftChild(node_id),
-                             tree.RightChild(node_id), tree.DefaultChild(node_id));
-        } else if (split_type == treelite::SplitFeatureType::kCategorical) {
-          node_id = NextNodeCategorical(row[tree.SplitIndex(node_id)],
-                                        tree.MatchingCategories(node_id),
-                                        tree.CategoriesListRightChild(node_id),
-                                        tree.LeftChild(node_id), tree.RightChild(node_id),
-                                        tree.DefaultChild(node_id));
-        } else {
-          TREELITE_CHECK(false) << "Unrecognized split type: " << static_cast<int>(split_type);
-        }
-      }
-      output_func(tree, tree_id, node_id, sum);
-    });
-    for (int thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
-      for (unsigned i = 0; i < task_param.num_class; ++i) {
-        sum_tot[i] += sum_tloc[thread_id * task_param.num_class + i];
-      }
-    }
-    if (model.average_tree_output) {
-      float average_factor;
-      if (model.task_type == treelite::TaskType::kMultiClfGrovePerClass) {
-        TREELITE_CHECK(task_param.grove_per_class);
-        TREELITE_CHECK_EQ(task_param.leaf_vector_size, 1);
-        TREELITE_CHECK_GT(task_param.num_class, 1);
-        TREELITE_CHECK_EQ(num_tree % task_param.num_class, 0)
-          << "Expected the number of trees to be divisible by the number of classes";
-        int num_boosting_round = num_tree / static_cast<int>(task_param.num_class);
-        average_factor = static_cast<float>(num_boosting_round);
+  treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, std::size_t(0), num_tree,
+                                           thread_config, sched,
+                                           [&](std::size_t row_id, std::size_t tree_id,
+                                               int thread_id) {
+    ThresholdType* row = &row_tloc[thread_id * num_col];
+    // sum_tloc[thread_id, row_id, :]
+    float* sum = &sum_tloc[(thread_id * num_row + row_id) * num_class];
+    input->FillRow(row_id, row);
+
+    const TreeType& tree = model.trees[tree_id];
+    int node_id = 0;
+    while (!tree.IsLeaf(node_id)) {
+      treelite::SplitFeatureType split_type = tree.SplitType(node_id);
+      if (split_type == treelite::SplitFeatureType::kNumerical) {
+        node_id = NextNode(row[tree.SplitIndex(node_id)], tree.Threshold(node_id),
+                           tree.ComparisonOp(node_id), tree.LeftChild(node_id),
+                           tree.RightChild(node_id), tree.DefaultChild(node_id));
+      } else if (split_type == treelite::SplitFeatureType::kCategorical) {
+        node_id = NextNodeCategorical(row[tree.SplitIndex(node_id)],
+                                      tree.MatchingCategories(node_id),
+                                      tree.CategoriesListRightChild(node_id),
+                                      tree.LeftChild(node_id), tree.RightChild(node_id),
+                                      tree.DefaultChild(node_id));
       } else {
-        TREELITE_CHECK(model.task_type == treelite::TaskType::kBinaryClfRegr
-                       || model.task_type == treelite::TaskType::kMultiClfProbDistLeaf);
-        TREELITE_CHECK(task_param.num_class == task_param.leaf_vector_size);
-        TREELITE_CHECK(!task_param.grove_per_class);
-        average_factor = static_cast<float>(num_tree);
-      }
-      for (unsigned int i = 0; i < task_param.num_class; ++i) {
-        sum_tot[i] /= average_factor;
+        TREELITE_CHECK(false) << "Unrecognized split type: " << static_cast<int>(split_type);
       }
     }
-    for (unsigned int i = 0; i < task_param.num_class; ++i) {
-      sum_tot[i] += model.param.global_bias;
+    input->ClearRow(row_id, row);
+    output_func(tree, tree_id, node_id, sum);
+  });
+  // sum_tot[row_id, k] = sum(sum_tloc[:, row_id, k]) for each 0 <= k < [num_class]
+  treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
+                                           thread_config, sched,
+                                           [&](std::size_t row_id, unsigned k, int) {
+    for (int thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
+      sum_tot[row_id * num_class + k] += sum_tloc[(thread_id * num_row + row_id) * num_class + k];
     }
-    if (pred_transform) {
-      PredTransformFuncType pred_transform_func
-        = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-      pred_transform_func(model, sum_tot.data(), &output[row_id * output_size_per_row]);
+  });
+  if (model.average_tree_output) {
+    float average_factor;
+    if (model.task_type == treelite::TaskType::kMultiClfGrovePerClass) {
+      TREELITE_CHECK(task_param.grove_per_class);
+      TREELITE_CHECK_EQ(task_param.leaf_vector_size, 1);
+      TREELITE_CHECK_GT(task_param.num_class, 1);
+      TREELITE_CHECK_EQ(num_tree % task_param.num_class, 0)
+        << "Expected the number of trees to be divisible by the number of classes";
+      int num_boosting_round = num_tree / static_cast<int>(task_param.num_class);
+      average_factor = static_cast<float>(num_boosting_round);
     } else {
-      for (unsigned int i = 0; i < task_param.num_class; ++i) {
-        output[row_id * output_size_per_row + i] = sum_tot[i];
-      }
+      TREELITE_CHECK(model.task_type == treelite::TaskType::kBinaryClfRegr
+                     || model.task_type == treelite::TaskType::kMultiClfProbDistLeaf);
+      TREELITE_CHECK(task_param.num_class == task_param.leaf_vector_size);
+      TREELITE_CHECK(!task_param.grove_per_class);
+      average_factor = static_cast<float>(num_tree);
     }
-    input->ClearRow(row_id, row.data());
+    treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
+                                             thread_config, sched,
+                                             [&](std::size_t row_id, unsigned k, int) {
+      sum_tot[row_id * num_class + k] /= average_factor;
+    });
+  }
+  treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
+                                           thread_config, sched,
+                                           [&](std::size_t row_id, unsigned k, int) {
+    sum_tot[row_id * num_class + k] += model.param.global_bias;
+  });
+  if (pred_transform) {
+    PredTransformFuncType pred_transform_func
+        = treelite::gtil::LookupPredTransform(model.param.pred_transform);
+    treelite::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config, sched,
+                                           [&](std::size_t row_id, int) {
+      pred_transform_func(model, &sum_tot[row_id * num_class],
+                          &output[row_id * output_size_per_row]);
+    });
+  } else {
+    treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
+                                             thread_config, sched,
+                                             [&](std::size_t row_id, unsigned k, int) {
+      output[row_id * output_size_per_row + k] = sum_tot[row_id * num_class + k];
+    });
   }
   return output_size_per_row * num_row;
 }

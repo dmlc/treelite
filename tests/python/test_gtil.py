@@ -106,6 +106,10 @@ def test_xgb_boston(tmpdir, model_format, objective):
     expected_pred = xgb_model.predict(dtest)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
+    out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+    expected_pred = xgb_model.predict(dtest, output_margin=True)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
 
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['multi:softmax', 'multi:softprob'])
@@ -131,6 +135,10 @@ def test_xgb_iris(tmpdir, objective, model_format):
 
     out_pred = treelite.gtil.predict(tl_model, X_test)
     expected_pred = xgb_model.predict(dtest)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+    out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+    expected_pred = xgb_model.predict(dtest, output_margin=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -179,6 +187,10 @@ def test_xgb_nonlinear_objective(tmpdir, objective, max_label, model_format):
     expected_pred = xgb_model.predict(dtrain)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
+    out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+    expected_pred = xgb_model.predict(dtrain, output_margin=True)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
 
 def test_xgb_categorical_split():
     """Test toy XGBoost model with categorical splits"""
@@ -225,6 +237,10 @@ def test_xgb_dart(tmpdir, model_format):
     expected_pred = xgb_model.predict(dtrain)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
+    out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+    expected_pred = xgb_model.predict(dtrain, output_margin=True)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
 
 @pytest.mark.parametrize('objective', ['regression', 'regression_l1', 'huber'])
 @pytest.mark.parametrize('reg_sqrt', [True, False])
@@ -241,11 +257,15 @@ def test_lightgbm_regression(tmpdir, objective, reg_sqrt):
              'metric': 'rmse', 'num_leaves': 31, 'learning_rate': 0.05}
     lgb_model = lgb.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
                           valid_names=['train', 'test'])
-    expected_pred = lgb_model.predict(X_test)
     lgb_model.save_model(lgb_model_path)
-
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')
+
     out_pred = treelite.gtil.predict(tl_model, X_test)
+    expected_pred = lgb_model.predict(X_test)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+    out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+    expected_pred = lgb_model.predict(X_test, raw_score=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -262,12 +282,16 @@ def test_lightgbm_binary_classification(tmpdir, objective):
              'num_leaves': 7, 'learning_rate': 0.1}
     lgb_model = lgb.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
                                valid_names=['train', 'test'])
-    expected_prob = lgb_model.predict(X_test)
     lgb_model.save_model(lgb_model_path)
-
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')
-    out_prob = treelite.gtil.predict(tl_model, X_test)
-    np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
+
+    out_pred = treelite.gtil.predict(tl_model, X_test)
+    expected_pred = lgb_model.predict(X_test)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+    out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+    expected_pred = lgb_model.predict(X_test, raw_score=True)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
 @pytest.mark.parametrize('boosting_type', ['gbdt', 'rf'])
@@ -282,15 +306,25 @@ def test_lightgbm_multiclass_classification(tmpdir, objective, boosting_type):
     dtest = lgb.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
     param = {'task': 'train', 'boosting': boosting_type, 'objective': objective,
              'metric': 'multi_logloss', 'num_class': 3, 'num_leaves': 31, 'learning_rate': 0.05}
+    num_boost_round = 12
     if boosting_type == 'rf':
         param.update({'bagging_fraction': 0.8, 'bagging_freq': 1})
-    lgb_model = lgb.train(param, dtrain, num_boost_round=10, valid_sets=[dtrain, dtest],
-                               valid_names=['train', 'test'])
-    expected_pred = lgb_model.predict(X_test)
+    lgb_model = lgb.train(param, dtrain, num_boost_round=num_boost_round,
+                          valid_sets=[dtrain, dtest], valid_names=['train', 'test'])
     lgb_model.save_model(lgb_model_path)
-
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')
+
     out_pred = treelite.gtil.predict(tl_model, X_test)
+    expected_pred = lgb_model.predict(X_test)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+    out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+    expected_pred = lgb_model.predict(X_test, raw_score=True)
+    # Behavior of predicting raw margin scores with RF differs. GTIL returns normalized margins
+    # (margin / num_tree), whereas LightGBM returns un-normalized margins. This discrepancy
+    # should be rectified.
+    if boosting_type == 'rf':
+        expected_pred /= num_boost_round
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -328,7 +362,6 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
 
     dtrain = lgb.Dataset(X, label=y, group=[X.shape[0]])
     lgb_model = lgb.train(params, dtrain, num_boost_round=1)
-    lgb_out = lgb_model.predict(X)
     lgb_model.save_model(lgb_model_path)
 
     tl_model = treelite.Model.load(lgb_model_path, model_format='lightgbm')
@@ -336,8 +369,13 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
     # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
     Xa = X.toarray()
     Xa[Xa == 0] = 'nan'
-    out = treelite.gtil.predict(tl_model, Xa)
 
+    out = treelite.gtil.predict(tl_model, Xa)
+    lgb_out = lgb_model.predict(X)
+    np.testing.assert_almost_equal(out, lgb_out)
+
+    out = treelite.gtil.predict(tl_model, Xa, pred_margin=True)
+    lgb_out = lgb_model.predict(X, raw_score=True)
     np.testing.assert_almost_equal(out, lgb_out)
 
 

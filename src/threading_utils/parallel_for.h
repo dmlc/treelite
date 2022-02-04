@@ -210,7 +210,7 @@ inline void ParallelFor2D(IndexType1 dim1_begin, IndexType1 dim1_end,
   OMPException exc;
   switch (sched.sched) {
     case ParallelSchedule::kAuto: {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(auto)
+#pragma omp parallel for num_threads(nthread) collapse(2)
       for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
         for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
           exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),

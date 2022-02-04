@@ -218,7 +218,7 @@ AnnotateImpl(
   }
 
   // perform reduction on counts
-  for (int tid = 0; tid < thread_config.nthread; ++tid) {
+  for (std::uint32_t tid = 0; tid < thread_config.nthread; ++tid) {
     const size_t off = count_row_ptr[ntree] * tid;
     for (size_t i = 0; i < count_row_ptr[ntree]; ++i) {
       new_counts[i] += counts_tloc[off + i];

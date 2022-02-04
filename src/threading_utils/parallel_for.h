@@ -14,6 +14,7 @@
 #include <exception>
 #include <mutex>
 #include <cstddef>
+#include <cstdint>
 
 namespace treelite {
 namespace threading_utils {
@@ -68,7 +69,7 @@ inline int MaxNumThread() {
  * \brief Represent thread configuration, to be used with parallel loops.
  */
 struct ThreadConfig {
-  int nthread;
+  std::uint32_t nthread;
 };
 
 /*!
@@ -85,7 +86,7 @@ inline ThreadConfig ConfigureThreadConfig(int nthread) {
     TREELITE_CHECK_LE(nthread, MaxNumThread())
       << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
   }
-  return ThreadConfig{nthread};
+  return ThreadConfig{static_cast<std::uint32_t>(nthread)};
 }
 
 // OpenMP schedule

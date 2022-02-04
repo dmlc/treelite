@@ -13,6 +13,7 @@
 #include <limits>
 #include <vector>
 #include <cmath>
+#include <cstdint>
 #include <cstddef>
 #include <cfloat>
 #include "../threading_utils/parallel_for.h"
@@ -124,7 +125,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
       }
       output_func(tree, tree_id, node_id, sum);
     });
-    for (int thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
+    for (std::uint32_t thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
       for (unsigned i = 0; i < task_param.num_class; ++i) {
         sum_tot[i] += sum_tloc[thread_id * task_param.num_class + i];
       }

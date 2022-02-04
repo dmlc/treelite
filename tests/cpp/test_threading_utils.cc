@@ -53,12 +53,14 @@ class RandomGenerator {
 
 namespace treelite {
 namespace threading_utils {
-TEST(ThreadingUtils, ParallelFor) {
+
+class ThreadingUtilsTestFixture : public ::testing::TestWithParam<ParallelSchedule> {};
+
+TEST_P(ThreadingUtilsTestFixture, ParallelFor) {
+  auto sched = GetParam();
+
   /* Test error handling */
   const int max_thread = treelite::threading_utils::MaxNumThread();
-
-  auto sched = treelite::threading_utils::ParallelSchedule::Guided();
-
   EXPECT_THROW(threading_utils::ConfigureThreadConfig(max_thread * 3), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */
@@ -91,9 +93,9 @@ TEST(ThreadingUtils, ParallelFor) {
   }
 }
 
-TEST(ThreadingUtils, ParallelFor2D) {
+TEST_P(ThreadingUtilsTestFixture, ParallelFor2D) {
   const int max_thread = treelite::threading_utils::MaxNumThread();
-  auto sched = treelite::threading_utils::ParallelSchedule::Guided();
+  auto sched = GetParam();
 
   /* Property-based testing with randomly generated parameters */
   constexpr int kRow = 100;
@@ -136,6 +138,17 @@ TEST(ThreadingUtils, ParallelFor2D) {
     }
   }
 }
+
+std::vector<ParallelSchedule> params = {
+  ParallelSchedule::Auto(),
+  ParallelSchedule::Static(),
+  ParallelSchedule::Static(100),
+  ParallelSchedule::Dynamic(),
+  ParallelSchedule::Dynamic(100),
+  ParallelSchedule::Guided(),
+};
+
+INSTANTIATE_TEST_SUITE_P(ThreadingUtils, ThreadingUtilsTestFixture, ::testing::ValuesIn(params));
 
 }  // namespace threading_utils
 }  // namespace treelite

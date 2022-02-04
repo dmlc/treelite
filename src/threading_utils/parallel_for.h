@@ -10,6 +10,7 @@
 #include <treelite/omp.h>
 #include <treelite/logging.h>
 #include <type_traits>
+#include <algorithm>
 #include <exception>
 #include <mutex>
 #include <cstddef>
@@ -53,8 +54,38 @@ class OMPException {
   }
 };
 
+inline int OmpGetThreadLimit() {
+  int limit = omp_get_thread_limit();
+  TREELITE_CHECK_GE(limit, 1) << "Invalid thread limit for OpenMP.";
+  return limit;
+}
+
 inline int MaxNumThread() {
-  return omp_get_max_threads();
+  return std::min(std::min(omp_get_num_procs(), omp_get_max_threads()), OmpGetThreadLimit());
+}
+
+/*!
+ * \brief Represent thread configuration, to be used with parallel loops.
+ */
+struct ThreadConfig {
+  int nthread;
+};
+
+/*!
+ * \brief Create therad configuration.
+ * @param nthread Number of threads to use. If \<= 0, use all available threads. This value is
+ *                validated to ensure that it's in a valid range.
+ * @return Thread configuration
+ */
+inline ThreadConfig ConfigureThreadConfig(int nthread) {
+  if (nthread <= 0) {
+    nthread = MaxNumThread();
+    TREELITE_CHECK_GE(nthread, 1) << "Invalid number of threads configured in OpenMP";
+  } else {
+    TREELITE_CHECK_LE(nthread, MaxNumThread())
+      << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
+  }
+  return ThreadConfig{nthread};
 }
 
 // OpenMP schedule
@@ -74,10 +105,8 @@ struct ParallelSchedule {
 };
 
 template <typename IndexType, typename FuncType>
-inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSchedule sched,
-                        FuncType func) {
-  TREELITE_CHECK_GT(nthread, 0) << "nthread must be positive";
-  TREELITE_CHECK_LE(nthread, MaxNumThread()) << "nthread cannot exceed " << MaxNumThread();
+inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_config,
+                        ParallelSchedule sched, FuncType func) {
   if (begin == end) {
     return;
   }
@@ -92,7 +121,7 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
   OMPException exc;
   switch (sched.sched) {
   case ParallelSchedule::kAuto: {
-#pragma omp parallel for num_threads(nthread)
+#pragma omp parallel for num_threads(thread_config.nthread)
     for (OmpInd i = begin; i < end; ++i) {
       exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }
@@ -100,12 +129,12 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
   }
   case ParallelSchedule::kDynamic: {
     if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(nthread) schedule(dynamic)
+#pragma omp parallel for num_threads(thread_config.nthread) schedule(dynamic)
       for (OmpInd i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
-#pragma omp parallel for num_threads(nthread) schedule(dynamic, sched.chunk)
+#pragma omp parallel for num_threads(thread_config.nthread) schedule(dynamic, sched.chunk)
       for (OmpInd i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
@@ -114,12 +143,12 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
   }
   case ParallelSchedule::kStatic: {
     if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(nthread) schedule(static)
+#pragma omp parallel for num_threads(thread_config.nthread) schedule(static)
       for (OmpInd i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
-#pragma omp parallel for num_threads(nthread) schedule(static, sched.chunk)
+#pragma omp parallel for num_threads(thread_config.nthread) schedule(static, sched.chunk)
       for (OmpInd i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
@@ -127,7 +156,7 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
     break;
   }
   case ParallelSchedule::kGuided: {
-#pragma omp parallel for num_threads(nthread) schedule(guided)
+#pragma omp parallel for num_threads(thread_config.nthread) schedule(guided)
     for (OmpInd i = begin; i < end; ++i) {
       exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }

@@ -58,9 +58,7 @@ TEST(ThreadingUtils, ParallelFor) {
 
   auto sched = treelite::threading_utils::ParallelSchedule::Guided();
 
-  auto dummy_func = [](int, int) {};
-  EXPECT_THROW(ParallelFor(0, 100, 0, sched, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(10, 20, 3 * max_thread, sched, dummy_func), treelite::Error);
+  EXPECT_THROW(threading_utils::ConfigureThreadConfig(max_thread * 3), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */
   constexpr int kVectorLength = 10000;
@@ -78,10 +76,11 @@ TEST(ThreadingUtils, ParallelFor) {
 
     // Compute c := a + b on range [begin, end)
     int64_t begin = rng.DrawInteger(0, kVectorLength);
-    std::size_t nthread = static_cast<std::size_t>(rng.DrawInteger(1, max_thread + 1));
+    auto thread_config = threading_utils::ConfigureThreadConfig(
+        static_cast<int>(rng.DrawInteger(1, max_thread + 1)));
     int64_t end = rng.DrawInteger(begin, kVectorLength);
 
-    ParallelFor(begin, end, nthread, sched, [&a, &b, &c](int64_t i, int) {
+    ParallelFor(begin, end, thread_config, sched, [&a, &b, &c](int64_t i, int) {
       c[i] = a[i] + b[i];
     });
 

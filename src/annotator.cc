@@ -19,6 +19,8 @@
 
 namespace {
 
+using treelite::threading_utils::ThreadConfig;
+
 template <typename ElementType>
 union Entry {
   int missing;
@@ -69,16 +71,16 @@ void Traverse(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
 template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-    const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, uint64_t* counts_tloc) {
-  std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
+    const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend,
+    ThreadConfig thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
+  std::vector<Entry<ElementType>> inst(thread_config.nthread * dmat->num_col, {-1});
   size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
   size_t num_col = dmat->num_col;
   ElementType missing_value = dmat->missing_value;
   bool nan_missing = treelite::math::CheckNAN(missing_value);
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
-  treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
+  treelite::threading_utils::ParallelFor(rbegin, rend, thread_config, sched,
                                          [&](std::size_t rid, int thread_id) {
     const ElementType* row = &dmat->data[rid * num_col];
     const size_t off = dmat->num_col * thread_id;
@@ -103,13 +105,13 @@ inline void ComputeBranchLoopImpl(
 template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-    const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend, int nthread,
-    const size_t* count_row_ptr, uint64_t* counts_tloc) {
-  std::vector<Entry<ElementType>> inst(nthread * dmat->num_col, {-1});
+    const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend,
+    ThreadConfig thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
+  std::vector<Entry<ElementType>> inst(thread_config.nthread * dmat->num_col, {-1});
   size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
-  treelite::threading_utils::ParallelFor(rbegin, rend, nthread, sched,
+  treelite::threading_utils::ParallelFor(rbegin, rend, thread_config, sched,
                                          [&](std::size_t rid, int thread_id) {
     const size_t off = dmat->num_col * thread_id;
     const size_t off2 = count_row_ptr[ntree] * thread_id;
@@ -133,11 +135,11 @@ class ComputeBranchLoopDispatcherWithDenseDMatrix {
   template <typename ThresholdType, typename LeafOutputType>
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, ThreadConfig thread_config,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
     TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
-    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, thread_config, count_row_ptr, counts_tloc);
   }
 };
 
@@ -147,28 +149,30 @@ class ComputeBranchLoopDispatcherWithCSRDMatrix {
   template <typename ThresholdType, typename LeafOutputType>
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, int nthread,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, ThreadConfig thread_config,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
     TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
-    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+    ComputeBranchLoopImpl(model, dmat_, rbegin, rend, thread_config, count_row_ptr, counts_tloc);
   }
 };
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                               const treelite::DMatrix* dmat, size_t rbegin,
-                              size_t rend, int nthread, const size_t* count_row_ptr,
+                              size_t rend, ThreadConfig thread_config, const size_t* count_row_ptr,
                               uint64_t* counts_tloc) {
   switch (dmat->GetType()) {
   case treelite::DMatrixType::kDense: {
     treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithDenseDMatrix>(
-        dmat->GetElementType(), model, dmat, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+        dmat->GetElementType(), model, dmat, rbegin, rend, thread_config, count_row_ptr,
+        counts_tloc);
     break;
   }
   case treelite::DMatrixType::kSparseCSR: {
     treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithCSRDMatrix>(
-        dmat->GetElementType(), model, dmat, rbegin, rend, nthread, count_row_ptr, counts_tloc);
+        dmat->GetElementType(), model, dmat, rbegin, rend, thread_config, count_row_ptr,
+        counts_tloc);
     break;
   }
   default:
@@ -194,27 +198,27 @@ AnnotateImpl(
 
   count_row_ptr = {0};
   const size_t ntree = model.trees.size();
-  const int max_thread = static_cast<int>(threading_utils::MaxNumThread());
-  nthread = (nthread == 0) ? max_thread : std::min(nthread, max_thread);
+  ThreadConfig thread_config = threading_utils::ConfigureThreadConfig(nthread);
   for (const treelite::Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
     count_row_ptr.push_back(count_row_ptr.back() + tree.num_nodes);
   }
   new_counts.resize(count_row_ptr[ntree], 0);
-  counts_tloc.resize(count_row_ptr[ntree] * nthread, 0);
+  counts_tloc.resize(count_row_ptr[ntree] * thread_config.nthread, 0);
 
   const size_t num_row = dmat->GetNumRow();
   const size_t pstep = (num_row + 19) / 20;
   // interval to display progress
   for (size_t rbegin = 0; rbegin < num_row; rbegin += pstep) {
     const size_t rend = std::min(rbegin + pstep, num_row);
-    ComputeBranchLoop(model, dmat, rbegin, rend, nthread, &count_row_ptr[0], &counts_tloc[0]);
+    ComputeBranchLoop(model, dmat, rbegin, rend, thread_config, &count_row_ptr[0],
+                      &counts_tloc[0]);
     if (verbose > 0) {
       TREELITE_LOG(INFO) << rend << " of " << num_row << " rows processed";
     }
   }
 
   // perform reduction on counts
-  for (int tid = 0; tid < nthread; ++tid) {
+  for (int tid = 0; tid < thread_config.nthread; ++tid) {
     const size_t off = count_row_ptr[ntree] * tid;
     for (size_t i = 0; i < count_row_ptr[ntree]; ++i) {
       new_counts[i] += counts_tloc[off + i];

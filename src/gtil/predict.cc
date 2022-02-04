@@ -20,6 +20,7 @@
 
 namespace {
 
+using treelite::threading_utils::ThreadConfig;
 using PredTransformFuncType = std::size_t (*) (const treelite::Model&, const float*, float*);
 
 template <typename T>
@@ -71,14 +72,15 @@ inline int NextNodeCategorical(float fvalue, const std::vector<uint32_t>& matchi
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType,
           typename OutputFunc>
 inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                                    const DMatrixType* input, float* output, int nthread,
-                                    bool pred_transform, OutputFunc output_func) {
+                                    const DMatrixType* input, float* output,
+                                    ThreadConfig thread_config, bool pred_transform,
+                                    OutputFunc output_func) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const size_t num_row = input->GetNumRow();
   const size_t num_col = input->GetNumCol();
   std::vector<ThresholdType> row(num_col);
   const treelite::TaskParam task_param = model.task_param;
-  std::vector<float> sum_tloc(task_param.num_class * nthread);
+  std::vector<float> sum_tloc(task_param.num_class * thread_config.nthread);
   std::vector<float> sum_tot(task_param.num_class);
 
   // Query the size of output per input row.
@@ -99,7 +101,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     std::fill(sum_tloc.begin(), sum_tloc.end(), 0.0f);
     std::fill(sum_tot.begin(), sum_tot.end(), 0.0f);
     const std::size_t num_tree = model.trees.size();
-    treelite::threading_utils::ParallelFor(std::size_t(0), num_tree, nthread, sched,
+    treelite::threading_utils::ParallelFor(std::size_t(0), num_tree, thread_config, sched,
                                            [&](std::size_t tree_id, int thread_id) {
       float* sum = &sum_tloc[thread_id * task_param.num_class];
       const TreeType& tree = model.trees[tree_id];
@@ -122,7 +124,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
       }
       output_func(tree, tree_id, node_id, sum);
     });
-    for (int thread_id = 0; thread_id < nthread; ++thread_id) {
+    for (int thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
       for (unsigned i = 0; i < task_param.num_class; ++i) {
         sum_tot[i] += sum_tloc[thread_id * task_param.num_class + i];
       }
@@ -167,7 +169,7 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
 
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                               const DMatrixType* input, float* output, int nthread,
+                               const DMatrixType* input, float* output, ThreadConfig thread_config,
                                bool pred_transform) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const treelite::TaskParam task_param = model.task_param;
@@ -181,21 +183,21 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
           sum[i] += leaf_vector[i];
         }
       };
-      return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
     } else {
       // multi-class classification with gradient boosted trees
       auto output_logic = [task_param](
           const TreeType& tree, int tree_id, int node_id, float* sum) {
         sum[tree_id % task_param.num_class] += tree.LeafValue(node_id);
       };
-      return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
     }
   } else {
     auto output_logic = [task_param](
         const TreeType& tree, int tree_id, int node_id, float* sum) {
       sum[0] += tree.LeafValue(node_id);
     };
-    return PredictImplInner(model, input, output, nthread, pred_transform, output_logic);
+    return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
   }
 }
 
@@ -207,19 +209,17 @@ namespace gtil {
 std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
                     bool pred_transform) {
   // If nthread <= 0, then use all CPU cores in the system
-  if (nthread <= 0) {
-    nthread = threading_utils::MaxNumThread();
-  }
+  auto thread_config = threading_utils::ConfigureThreadConfig(nthread);
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
   if (d1) {
-    return model->Dispatch([d1, output, nthread, pred_transform](const auto& model) {
-      return PredictImpl(model, d1, output, nthread, pred_transform);
+    return model->Dispatch([d1, output, thread_config, pred_transform](const auto& model) {
+      return PredictImpl(model, d1, output, thread_config, pred_transform);
     });
   } else if (d2) {
-    return model->Dispatch([d2, output, nthread, pred_transform](const auto& model) {
-      return PredictImpl(model, d2, output, nthread, pred_transform);
+    return model->Dispatch([d2, output, thread_config, pred_transform](const auto& model) {
+      return PredictImpl(model, d2, output, thread_config, pred_transform);
     });
   } else {
     TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";

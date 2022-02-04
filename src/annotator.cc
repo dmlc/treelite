@@ -72,7 +72,7 @@ template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
     const treelite::DenseDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend,
-    ThreadConfig thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
+    const ThreadConfig& thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(thread_config.nthread * dmat->num_col, {-1});
   size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
@@ -106,7 +106,7 @@ template <typename ElementType, typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoopImpl(
     const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
     const treelite::CSRDMatrixImpl<ElementType>* dmat, size_t rbegin, size_t rend,
-    ThreadConfig thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
+    const ThreadConfig& thread_config, const size_t* count_row_ptr, uint64_t* counts_tloc) {
   std::vector<Entry<ElementType>> inst(thread_config.nthread * dmat->num_col, {-1});
   size_t ntree = model.trees.size();
   TREELITE_CHECK_LE(rbegin, rend);
@@ -135,7 +135,7 @@ class ComputeBranchLoopDispatcherWithDenseDMatrix {
   template <typename ThresholdType, typename LeafOutputType>
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, ThreadConfig thread_config,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, const ThreadConfig& thread_config,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::DenseDMatrixImpl<ElementType>*>(dmat);
     TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
@@ -149,7 +149,7 @@ class ComputeBranchLoopDispatcherWithCSRDMatrix {
   template <typename ThresholdType, typename LeafOutputType>
   inline static void Dispatch(
       const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, ThreadConfig thread_config,
+      const treelite::DMatrix* dmat, size_t rbegin, size_t rend, const ThreadConfig& thread_config,
       const size_t* count_row_ptr, uint64_t* counts_tloc) {
     const auto* dmat_ = static_cast<const treelite::CSRDMatrixImpl<ElementType>*>(dmat);
     TREELITE_CHECK(dmat_) << "Dangling data matrix reference detected";
@@ -160,8 +160,8 @@ class ComputeBranchLoopDispatcherWithCSRDMatrix {
 template <typename ThresholdType, typename LeafOutputType>
 inline void ComputeBranchLoop(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                               const treelite::DMatrix* dmat, size_t rbegin,
-                              size_t rend, ThreadConfig thread_config, const size_t* count_row_ptr,
-                              uint64_t* counts_tloc) {
+                              size_t rend, const ThreadConfig& thread_config,
+                              const size_t* count_row_ptr, uint64_t* counts_tloc) {
   switch (dmat->GetType()) {
   case treelite::DMatrixType::kDense: {
     treelite::DispatchWithTypeInfo<ComputeBranchLoopDispatcherWithDenseDMatrix>(
@@ -218,7 +218,7 @@ AnnotateImpl(
   }
 
   // perform reduction on counts
-  for (int tid = 0; tid < thread_config.nthread; ++tid) {
+  for (std::uint32_t tid = 0; tid < thread_config.nthread; ++tid) {
     const size_t off = count_row_ptr[ntree] * tid;
     for (size_t i = 0; i < count_row_ptr[ntree]; ++i) {
       new_counts[i] += counts_tloc[off + i];

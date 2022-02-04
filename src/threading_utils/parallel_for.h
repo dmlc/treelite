@@ -14,6 +14,7 @@
 #include <exception>
 #include <mutex>
 #include <cstddef>
+#include <cstdint>
 
 namespace treelite {
 namespace threading_utils {
@@ -68,7 +69,7 @@ inline int MaxNumThread() {
  * \brief Represent thread configuration, to be used with parallel loops.
  */
 struct ThreadConfig {
-  int nthread;
+  std::uint32_t nthread;
 };
 
 /*!
@@ -85,7 +86,7 @@ inline ThreadConfig ConfigureThreadConfig(int nthread) {
     TREELITE_CHECK_LE(nthread, MaxNumThread())
       << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
   }
-  return ThreadConfig{nthread};
+  return ThreadConfig{static_cast<std::uint32_t>(nthread)};
 }
 
 /*!
@@ -128,12 +129,12 @@ using OmpInd = IndexType;
  * @param func Function to execute in parallel
  */
 template <typename IndexType, typename FuncType>
-inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_config,
+inline void ParallelFor(IndexType begin, IndexType end, const ThreadConfig& thread_config,
                         ParallelSchedule sched, FuncType func) {
   if (begin == end) {
     return;
   }
-  int nthread = thread_config.nthread;
+  std::uint32_t nthread = thread_config.nthread;
 
   OMPException exc;
   switch (sched.sched) {
@@ -201,11 +202,12 @@ inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_conf
 template <typename IndexType1, typename IndexType2, typename FuncType>
 inline void ParallelFor2D(IndexType1 dim1_begin, IndexType1 dim1_end,
                           IndexType2 dim2_begin, IndexType2 dim2_end,
-                          ThreadConfig thread_config, ParallelSchedule sched, FuncType func) {
+                          const ThreadConfig& thread_config, ParallelSchedule sched,
+                          FuncType func) {
   if (dim1_begin >= dim1_end || dim2_begin >= dim2_end) {   // degenerate range; do nothing
     return;
   }
-  int nthread = thread_config.nthread;
+  std::uint32_t nthread = thread_config.nthread;
   using IndexType =
     std::conditional_t<sizeof(IndexType1) >= sizeof(IndexType2), IndexType1, IndexType2>;
 

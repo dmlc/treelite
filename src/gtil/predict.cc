@@ -73,7 +73,7 @@ template <typename ThresholdType, typename LeafOutputType, typename DMatrixType,
           typename OutputFunc>
 inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                     const DMatrixType* input, float* output,
-                                    ThreadConfig thread_config, bool pred_transform,
+                                    const ThreadConfig& thread_config, bool pred_transform,
                                     OutputFunc output_func) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const size_t num_row = input->GetNumRow();
@@ -169,8 +169,8 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
 
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
-                               const DMatrixType* input, float* output, ThreadConfig thread_config,
-                               bool pred_transform) {
+                               const DMatrixType* input, float* output,
+                               const ThreadConfig& thread_config, bool pred_transform) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const treelite::TaskParam task_param = model.task_param;
   if (task_param.num_class > 1) {

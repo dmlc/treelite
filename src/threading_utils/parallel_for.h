@@ -105,7 +105,7 @@ struct ParallelSchedule {
 };
 
 template <typename IndexType, typename FuncType>
-inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_config,
+inline void ParallelFor(IndexType begin, IndexType end, const ThreadConfig& thread_config,
                         ParallelSchedule sched, FuncType func) {
   if (begin == end) {
     return;

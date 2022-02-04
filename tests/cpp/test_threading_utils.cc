@@ -60,10 +60,6 @@ TEST(ThreadingUtils, ParallelFor) {
 
   auto dummy_func = [](int, int) {};
   EXPECT_THROW(ParallelFor(0, 100, 0, sched, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(200, 100, 3, sched, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(-100, 100, 3, sched, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(-200, -100, 3, sched, dummy_func), treelite::Error);
-  EXPECT_THROW(ParallelFor(200, 100, 3, sched, dummy_func), treelite::Error);
   EXPECT_THROW(ParallelFor(10, 20, 3 * max_thread, sched, dummy_func), treelite::Error);
 
   /* Property-based testing with randomly generated parameters */

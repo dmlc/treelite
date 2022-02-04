@@ -7,7 +7,7 @@ from ..frontend import Model
 from ..core import _LIB, _check_call
 
 
-def predict(model: Model, data: np.ndarray, pred_margin: bool = False):
+def predict(model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool = False):
     """
     Predict with a Treelite model using General Tree Inference Library (GTIL). GTIL is intended to
     be a reference implementation. GTIL is also useful in situations where using a C compiler is
@@ -24,6 +24,8 @@ def predict(model: Model, data: np.ndarray, pred_margin: bool = False):
         Treelite model object
     data : :py:class:`numpy.ndarray` array
         2D NumPy array, with which to run prediction
+    nthread : :py:class:`int <python:int>`, optional
+        Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
     pred_margin : :py:class:`bool <python:bool>`, optional
         Whether to produce raw margin scores
 
@@ -46,6 +48,7 @@ def predict(model: Model, data: np.ndarray, pred_margin: bool = False):
         data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
         ctypes.c_size_t(data.shape[0]),
         out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+        ctypes.c_int(nthread),
         ctypes.c_int(0 if pred_margin else 1),
         ctypes.byref(out_result_size)
     ))

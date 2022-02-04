@@ -263,11 +263,11 @@ int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t*
 }
 
 int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row, float* output,
-                        int pred_transform, size_t* out_result_size) {
+                        int nthread, int pred_transform, size_t* out_result_size) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(handle);
   *out_result_size =
-      gtil::Predict(model_, input, num_row, output, (pred_transform == 1));
+      gtil::Predict(model_, input, num_row, output, nthread, (pred_transform == 1));
   API_END();
 }
 

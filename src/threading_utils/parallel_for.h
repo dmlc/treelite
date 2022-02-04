@@ -95,7 +95,7 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
   case ParallelSchedule::kAuto: {
 #pragma omp parallel for num_threads(nthread)
     for (OmpInd i = begin; i < end; ++i) {
-      exc.Run(func, i, omp_get_thread_num());
+      exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }
     break;
   }
@@ -103,12 +103,12 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
     if (sched.chunk == 0) {
 #pragma omp parallel for num_threads(nthread) schedule(dynamic)
       for (OmpInd i = begin; i < end; ++i) {
-        exc.Run(func, i, omp_get_thread_num());
+        exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
 #pragma omp parallel for num_threads(nthread) schedule(dynamic, sched.chunk)
       for (OmpInd i = begin; i < end; ++i) {
-        exc.Run(func, i, omp_get_thread_num());
+        exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     }
     break;
@@ -117,12 +117,12 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
     if (sched.chunk == 0) {
 #pragma omp parallel for num_threads(nthread) schedule(static)
       for (OmpInd i = begin; i < end; ++i) {
-        exc.Run(func, i, omp_get_thread_num());
+        exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
 #pragma omp parallel for num_threads(nthread) schedule(static, sched.chunk)
       for (OmpInd i = begin; i < end; ++i) {
-        exc.Run(func, i, omp_get_thread_num());
+        exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     }
     break;
@@ -130,7 +130,7 @@ inline void ParallelFor(IndexType begin, IndexType end, int nthread, ParallelSch
   case ParallelSchedule::kGuided: {
 #pragma omp parallel for num_threads(nthread) schedule(guided)
     for (OmpInd i = begin; i < end; ++i) {
-      exc.Run(func, i, omp_get_thread_num());
+      exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }
     break;
   }

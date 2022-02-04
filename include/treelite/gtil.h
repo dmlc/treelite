@@ -19,12 +19,32 @@ class DMatrix;
 
 namespace gtil {
 
-// Predict with a DMatrix (can be sparse or dense)
-std::size_t Predict(const Model* model, const DMatrix* input, float* output,
-                    bool pred_transform = true);
-// Predict with 2D dense matrix
+/*!
+ * \brief Predict with a DMatrix
+ * \param model The model object
+ * \param input The data matrix (sparse or dense)
+ * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
+ *               amount of buffer you should allocate for this parameter.
+ * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
+ * \param pred_transform After computing the prediction score, whether to transform it.
+ * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
+ *         larger than GetPredictOutputSize().
+ */
+std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
+                    bool pred_transform);
+/*!
+ * \brief Predict with a 2D dense matrix
+ * \param model The model object
+ * \param input The data matrix, laid out in row-major layout
+ * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
+ *               amount of buffer you should allocate for this parameter.
+ * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
+ * \param pred_transform After computing the prediction score, whether to transform it.
+ * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
+ *         larger than GetPredictOutputSize().
+ */
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    bool pred_transform = true);
+                    int nthread, bool pred_transform);
 
 // Query functions to allocate correct amount of memory for the output
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row);

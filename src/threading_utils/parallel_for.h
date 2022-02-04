@@ -192,8 +192,8 @@ inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_conf
  * - thread_id is the thread ID.
  * @param dim1_begin The beginning of the first axis of the 2D range
  * @param dim1_end The beginning of the first axis of the 2D range
- * @param dim2_begin The beginning of the first axis of the 2D range
- * @param dim2_end The beginning of the first axis of the 2D range
+ * @param dim2_begin The beginning of the second axis of the 2D range
+ * @param dim2_end The beginning of the second axis of the 2D range
  * @param thread_config Thread configuration
  * @param sched Scheduling directive to use
  * @param func Function to execute in parallel

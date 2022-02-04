@@ -206,66 +206,72 @@ inline void ParallelFor2D(IndexType1 dim1_begin, IndexType1 dim1_end,
     return;
   }
   int nthread = thread_config.nthread;
+  using IndexType =
+    std::conditional_t<sizeof(IndexType1) >= sizeof(IndexType2), IndexType1, IndexType2>;
+
+  IndexType1 dim1_size = dim1_end - dim1_begin;
+  IndexType2 dim2_size = dim2_end - dim2_begin;
+  IndexType size = dim1_size * dim2_size;
 
   OMPException exc;
   switch (sched.sched) {
     case ParallelSchedule::kAuto: {
-#pragma omp parallel for num_threads(nthread) collapse(2)
-      for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-        for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                  omp_get_thread_num());
-        }
+#pragma omp parallel for num_threads(nthread)
+      for (OmpInd<IndexType> k = 0; k < size; ++k) {
+        auto i = dim1_begin + k / dim2_size;
+        auto j = dim2_begin + k % dim2_size;
+        exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                omp_get_thread_num());
       }
       break;
     }
     case ParallelSchedule::kDynamic: {
       if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(dynamic)
-        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                    omp_get_thread_num());
-          }
+#pragma omp parallel for num_threads(nthread) schedule(dynamic)
+        for (OmpInd<IndexType> k = 0; k < size; ++k) {
+          auto i = dim1_begin + k / dim2_size;
+          auto j = dim2_begin + k % dim2_size;
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
         }
       } else {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(dynamic, sched.chunk)
-        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                    omp_get_thread_num());
-          }
+#pragma omp parallel for num_threads(nthread) schedule(dynamic, sched.chunk)
+        for (OmpInd<IndexType> k = 0; k < size; ++k) {
+          auto i = dim1_begin + k / dim2_size;
+          auto j = dim2_begin + k % dim2_size;
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
         }
       }
       break;
     }
     case ParallelSchedule::kStatic: {
       if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(static)
-        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                    omp_get_thread_num());
-          }
+#pragma omp parallel for num_threads(nthread) schedule(static)
+        for (OmpInd<IndexType> k = 0; k < size; ++k) {
+          auto i = dim1_begin + k / dim2_size;
+          auto j = dim2_begin + k % dim2_size;
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
         }
       } else {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(static, sched.chunk)
-        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                    omp_get_thread_num());
-          }
+#pragma omp parallel for num_threads(nthread) schedule(static, sched.chunk)
+        for (OmpInd<IndexType> k = 0; k < size; ++k) {
+          auto i = dim1_begin + k / dim2_size;
+          auto j = dim2_begin + k % dim2_size;
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
         }
       }
       break;
     }
     case ParallelSchedule::kGuided: {
-#pragma omp parallel for num_threads(nthread) collapse(2) schedule(guided)
-      for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
-        for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
-          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
-                  omp_get_thread_num());
-        }
+#pragma omp parallel for num_threads(nthread) schedule(guided)
+      for (OmpInd<IndexType> k = 0; k < size; ++k) {
+        auto i = dim1_begin + k / dim2_size;
+        auto j = dim2_begin + k % dim2_size;
+        exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                omp_get_thread_num());
       }
       break;
     }

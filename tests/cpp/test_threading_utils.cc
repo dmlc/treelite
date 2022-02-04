@@ -102,7 +102,7 @@ TEST_P(ThreadingUtilsTestFixture, ParallelFor2D) {
   constexpr int kCol = 100;
   constexpr int kElem = kRow * kCol;
 
-  auto ind = [](auto i, auto j) { return i * kRow + j; };
+  auto ind = [&](auto i, auto j) { return i * kRow + j; };
 
   RandomGenerator rng;
   std::vector<double> a(kElem);

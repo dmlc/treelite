@@ -70,16 +70,16 @@ TEST(ThreadingUtils, ParallelFor) {
   std::generate_n(b.begin(), kVectorLength, [&rng]() { return rng.DrawReal(-10.0, 10.0); });
 
   constexpr int kNumTrial = 200;
-  for (int i = 0; i < kNumTrial; ++i) {
+  for (int trial_id = 0; trial_id < kNumTrial; ++trial_id) {
     std::vector<double> c(kVectorLength);
     // Fill c with dummy values
     std::generate_n(c.begin(), kVectorLength, [&rng]() { return rng.DrawReal(100.0, 200.0); });
 
     // Compute c := a + b on range [begin, end)
-    int64_t begin = rng.DrawInteger(0, kVectorLength);
+    std::int64_t begin = rng.DrawInteger(0, kVectorLength);
     auto thread_config = threading_utils::ConfigureThreadConfig(
         static_cast<int>(rng.DrawInteger(1, max_thread + 1)));
-    int64_t end = rng.DrawInteger(begin, kVectorLength);
+    std::int64_t end = rng.DrawInteger(begin, kVectorLength);
 
     ParallelFor(begin, end, thread_config, sched, [&a, &b, &c](std::int64_t i, int) {
       c[i] = a[i] + b[i];
@@ -109,7 +109,7 @@ TEST(ThreadingUtils, ParallelFor2D) {
   std::generate_n(b.begin(), kElem, [&rng]() { return rng.DrawReal(-10.0, 10.0); });
 
   constexpr int kNumTrial = 200;
-  for (int i = 0; i < kNumTrial; ++i) {
+  for (int trial_id = 0; trial_id < kNumTrial; ++trial_id) {
     std::vector<double> c(kElem);
     // Fill c with dummy values
     std::generate_n(c.begin(), kElem, [&rng]() { return rng.DrawReal(100.0, 200.0); });
@@ -128,10 +128,10 @@ TEST(ThreadingUtils, ParallelFor2D) {
           c[ind(i, j)] = a[ind(i, j)] + b[ind(i, j)];
       });
 
-    for (std::int64_t k1 = dim1_begin; k1 < dim1_end; ++k1) {
-      for (std::int64_t k2 = dim2_begin; k2 < dim2_end; ++k2) {
-        EXPECT_FLOAT_EQ(c[ind(k1, k2)], a[ind(k1, k2)] + b[ind(k1, k2)])
-          << ", at index (" << k1 << ", " << k2 << ")";
+    for (std::int64_t i = dim1_begin; i < dim1_end; ++i) {
+      for (std::int64_t j = dim2_begin; j < dim2_end; ++j) {
+        EXPECT_FLOAT_EQ(c[ind(i, j)], a[ind(i, j)] + b[ind(i, j)])
+          << ", at index (" << i << ", " << j << ")";
       }
     }
   }

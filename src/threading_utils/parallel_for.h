@@ -88,7 +88,9 @@ inline ThreadConfig ConfigureThreadConfig(int nthread) {
   return ThreadConfig{nthread};
 }
 
-// OpenMP schedule
+/*!
+ * \brief OpenMP scheduling directives
+ */
 struct ParallelSchedule {
   enum {
     kAuto,
@@ -104,38 +106,53 @@ struct ParallelSchedule {
   ParallelSchedule static Guided() { return ParallelSchedule{kGuided}; }
 };
 
+#if defined(_MSC_VER)
+// msvc doesn't support unsigned integer as openmp index.
+template <typename IndexType>
+using OmpInd = std::conditional_t<std::is_signed<IndexType>::value, IndexType, std::int64_t>;
+#else
+template <typename IndexType>
+using OmpInd = IndexType;
+#endif
+
+/*!
+ * \brief In parallel, execute a function over a 1D range of elements.
+ *
+ * Schedule threads to call func(i, thread_id) in parallel, where:
+ * - i is drawn from the range [begin, end)
+ * - thread_id is the thread ID.
+ * @param begin The beginning of the 1D range
+ * @param end The end of the 1D range
+ * @param thread_config Thread configuration
+ * @param sched Scheduling directive to use
+ * @param func Function to execute in parallel
+ */
 template <typename IndexType, typename FuncType>
 inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_config,
                         ParallelSchedule sched, FuncType func) {
   if (begin == end) {
     return;
   }
-
-#if defined(_MSC_VER)
-  // msvc doesn't support unsigned integer as openmp index.
-  using OmpInd = std::conditional_t<std::is_signed<IndexType>::value, IndexType, std::int64_t>;
-#else
-  using OmpInd = IndexType;
-#endif
+  int nthread = thread_config.nthread;
 
   OMPException exc;
   switch (sched.sched) {
   case ParallelSchedule::kAuto: {
-#pragma omp parallel for num_threads(thread_config.nthread)
-    for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread)
+    for (OmpInd<IndexType> i = begin; i < end; ++i) {
       exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }
     break;
   }
   case ParallelSchedule::kDynamic: {
     if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(thread_config.nthread) schedule(dynamic)
-      for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread) schedule(dynamic)
+      for (OmpInd<IndexType> i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
-#pragma omp parallel for num_threads(thread_config.nthread) schedule(dynamic, sched.chunk)
-      for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread) schedule(dynamic, sched.chunk)
+      for (OmpInd<IndexType> i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     }
@@ -143,25 +160,115 @@ inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig thread_conf
   }
   case ParallelSchedule::kStatic: {
     if (sched.chunk == 0) {
-#pragma omp parallel for num_threads(thread_config.nthread) schedule(static)
-      for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread) schedule(static)
+      for (OmpInd<IndexType> i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     } else {
-#pragma omp parallel for num_threads(thread_config.nthread) schedule(static, sched.chunk)
-      for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread) schedule(static, sched.chunk)
+      for (OmpInd<IndexType> i = begin; i < end; ++i) {
         exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
       }
     }
     break;
   }
   case ParallelSchedule::kGuided: {
-#pragma omp parallel for num_threads(thread_config.nthread) schedule(guided)
-    for (OmpInd i = begin; i < end; ++i) {
+#pragma omp parallel for num_threads(nthread) schedule(guided)
+    for (OmpInd<IndexType> i = begin; i < end; ++i) {
       exc.Run(func, static_cast<IndexType>(i), omp_get_thread_num());
     }
     break;
   }
+  }
+  exc.Rethrow();
+}
+
+/*!
+ * \brief In parallel, execute a function over a 2D range of elements.
+ *
+ * Schedule threads to call func(i, j, thread_id) in parallel, where:
+ * - i is drawn from the range [dim1_begin, dim1_end)
+ * - j is drawn from the range [dim2_begin, dim2_end)
+ * - thread_id is the thread ID.
+ * @param dim1_begin The beginning of the first axis of the 2D range
+ * @param dim1_end The beginning of the first axis of the 2D range
+ * @param dim2_begin The beginning of the first axis of the 2D range
+ * @param dim2_end The beginning of the first axis of the 2D range
+ * @param thread_config Thread configuration
+ * @param sched Scheduling directive to use
+ * @param func Function to execute in parallel
+ */
+template <typename IndexType1, typename IndexType2, typename FuncType>
+inline void ParallelFor2D(IndexType1 dim1_begin, IndexType1 dim1_end,
+                          IndexType2 dim2_begin, IndexType2 dim2_end,
+                          ThreadConfig thread_config, ParallelSchedule sched, FuncType func) {
+  if (dim1_begin >= dim1_end || dim2_begin >= dim2_end) {   // degenerate range; do nothing
+    return;
+  }
+  int nthread = thread_config.nthread;
+
+  OMPException exc;
+  switch (sched.sched) {
+    case ParallelSchedule::kAuto: {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(auto)
+      for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+        for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
+        }
+      }
+      break;
+    }
+    case ParallelSchedule::kDynamic: {
+      if (sched.chunk == 0) {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(dynamic)
+        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                    omp_get_thread_num());
+          }
+        }
+      } else {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(dynamic, sched.chunk)
+        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                    omp_get_thread_num());
+          }
+        }
+      }
+      break;
+    }
+    case ParallelSchedule::kStatic: {
+      if (sched.chunk == 0) {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(static)
+        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                    omp_get_thread_num());
+          }
+        }
+      } else {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(static, sched.chunk)
+        for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+          for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+            exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                    omp_get_thread_num());
+          }
+        }
+      }
+      break;
+    }
+    case ParallelSchedule::kGuided: {
+#pragma omp parallel for num_threads(nthread) collapse(2) schedule(guided)
+      for (OmpInd<IndexType1> i = dim1_begin; i < dim1_end; ++i) {
+        for (OmpInd<IndexType2> j = dim2_begin; j < dim2_end; ++j) {
+          exc.Run(func, static_cast<IndexType1>(i), static_cast<IndexType2>(j),
+                  omp_get_thread_num());
+        }
+      }
+      break;
+    }
   }
   exc.Rethrow();
 }

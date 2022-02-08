@@ -1,6 +1,6 @@
 """
 General Tree Inference Library (GTIL)
 """
-from .gtil import predict
+from .gtil import Predictor
 
-__all__ = ['predict']
+__all__ = ['Predictor']

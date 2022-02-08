@@ -255,19 +255,38 @@ int TreeliteFreeModel(ModelHandle handle) {
   API_END();
 }
 
-int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out) {
+int TreeliteGTILCreatePredictor(ModelHandle model_handle, GTILPredictorHandle* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
-  *out = gtil::GetPredictOutputSize(model_, num_row);
+  const auto* model_ = static_cast<const Model*>(model_handle);
+  TREELITE_CHECK(model_);
+  auto predictor = std::make_unique<gtil::Predictor>(*model_);
+  *out = static_cast<GTILPredictorHandle>(predictor.release());
   API_END();
 }
 
-int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row, float* output,
-                        int nthread, int pred_transform, size_t* out_result_size) {
+int TreeliteGTILPredictorQueryResultSize(GTILPredictorHandle predictor_handle, size_t num_row,
+                                         size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  const auto* predictor_ = static_cast<const gtil::Predictor*>(predictor_handle);
+  TREELITE_CHECK(predictor_);
+  *out = predictor_->QueryResultSize(num_row);
+  API_END();
+}
+
+int TreeliteGTILPredictorPredict(GTILPredictorHandle predictor_handle, const float* input,
+                                 size_t num_row, float* output, int nthread, int pred_transform,
+                                 size_t* out_result_size) {
+  API_BEGIN();
+  auto* predictor_ = static_cast<gtil::Predictor*>(predictor_handle);
+  TREELITE_CHECK(predictor_);
   *out_result_size =
-      gtil::Predict(model_, input, num_row, output, nthread, (pred_transform == 1));
+      predictor_->Predict(input, num_row, output, nthread, (pred_transform == 1));
+  API_END();
+}
+
+int TreeliteGTILDeletePredictor(GTILPredictorHandle predictor_handle) {
+  API_BEGIN();
+  delete static_cast<gtil::Predictor*>(predictor_handle);
   API_END();
 }
 

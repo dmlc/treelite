@@ -31,6 +31,8 @@ typedef void* AnnotationHandle;
 typedef void* CompilerHandle;
 /*! \brief handle to a polymorphic value type, used in the model builder API */
 typedef void* ValueHandle;
+/*! \brief handle to GTIL predictor class */
+typedef void* GTILPredictorHandle;
 /*! \} */
 
 /*!
@@ -410,11 +412,50 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
  * \{
  */
 
-TREELITE_DLL int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out);
+/*!
+ * \brief Create a new GTIL Predictor from a Treelite Model object
+ * \param model_handle Treelite Model object
+ * \param out newly created GTIL predictor object
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILCreatePredictor(ModelHandle model_handle, GTILPredictorHandle* out);
 
-TREELITE_DLL int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row,
-                                     float* output, int nthread, int pred_transform,
-                                     size_t* out_result_size);
+/*!
+ * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
+ *        data points.
+ * \param predictor_handle GTIL Predictor object
+ * \param num_row Number of rows in the input
+ * \param out Size of output buffer that should be allocated
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILPredictorQueryResultSize(GTILPredictorHandle predictor_handle,
+                                                      size_t num_row, size_t* out);
+
+/*!
+ * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
+ *        data points.
+ * \param predictor_handle GTIL Predictor object
+ * \param input The data matrix, laid out in row-major layout
+ * \param num_row Number of rows in the data matrix.
+ * \param output Pointer to buffer to store the output. Call TreeliteGTILPredictorQueryResultSize()
+ *               to get the amount of buffer you should allocate for this parameter.
+ * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
+ * \param pred_transform After computing the prediction score, whether to transform it.
+ * \param out_result_size Size of output. This could be smaller than GetPredictOutputSize() but
+ *                        could never be larger than GetPredictOutputSize().
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILPredictorPredict(GTILPredictorHandle predictor_handle,
+                                              const float* input, size_t num_row, float* output,
+                                              int nthread, int pred_transform,
+                                              size_t* out_result_size);
+
+/*!
+ * \brief Delete a GTIL Predictor from memory
+ * \param predictor_handle GTIL Predictor object
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILDeletePredictor(GTILPredictorHandle predictor_handle);
 
 /*! \} */
 

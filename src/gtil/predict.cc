@@ -12,6 +12,7 @@
 #include <treelite/logging.h>
 #include <limits>
 #include <vector>
+#include <memory>
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
@@ -226,19 +227,19 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
 namespace treelite {
 namespace gtil {
 
-std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
-                    bool pred_transform) {
+std::size_t
+Predictor::Predict(const DMatrix* input, float* output, int nthread, bool pred_transform) {
   // If nthread <= 0, then use all CPU cores in the system
   auto thread_config = threading_utils::ConfigureThreadConfig(nthread);
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
   if (d1) {
-    return model->Dispatch([d1, output, thread_config, pred_transform](const auto& model) {
+    return model_.Dispatch([d1, output, thread_config, pred_transform](const auto& model) {
       return PredictImpl(model, d1, output, thread_config, pred_transform);
     });
   } else if (d2) {
-    return model->Dispatch([d2, output, thread_config, pred_transform](const auto& model) {
+    return model_.Dispatch([d2, output, thread_config, pred_transform](const auto& model) {
       return PredictImpl(model, d2, output, thread_config, pred_transform);
     });
   } else {
@@ -247,23 +248,26 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
   }
 }
 
-std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    int nthread, bool pred_transform) {
+std::size_t
+Predictor::Predict(const float* input, std::size_t num_row, float* output, int nthread,
+                   bool pred_transform) {
   std::unique_ptr<DenseDMatrixImpl<float>> dmat =
       std::make_unique<DenseDMatrixImpl<float>>(
-          std::vector<float>(input, input + num_row * model->num_feature),
+          std::vector<float>(input, input + num_row * model_.num_feature),
           std::numeric_limits<float>::quiet_NaN(),
           num_row,
-          model->num_feature);
-  return Predict(model, dmat.get(), output, nthread, pred_transform);
+          model_.num_feature);
+  return Predict(dmat.get(), output, nthread, pred_transform);
 }
 
-std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row) {
-  return model->task_param.num_class * num_row;
+std::size_t
+Predictor::QueryResultSize(std::size_t num_row) const {
+  return model_.task_param.num_class * num_row;
 }
 
-std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input) {
-  return GetPredictOutputSize(model, input->GetNumRow());
+std::size_t
+Predictor::QueryResultSize(const DMatrix* input) const {
+  return QueryResultSize(input->GetNumRow());
 }
 
 }  // namespace gtil

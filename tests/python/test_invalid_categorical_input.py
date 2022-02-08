@@ -11,6 +11,7 @@ from treelite.contrib import _libext
 
 from .util import os_compatible_toolchains
 
+
 @pytest.fixture(name='toy_model')
 def toy_model_fixture():
     builder = treelite.ModelBuilder(num_feature=2)
@@ -25,12 +26,14 @@ def toy_model_fixture():
 
     return model
 
+
 @pytest.fixture(name='test_data')
 def test_data_fixture():
     categorical_column = np.array([-1, -0.6, -0.5, 0, 0.3, 0.7, 1, np.nan, np.inf, 1e10, -1e10],
                                   dtype=np.float32)
     dummy_column = np.zeros(categorical_column.shape[0], dtype=np.float32)
     return np.column_stack((dummy_column, categorical_column))
+
 
 @pytest.fixture(name='ref_pred')
 def ref_pred_fixture():
@@ -41,9 +44,12 @@ def ref_pred_fixture():
     # right child.
     return np.array([1, 1, 1, -1, -1, -1, 1, -1, 1, 1, 1], dtype=np.float32)
 
+
 def test_gtil(toy_model, test_data, ref_pred):
-    pred = treelite.gtil.predict(toy_model, test_data)
+    predictor = treelite.gtil.Predictor(toy_model)
+    pred = predictor.predict(test_data)
     np.testing.assert_equal(pred, ref_pred)
+
 
 def test_treelite_compiled(tmpdir, toy_model, test_data, ref_pred):
     libpath = os.path.join(tmpdir, 'mylib' + _libext())

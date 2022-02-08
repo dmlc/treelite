@@ -158,14 +158,17 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
     treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
                                              thread_config, sched,
                                              [&](std::size_t row_id, unsigned k, int) {
-      sum_tot[row_id * num_class + k] /= average_factor;
+      const std::size_t idx = row_id * num_class + k;
+      sum_tot[idx] = sum_tot[idx] / average_factor + model.param.global_bias;
+    });
+  } else {
+    treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
+                                             thread_config, sched,
+                                             [&](std::size_t row_id, unsigned k, int) {
+      const std::size_t idx = row_id * num_class + k;
+      sum_tot[idx] += model.param.global_bias;
     });
   }
-  treelite::threading_utils::ParallelFor2D(std::size_t(0), num_row, unsigned(0), num_class,
-                                           thread_config, sched,
-                                           [&](std::size_t row_id, unsigned k, int) {
-    sum_tot[row_id * num_class + k] += model.param.global_bias;
-  });
   if (pred_transform) {
     PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);

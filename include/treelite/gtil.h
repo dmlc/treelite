@@ -10,6 +10,7 @@
 #ifndef TREELITE_GTIL_H_
 #define TREELITE_GTIL_H_
 
+#include <vector>
 #include <cstddef>
 
 namespace treelite {
@@ -22,7 +23,14 @@ namespace gtil {
 /*! \brief Predictor class to perform prediction with a Treelite model */
 class Predictor {
  public:
-  explicit Predictor(const Model& model) : model_(model) {}
+  /*!
+   * \brief Constructor
+   * \param model Treelite model object
+   * \param expected_input_size Expected size (number of rows) of input matrix. This value is
+   *                            used to pre-allocate workspace. Set this value correct in order to
+   *                            reduce latency of Predict().
+   */
+  explicit Predictor(const Model& model, std::size_t expected_input_size = 1024);
 
   /*!
    * \brief Predict with a DMatrix
@@ -68,6 +76,9 @@ class Predictor {
 
  private:
   const Model& model_;
+  std::vector<float> workspace_;
+
+  void AdjustWorkspaceSize(std::size_t size);
 };
 
 }  // namespace gtil

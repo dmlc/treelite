@@ -76,7 +76,7 @@ template <typename ThresholdType, typename LeafOutputType, typename DMatrixType,
 inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                     const DMatrixType* input, float* output,
                                     const ThreadConfig& thread_config, bool pred_transform,
-                                    OutputFunc output_func) {
+                                    OutputFunc output_func, std::vector<float>& workspace) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const std::size_t num_row = input->GetNumRow();
   const std::size_t num_col = input->GetNumCol();
@@ -84,8 +84,11 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
   const treelite::TaskParam task_param = model.task_param;
   const unsigned num_class = task_param.num_class;
   std::vector<ThresholdType> row_tloc(num_col * thread_config.nthread);
-  std::vector<float> sum_tloc(thread_config.nthread * num_row * num_class, 0.0f);
-  std::vector<float> sum_tot(num_row * num_class, 0.0f);
+  float* sum_tloc = &workspace[0];
+  std::size_t sum_tloc_len = thread_config.nthread * num_row * num_class;
+  float* sum_tot = sum_tloc + sum_tloc_len;
+  std::fill(sum_tloc, sum_tloc + sum_tloc_len, 0.0f);
+  std::fill(sum_tot, sum_tot + num_row * num_class, 0.0f);
 
   // Query the size of output per input row.
   std::size_t output_size_per_row;
@@ -191,7 +194,8 @@ inline std::size_t PredictImplInner(const treelite::ModelImpl<ThresholdType, Lea
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                const DMatrixType* input, float* output,
-                               const ThreadConfig& thread_config, bool pred_transform) {
+                               const ThreadConfig& thread_config, bool pred_transform,
+                               std::vector<float>& workspace) {
   using TreeType = treelite::Tree<ThresholdType, LeafOutputType>;
   const treelite::TaskParam task_param = model.task_param;
   if (task_param.num_class > 1) {
@@ -204,28 +208,44 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
           sum[i] += leaf_vector[i];
         }
       };
-      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic,
+                              workspace);
     } else {
       // multi-class classification with gradient boosted trees
       auto output_logic = [task_param](
           const TreeType& tree, int tree_id, int node_id, float* sum) {
         sum[tree_id % task_param.num_class] += tree.LeafValue(node_id);
       };
-      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
+      return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic,
+                              workspace);
     }
   } else {
     auto output_logic = [task_param](
         const TreeType& tree, int tree_id, int node_id, float* sum) {
       sum[0] += tree.LeafValue(node_id);
     };
-    return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic);
+    return PredictImplInner(model, input, output, thread_config, pred_transform, output_logic,
+                            workspace);
   }
+}
+
+inline std::size_t ComputeWorkspaceSize(const treelite::Model& model,
+                                        const ThreadConfig& thread_config,
+                                        std::size_t num_row) {
+  return (thread_config.nthread + 1) * num_row * model.task_param.num_class;
 }
 
 }  // anonymous namespace
 
 namespace treelite {
 namespace gtil {
+
+Predictor::Predictor(const Model& model, std::size_t expected_input_size) : model_(model) {
+  ThreadConfig max_thread_config = threading_utils::ConfigureThreadConfig(-1);
+  std::size_t workspace_size = ComputeWorkspaceSize(model, max_thread_config,
+                                                    expected_input_size);
+  workspace_ = std::vector<float>(workspace_size);
+}
 
 std::size_t
 Predictor::Predict(const DMatrix* input, float* output, int nthread, bool pred_transform) {
@@ -234,13 +254,17 @@ Predictor::Predict(const DMatrix* input, float* output, int nthread, bool pred_t
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
+  std::size_t workspace_size = ComputeWorkspaceSize(model_, thread_config, input->GetNumRow());
+  AdjustWorkspaceSize(workspace_size);
   if (d1) {
-    return model_.Dispatch([d1, output, thread_config, pred_transform](const auto& model) {
-      return PredictImpl(model, d1, output, thread_config, pred_transform);
+    return model_.Dispatch([d1, output, thread_config, pred_transform, &workspace = workspace_]
+                           (const auto& model) {
+      return PredictImpl(model, d1, output, thread_config, pred_transform, workspace);
     });
   } else if (d2) {
-    return model_.Dispatch([d2, output, thread_config, pred_transform](const auto& model) {
-      return PredictImpl(model, d2, output, thread_config, pred_transform);
+    return model_.Dispatch([d2, output, thread_config, pred_transform, &workspace = workspace_]
+                           (const auto& model) {
+      return PredictImpl(model, d2, output, thread_config, pred_transform, workspace);
     });
   } else {
     TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
@@ -268,6 +292,13 @@ Predictor::QueryResultSize(std::size_t num_row) const {
 std::size_t
 Predictor::QueryResultSize(const DMatrix* input) const {
   return QueryResultSize(input->GetNumRow());
+}
+
+void
+Predictor::AdjustWorkspaceSize(std::size_t size) {
+  if (size > workspace_.size()) {
+    workspace_.resize(size);
+  }
 }
 
 }  // namespace gtil

@@ -50,6 +50,7 @@ ModelHandle BuildModel() {
 
 int main() {
   ModelHandle model = BuildModel();
+  GTILPredictorHandle predictor;
   size_t num_row = 5;
   size_t num_col = 2;
   size_t output_alloc_size;
@@ -61,9 +62,11 @@ int main() {
   float* output;
   size_t out_result_size;
   int nthread = 2;
-  safe_treelite(TreeliteGTILGetPredictOutputSize(model, num_row, &output_alloc_size));
+  safe_treelite(TreeliteGTILCreatePredictor(model, &predictor));
+  safe_treelite(TreeliteGTILPredictorQueryResultSize(predictor, num_row, &output_alloc_size));
   output = (float*)malloc(output_alloc_size * sizeof(float));
-  safe_treelite(TreeliteGTILPredict(model, input, num_row, output, nthread, 0, &out_result_size));
+  safe_treelite(TreeliteGTILPredictorPredict(predictor, input, num_row, output, nthread, 0,
+                                             &out_result_size));
 
   printf("TREELITE_VERSION = %s\n", TREELITE_VERSION);
 
@@ -75,7 +78,10 @@ int main() {
     printf("], output: %f\n", output[i]);
   }
 
+  // Clean up
   free(output);
+  safe_treelite(TreeliteFreeModel(model));
+  safe_treelite(TreeliteGTILDeletePredictor(predictor));
 
   return 0;
 }

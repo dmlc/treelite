@@ -11,8 +11,8 @@ class Predictor:
     """
     Predictor class to perform prediction with a Treelite model.
 
-    General Tree Inference Library (GTIL) is intended to be a reference implementation. GTIL is also useful in
-    situations where using a C compiler is not feasible.
+    General Tree Inference Library (GTIL) is intended to be a reference implementation. GTIL is also
+    useful in situations where using a C compiler is not feasible.
 
     .. note:: GTIL is currently experimental
 
@@ -58,7 +58,8 @@ class Predictor:
         assert len(data.shape) == 2
         data = np.array(data, copy=False, dtype=np.float32, order='C')
         output_size = ctypes.c_size_t()
-        _check_call(_LIB.TreeliteGTILPredictorQueryResultSize(self.handle, ctypes.c_size_t(data.shape[0]),
+        _check_call(_LIB.TreeliteGTILPredictorQueryResultSize(self.handle,
+                                                              ctypes.c_size_t(data.shape[0]),
                                                               ctypes.byref(output_size)))
         out_result = np.zeros(shape=output_size.value, dtype=np.float32, order='C')
         out_result_size = ctypes.c_size_t()

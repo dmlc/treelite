@@ -90,15 +90,15 @@ inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op
                     int left_child, int right_child) {
   switch (op) {
     case treelite::Operator::kLT:
-      return (fvalue < threshold) ? left_child : right_child;
+      return left_child + !(fvalue < threshold);
     case treelite::Operator::kLE:
-      return (fvalue <= threshold) ? left_child : right_child;
+      return left_child + !(fvalue <= threshold);
     case treelite::Operator::kEQ:
-      return (fvalue == threshold) ? left_child : right_child;
+      return left_child + !(fvalue == threshold);
     case treelite::Operator::kGT:
-      return (fvalue > threshold) ? left_child : right_child;
+      return left_child + !(fvalue > threshold);
     case treelite::Operator::kGE:
-      return (fvalue >= threshold) ? left_child : right_child;
+      return left_child + !(fvalue >= threshold);
     default:
       TREELITE_CHECK(false) << "Unrecognized comparison operator " << static_cast<int>(op);
       return -1;

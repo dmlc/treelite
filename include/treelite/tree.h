@@ -278,7 +278,7 @@ class Tree {
       return (sindex_ >> 31U) != 0;
     }
     inline int DefaultChild() const {
-      return DefaultLeft() ? LeftChild() : RightChild();
+      return ((sindex_ >> 31U) != 0) ? cleft_ : cright_;
     }
     inline std::uint32_t SplitIndex() const {
       return (sindex_ & ((1U << 31U) - 1U));

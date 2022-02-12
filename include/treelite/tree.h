@@ -306,8 +306,9 @@ class Tree {
   // here
   ContiguousArray<std::size_t> leaf_vector_begin_;
   ContiguousArray<std::size_t> leaf_vector_end_;
-  ContiguousArray<uint32_t> matching_categories_;
+  ContiguousArray<std::uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
+  bool has_categorical_split_{false};
 
   template <typename WriterType, typename X, typename Y>
   friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
@@ -336,12 +337,6 @@ class Tree {
    * \param nid node id to add children to
    */
   inline void AddChilds(int nid);
-
-  /*!
-   * \brief get list of all categorical features that have appeared anywhere in tree
-   * \return list of all categorical features used
-   */
-  inline std::vector<unsigned> GetCategoricalFeatures() const;
 
   /** Getters **/
   /*!
@@ -508,6 +503,13 @@ class Tree {
    */
   inline bool CategoriesListRightChild(int nid) const {
     return nodes_[nid].categories_list_right_child_;
+  }
+
+  /*!
+   * \brief Query whether this tree contains any categorical splits
+   */
+  inline bool HasCategoricalSplit() const {
+    return has_categorical_split_;
   }
 
   /** Setters **/

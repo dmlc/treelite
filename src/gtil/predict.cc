@@ -200,7 +200,7 @@ void PredictByAllTrees(const treelite::ModelImpl<ThresholdType, LeafOutputType>&
   const std::size_t num_tree = model.trees.size();
   for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
     const treelite::Tree<ThresholdType, LeafOutputType>& tree = model.trees[tree_id];
-    auto has_categorical = !tree.GetCategoricalFeatures().empty();
+    auto has_categorical = tree.HasCategoricalSplit();
     if (has_categorical) {
       for (std::size_t i = 0; i < block_size; ++i) {
         PredValueByOneTree<true, OutputLogic>(tree, tree_id,

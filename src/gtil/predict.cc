@@ -37,6 +37,53 @@ namespace {
 using treelite::threading_utils::ThreadConfig;
 using PredTransformFuncType = std::size_t (*) (const treelite::Model&, const float*, float*);
 
+/*!
+ * \brief A dense feature vector.
+ */
+class FVec {
+ public:
+  void Init(std::size_t size) {
+    data_.resize(size);
+    missing_.resize(size);
+    std::fill(data_.begin(), data_.end(), std::numeric_limits<float>::quiet_NaN());
+    std::fill(missing_.begin(), missing_.end(), true);
+    has_missing_ = true;
+  }
+  template <typename DMatrixType>
+  void Fill(const DMatrixType* input, std::size_t row_id) {
+    std::size_t feature_count = 0;
+    input->FillRow(row_id, &data_[0]);
+    for (std::size_t i = 0; i < data_.size(); ++i) {
+      if ( !(missing_[i] = std::isnan(data_[i])) ) {
+        ++feature_count;
+      }
+    }
+    has_missing_ = data_.size() != feature_count;
+  }
+  template <typename DMatrixType>
+  void Clear(const DMatrixType* input, std::size_t row_id) {
+    input->ClearRow(row_id, &data_[0]);
+    std::fill(missing_.begin(), missing_.end(), true);
+    has_missing_ = true;
+  }
+  std::size_t Size() const {
+    return data_.size();
+  }
+  float GetFValue(std::size_t i) const {
+    return data_[i];
+  }
+  bool IsMissing(size_t i) const {
+    return missing_[i];
+  }
+  bool HasMissing() const {
+    return has_missing_;
+  }
+ private:
+  std::vector<float> data_;
+  std::vector<bool> missing_;
+  bool has_missing_;
+};
+
 template <typename ThresholdType>
 inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op,
                     int left_child, int right_child) {
@@ -141,23 +188,27 @@ inline T1 DivRoundUp(const T1 a, const T2 b) {
   return static_cast<T1>(std::ceil(static_cast<double>(a) / b));
 }
 
-template <typename ThresholdType, typename DMatrixType>
+template <typename DMatrixType>
 void FVecFill(const std::size_t block_size, const std::size_t batch_offset,
               const DMatrixType* input, const std::size_t fvec_offset, int num_feature,
-              std::vector<ThresholdType>& feats) {
+              std::vector<FVec>& feats) {
   for (std::size_t i = 0; i < block_size; ++i) {
+    FVec& vec = feats[fvec_offset + i];
+    if (vec.Size() == 0) {
+      vec.Init(static_cast<std::size_t>(num_feature));
+    }
     const std::size_t row_id = batch_offset + i;
-    input->FillRow(row_id, &feats[(fvec_offset + i) * num_feature]);
+    vec.Fill(input, row_id);
   }
 }
 
-template <typename ThresholdType, typename DMatrixType>
+template <typename DMatrixType>
 void FVecDrop(const std::size_t block_size, const std::size_t batch_offset,
               const DMatrixType* input, const std::size_t fvec_offset, int num_feature,
-              std::vector<ThresholdType>& feats) {
+              std::vector<FVec>& feats) {
   for (std::size_t i = 0; i < block_size; ++i) {
     const std::size_t row_id = batch_offset + i;
-    input->ClearRow(row_id, &feats[(fvec_offset + i) * num_feature]);
+    feats[fvec_offset + i].Clear(input, row_id);
   }
 }
 
@@ -169,20 +220,20 @@ inline void InitOutPredictions(const treelite::ModelImpl<ThresholdType, LeafOutp
   std::fill(output, output + num_row * num_class, model.param.global_bias);
 }
 
-template <bool has_categorical, typename OutputLogic, typename ThresholdType,
+template <bool has_missing, bool has_categorical, typename OutputLogic, typename ThresholdType,
           typename LeafOutputType>
-void PredValueByOneTree(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-                        std::size_t tree_id, const ThresholdType* feats, float* output,
-                        std::size_t num_class) {
+void PredValueByOneTreeImpl(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
+                            std::size_t tree_id, const FVec& feats, float* output,
+                            std::size_t num_class) {
   int node_id = 0;
   const typename treelite::Tree<ThresholdType, LeafOutputType>::Node* node
     = treelite::GTILBridge::GetNode(tree, node_id);
   while (!node->IsLeaf()) {
     const auto split_index = node->SplitIndex();
-    const auto fvalue = feats[split_index];
-    if (std::isnan(fvalue)) {
+    if (has_missing && feats.IsMissing(split_index)) {
       node_id = node->DefaultChild();
     } else {
+      const float fvalue = feats.GetFValue(split_index);
       if (has_categorical && node->SplitType() == treelite::SplitFeatureType::kCategorical) {
         node_id = NextNodeCategorical(fvalue, tree.MatchingCategories(node_id),
                                       node->CategoriesListRightChild(), node->LeftChild(),
@@ -197,11 +248,25 @@ void PredValueByOneTree(const treelite::Tree<ThresholdType, LeafOutputType>& tre
   OutputLogic::PushOutput(tree, tree_id, node_id, output, num_class);
 }
 
+template <bool has_categorical, typename OutputLogic, typename ThresholdType,
+          typename LeafOutputType>
+void PredValueByOneTree(const treelite::Tree<ThresholdType, LeafOutputType>& tree,
+                        std::size_t tree_id, const FVec& feats, float* output,
+                        std::size_t num_class) {
+  if (feats.HasMissing()) {
+    PredValueByOneTreeImpl<true, has_categorical, OutputLogic>(
+        tree, tree_id, feats, output, num_class);
+  } else {
+    PredValueByOneTreeImpl<false, has_categorical, OutputLogic>(
+        tree, tree_id, feats, output, num_class);
+  }
+}
+
 
 template <typename OutputLogic, typename ThresholdType, typename LeafOutputType>
 void PredictByAllTrees(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                        float* output, const std::size_t batch_offset,
-                       const std::size_t num_class, const std::vector<ThresholdType>& feats,
+                       const std::size_t num_class, const std::vector<FVec>& feats,
                        const std::size_t fvec_offset, const std::size_t block_size) {
   const int num_feature = model.num_feature;
   const std::size_t num_tree = model.trees.size();
@@ -210,14 +275,12 @@ void PredictByAllTrees(const treelite::ModelImpl<ThresholdType, LeafOutputType>&
     auto has_categorical = tree.HasCategoricalSplit();
     if (has_categorical) {
       for (std::size_t i = 0; i < block_size; ++i) {
-        PredValueByOneTree<true, OutputLogic>(tree, tree_id,
-                                              &feats[(fvec_offset + i) * num_feature],
+        PredValueByOneTree<true, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
                                               &output[(batch_offset + i) * num_class], num_class);
       }
     } else {
       for (std::size_t i = 0; i < block_size; ++i) {
-        PredValueByOneTree<false, OutputLogic>(tree, tree_id,
-                                               &feats[(fvec_offset + i) * num_feature],
+        PredValueByOneTree<false, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
                                                &output[(batch_offset + i) * num_class], num_class);
       }
     }
@@ -235,7 +298,7 @@ void PredictBatchByBlockOfRowsKernel(
   const auto& task_param = model.task_param;
   std::size_t n_blocks = DivRoundUp(num_row, block_of_rows_size);
 
-  std::vector<ThresholdType> feats(thread_config.nthread * block_of_rows_size * num_feature);
+  std::vector<FVec> feats(thread_config.nthread * block_of_rows_size);
   auto sched = treelite::threading_utils::ParallelSchedule::Static();
   treelite::threading_utils::ParallelFor(std::size_t(0), n_blocks, thread_config, sched,
                                          [&](std::size_t block_id, int thread_id) {

@@ -86,8 +86,7 @@ class FVec {
 };
 
 template <typename ThresholdType>
-inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op,
-                    int left_child, int right_child) {
+inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op, int left_child) {
   switch (op) {
     case treelite::Operator::kLT:
       return left_child + !(fvalue < threshold);
@@ -240,8 +239,7 @@ void PredValueByOneTreeImpl(const treelite::Tree<ThresholdType, LeafOutputType>&
                                       node->CategoriesListRightChild(), node->LeftChild(),
                                       node->RightChild());
       } else {
-        node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild(),
-                           node->RightChild());
+        node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild());
       }
     }
     node = treelite::GTILBridge::GetNode(tree, node_id);

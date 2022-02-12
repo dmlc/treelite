@@ -39,10 +39,7 @@ using PredTransformFuncType = std::size_t (*) (const treelite::Model&, const flo
 
 template <typename ThresholdType>
 inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op,
-                    int left_child, int right_child, int default_child) {
-  if (std::isnan(fvalue)) {
-    return default_child;
-  }
+                    int left_child, int right_child) {
   switch (op) {
     case treelite::Operator::kLT:
       return (fvalue < threshold) ? left_child : right_child;
@@ -61,11 +58,7 @@ inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op
 }
 
 inline int NextNodeCategorical(float fvalue, const std::vector<std::uint32_t>& matching_categories,
-                               bool categories_list_right_child, int left_child, int right_child,
-                               int default_child) {
-  if (std::isnan(fvalue)) {
-    return default_child;
-  }
+                               bool categories_list_right_child, int left_child, int right_child) {
   bool is_matching_category;
   auto max_representable_int = static_cast<float>(std::uint32_t(1) << FLT_MANT_DIG);
   if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
@@ -193,10 +186,10 @@ void PredValueByOneTree(const treelite::Tree<ThresholdType, LeafOutputType>& tre
       if (has_categorical && node->SplitType() == treelite::SplitFeatureType::kCategorical) {
         node_id = NextNodeCategorical(fvalue, tree.MatchingCategories(node_id),
                                       node->CategoriesListRightChild(), node->LeftChild(),
-                                      node->RightChild(), node->DefaultChild());
+                                      node->RightChild());
       } else {
         node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild(),
-                           node->RightChild(), node->DefaultChild());
+                           node->RightChild());
       }
     }
     node = treelite::GTILBridge::GetNode(tree, node_id);

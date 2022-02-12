@@ -87,11 +87,15 @@ class FVec {
 
 template <typename ThresholdType>
 inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op, int left_child) {
+  // XGBoost
+  if (op == treelite::Operator::kLT) {
+    return left_child + !(fvalue < threshold);
+  }
+  // LightGBM, sklearn, cuML RF
+  if (op == treelite::Operator::kLE) {
+    return left_child + !(fvalue <= threshold);
+  }
   switch (op) {
-    case treelite::Operator::kLT:
-      return left_child + !(fvalue < threshold);
-    case treelite::Operator::kLE:
-      return left_child + !(fvalue <= threshold);
     case treelite::Operator::kEQ:
       return left_child + !(fvalue == threshold);
     case treelite::Operator::kGT:

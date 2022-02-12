@@ -349,14 +349,14 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline int LeftChild(int nid) const {
-    return nodes_.at(nid).cleft_;
+    return nodes_[nid].cleft_;
   }
   /*!
    * \brief index of the node's right child
    * \param nid ID of node being queried
    */
   inline int RightChild(int nid) const {
-    return nodes_.at(nid).cright_;
+    return nodes_[nid].cright_;
   }
   /*!
    * \brief index of the node's "default" child, used when feature is missing
@@ -370,36 +370,36 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline uint32_t SplitIndex(int nid) const {
-    return (nodes_.at(nid).sindex_ & ((1U << 31U) - 1U));
+    return (nodes_[nid].sindex_ & ((1U << 31U) - 1U));
   }
   /*!
    * \brief whether to use the left child node, when the feature in the split condition is missing
    * \param nid ID of node being queried
    */
   inline bool DefaultLeft(int nid) const {
-    return (nodes_.at(nid).sindex_ >> 31U) != 0;
+    return (nodes_[nid].sindex_ >> 31U) != 0;
   }
   /*!
    * \brief whether the node is leaf node
    * \param nid ID of node being queried
    */
   inline bool IsLeaf(int nid) const {
-    return nodes_.at(nid).cleft_ == -1;
+    return nodes_[nid].cleft_ == -1;
   }
   /*!
    * \brief get leaf value of the leaf node
    * \param nid ID of node being queried
    */
   inline LeafOutputType LeafValue(int nid) const {
-    return (nodes_.at(nid).info_).leaf_value;
+    return (nodes_[nid].info_).leaf_value;
   }
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const std::size_t offset_begin = leaf_vector_begin_.at(nid);
-    const std::size_t offset_end = leaf_vector_end_.at(nid);
+    const std::size_t offset_begin = leaf_vector_begin_[nid];
+    const std::size_t offset_end = leaf_vector_end_[nid];
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -414,21 +414,21 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid);
+    return leaf_vector_begin_[nid] != leaf_vector_end_[nid];
   }
   /*!
    * \brief get threshold of the node
    * \param nid ID of node being queried
    */
   inline ThresholdType Threshold(int nid) const {
-    return (nodes_.at(nid).info_).threshold;
+    return (nodes_[nid].info_).threshold;
   }
   /*!
    * \brief get comparison operator
    * \param nid ID of node being queried
    */
   inline Operator ComparisonOp(int nid) const {
-    return nodes_.at(nid).cmp_;
+    return nodes_[nid].cmp_;
   }
   /*!
    * \brief Get list of all categories belonging to the left/right child node. See the
@@ -439,8 +439,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<uint32_t> MatchingCategories(int nid) const {
-    const std::size_t offset_begin = matching_categories_offset_.at(nid);
-    const std::size_t offset_end = matching_categories_offset_.at(nid + 1);
+    const std::size_t offset_begin = matching_categories_offset_[nid];
+    const std::size_t offset_end = matching_categories_offset_[nid + 1];
     if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
       // Return empty vector, to indicate the lack of any matching categories
       // The node might be a numerical split
@@ -456,21 +456,21 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline SplitFeatureType SplitType(int nid) const {
-    return nodes_.at(nid).split_type_;
+    return nodes_[nid].split_type_;
   }
   /*!
    * \brief test whether this node has data count
    * \param nid ID of node being queried
    */
   inline bool HasDataCount(int nid) const {
-    return nodes_.at(nid).data_count_present_;
+    return nodes_[nid].data_count_present_;
   }
   /*!
    * \brief get data count
    * \param nid ID of node being queried
    */
   inline uint64_t DataCount(int nid) const {
-    return nodes_.at(nid).data_count_;
+    return nodes_[nid].data_count_;
   }
 
   /*!
@@ -478,28 +478,28 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasSumHess(int nid) const {
-    return nodes_.at(nid).sum_hess_present_;
+    return nodes_[nid].sum_hess_present_;
   }
   /*!
    * \brief get hessian sum
    * \param nid ID of node being queried
    */
   inline double SumHess(int nid) const {
-    return nodes_.at(nid).sum_hess_;
+    return nodes_[nid].sum_hess_;
   }
   /*!
    * \brief test whether this node has gain value
    * \param nid ID of node being queried
    */
   inline bool HasGain(int nid) const {
-    return nodes_.at(nid).gain_present_;
+    return nodes_[nid].gain_present_;
   }
   /*!
    * \brief get gain value
    * \param nid ID of node being queried
    */
   inline double Gain(int nid) const {
-    return nodes_.at(nid).gain_;
+    return nodes_[nid].gain_;
   }
   /*!
    * \brief test whether the list given by MatchingCategories(nid) is associated with the right
@@ -507,7 +507,7 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool CategoriesListRightChild(int nid) const {
-    return nodes_.at(nid).categories_list_right_child_;
+    return nodes_[nid].categories_list_right_child_;
   }
 
   /** Setters **/

@@ -78,6 +78,7 @@ class FVec {
   bool HasMissing() const {
     return has_missing_;
   }
+
  private:
   std::vector<float> data_;
   std::vector<bool> missing_;

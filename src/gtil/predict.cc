@@ -19,6 +19,19 @@
 #include "../threading_utils/parallel_for.h"
 #include "./pred_transform.h"
 
+namespace treelite {
+
+class GTILBridge {
+ public:
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static const typename Tree<ThresholdType, LeafOutputType>::Node*
+  GetNode(const Tree<ThresholdType, LeafOutputType>& tree, int nid)  {
+    return &tree.nodes_[nid];
+  }
+};
+
+}  // namespace treelite
+
 namespace {
 
 using treelite::threading_utils::ThreadConfig;
@@ -169,23 +182,24 @@ void PredValueByOneTree(const treelite::Tree<ThresholdType, LeafOutputType>& tre
                         std::size_t tree_id, const ThresholdType* feats, float* output,
                         std::size_t num_class) {
   int node_id = 0;
-  while (!tree.IsLeaf(node_id)) {
-    const auto split_index = tree.SplitIndex(node_id);
+  const typename treelite::Tree<ThresholdType, LeafOutputType>::Node* node
+    = treelite::GTILBridge::GetNode(tree, node_id);
+  while (!node->IsLeaf()) {
+    const auto split_index = node->SplitIndex();
     const auto fvalue = feats[split_index];
     if (std::isnan(fvalue)) {
-      node_id = tree.DefaultChild(node_id);
+      node_id = node->DefaultChild();
     } else {
-      if (has_categorical && tree.SplitType(node_id) == treelite::SplitFeatureType::kCategorical) {
+      if (has_categorical && node->SplitType() == treelite::SplitFeatureType::kCategorical) {
         node_id = NextNodeCategorical(fvalue, tree.MatchingCategories(node_id),
-                                      tree.CategoriesListRightChild(node_id),
-                                      tree.LeftChild(node_id), tree.RightChild(node_id),
-                                      tree.DefaultChild(node_id));
+                                      node->CategoriesListRightChild(), node->LeftChild(),
+                                      node->RightChild(), node->DefaultChild());
       } else {
-        node_id = NextNode(fvalue, tree.Threshold(node_id), tree.ComparisonOp(node_id),
-                           tree.LeftChild(node_id), tree.RightChild(node_id),
-                           tree.DefaultChild(node_id));
+        node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild(),
+                           node->RightChild(), node->DefaultChild());
       }
     }
+    node = treelite::GTILBridge::GetNode(tree, node_id);
   }
   OutputLogic::PushOutput(tree, tree_id, node_id, output, num_class);
 }

@@ -384,7 +384,7 @@ class Model:
             # For XGBoost version 1.6.0 and later, use save_raw() to export models as JSON string
             model_json_str = booster.save_raw(raw_format="json").decode("utf-8")
             return cls.from_xgboost_json(model_json_str)
-        elif xgb_version >= parse_version("1.0.0"):
+        if xgb_version >= parse_version("1.0.0"):
             # Prior to version 1.6.0, XGBoost offer a method to export models as JSON string
             # in-memory. So use __getstate__ instead.
             model_json_str = booster.__getstate__()["handle"].decode("utf-8")

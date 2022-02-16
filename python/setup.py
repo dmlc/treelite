@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import collections
 import logging
-import shutil
 from platform import system
 from setuptools import setup, find_packages, Extension
 from setuptools.command import build_ext, sdist, install_lib, install

@@ -33,9 +33,10 @@ namespace gtil {
 std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
                     bool pred_transform);
 /*!
- * \brief Predict with a 2D dense matrix
+ * \brief Predict with a 2D dense array
  * \param model The model object
- * \param input The data matrix, laid out in row-major layout
+ * \param input The 2D data array, laid out in row-major layout
+ * \param num_row Number of rows in the data matrix.
  * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
  *               amount of buffer you should allocate for this parameter.
  * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
@@ -45,9 +46,21 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
  */
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
                     int nthread, bool pred_transform);
-
-// Query functions to allocate correct amount of memory for the output
+/*!
+ * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
+ *        data points.
+ * \param model Treelite Model object
+ * \param num_row Number of rows in the input
+ * \return Size of output buffer that should be allocated
+ */
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row);
+/*!
+ * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
+ *        data points.
+ * \param model Treelite Model object
+ * \param input The input matrix
+ * \return Size of output buffer that should be allocated
+ */
 std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input);
 
 }  // namespace gtil

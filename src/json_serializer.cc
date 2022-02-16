@@ -140,6 +140,8 @@ void DumpTreeAsJSON(WriterType& writer, const Tree<ThresholdType, LeafOutputType
 
   writer.Key("num_nodes");
   writer.Int(tree.num_nodes);
+  writer.Key("has_categorical_split");
+  writer.Bool(tree.has_categorical_split_);
   writer.Key("nodes");
   writer.StartArray();
   for (std::size_t i = 0; i < tree.nodes_.Size(); ++i) {

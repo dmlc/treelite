@@ -31,6 +31,8 @@
 
 namespace treelite {
 
+class GTILBridge;
+
 template <typename ThresholdType, typename LeafOutputType>
 class ModelImpl;
 
@@ -223,19 +225,19 @@ class Tree {
       ThresholdType threshold;   // for non-leaf nodes
     };
     /*! \brief pointer to left and right children */
-    int32_t cleft_, cright_;
+    std::int32_t cleft_, cright_;
     /*!
      * \brief feature index used for the split
      * highest bit indicates default direction for missing values
      */
-    uint32_t sindex_;
+    std::uint32_t sindex_;
     /*! \brief storage for leaf value or decision threshold */
     Info info_;
     /*!
      * \brief number of data points whose traversal paths include this node.
      *        LightGBM models natively store this statistics.
      */
-    uint64_t data_count_;
+    std::uint64_t data_count_;
     /*!
      * \brief sum of hessian values for all data points whose traversal paths
      *        include this node. This value is generally correlated positively
@@ -264,6 +266,62 @@ class Tree {
     /* \brief whether the list given by MatchingCategories(nid) is associated with the right child
      *        node or the left child node. True if the right child, False otherwise */
     bool categories_list_right_child_;
+
+    /** Getters **/
+    inline int LeftChild() const {
+      return cleft_;
+    }
+    inline int RightChild() const {
+      return cright_;
+    }
+    inline bool DefaultLeft() const {
+      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
+      return (sindex_ >> 31U) != 0;
+    }
+    inline int DefaultChild() const {
+      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
+      return ((sindex_ >> 31U) != 0) ? cleft_ : cright_;
+    }
+    inline std::uint32_t SplitIndex() const {
+      // Extract all bits except the most significant bit (MSB) from sindex_.
+      return (sindex_ & ((1U << 31U) - 1U));
+    }
+    inline bool IsLeaf() const {
+      return cleft_ == -1;
+    }
+    inline LeafOutputType LeafValue() const {
+      return info_.leaf_value;
+    }
+    inline ThresholdType Threshold() const {
+      return info_.threshold;
+    }
+    inline Operator ComparisonOp() const {
+      return cmp_;
+    }
+    inline SplitFeatureType SplitType() const {
+      return split_type_;
+    }
+    inline bool HasDataCount() const {
+      return data_count_present_;
+    }
+    inline std::uint64_t DataCount() const {
+      return data_count_;
+    }
+    inline bool HasSumHess() const {
+      return sum_hess_present_;
+    }
+    inline double SumHess() const {
+      return sum_hess_;
+    }
+    inline bool HasGain() const {
+      return gain_present_;
+    }
+    inline double Gain() const {
+      return gain_;
+    }
+    inline bool CategoriesListRightChild() const {
+      return categories_list_right_child_;
+    }
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
@@ -306,8 +364,9 @@ class Tree {
   // here
   ContiguousArray<std::size_t> leaf_vector_begin_;
   ContiguousArray<std::size_t> leaf_vector_end_;
-  ContiguousArray<uint32_t> matching_categories_;
+  ContiguousArray<std::uint32_t> matching_categories_;
   ContiguousArray<std::size_t> matching_categories_offset_;
+  bool has_categorical_split_{false};
 
   template <typename WriterType, typename X, typename Y>
   friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
@@ -326,6 +385,8 @@ class Tree {
   inline void
   DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler);
 
+  friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
+
  public:
   /*! \brief number of nodes */
   int num_nodes;
@@ -337,69 +398,63 @@ class Tree {
    */
   inline void AddChilds(int nid);
 
-  /*!
-   * \brief get list of all categorical features that have appeared anywhere in tree
-   * \return list of all categorical features used
-   */
-  inline std::vector<unsigned> GetCategoricalFeatures() const;
-
   /** Getters **/
   /*!
    * \brief index of the node's left child
    * \param nid ID of node being queried
    */
   inline int LeftChild(int nid) const {
-    return nodes_.at(nid).cleft_;
+    return nodes_[nid].LeftChild();
   }
   /*!
    * \brief index of the node's right child
    * \param nid ID of node being queried
    */
   inline int RightChild(int nid) const {
-    return nodes_.at(nid).cright_;
+    return nodes_[nid].RightChild();
   }
   /*!
    * \brief index of the node's "default" child, used when feature is missing
    * \param nid ID of node being queried
    */
   inline int DefaultChild(int nid) const {
-    return DefaultLeft(nid) ? LeftChild(nid) : RightChild(nid);
+    return nodes_[nid].DefaultChild();
   }
   /*!
    * \brief feature index of the node's split condition
    * \param nid ID of node being queried
    */
-  inline uint32_t SplitIndex(int nid) const {
-    return (nodes_.at(nid).sindex_ & ((1U << 31U) - 1U));
+  inline std::uint32_t SplitIndex(int nid) const {
+    return nodes_[nid].SplitIndex();
   }
   /*!
    * \brief whether to use the left child node, when the feature in the split condition is missing
    * \param nid ID of node being queried
    */
   inline bool DefaultLeft(int nid) const {
-    return (nodes_.at(nid).sindex_ >> 31U) != 0;
+    return nodes_[nid].DefaultLeft();
   }
   /*!
    * \brief whether the node is leaf node
    * \param nid ID of node being queried
    */
   inline bool IsLeaf(int nid) const {
-    return nodes_.at(nid).cleft_ == -1;
+    return nodes_[nid].IsLeaf();
   }
   /*!
    * \brief get leaf value of the leaf node
    * \param nid ID of node being queried
    */
   inline LeafOutputType LeafValue(int nid) const {
-    return (nodes_.at(nid).info_).leaf_value;
+    return nodes_[nid].LeafValue();
   }
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const std::size_t offset_begin = leaf_vector_begin_.at(nid);
-    const std::size_t offset_end = leaf_vector_end_.at(nid);
+    const std::size_t offset_begin = leaf_vector_begin_[nid];
+    const std::size_t offset_end = leaf_vector_end_[nid];
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -414,21 +469,21 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
-    return leaf_vector_begin_.at(nid) != leaf_vector_end_.at(nid);
+    return leaf_vector_begin_[nid] != leaf_vector_end_[nid];
   }
   /*!
    * \brief get threshold of the node
    * \param nid ID of node being queried
    */
   inline ThresholdType Threshold(int nid) const {
-    return (nodes_.at(nid).info_).threshold;
+    return nodes_[nid].Threshold();
   }
   /*!
    * \brief get comparison operator
    * \param nid ID of node being queried
    */
   inline Operator ComparisonOp(int nid) const {
-    return nodes_.at(nid).cmp_;
+    return nodes_[nid].ComparisonOp();
   }
   /*!
    * \brief Get list of all categories belonging to the left/right child node. See the
@@ -438,16 +493,16 @@ class Tree {
    *        assumed to be in ascending order.
    * \param nid ID of node being queried
    */
-  inline std::vector<uint32_t> MatchingCategories(int nid) const {
-    const std::size_t offset_begin = matching_categories_offset_.at(nid);
-    const std::size_t offset_end = matching_categories_offset_.at(nid + 1);
+  inline std::vector<std::uint32_t> MatchingCategories(int nid) const {
+    const std::size_t offset_begin = matching_categories_offset_[nid];
+    const std::size_t offset_end = matching_categories_offset_[nid + 1];
     if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
       // Return empty vector, to indicate the lack of any matching categories
       // The node might be a numerical split
-      return std::vector<uint32_t>();
+      return std::vector<std::uint32_t>();
     }
-    return std::vector<uint32_t>(&matching_categories_[offset_begin],
-                                 &matching_categories_[offset_end]);
+    return std::vector<std::uint32_t>(&matching_categories_[offset_begin],
+                                      &matching_categories_[offset_end]);
       // Use unsafe access here, since we may need to take the address of one past the last
       // element, to follow with the range semantic of std::vector<>.
   }
@@ -456,21 +511,21 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline SplitFeatureType SplitType(int nid) const {
-    return nodes_.at(nid).split_type_;
+    return nodes_[nid].SplitType();
   }
   /*!
    * \brief test whether this node has data count
    * \param nid ID of node being queried
    */
   inline bool HasDataCount(int nid) const {
-    return nodes_.at(nid).data_count_present_;
+    return nodes_[nid].HasDataCount();
   }
   /*!
    * \brief get data count
    * \param nid ID of node being queried
    */
-  inline uint64_t DataCount(int nid) const {
-    return nodes_.at(nid).data_count_;
+  inline std::uint64_t DataCount(int nid) const {
+    return nodes_[nid].DataCount();
   }
 
   /*!
@@ -478,28 +533,28 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool HasSumHess(int nid) const {
-    return nodes_.at(nid).sum_hess_present_;
+    return nodes_[nid].HasSumHess();
   }
   /*!
    * \brief get hessian sum
    * \param nid ID of node being queried
    */
   inline double SumHess(int nid) const {
-    return nodes_.at(nid).sum_hess_;
+    return nodes_[nid].SumHess();
   }
   /*!
    * \brief test whether this node has gain value
    * \param nid ID of node being queried
    */
   inline bool HasGain(int nid) const {
-    return nodes_.at(nid).gain_present_;
+    return nodes_[nid].HasGain();
   }
   /*!
    * \brief get gain value
    * \param nid ID of node being queried
    */
   inline double Gain(int nid) const {
-    return nodes_.at(nid).gain_;
+    return nodes_[nid].Gain();
   }
   /*!
    * \brief test whether the list given by MatchingCategories(nid) is associated with the right
@@ -507,7 +562,14 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline bool CategoriesListRightChild(int nid) const {
-    return nodes_.at(nid).categories_list_right_child_;
+    return nodes_[nid].CategoriesListRightChild();
+  }
+
+  /*!
+   * \brief Query whether this tree contains any categorical splits
+   */
+  inline bool HasCategoricalSplit() const {
+    return has_categorical_split_;
   }
 
   /** Setters **/

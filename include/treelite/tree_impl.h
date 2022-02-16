@@ -520,7 +520,7 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr std::size_t kNumFramePerTree = 7;
+constexpr std::size_t kNumFramePerTree = 8;
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
@@ -529,6 +529,7 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
     ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
     CompositeArrayHandler composite_array_handler) {
   scalar_handler(&num_nodes);
+  scalar_handler(&has_categorical_split_);
   composite_array_handler(&nodes_, GetFormatStringForNode());
   primitive_array_handler(&leaf_vector_);
   primitive_array_handler(&leaf_vector_begin_);
@@ -543,6 +544,7 @@ inline void
 Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
     ScalarHandler scalar_handler, ArrayHandler array_handler) {
   scalar_handler(&num_nodes);
+  scalar_handler(&has_categorical_split_);
   array_handler(&nodes_);
   if (static_cast<std::size_t>(num_nodes) != nodes_.Size()) {
     throw std::runtime_error("Could not load the correct number of nodes");
@@ -648,6 +650,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void
 Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
+  has_categorical_split_ = false;
   leaf_vector_.Clear();
   leaf_vector_begin_.Resize(1, {});
   leaf_vector_end_.Resize(1, {});
@@ -665,35 +668,6 @@ Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
   const int cright = this->AllocNode();
   nodes_.at(nid).cleft_ = cleft;
   nodes_.at(nid).cright_ = cright;
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-inline std::vector<unsigned>
-Tree<ThresholdType, LeafOutputType>::GetCategoricalFeatures() const {
-  std::unordered_map<unsigned, bool> tmp;
-  for (int nid = 0; nid < num_nodes; ++nid) {
-    const SplitFeatureType type = SplitType(nid);
-    if (type != SplitFeatureType::kNone) {
-      const bool flag = (type == SplitFeatureType::kCategorical);
-      const uint32_t split_index = SplitIndex(nid);
-      if (tmp.count(split_index) == 0) {
-        tmp[split_index] = flag;
-      } else {
-        if (tmp[split_index] != flag) {
-          throw std::runtime_error("Feature " + std::to_string(split_index) +
-                                   " cannot be simultaneously be categorical and numerical.");
-        }
-      }
-    }
-  }
-  std::vector<unsigned> result;
-  for (const auto& kv : tmp) {
-    if (kv.second) {
-      result.push_back(kv.first);
-    }
-  }
-  std::sort(result.begin(), result.end());
-  return result;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -746,6 +720,8 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
   node.sindex_ = split_index;
   node.split_type_ = SplitFeatureType::kCategorical;
   node.categories_list_right_child_ = categories_list_right_child;
+
+  has_categorical_split_ = true;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

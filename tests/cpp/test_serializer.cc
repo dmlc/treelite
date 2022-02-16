@@ -95,6 +95,7 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
     }},
     "trees": [{{
             "num_nodes": 3,
+            "has_categorical_split": false,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,
@@ -183,6 +184,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
     }},
     "trees": [{{
             "num_nodes": 3,
+            "has_categorical_split": false,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,
@@ -289,6 +291,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
     }},
     "trees": [{{
             "num_nodes": 3,
+            "has_categorical_split": true,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,
@@ -394,6 +397,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
     }},
     "trees": [{{
             "num_nodes": 7,
+            "has_categorical_split": true,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,
@@ -436,6 +440,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                 }}]
         }}, {{
             "num_nodes": 7,
+            "has_categorical_split": true,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,
@@ -478,6 +483,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                 }}]
         }}, {{
             "num_nodes": 7,
+            "has_categorical_split": true,
             "nodes": [{{
                     "node_id": 0,
                     "split_feature_id": 0,

@@ -255,17 +255,17 @@ int TreeliteFreeModel(ModelHandle handle) {
   API_END();
 }
 
-int TreeliteGTILGetPredictOutputSize(ModelHandle handle, size_t num_row, size_t* out) {
+int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  const auto* model_ = static_cast<const Model*>(model);
   *out = gtil::GetPredictOutputSize(model_, num_row);
   API_END();
 }
 
-int TreeliteGTILPredict(ModelHandle handle, const float* input, size_t num_row, float* output,
+int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row, float* output,
                         int nthread, int pred_transform, size_t* out_result_size) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  const auto* model_ = static_cast<const Model*>(model);
   *out_result_size =
       gtil::Predict(model_, input, num_row, output, nthread, (pred_transform == 1));
   API_END();

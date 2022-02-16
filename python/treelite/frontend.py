@@ -379,9 +379,14 @@ class Model:
                                 '`xgboost.Booster` object') from e
         if not isinstance(booster, xgboost.Booster):
             raise ValueError('booster must be of type `xgboost.Booster`')
-        if parse_version(xgboost.__version__) >= parse_version('1.0.0'):
-            # TODO(hcho3): Remove this line once XGBoost implements a method to save JSON model
-            # in-memory. (Right now, save_model() always saves to the disk.)
+        xgb_version = parse_version(xgboost.__version__)
+        if xgb_version > parse_version("1.5.2")
+            # For XGBoost version 1.6.0 and later, use save_raw() to export models as JSON string
+            model_json_str = booster.save_raw(raw_format="json").decode('utf-8')
+            return cls.from_xgboost_json(model_json_str)
+        elif xgb_version >= parse_version("1.0.0"):
+            # Prior to version 1.6.0, XGBoost offer a method to export models as JSON string
+            # in-memory. So use __getstate__ instead.
             model_json_str = booster.__getstate__()['handle'].decode('utf-8')
             return cls.from_xgboost_json(model_json_str)
         # If pre-1.0.0 version of XGBoost is used, use legacy serialization

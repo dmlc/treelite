@@ -275,12 +275,15 @@ class Tree {
       return cright_;
     }
     inline bool DefaultLeft() const {
+      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
       return (sindex_ >> 31U) != 0;
     }
     inline int DefaultChild() const {
+      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
       return ((sindex_ >> 31U) != 0) ? cleft_ : cright_;
     }
     inline std::uint32_t SplitIndex() const {
+      // Extract all bits except the most significant bit (MSB) from sindex_.
       return (sindex_ & ((1U << 31U) - 1U));
     }
     inline bool IsLeaf() const {

@@ -71,8 +71,13 @@ union Entry {
 
 class SharedLibrary {
  public:
+#ifdef _WIN32
+  using LibraryHandle = HMODULE;
+  using FunctionHandle = FARPROC;
+#else  // _WIN32
   using LibraryHandle = void*;
   using FunctionHandle = void*;
+#endif  // _WIN32
   SharedLibrary();
   ~SharedLibrary();
   void Load(const char* libpath);

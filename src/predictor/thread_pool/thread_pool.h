@@ -81,12 +81,7 @@ class ThreadPool {
 
   inline void SetAffinity() {
 #ifdef _WIN32
-    /* Windows */
-    SetThreadAffinityMask(GetCurrentThread(), 0x1);
-    for (int i = 0; i < num_worker_; ++i) {
-      const int core_id = i + 1;
-      SetThreadAffinityMask(thread_[i].native_handle(), (1ULL << core_id));
-    }
+    /* Do not set thread affinity on Windows */
 #elif defined(__APPLE__) && defined(__MACH__)
 #include <TargetConditionals.h>
 #if TARGET_OS_MAC == 1

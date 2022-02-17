@@ -180,10 +180,15 @@ def test_xgb_nonlinear_objective(tmpdir, objective, max_label, model_format):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-def test_xgb_categorical_split():
+@pytest.mark.parametrize('in_memory', [True, False])
+def test_xgb_categorical_split(in_memory):
     """Test toy XGBoost model with categorical splits"""
     dataset = 'xgb_toy_categorical'
-    tl_model = treelite.Model.load(dataset_db[dataset].model, model_format='xgboost_json')
+    if in_memory:
+        xgb_model = xgb.Booster(model_file=dataset_db[dataset].model)
+        tl_model = treelite.Model.from_xgboost(xgb_model)
+    else:
+        tl_model = treelite.Model.load(dataset_db[dataset].model, model_format='xgboost_json')
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
     expected_pred = load_txt(dataset_db[dataset].expected_margin)

@@ -196,6 +196,7 @@ def test_xgb_deserializers(tmpdir, toolchain):
     bst.save_model(model_bin_path)
     model_json_path = os.path.join(tmpdir, 'serialized.json')
     bst.save_model(model_json_path)
+    model_json_str = bst.save_raw(raw_format="json")
 
     # Construct Treelite models from xgboost serializations
     model_bin = treelite.Model.load(
@@ -204,9 +205,7 @@ def test_xgb_deserializers(tmpdir, toolchain):
     model_json = treelite.Model.load(
         model_json_path, model_format='xgboost_json'
     )
-    with open(model_json_path, 'r', encoding='UTF-8') as file_:
-        json_str = file_.read()
-    model_json_str = treelite.Model.from_xgboost_json(json_str)
+    model_json_str = treelite.Model.from_xgboost_json(model_json_str)
 
     # Compile models to libraries
     model_bin_lib = os.path.join(tmpdir, 'bin{}'.format(_libext()))

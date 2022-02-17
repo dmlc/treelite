@@ -109,7 +109,7 @@ jobs:
     displayName: 'Building Treelite...'
   - script: |
       python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm cython
-      python -m pip install --pre xgboost
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-manylinux2014_x86_64.whl
       cd tests/cython
       python setup.py build_ext --inplace
       cd ../..
@@ -144,7 +144,7 @@ jobs:
   - script: |
       call activate
       python -m pip install lightgbm codecov
-      python -m pip install --pre xgboost
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -202,7 +202,7 @@ jobs:
   - checkout: self
   - script: |
       python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn lightgbm awscli
-      python -m pip install --pre xgboost
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-manylinux2014_x86_64.whl
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:
@@ -240,7 +240,7 @@ jobs:
   - script: |
       call activate
       python -m pip install lightgbm
-      python -m pip install --pre xgboost
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

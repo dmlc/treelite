@@ -20,7 +20,7 @@ then
   ninja
   cd ..
   # Install XGBoost and LightGBM without OpenMP
-  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl
   python -m pip install lightgbm --no-binary :all:
   python -m pip install codecov
   ./build/treelite_cpp_test
@@ -94,7 +94,7 @@ then
 
   # Run tests
   # Install XGBoost and LightGBM without OpenMP
-  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl
   python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 fi
@@ -113,7 +113,7 @@ if [ ${TASK} == "python_sdist_test" ]; then
 
   # Run tests
   # Install XGBoost and LightGBM without OpenMP
-  python -m pip install --pre xgboost --no-binary :all:
+  python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64.whl
   python -m pip install lightgbm --no-binary :all:
   python -m pytest -v --fulltrace tests/python
 

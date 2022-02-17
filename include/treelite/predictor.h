@@ -16,6 +16,11 @@
 #include <mutex>
 #include <cstdint>
 
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif  // _WIN32
+
 namespace treelite {
 namespace predictor {
 
@@ -71,8 +76,13 @@ union Entry {
 
 class SharedLibrary {
  public:
+#ifdef _WIN32
+  using LibraryHandle = HMODULE;
+  using FunctionHandle = FARPROC;
+#else  // _WIN32
   using LibraryHandle = void*;
   using FunctionHandle = void*;
+#endif  // _WIN32
   SharedLibrary();
   ~SharedLibrary();
   void Load(const char* libpath);

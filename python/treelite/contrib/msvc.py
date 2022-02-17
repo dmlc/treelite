@@ -7,7 +7,7 @@ from __future__ import absolute_import as _abs
 import os
 import glob
 import re
-from distutils.version import StrictVersion
+from pkg_resources import parse_version
 from .util import _create_shared_base, _libext
 
 LIBEXT = _libext()
@@ -42,7 +42,7 @@ def _varsall_bat_path():  # pylint: disable=R0912
         while True:
             try:
                 version, vcroot, _ = winreg.EnumValue(key, i)
-                if StrictVersion(version) >= StrictVersion('15.0'):
+                if parse_version(version) >= parse_version('15.0'):
                     # Visual Studio 2017 revamped directory structure
                     candidate_paths.append(
                         os.path.join(vcroot, 'VC\\Auxiliary\\Build\\vcvarsall.bat'))

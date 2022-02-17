@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import collections
 import logging
-import distutils
 from platform import system
 from setuptools import setup, find_packages, Extension
 from setuptools.command import build_ext, sdist, install_lib, install
@@ -42,12 +41,12 @@ def copy_tree(src_dir, target_dir):
     logger = logging.getLogger('Treelite copy_tree')
     def clean_copy_tree(src, dst):
         logger.info('Copy tree %s -> %s', src, dst)
-        distutils.dir_util.copy_tree(src, dst)
+        shutil.copytree(src, dst)
         NEED_CLEAN_TREE.add(os.path.abspath(dst))
 
     def clean_copy_file(src, dst):
         logger.info('Copy tree %s -> %s', src, dst)
-        distutils.file_util.copy_file(src, dst)
+        shutil.copy(src, dst)
         NEED_CLEAN_FILE.add(os.path.abspath(dst))
 
     cmake = os.path.join(src_dir, 'cmake')

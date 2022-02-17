@@ -144,7 +144,7 @@ jobs:
   - script: |
       call activate
       python -m pip install lightgbm codecov
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
     displayName: 'Setting up Python environment...'
   - script: |
       mkdir build
@@ -240,7 +240,7 @@ jobs:
   - script: |
       call activate
       python -m pip install lightgbm
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
+      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
     displayName: 'Setting up Python environment...'
   - task: DownloadPipelineArtifact@0
     inputs:

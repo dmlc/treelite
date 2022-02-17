@@ -16,6 +16,10 @@
 #include <mutex>
 #include <cstdint>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif  // _WIN32
+
 namespace treelite {
 namespace predictor {
 

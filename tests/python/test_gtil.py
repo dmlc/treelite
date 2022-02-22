@@ -80,7 +80,7 @@ def test_skl_multiclass_classifier(clazz):
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 
-def test_skl_converter_iforest(tmpdir):
+def test_skl_converter_iforest():
     """Scikit-learn isolation forest"""
     X, _ = load_boston(return_X_y=True)
     clf = IsolationForest(max_samples=64, random_state=0, n_estimators=10)

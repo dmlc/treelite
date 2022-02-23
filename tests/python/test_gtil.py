@@ -9,7 +9,7 @@ import numpy as np
 import scipy
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, \
     ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, \
-    ExtraTreesRegressor
+    ExtraTreesRegressor, IsolationForest
 from sklearn.datasets import load_iris, load_breast_cancer, load_boston, load_svmlight_file
 from sklearn.model_selection import train_test_split
 
@@ -78,6 +78,18 @@ def test_skl_multiclass_classifier(clazz):
     tl_model = treelite.sklearn.import_model(clf)
     out_prob = treelite.gtil.predict(tl_model, X)
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
+
+
+def test_skl_converter_iforest():
+    """Scikit-learn isolation forest"""
+    X, _ = load_boston(return_X_y=True)
+    clf = IsolationForest(max_samples=64, random_state=0, n_estimators=10)
+    clf.fit(X)
+    expected_pred = clf._compute_chunked_score_samples(X)  # pylint: disable=W0212
+
+    tl_model = treelite.sklearn.import_model(clf)
+    out_pred = treelite.gtil.predict(tl_model, X)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=2)
 
 
 @pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',

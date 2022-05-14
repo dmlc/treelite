@@ -8,7 +8,6 @@
 
 #include "xgboost/xgboost_json.h"
 
-#include <fmt/format.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
 #include <rapidjson/filereadstream.h>
@@ -378,7 +377,9 @@ bool ObjectiveHandler::StartObject() {
           push_key_handler<IgnoreHandler>("tweedie_regression_param") ||
           push_key_handler<IgnoreHandler>("softmax_multiclass_param") ||
           push_key_handler<IgnoreHandler>("lambda_rank_param") ||
-          push_key_handler<IgnoreHandler>("aft_loss_param"));
+          push_key_handler<IgnoreHandler>("aft_loss_param") ||
+          push_key_handler<IgnoreHandler>("pseduo_huber_param") ||
+          push_key_handler<IgnoreHandler>("pseudo_huber_param"));
 }
 
 bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {

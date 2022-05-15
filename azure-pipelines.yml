@@ -49,7 +49,7 @@ jobs:
       targetPath: 'runtime/python/dist/'
 - job: win_build
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: 'windows-2019'
   steps:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
@@ -61,7 +61,7 @@ jobs:
   - script: |
       mkdir build
       cd build
-      cmake .. -G"Visual Studio 15 2017 Win64" -DBUILD_CPP_TEST=ON
+      cmake .. -G"Visual Studio 16 2019" -A x64 -DBUILD_CPP_TEST=ON
     displayName: 'Generating Visual Studio solution...'
   - task: MSBuild@1
     inputs:
@@ -132,7 +132,7 @@ jobs:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: win_python_coverage
   pool:
-    vmImage: 'windows-latest'
+    vmImage: 'windows-2019'
   steps:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
@@ -229,7 +229,7 @@ jobs:
 - job: win_python_wheel_test
   dependsOn: win_build
   pool:
-    vmImage: 'windows-latest'
+    vmImage: 'windows-2019'
   steps:
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'

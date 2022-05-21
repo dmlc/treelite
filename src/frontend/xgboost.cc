@@ -381,6 +381,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     xgb_trees_.back().Load(fp.get());
   }
   if (mparam_.major_version < 1 || (mparam_.major_version == 1 && mparam_.minor_version < 6)) {
+    // In XGBoost 1.6, num_roots is used as num_parallel_tree, so don't check
     TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
   }
   std::vector<int> tree_info;

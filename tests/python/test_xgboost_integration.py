@@ -51,7 +51,7 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format, num_parallel_tre
 
     assert model.num_feature == dtrain.num_col()
     assert model.num_class == 1
-    assert model.num_tree == num_round
+    assert model.num_tree == num_round * num_parallel_tree
     libpath = os.path.join(tmpdir, 'boston' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'parallel_comp': model.num_tree},
                      verbose=True)

@@ -113,11 +113,12 @@ def test_xgb_boston(tmpdir, objective, model_format, num_parallel_tree):
         model_name = 'boston.json'
         model_path = os.path.join(tmpdir, model_name)
         xgb_model.save_model(model_path)
-        with open(model_path, "r") as f:
-            print(f.read())
         tl_model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        tl_model = treelite.Model.from_xgboost(xgb_model)
+        model_name = 'boston.model'
+        model_path = os.path.join(tmpdir, model_name)
+        xgb_model.save_model(model_path)
+        tl_model = treelite.Model.load(filename=model_path, model_format='xgboost')
     assert len(json.loads(tl_model.dump_as_json())["trees"]) == num_round * num_parallel_tree
 
     out_pred = treelite.gtil.predict(tl_model, X_test)
@@ -147,12 +148,12 @@ def test_xgb_iris(tmpdir, objective, model_format, num_parallel_tree):
         model_name = 'iris.json'
         model_path = os.path.join(tmpdir, model_name)
         xgb_model.save_model(model_path)
-        with open(model_path, "r") as f:
-            print(f.read())
         tl_model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        tl_model = treelite.Model.from_xgboost(xgb_model)
-    print(tl_model.dump_as_json())
+        model_name = 'iris.model'
+        model_path = os.path.join(tmpdir, model_name)
+        xgb_model.save_model(model_path)
+        tl_model = treelite.Model.load(filename=model_path, model_format='xgboost')
     expected_num_tree = num_class * num_round * num_parallel_tree
     assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 

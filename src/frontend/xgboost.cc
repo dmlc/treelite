@@ -381,7 +381,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     xgb_trees_.back().Load(fp.get());
   }
   TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
-  // tree_info is currently unused.
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {
@@ -466,6 +465,36 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         Q.push({node.cright(), tree.RightChild(new_id)});
       }
       tree.SetSumHess(new_id, stat.sum_hess);
+    }
+  }
+
+  // Special handling for multi-class classifier with num_parallel_tree > 1
+  if (num_class > 1) {
+    // Infer num_parallel_tree
+    unsigned num_parallel_tree = 0;
+    for (int e : tree_info) {
+      if (e != 0) {
+        break;
+      }
+      ++num_parallel_tree;
+    }
+    if (num_parallel_tree > 1) {
+      // Re-order trees to recover the grove-per-class layout.
+      // The prediction for the i-th class is determined by the trees whose index is congruent
+      // to [i] modulo [num_class].
+      // Currently, the trees' association with classes is as follows:
+      // 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2
+      // We need to re-order them as follows:
+      // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
+      std::vector<treelite::Tree<float, float>> new_trees;
+      std::size_t num_tree = model->trees.size();
+      for (std::size_t c = 0; c < num_parallel_tree; ++c) {
+        for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
+          new_trees.push_back(std::move(model->trees[tree_id]));
+        }
+      }
+      TREELITE_CHECK_EQ(new_trees.size(), num_tree);
+      model->trees = std::move(new_trees);
     }
   }
   return model_ptr;

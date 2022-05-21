@@ -541,6 +541,36 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
                         << rapidjson::GetParseError_En(error_code) << "\n" << diagnostic;
   }
   treelite::details::ParsedXGBoostModel parsed = handler->get_result();
+
+  // Special handling for multi-class classifier with num_parallel_tree > 1
+  if (parsed.model->task_param.grove_per_class && parsed.model->task_param.num_class > 2) {
+    // Infer num_parallel_tree
+    unsigned num_parallel_tree = 0;
+    for (int e : parsed.tree_info) {
+      if (e != 0) {
+        break;
+      }
+      ++num_parallel_tree;
+    }
+    if (num_parallel_tree > 1) {
+      // Re-order trees to recover the grove-per-class layout.
+      // The prediction for the i-th class is determined by the trees whose index is congruent
+      // to [i] modulo [num_class].
+      // Currently, the trees' association with classes is as follows:
+      // 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2
+      // We need to re-order them as follows:
+      // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
+      std::vector<treelite::Tree<float, float>> new_trees;
+      std::size_t num_tree = parsed.model->trees.size();
+      for (std::size_t c = 0; c < num_parallel_tree; ++c) {
+        for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
+          new_trees.push_back(std::move(parsed.model->trees[tree_id]));
+        }
+      }
+      TREELITE_CHECK_EQ(new_trees.size(), num_tree);
+      parsed.model->trees = std::move(new_trees);
+    }
+  }
   return std::move(parsed.model_ptr);
 }
 }  // anonymous namespace

@@ -380,7 +380,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     xgb_trees_.emplace_back();
     xgb_trees_.back().Load(fp.get());
   }
-  TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
+  if (mparam_.major_version < 1 || (mparam_.major_version == 1 && mparam_.minor_version < 6)) {
+    TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
+  }
   std::vector<int> tree_info;
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {

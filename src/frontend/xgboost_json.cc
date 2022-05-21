@@ -312,8 +312,8 @@ bool RegTreeHandler::EndObject(std::size_t) {
 bool GBTreeModelHandler::StartArray() {
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
                            std::vector<treelite::Tree<float, float>>>(
-                               "trees", output.trees) ||
-          push_key_handler<IgnoreHandler>("tree_info"));
+                               "trees", output.model->trees) ||
+          push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
 }
 
 bool GBTreeModelHandler::StartObject() {
@@ -338,10 +338,9 @@ bool GradientBoosterHandler::String(const char *str,
   }
 }
 bool GradientBoosterHandler::StartObject() {
-  if (push_key_handler<GBTreeModelHandler, treelite::ModelImpl<float, float>>("model", output)) {
+  if (push_key_handler<GBTreeModelHandler, ParsedXGBoostModel>("model", output)) {
     return true;
-  } else if (push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>("gbtree",
-                                                                                         output)) {
+  } else if (push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>("gbtree", output)) {
     // "dart" booster contains a standard gbtree under ["gradient_booster"]["gbtree"]["model"].
     return true;
   } else {
@@ -356,11 +355,12 @@ bool GradientBoosterHandler::StartArray() {
 bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
-    TREELITE_CHECK_EQ(output.trees.size(), weight_drop.size());
-    for (size_t i = 0; i < output.trees.size(); ++i) {
-      for (int nid = 0; nid < output.trees[i].num_nodes; ++nid) {
-        if (output.trees[i].IsLeaf(nid)) {
-          output.trees[i].SetLeaf(nid, weight_drop[i] * output.trees[i].LeafValue(nid));
+    auto& trees = output.model->trees;
+    TREELITE_CHECK_EQ(trees.size(), weight_drop.size());
+    for (size_t i = 0; i < trees.size(); ++i) {
+      for (int nid = 0; nid < trees[i].num_nodes; ++nid) {
+        if (trees[i].IsLeaf(nid)) {
+          trees[i].SetLeaf(nid, weight_drop[i] * trees[i].LeafValue(nid));
         }
       }
     }
@@ -415,8 +415,8 @@ bool LearnerHandler::StartObject() {
   // "attributes" key is not documented in schema
   return (push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
               "learner_model_param", *output.model) ||
-          push_key_handler<GradientBoosterHandler, treelite::ModelImpl<float, float>>(
-              "gradient_booster", *output.model) ||
+          push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>(
+              "gradient_booster", output) ||
           push_key_handler<ObjectiveHandler, std::string>("objective", objective) ||
           push_key_handler<IgnoreHandler>("attributes"));
 }
@@ -442,7 +442,7 @@ bool XGBoostCheckpointHandler::StartArray() {
 }
 
 bool XGBoostCheckpointHandler::StartObject() {
-  return push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output);
+  return push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output);
 }
 
 /******************************************************************************
@@ -454,9 +454,9 @@ bool XGBoostModelHandler::StartArray() {
 }
 
 bool XGBoostModelHandler::StartObject() {
-  return (push_key_handler<LearnerHandler, XGBoostModelHandle>("learner", output) ||
+  return (push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output) ||
           push_key_handler<IgnoreHandler>("Config") ||
-          push_key_handler<XGBoostCheckpointHandler, XGBoostModelHandle>("Model", output));
+          push_key_handler<XGBoostCheckpointHandler, ParsedXGBoostModel>("Model", output));
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
@@ -489,14 +489,13 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
-  handle = {dynamic_cast<treelite::ModelImpl<float, float>*>(output.get()), {}, ""};
-  return push_handler<XGBoostModelHandler, XGBoostModelHandle>(handle);
+  return push_handler<XGBoostModelHandler, ParsedXGBoostModel>(output);
 }
 
 /******************************************************************************
  * DelegatedHandler
  * ***************************************************************************/
-std::unique_ptr<treelite::Model> DelegatedHandler::get_result() { return std::move(result); }
+ParsedXGBoostModel DelegatedHandler::get_result() { return std::move(result); }
 bool DelegatedHandler::Null() { return delegates.top()->Null(); }
 bool DelegatedHandler::Bool(bool b) { return delegates.top()->Bool(b); }
 bool DelegatedHandler::Int(int i) { return delegates.top()->Int(i); }
@@ -541,6 +540,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
                         << "Parsing error at offset " << offset << ": "
                         << rapidjson::GetParseError_En(error_code) << "\n" << diagnostic;
   }
-  return handler->get_result();
+  treelite::details::ParsedXGBoostModel parsed = handler->get_result();
+  return std::move(parsed.model_ptr);
 }
 }  // anonymous namespace

@@ -3,6 +3,7 @@ Tests for General Tree Inference Library (GTIL). The tests ensure that GTIL prod
 prediction results for a variety of tree models.
 """
 import os
+import json
 import pytest
 import treelite
 import numpy as np
@@ -92,17 +93,19 @@ def test_skl_converter_iforest():
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=2)
 
 
+@pytest.mark.parametrize('num_parallel_tree', [1, 3, 5])
+@pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',
                                        'reg:pseudohubererror'])
-@pytest.mark.parametrize('model_format', ['binary', 'json'])
-def test_xgb_boston(tmpdir, model_format, objective):
+def test_xgb_boston(tmpdir, objective, model_format, num_parallel_tree):
     # pylint: disable=too-many-locals
     """Test XGBoost with Boston data (regression)"""
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dtest = xgb.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': objective}
+    param = {'max_depth': 8, 'eta': 1, 'verbosity': 0, 'objective': objective,
+             'num_parallel_tree': num_parallel_tree}
     num_round = 10
     xgb_model = xgb.train(param, dtrain, num_boost_round=num_round,
                           evals=[(dtrain, 'train'), (dtest, 'test')])
@@ -112,25 +115,33 @@ def test_xgb_boston(tmpdir, model_format, objective):
         xgb_model.save_model(model_path)
         tl_model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        tl_model = treelite.Model.from_xgboost(xgb_model)
+        model_name = 'boston.model'
+        model_path = os.path.join(tmpdir, model_name)
+        xgb_model.save_model(model_path)
+        tl_model = treelite.Model.load(filename=model_path, model_format='xgboost')
+    assert len(json.loads(tl_model.dump_as_json())["trees"]) == num_round * num_parallel_tree
 
     out_pred = treelite.gtil.predict(tl_model, X_test)
     expected_pred = xgb_model.predict(dtest)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
+@pytest.mark.parametrize('num_parallel_tree', [1, 3, 5])
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['multi:softmax', 'multi:softprob'])
-def test_xgb_iris(tmpdir, objective, model_format):
+def test_xgb_iris(tmpdir, objective, model_format, num_parallel_tree):
     # pylint: disable=too-many-locals
     """Test XGBoost with Iris data (multi-class classification)"""
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dtest = xgb.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 6, 'eta': 0.05, 'num_class': 3, 'verbosity': 0,
-             'objective': objective, 'metric': 'mlogloss'}
-    xgb_model = xgb.train(param, dtrain, num_boost_round=10,
+    num_class = 3
+    param = {'max_depth': 6, 'eta': 0.05, 'num_class': num_class, 'verbosity': 0,
+             'objective': objective, 'metric': 'mlogloss',
+             'num_parallel_tree': num_parallel_tree}
+    num_round = 3
+    xgb_model = xgb.train(param, dtrain, num_boost_round=num_round,
                           evals=[(dtrain, 'train'), (dtest, 'test')])
 
     if model_format == 'json':
@@ -139,7 +150,12 @@ def test_xgb_iris(tmpdir, objective, model_format):
         xgb_model.save_model(model_path)
         tl_model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        tl_model = treelite.Model.from_xgboost(xgb_model)
+        model_name = 'iris.model'
+        model_path = os.path.join(tmpdir, model_name)
+        xgb_model.save_model(model_path)
+        tl_model = treelite.Model.load(filename=model_path, model_format='xgboost')
+    expected_num_tree = num_class * num_round * num_parallel_tree
+    assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
     out_pred = treelite.gtil.predict(tl_model, X_test)
     expected_pred = xgb_model.predict(dtest)

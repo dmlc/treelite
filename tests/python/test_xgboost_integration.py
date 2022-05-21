@@ -21,18 +21,20 @@ except ImportError:
     pytest.skip('XGBoost not installed; skipping', allow_module_level=True)
 
 
+@pytest.mark.parametrize('num_parallel_tree', [1, 3, 5])
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective', ['reg:linear', 'reg:squarederror', 'reg:squaredlogerror',
                                        'reg:pseudohubererror'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_boston(tmpdir, toolchain, objective, model_format):
+def test_xgb_boston(tmpdir, toolchain, objective, model_format, num_parallel_tree):
     # pylint: disable=too-many-locals
     """Test Boston data (regression)"""
     X, y = load_boston(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     dtrain = xgboost.DMatrix(X_train, label=y_train)
     dtest = xgboost.DMatrix(X_test, label=y_test)
-    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': objective}
+    param = {'max_depth': 8, 'eta': 1, 'silent': 1, 'objective': objective,
+             'num_parallel_tree': num_parallel_tree}
     num_round = 10
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
@@ -42,11 +44,14 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
         bst.save_model(model_path)
         model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        model = treelite.Model.from_xgboost(bst)
+        model_name = 'boston.model'
+        model_path = os.path.join(tmpdir, model_name)
+        bst.save_model(model_path)
+        model = treelite.Model.load(filename=model_path, model_format='xgboost')
 
     assert model.num_feature == dtrain.num_col()
     assert model.num_class == 1
-    assert model.num_tree == num_round
+    assert model.num_tree == num_round * num_parallel_tree
     libpath = os.path.join(tmpdir, 'boston' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'parallel_comp': model.num_tree},
                      verbose=True)
@@ -63,13 +68,15 @@ def test_xgb_boston(tmpdir, toolchain, objective, model_format):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
+@pytest.mark.parametrize('num_parallel_tree', [1, 3, 5])
 @pytest.mark.parametrize('model_format', ['binary', 'json'])
 @pytest.mark.parametrize('objective,expected_pred_transform',
                          [('multi:softmax', 'max_index'), ('multi:softprob', 'softmax')],
                          ids=['multi:softmax', 'multi:softprob'])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform):
-    # pylint: disable=too-many-locals
+def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_transform,
+                  num_parallel_tree):
+    # pylint: disable=too-many-locals, too-many-arguments
     """Test Iris data (multi-class classification)"""
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
@@ -78,7 +85,8 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
     num_class = 3
     num_round = 10
     param = {'max_depth': 6, 'eta': 0.05, 'num_class': num_class, 'verbosity': 0,
-             'objective': objective, 'metric': 'mlogloss'}
+             'objective': objective, 'metric': 'mlogloss',
+             'num_parallel_tree': num_parallel_tree}
     bst = xgboost.train(param, dtrain, num_boost_round=num_round,
                         evals=[(dtrain, 'train'), (dtest, 'test')])
 
@@ -88,10 +96,13 @@ def test_xgb_iris(tmpdir, toolchain, objective, model_format, expected_pred_tran
         bst.save_model(model_path)
         model = treelite.Model.load(filename=model_path, model_format='xgboost_json')
     else:
-        model = treelite.Model.from_xgboost(bst)
+        model_name = 'iris.model'
+        model_path = os.path.join(tmpdir, model_name)
+        bst.save_model(model_path)
+        model = treelite.Model.load(filename=model_path, model_format='xgboost')
     assert model.num_feature == dtrain.num_col()
     assert model.num_class == num_class
-    assert model.num_tree == num_round * num_class
+    assert model.num_tree == num_round * num_class * num_parallel_tree
     libpath = os.path.join(tmpdir, 'iris' + _libext())
     model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
 

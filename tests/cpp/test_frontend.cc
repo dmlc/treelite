@@ -438,7 +438,9 @@ TEST(GBTreeModelHandlerSuite, GBTreeModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl<float, float> output;
+  details::ParsedXGBoostModel output{
+      Model::Create<float, float>(), nullptr, {}, {}, ""};
+  output.model = dynamic_cast<ModelImpl<float, float>*>(output.model_ptr.get());
   details::GBTreeModelHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -446,6 +448,33 @@ TEST(GBTreeModelHandlerSuite, GBTreeModelHandler) {
 
   rapidjson::Reader reader;
   reader.Parse(input_stream, handler);
+}
+
+TEST(GBTreeModelHandlerSuite, TreeInfoField) {
+  class GBTreeModelHandlerWrapper : public details::BaseHandler {
+   public:
+    using BaseHandler::BaseHandler;
+    bool StartObject() override {
+      push_handler<details::GBTreeModelHandler, details::ParsedXGBoostModel>(output);
+      return true;
+    }
+    details::ParsedXGBoostModel output;
+  };
+  auto handler = details::DelegatedHandler::create_empty();
+  auto wrapped_handler = std::make_shared<GBTreeModelHandlerWrapper>(handler);
+  wrapped_handler->output.model_ptr = Model::Create<float, float>();
+  wrapped_handler->output.model =
+      dynamic_cast<ModelImpl<float, float>*>(wrapped_handler->output.model_ptr.get());
+  handler->push_delegate(wrapped_handler);
+  rapidjson::Reader reader;
+
+  std::string json_str = "{\"trees\": [], \"tree_info\": [0, 1, 2]}";
+  auto input_stream = rapidjson::MemoryStream(json_str.c_str(),
+                                              json_str.size());
+  ASSERT_TRUE(reader.Parse(input_stream, *handler));
+
+  std::vector<int> expected_tree_info{0, 1, 2};
+  ASSERT_EQ(wrapped_handler->output.tree_info, expected_tree_info);
 }
 
 /******************************************************************************
@@ -458,7 +487,9 @@ TEST(GradientBoosterHandlerSuite, GradientBoosterHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl<float, float> output;
+  details::ParsedXGBoostModel output{
+      Model::Create<float, float>(), nullptr, {}, {}, ""};
+  output.model = dynamic_cast<ModelImpl<float, float>*>(output.model_ptr.get());
   details::GradientBoosterHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 
@@ -525,8 +556,9 @@ TEST(XGBoostModelHandlerSuite, XGBoostModelHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  ModelImpl<float, float> output_model;
-  details::XGBoostModelHandle output{&output_model, {}, ""};
+  details::ParsedXGBoostModel output{
+      Model::Create<float, float>(), nullptr, {}, {}, ""};
+  output.model = dynamic_cast<ModelImpl<float, float>*>(output.model_ptr.get());
   details::XGBoostModelHandler wrapped_handler{delegator, output};
   MockObjectStarter handler{delegator, wrapped_handler};
 
@@ -547,7 +579,7 @@ TEST(RootHandlerSuite, RootHandler) {
   std::shared_ptr<MockDelegator> delegator =
     std::make_shared<MockDelegator>();
 
-  std::unique_ptr<treelite::Model> output;
+  details::ParsedXGBoostModel output;
   details::RootHandler wrapped_handler {delegator, output};
   MockObjectStarter handler {delegator, wrapped_handler};
 

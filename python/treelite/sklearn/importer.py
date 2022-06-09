@@ -121,9 +121,9 @@ def import_model(sklearn_model):
 
     if isinstance(sklearn_model,
             (RandomForestR, ExtraTreesR, GradientBoostingR, GradientBoostingC, IsolationForest)):
-        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
+        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)  # pylint: disable=C3001
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
-        leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)
+        leaf_value_expected_shape = lambda node_count: (node_count, 1, sklearn_model.n_classes_)  # pylint: disable=C3001
     else:
         raise TreeliteError(f'Not supported model type: {sklearn_model.__class__.__name__}')
 

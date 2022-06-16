@@ -350,8 +350,11 @@ by scikit-learn. In particular, it will be able to work with
 
 * :py:class:`sklearn.ensemble.RandomForestRegressor`
 * :py:class:`sklearn.ensemble.RandomForestClassifier`
+* :py:class:`sklearn.ensemble.ExtraTreesRegressor`
+* :py:class:`sklearn.ensemble.ExtraTreesClassifier`
 * :py:class:`sklearn.ensemble.GradientBoostingRegressor`
 * :py:class:`sklearn.ensemble.GradientBoostingClassifier`
+* :py:class:`sklearn.ensemble.IsolationForest`
 
 .. note:: Why scikit-learn? How about other packages?
 

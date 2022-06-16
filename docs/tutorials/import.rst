@@ -60,8 +60,11 @@ Treelite.
 
 * :py:class:`sklearn.ensemble.RandomForestRegressor`
 * :py:class:`sklearn.ensemble.RandomForestClassifier`
+* :py:class:`sklearn.ensemble.ExtraTreesRegressor`
+* :py:class:`sklearn.ensemble.ExtraTreesClassifier`
 * :py:class:`sklearn.ensemble.GradientBoostingRegressor`
 * :py:class:`sklearn.ensemble.GradientBoostingClassifier`
+* :py:class:`sklearn.ensemble.IsolationForest`
 
 To import scikit-learn models, use
 :py:meth:`treelite.sklearn.import_model`:

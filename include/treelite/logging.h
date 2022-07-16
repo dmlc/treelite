@@ -8,8 +8,8 @@
 #define TREELITE_LOGGING_H_
 
 #include <treelite/thread_local.h>
+#include <treelite/error.h>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <sstream>
 #include <memory>
@@ -17,13 +17,6 @@
 #include <ctime>
 
 namespace treelite {
-
-/*!
- * \brief Exception class that will be thrown by Treelite
- */
-struct Error : public std::runtime_error {
-  explicit Error(const std::string& s) : std::runtime_error(s) {}
-};
 
 template <typename X, typename Y>
 std::unique_ptr<std::string> LogCheckFormat(const X& x, const Y& y) {

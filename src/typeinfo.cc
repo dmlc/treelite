@@ -5,9 +5,8 @@
  * \brief Conversion tables to obtain TypeInfo from string
  */
 
-// Do not include other Treelite headers here, to minimize cross-header dependencies
-
 #include <treelite/typeinfo.h>
+#include <treelite/error.h>
 #include <string>
 #include <unordered_map>
 
@@ -21,7 +20,7 @@ TypeInfo GetTypeInfoByName(const std::string& str) {
   } else if (str == "float64") {
     return TypeInfo::kFloat64;
   } else {
-    throw std::runtime_error("Unrecognized type");
+    throw Error("Unrecognized type");
     return TypeInfo::kInvalid;
   }
 }

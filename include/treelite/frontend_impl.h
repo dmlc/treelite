@@ -8,6 +8,7 @@
 #ifndef TREELITE_FRONTEND_IMPL_H_
 #define TREELITE_FRONTEND_IMPL_H_
 
+#include <treelite/error.h>
 #include <string>
 
 namespace treelite {
@@ -24,8 +25,8 @@ Value::Dispatch(Func func) {
   case TypeInfo::kFloat64:
     return func(Get<double>());
   default:
-    throw std::runtime_error(std::string("Unknown value type detected: ")
-                             + std::to_string(static_cast<int>(type_)));
+    throw Error(std::string("Unknown value type detected: ")
+                + std::to_string(static_cast<int>(type_)));
     return func(Get<double>());  // avoid "missing return" warning
   }
 }
@@ -41,8 +42,8 @@ Value::Dispatch(Func func) const {
   case TypeInfo::kFloat64:
     return func(Get<double>());
   default:
-    throw std::runtime_error(std::string("Unknown value type detected: ")
-                             + std::to_string(static_cast<int>(type_)));
+    throw Error(std::string("Unknown value type detected: ")
+                + std::to_string(static_cast<int>(type_)));
     return func(Get<double>());  // avoid "missing return" warning
   }
 }

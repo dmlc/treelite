@@ -6,6 +6,7 @@
  */
 
 #include <treelite/tree.h>
+#include <treelite/error.h>
 
 namespace treelite {
 
@@ -25,8 +26,8 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   TypeInfo threshold_type, leaf_output_type;
   constexpr std::size_t kNumFrameInHeader = 5;
   if (frames.size() < kNumFrameInHeader) {
-    throw std::runtime_error(std::string("Insufficient number of frames: there must be at least ")
-                             + std::to_string(kNumFrameInHeader));
+    throw Error(std::string("Insufficient number of frames: there must be at least ")
+                + std::to_string(kNumFrameInHeader));
   }
   int idx = 0;
   auto header_primitive_field_handler = [&idx, &frames](auto* field) {
@@ -34,7 +35,7 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   };
   DeserializeTemplate(header_primitive_field_handler, threshold_type, leaf_output_type);
   if (idx != kNumFrameInHeader) {
-    throw std::runtime_error("Did not read from a sufficient number of frames");
+    throw Error("Did not read from a sufficient number of frames");
   }
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);

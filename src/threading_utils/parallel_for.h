@@ -9,6 +9,7 @@
 
 #include <treelite/omp.h>
 #include <treelite/logging.h>
+#include <treelite/omp_exception.h>
 #include <type_traits>
 #include <algorithm>
 #include <exception>
@@ -18,42 +19,6 @@
 
 namespace treelite {
 namespace threading_utils {
-
-/*!
- * \brief OMP Exception class catches, saves and rethrows exception from OMP blocks
- */
-class OMPException {
- private:
-  // exception_ptr member to store the exception
-  std::exception_ptr omp_exception_;
-  // mutex to be acquired during catch to set the exception_ptr
-  std::mutex mutex_;
-
- public:
-  /*!
-   * \brief Parallel OMP blocks should be placed within Run to save exception
-   */
-  template <typename Function, typename... Parameters>
-  void Run(Function f, Parameters... params) {
-    try {
-      f(params...);
-    } catch (std::exception& ex) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      if (!omp_exception_) {
-        omp_exception_ = std::current_exception();
-      }
-    }
-  }
-
-  /*!
-   * \brief should be called from the main thread to rethrow the exception
-   */
-  void Rethrow() {
-    if (this->omp_exception_) {
-      std::rethrow_exception(this->omp_exception_);
-    }
-  }
-};
 
 inline int OmpGetThreadLimit() {
   int limit = omp_get_thread_limit();

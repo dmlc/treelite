@@ -139,6 +139,7 @@ target_sources(objtreelite_common
     typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_common.h
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
     ${PROJECT_SOURCE_DIR}/include/treelite/math.h
     ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h

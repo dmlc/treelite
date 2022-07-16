@@ -8,6 +8,7 @@
 #ifndef TREELITE_TYPEINFO_H_
 #define TREELITE_TYPEINFO_H_
 
+#include <treelite/error.h>
 #include <cstdint>
 #include <typeinfo>
 #include <string>
@@ -47,7 +48,7 @@ inline std::string TypeInfoToString(treelite::TypeInfo type) {
   case treelite::TypeInfo::kFloat64:
     return "float64";
   default:
-    throw std::runtime_error("Unrecognized type");
+    throw Error("Unrecognized type");
     return "";
   }
 }
@@ -66,7 +67,7 @@ inline TypeInfo TypeToInfo() {
   } else if (std::is_same<T, double>::value) {
     return TypeInfo::kFloat64;
   } else {
-    throw std::runtime_error(std::string("Unrecognized Value type") + typeid(T).name());
+    throw Error(std::string("Unrecognized Value type") + typeid(T).name());
     return TypeInfo::kInvalid;
   }
 }
@@ -94,7 +95,7 @@ inline auto DispatchWithTypeInfo(TypeInfo type, Args&& ...args) {
     return Dispatcher<double>::Dispatch(std::forward<Args>(args)...);
   case TypeInfo::kInvalid:
   default:
-    throw std::runtime_error(std::string("Invalid type: ") + TypeInfoToString(type));
+    throw Error(std::string("Invalid type: ") + TypeInfoToString(type));
   }
   return Dispatcher<double>::Dispatch(std::forward<Args>(args)...);  // avoid missing return error
 }
@@ -135,7 +136,7 @@ inline auto DispatchWithModelTypes(
     case treelite::TypeInfo::kFloat32:
       return Dispatcher<float, float>::Dispatch(std::forward<Args>(args)...);
     default:
-      throw std::runtime_error(error_leaf_output_type());
+      throw Error(error_leaf_output_type());
       break;
     }
     break;
@@ -146,12 +147,12 @@ inline auto DispatchWithModelTypes(
     case treelite::TypeInfo::kFloat64:
       return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);
     default:
-      throw std::runtime_error(error_leaf_output_type());
+      throw Error(error_leaf_output_type());
       break;
     }
     break;
   default:
-    throw std::runtime_error(error_threshold_type());
+    throw Error(error_threshold_type());
     break;
   }
   return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);

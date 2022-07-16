@@ -7,12 +7,13 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
+#include <treelite/error.h>
+#include <treelite/typeinfo.h>
 #include <cstdint>
 #include <typeinfo>
 #include <string>
 #include <unordered_map>
 #include <stdexcept>
-#include "./typeinfo.h"
 
 namespace treelite {
 
@@ -82,7 +83,7 @@ inline bool CompareWithOp(ElementType lhs, Operator op, ThresholdType rhs) {
     case Operator::kGT: return lhs >  rhs;
     case Operator::kGE: return lhs >= rhs;
     default:
-      throw std::runtime_error("operator undefined");
+      throw Error("operator undefined");
       return false;
   }
 }

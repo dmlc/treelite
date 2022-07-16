@@ -7,6 +7,7 @@
 #ifndef TREELITE_PREDICTOR_H_
 #define TREELITE_PREDICTOR_H_
 
+#include <treelite/error.h>
 #include <treelite/logging.h>
 #include <treelite/typeinfo.h>
 #include <treelite/c_api_runtime.h>

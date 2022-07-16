@@ -7,6 +7,7 @@
 #ifndef TREELITE_TREE_IMPL_H_
 #define TREELITE_TREE_IMPL_H_
 
+#include <treelite/error.h>
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -87,7 +88,7 @@ ContiguousArray<T>::Clone() const {
   ContiguousArray clone;
   clone.buffer_ = static_cast<T*>(std::malloc(sizeof(T) * capacity_));
   if (!clone.buffer_) {
-    throw std::runtime_error("Could not allocate memory for the clone");
+    throw Error("Could not allocate memory for the clone");
   }
   std::memcpy(clone.buffer_, buffer_, sizeof(T) * size_);
   clone.size_ = size_;
@@ -160,11 +161,11 @@ template <typename T>
 inline void
 ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
+    throw Error("Cannot resize when using a foreign buffer; clone first");
   }
   T* newbuf = static_cast<T*>(std::realloc(static_cast<void*>(buffer_), sizeof(T) * newsize));
   if (!newbuf) {
-    throw std::runtime_error("Could not expand buffer");
+    throw Error("Could not expand buffer");
   }
   buffer_ = newbuf;
   capacity_ = newsize;
@@ -174,7 +175,7 @@ template <typename T>
 inline void
 ContiguousArray<T>::Resize(std::size_t newsize) {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
+    throw Error("Cannot resize when using a foreign buffer; clone first");
   }
   if (newsize > capacity_) {
     std::size_t newcapacity = capacity_;
@@ -193,7 +194,7 @@ template <typename T>
 inline void
 ContiguousArray<T>::Resize(std::size_t newsize, T t) {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot resize when using a foreign buffer; clone first");
+    throw Error("Cannot resize when using a foreign buffer; clone first");
   }
   std::size_t oldsize = Size();
   Resize(newsize);
@@ -206,7 +207,7 @@ template <typename T>
 inline void
 ContiguousArray<T>::Clear() {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot clear when using a foreign buffer; clone first");
+    throw Error("Cannot clear when using a foreign buffer; clone first");
   }
   Resize(0);
 }
@@ -215,7 +216,7 @@ template <typename T>
 inline void
 ContiguousArray<T>::PushBack(T t) {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot add element when using a foreign buffer; clone first");
+    throw Error("Cannot add element when using a foreign buffer; clone first");
   }
   if (size_ == capacity_) {
     Reserve(capacity_ * 2);
@@ -227,7 +228,7 @@ template <typename T>
 inline void
 ContiguousArray<T>::Extend(const std::vector<T>& other) {
   if (!owned_buffer_) {
-    throw std::runtime_error("Cannot add elements when using a foreign buffer; clone first");
+    throw Error("Cannot add elements when using a foreign buffer; clone first");
   }
   if (other.empty()) {
     return;  // appending an empty vector is a no-op
@@ -263,7 +264,7 @@ template <typename T>
 inline T&
 ContiguousArray<T>::at(std::size_t idx) {
   if (idx >= Size()) {
-    throw std::runtime_error("nid out of range");
+    throw Error("nid out of range");
   }
   return buffer_[idx];
 }
@@ -272,7 +273,7 @@ template <typename T>
 inline const T&
 ContiguousArray<T>::at(std::size_t idx) const {
   if (idx >= Size()) {
-    throw std::runtime_error("nid out of range");
+    throw Error("nid out of range");
   }
   return buffer_[idx];
 }
@@ -281,7 +282,7 @@ template <typename T>
 inline T&
 ContiguousArray<T>::at(int idx) {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
-    throw std::runtime_error("nid out of range");
+    throw Error("nid out of range");
   }
   return buffer_[static_cast<std::size_t>(idx)];
 }
@@ -290,7 +291,7 @@ template <typename T>
 inline const T&
 ContiguousArray<T>::at(int idx) const {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
-    throw std::runtime_error("nid out of range");
+    throw Error("nid out of range");
   }
   return buffer_[static_cast<std::size_t>(idx)];
 }
@@ -343,7 +344,7 @@ inline const char* InferFormatString() {
       return (std::is_unsigned<T>::value ? "=L" : "=l");
     } else {
       if (!std::is_floating_point<T>::value) {
-        throw std::runtime_error("Could not infer format string");
+        throw Error("Could not infer format string");
       }
       return "=f";
     }
@@ -352,12 +353,12 @@ inline const char* InferFormatString() {
       return (std::is_unsigned<T>::value ? "=Q" : "=q");
     } else {
       if (!std::is_floating_point<T>::value) {
-        throw std::runtime_error("Could not infer format string");
+        throw Error("Could not infer format string");
       }
       return "=d";
     }
   default:
-    throw std::runtime_error("Unrecognized type");
+    throw Error("Unrecognized type");
   }
   return nullptr;
 }
@@ -405,7 +406,7 @@ inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
 template <typename T>
 inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame frame) {
   if (sizeof(T) != frame.itemsize) {
-    throw std::runtime_error("Incorrect itemsize");
+    throw Error("Incorrect itemsize");
   }
   vec->UseForeignBuffer(frame.buf, frame.nitem);
 }
@@ -413,10 +414,10 @@ inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame frame) 
 inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
   using T = std::underlying_type<TypeInfo>::type;
   if (sizeof(T) != buffer.itemsize) {
-    throw std::runtime_error("Incorrect itemsize");
+    throw Error("Incorrect itemsize");
   }
   if (buffer.nitem != 1) {
-    throw std::runtime_error("nitem must be 1 for a scalar");
+    throw Error("nitem must be 1 for a scalar");
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TypeInfo>(*t);
@@ -425,10 +426,10 @@ inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
 inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
   using T = std::underlying_type<TaskType>::type;
   if (sizeof(T) != buffer.itemsize) {
-    throw std::runtime_error("Incorrect itemsize");
+    throw Error("Incorrect itemsize");
   }
   if (buffer.nitem != 1) {
-    throw std::runtime_error("nitem must be 1 for a scalar");
+    throw Error("nitem must be 1 for a scalar");
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = static_cast<TaskType>(*t);
@@ -438,10 +439,10 @@ template <typename T>
 inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   if (sizeof(T) != buffer.itemsize) {
-    throw std::runtime_error("Incorrect itemsize");
+    throw Error("Incorrect itemsize");
   }
   if (buffer.nitem != 1) {
-    throw std::runtime_error("nitem must be 1 for a scalar");
+    throw Error("nitem must be 1 for a scalar");
   }
   T* t = static_cast<T*>(buffer.buf);
   *scalar = *t;
@@ -451,7 +452,7 @@ template <typename T>
 inline void ReadScalarFromFile(T* scalar, FILE* fp) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   if (std::fread(scalar, sizeof(T), 1, fp) < 1) {
-    throw std::runtime_error("Could not read a scalar");
+    throw Error("Could not read a scalar");
   }
 }
 
@@ -459,7 +460,7 @@ template <typename T>
 inline void WriteScalarToFile(T* scalar, FILE* fp) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   if (std::fwrite(scalar, sizeof(T), 1, fp) < 1) {
-    throw std::runtime_error("Could not write a scalar");
+    throw Error("Could not write a scalar");
   }
 }
 
@@ -467,7 +468,7 @@ template <typename T>
 inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
   uint64_t nelem;
   if (std::fread(&nelem, sizeof(nelem), 1, fp) < 1) {
-    throw std::runtime_error("Could not read the number of elements");
+    throw Error("Could not read the number of elements");
   }
   vec->Clear();
   vec->Resize(nelem);
@@ -476,7 +477,7 @@ inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
   }
   const auto nelem_size_t = static_cast<std::size_t>(nelem);
   if (std::fread(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
-    throw std::runtime_error("Could not read an array");
+    throw Error("Could not read an array");
   }
 }
 
@@ -485,14 +486,14 @@ inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
   static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too large");
   const auto nelem = static_cast<uint64_t>(vec->Size());
   if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
-    throw std::runtime_error("Could not write the number of elements");
+    throw Error("Could not write the number of elements");
   }
   if (nelem == 0) {
     return;  // handle empty arrays
   }
   const auto nelem_size_t = vec->Size();
   if (std::fwrite(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
-    throw std::runtime_error("Could not write an array");
+    throw Error("Could not write an array");
   }
 }
 
@@ -547,7 +548,7 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
   scalar_handler(&has_categorical_split_);
   array_handler(&nodes_);
   if (static_cast<std::size_t>(num_nodes) != nodes_.Size()) {
-    throw std::runtime_error("Could not load the correct number of nodes");
+    throw Error("Could not load the correct number of nodes");
   }
   array_handler(&leaf_vector_);
   array_handler(&leaf_vector_begin_);
@@ -591,7 +592,7 @@ inline void
 Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
                                                       std::vector<PyBufferFrame>::iterator end) {
   if (std::distance(begin, end) != kNumFramePerTree) {
-    throw std::runtime_error("Wrong number of frames specified");
+    throw Error("Wrong number of frames specified");
   }
   auto scalar_handler = [&begin](auto* field) {
     InitScalarFromPyBuffer(field, *begin++);
@@ -634,7 +635,7 @@ inline int
 Tree<ThresholdType, LeafOutputType>::AllocNode() {
   int nd = num_nodes++;
   if (nodes_.Size() != static_cast<std::size_t>(nd)) {
-    throw std::runtime_error("Invariant violated: nodes_ contains incorrect number of nodes");
+    throw Error("Invariant violated: nodes_ contains incorrect number of nodes");
   }
   for (int nid = nd; nid < num_nodes; ++nid) {
     leaf_vector_begin_.PushBack(0);
@@ -676,7 +677,7 @@ Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
     int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   Node& node = nodes_.at(nid);
   if (split_index >= ((1U << 31U) - 1)) {
-    throw std::runtime_error("split_index too big");
+    throw Error("split_index too big");
   }
   if (default_left) split_index |= (1U << 31U);
   node.sindex_ = split_index;
@@ -692,22 +693,22 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     int nid, unsigned split_index, bool default_left,
     const std::vector<uint32_t>& categories_list, bool categories_list_right_child) {
   if (split_index >= ((1U << 31U) - 1)) {
-    throw std::runtime_error("split_index too big");
+    throw Error("split_index too big");
   }
 
   const std::size_t end_oft = matching_categories_offset_.Back();
   const std::size_t new_end_oft = end_oft + categories_list.size();
   if (end_oft != matching_categories_.Size()) {
-    throw std::runtime_error("Invariant violated");
+    throw Error("Invariant violated");
   }
   if (!std::all_of(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                    [end_oft](std::size_t x) { return (x == end_oft); })) {
-    throw std::runtime_error("Invariant violated");
+    throw Error("Invariant violated");
   }
   // Hopefully we won't have to move any element as we add node_matching_categories for node nid
   matching_categories_.Extend(categories_list);
   if (new_end_oft != matching_categories_.Size()) {
-    throw std::runtime_error("Invariant violated");
+    throw Error("Invariant violated");
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
                 [new_end_oft](std::size_t& x) { x = new_end_oft; });
@@ -822,7 +823,7 @@ Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_fiel
         << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
         << "The model checkpoint was generated from Treelite version " << major_ver << "."
         << minor_ver << "." << patch_ver;
-    throw std::runtime_error(oss.str());
+    throw Error(oss.str());
   }
   header_primitive_field_handler(&threshold_type);
   header_primitive_field_handler(&leaf_output_type);
@@ -910,7 +911,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   const std::size_t num_frame = std::distance(begin, end);
   constexpr std::size_t kNumFrameInHeader = 5;
   if (num_frame < kNumFrameInHeader || (num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
-    throw std::runtime_error("Wrong number of frames");
+    throw Error("Wrong number of frames");
   }
   const std::size_t num_tree = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
 

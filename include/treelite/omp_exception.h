@@ -56,4 +56,4 @@ class OMPException {
 
 }  // namespace treelite
 
-#endif // TREELITE_OMP_EXCEPTION_H_
+#endif  // TREELITE_OMP_EXCEPTION_H_

@@ -21,4 +21,4 @@ struct Error : public std::runtime_error {
 
 }  // namespace treelite
 
-#endif //TREELITE_ERROR_H_
+#endif  // TREELITE_ERROR_H_

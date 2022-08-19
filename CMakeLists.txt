@@ -1,6 +1,6 @@
 set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.13)
-project(treelite LANGUAGES CXX C VERSION 2.4.0)
+project(treelite LANGUAGES CXX C VERSION 2.5.0)
 
 set(CMAKE_CXX_STANDARD 14)
 

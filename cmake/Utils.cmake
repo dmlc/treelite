@@ -1,3 +1,18 @@
+# Automatically set source group based on folder
+function(auto_source_group SOURCES)
+
+  foreach(FILE ${SOURCES})
+      get_filename_component(PARENT_DIR "${FILE}" PATH)
+
+      # skip src or include and changes /'s to \\'s
+      string(REPLACE "${CMAKE_CURRENT_LIST_DIR}" "" GROUP "${PARENT_DIR}")
+      string(REPLACE "/" "\\\\" GROUP "${GROUP}")
+      string(REGEX REPLACE "^\\\\" "" GROUP "${GROUP}")
+
+      source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
+endfunction(auto_source_group)
+
 # Force static runtime for MSVC
 function(msvc_use_static_runtime)
   if(MSVC)

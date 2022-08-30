@@ -358,8 +358,7 @@ class Tree {
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
   inline void SerializeToFile(FILE* dest_fp);
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end);
+  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator& it);
   inline void DeserializeFromFile(FILE* src_fp);
 
  private:
@@ -756,6 +755,17 @@ class Model {
     return oss.str();
   }
 
+  /* Compatibility Matrix:
+     +------------------+----------+----------+----------------+-----------+
+     |                  | To: =2.4 | To: =3.0 | To: >=3.1,<4.0 | To: >=4.0 |
+     +------------------+----------+----------+----------------+-----------+
+     | From: <2.4       | No       | No       | No             | No        |
+     | From: =2.4       | Yes      | Yes      | Yes            | No        |
+     | From: =3.0       | No       | Yes      | Yes            | Yes       |
+     | From: >=3.1,<4.0 | No       | Yes      | Yes            | Yes       |
+     | From: >=4.0      | No       | No       | No             | Yes       |
+     +------------------+----------+----------+----------------+-----------+ */
+
   /* In-memory serialization, zero-copy */
   TREELITE_DLL_EXPORT std::vector<PyBufferFrame> GetPyBuffer();
   TREELITE_DLL_EXPORT static std::unique_ptr<Model>
@@ -769,7 +779,7 @@ class Model {
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
-  int num_feature;
+  int32_t num_feature;
   /*! \brief Task type */
   TaskType task_type;
   /*! \brief whether to average tree outputs */
@@ -779,21 +789,27 @@ class Model {
   /*! \brief extra parameters */
   ModelParam param;
 
+ protected:
+  // Magic numbers, to be computed as part of serialization
+  uint64_t num_tree_;
+  int32_t num_field_ext1_, num_field_ext2_, num_field_ext3_;
+  int32_t major_ver_, minor_ver_, patch_ver_;
+
  private:
-  int major_ver_, minor_ver_, patch_ver_;
   TypeInfo threshold_type_;
   TypeInfo leaf_output_type_;
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
   virtual void SerializeToFileImpl(FILE* dest_fp) = 0;
-  virtual void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                                std::vector<PyBufferFrame>::iterator end) = 0;
+  virtual void InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator& it, std::size_t num_frame) = 0;
   virtual void DeserializeFromFileImpl(FILE* src_fp) = 0;
   template <typename HeaderPrimitiveFieldHandlerFunc>
   inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
   template <typename HeaderPrimitiveFieldHandlerFunc>
   inline static void DeserializeTemplate(
       HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      int32_t& major_ver, int32_t& minor_ver, int32_t& patch_ver,
       TypeInfo& threshold_type, TypeInfo& leaf_output_type);
 };
 
@@ -821,8 +837,8 @@ class ModelImpl : public Model {
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
   inline void SerializeToFileImpl(FILE* dest_fp) override;
-  inline void InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                               std::vector<PyBufferFrame>::iterator end) override;
+  inline void InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator& it, std::size_t num_frame) override;
   inline void DeserializeFromFileImpl(FILE* src_fp) override;
 
  private:

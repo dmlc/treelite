@@ -8,6 +8,7 @@
 #define TREELITE_TREE_IMPL_H_
 
 #include <treelite/error.h>
+#include <treelite/version.h>
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -521,8 +522,6 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   }
 }
 
-constexpr std::size_t kNumFramePerTree = 8;
-
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
 inline void
@@ -589,16 +588,12 @@ Tree<ThresholdType, LeafOutputType>::SerializeToFile(FILE* dest_fp) {
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator begin,
-                                                      std::vector<PyBufferFrame>::iterator end) {
-  if (std::distance(begin, end) != kNumFramePerTree) {
-    throw Error("Wrong number of frames specified");
-  }
-  auto scalar_handler = [&begin](auto* field) {
-    InitScalarFromPyBuffer(field, *begin++);
+Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator& it) {
+  auto scalar_handler = [&it](auto* field) {
+    InitScalarFromPyBuffer(field, *it++);
   };
-  auto array_handler = [&begin](auto* field) {
-    InitArrayFromPyBuffer(field, *begin++);
+  auto array_handler = [&it](auto* field) {
+    InitArrayFromPyBuffer(field, *it++);
   };
   DeserializeTemplate(scalar_handler, array_handler);
 }
@@ -801,6 +796,9 @@ Model::Dispatch(Func func) const {
 template <typename HeaderPrimitiveFieldHandlerFunc>
 inline void
 Model::SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler) {
+  major_ver_ = TREELITE_VER_MAJOR;
+  minor_ver_ = TREELITE_VER_MINOR;
+  patch_ver_ = TREELITE_VER_PATCH;
   header_primitive_field_handler(&major_ver_);
   header_primitive_field_handler(&minor_ver_);
   header_primitive_field_handler(&patch_ver_);
@@ -811,14 +809,14 @@ Model::SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_
 template <typename HeaderPrimitiveFieldHandlerFunc>
 inline void
 Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+                           int32_t& major_ver, int32_t& minor_ver, int32_t& patch_ver,
                            TypeInfo& threshold_type, TypeInfo& leaf_output_type) {
-  int major_ver, minor_ver, patch_ver;
   header_primitive_field_handler(&major_ver);
   header_primitive_field_handler(&minor_ver);
   header_primitive_field_handler(&patch_ver);
-  if (major_ver != TREELITE_VER_MAJOR || minor_ver != TREELITE_VER_MINOR) {
+  if (major_ver != TREELITE_VER_MAJOR && !(major_ver == 2 && minor_ver == 4)) {
     std::ostringstream oss;
-    oss << "Cannot deserialize model from a different version of Treelite." << std::endl
+    oss << "Cannot deserialize model from an incompatible version of Treelite." << std::endl
         << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
         << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
         << "The model checkpoint was generated from Treelite version " << major_ver << "."
@@ -875,6 +873,7 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  num_tree_ = static_cast<uint64_t>(this->trees.size());
   auto header_primitive_field_handler = [dest](auto* field) {
     dest->push_back(GetPyBufferFromScalar(field));
   };
@@ -884,14 +883,14 @@ ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>
   auto tree_handler = [dest](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.GetPyBuffer(dest);
   };
+  header_primitive_field_handler(&num_tree_);
   SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
-  const auto num_tree = static_cast<uint64_t>(this->trees.size());
-  WriteScalarToFile(&num_tree, dest_fp);
+  num_tree_ = static_cast<uint64_t>(this->trees.size());
   auto header_primitive_field_handler = [dest_fp](auto* field) {
     WriteScalarToFile(field, dest_fp);
   };
@@ -901,39 +900,41 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
   auto tree_handler = [dest_fp](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.SerializeToFile(dest_fp);
   };
+  header_primitive_field_handler(&num_tree_);
   SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator begin, std::vector<PyBufferFrame>::iterator end) {
-  const std::size_t num_frame = std::distance(begin, end);
-  constexpr std::size_t kNumFrameInHeader = 5;
-  if (num_frame < kNumFrameInHeader || (num_frame - kNumFrameInHeader) % kNumFramePerTree != 0) {
-    throw Error("Wrong number of frames");
+    std::vector<PyBufferFrame>::iterator& it, std::size_t num_frame) {
+  auto header_field_handler = [&it](auto* field) {
+    InitScalarFromPyBuffer(field, *it++);
+  };
+
+  auto tree_handler = [&it](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.InitFromPyBuffer(it);
+  };
+
+  if (major_ver_ == 2) {
+    // From version 2.4 (legacy)
+    // num_tree has to be inferred from the number of frames received
+    constexpr std::size_t kNumFrameInHeader = 5;
+    constexpr std::size_t kNumFramePerTree = 8;
+    num_tree_ = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
+  } else {
+    // From version 3.x
+    // num_tree is now explicitly stored
+    header_field_handler(&num_tree_);
   }
-  const std::size_t num_tree = (num_frame - kNumFrameInHeader) / kNumFramePerTree;
 
-  auto header_field_handler = [&begin](auto* field) {
-    InitScalarFromPyBuffer(field, *begin++);
-  };
-
-  auto tree_handler = [&begin](Tree<ThresholdType, LeafOutputType>& tree) {
-    // Read the frames in the range [begin, begin + kNumFramePerTree) into the tree
-    tree.InitFromPyBuffer(begin, begin + kNumFramePerTree);
-    begin += kNumFramePerTree;
-      // Advance the iterator so that the next tree reads the next kNumFramePerTree frames
-  };
-
-  DeserializeTemplate(num_tree, header_field_handler, tree_handler);
+  DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) {
-  uint64_t num_tree;
-  ReadScalarFromFile(&num_tree, src_fp);
+  ReadScalarFromFile(&num_tree_, src_fp);
 
   auto header_field_handler = [src_fp](auto* field) {
     ReadScalarFromFile(field, src_fp);
@@ -943,7 +944,7 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) 
     tree.DeserializeFromFile(src_fp);
   };
 
-  DeserializeTemplate(num_tree, header_field_handler, tree_handler);
+  DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
 }
 
 inline void InitParamAndCheck(ModelParam* param,

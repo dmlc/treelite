@@ -79,14 +79,14 @@ jobs:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: .\ops\win-python-coverage-part1.bat
+  - script: call .\ops\win-python-coverage-part1.bat
   - task: MSBuild@1
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
-  - script: .\ops\win-python-coverage-part2.bat
+  - script: call .\ops\win-python-coverage-part2.bat
     env:
       WORKING_DIR: '$(System.DefaultWorkingDirectory)'
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'

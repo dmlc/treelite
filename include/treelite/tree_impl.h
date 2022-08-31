@@ -500,6 +500,11 @@ inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
+Tree<ThresholdType, LeafOutputType>::Tree(bool use_opt_field)
+  : use_opt_field_(use_opt_field)
+{}
+
+template <typename ThresholdType, typename LeafOutputType>
 inline Tree<ThresholdType, LeafOutputType>
 Tree<ThresholdType, LeafOutputType>::Clone() const {
   Tree<ThresholdType, LeafOutputType> tree;
@@ -537,6 +542,14 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
   primitive_array_handler(&leaf_vector_end_);
   primitive_array_handler(&matching_categories_);
   primitive_array_handler(&matching_categories_offset_);
+
+  /* Extension slot 2: Per-tree optional fields -- to be added later */
+  num_opt_field_per_tree_ = 0;
+  scalar_handler(&num_opt_field_per_tree_);
+
+  /* Extension slot 3: Per-node optional fields -- to be added later */
+  num_opt_field_per_node_ = 0;
+  scalar_handler(&num_opt_field_per_node_);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -555,6 +568,14 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
   array_handler(&leaf_vector_end_);
   array_handler(&matching_categories_);
   array_handler(&matching_categories_offset_);
+
+  if (use_opt_field_) {
+    /* Extension slot 2: Per-tree optional fields -- to be added later */
+    scalar_handler(&num_opt_field_per_tree_);
+
+    /* Extension slot 3: Per-node optional fields -- to be added later */
+    scalar_handler(&num_opt_field_per_node_);
+  }
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -844,6 +865,10 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
   header_composite_field_handler(
       &param, "T{" _TREELITE_STR(TREELITE_MAX_PRED_TRANSFORM_LENGTH) "s=f=f=f}");
 
+  /* Extension Slot 1: Per-model optional fields -- to be added later */
+  num_opt_field_per_model_ = 0;
+  header_primitive_field_handler(&num_opt_field_per_model_);
+
   /* Body */
   for (Tree<ThresholdType, LeafOutputType>& tree : trees) {
     tree_handler(tree);
@@ -863,10 +888,17 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
   header_field_handler(&average_tree_output);
   header_field_handler(&task_param);
   header_field_handler(&param);
+
+  /* Extension Slot 1: Per-model optional fields */
+  const bool use_opt_field = (major_ver_ >= 3);
+  if (use_opt_field) {
+    header_field_handler(&num_opt_field_per_model_);
+  }
+
   /* Body */
   trees.clear();
   for (std::size_t i = 0; i < num_tree; ++i) {
-    trees.emplace_back();
+    trees.emplace_back(use_opt_field);
     tree_handler(trees.back());
   }
 }

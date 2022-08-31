@@ -346,7 +346,7 @@ class Tree {
                 || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
                 "Node size incorrect");
 
-  Tree() = default;
+  Tree(bool use_opt_field = true);
   ~Tree() = default;
   Tree(const Tree&) = delete;
   Tree& operator=(const Tree&) = delete;
@@ -374,6 +374,10 @@ class Tree {
   ContiguousArray<std::size_t> matching_categories_offset_;
   bool has_categorical_split_{false};
 
+  // Magic numbers, to be computed as part of serialization
+  bool use_opt_field_{false};
+  int num_opt_field_per_tree_{0}, num_opt_field_per_node_{0};
+
   template <typename WriterType, typename X, typename Y>
   friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
   template <typename WriterType, typename X, typename Y>
@@ -395,7 +399,7 @@ class Tree {
 
  public:
   /*! \brief number of nodes */
-  int num_nodes;
+  int num_nodes{0};
   /*! \brief initialize the model with a single root node */
   inline void Init();
   /*!
@@ -779,25 +783,25 @@ class Model {
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
-  int32_t num_feature;
+  int32_t num_feature{0};
   /*! \brief Task type */
   TaskType task_type;
   /*! \brief whether to average tree outputs */
-  bool average_tree_output;
+  bool average_tree_output{false};
   /*! \brief Group of parameters that are specific to the particular task type */
-  TaskParam task_param;
+  TaskParam task_param{};
   /*! \brief extra parameters */
-  ModelParam param;
+  ModelParam param{};
 
  protected:
   // Magic numbers, to be computed as part of serialization
-  uint64_t num_tree_;
-  int32_t num_field_ext1_, num_field_ext2_, num_field_ext3_;
+  uint64_t num_tree_{0};
+  int32_t num_opt_field_per_model_{0};
   int32_t major_ver_, minor_ver_, patch_ver_;
 
  private:
-  TypeInfo threshold_type_;
-  TypeInfo leaf_output_type_;
+  TypeInfo threshold_type_{TypeInfo::kInvalid};
+  TypeInfo leaf_output_type_{TypeInfo::kInvalid};
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
   virtual void SerializeToFileImpl(FILE* dest_fp) = 0;

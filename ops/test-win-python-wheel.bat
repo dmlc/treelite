@@ -1,17 +1,17 @@
-echo "Setting up Python environment..."
+echo "##[section]Setting up Python environment..."
 call activate
 conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest awscli
 python -m pip install lightgbm xgboost
 
-echo "Installing Treelite into Python environment..."
+echo "##[section]Installing Treelite into Python environment..."
 for /R %%i in (main\\*.whl) DO python -m pip install "%%i"
 for /R %%i in (runtime\\*.whl) DO python -m pip install "%%i"
 
-echo "Running Python tests..."
+echo "##[section]Running Python tests..."
 mkdir temp
 python -m pytest --basetemp="%WORKING_DIR%\temp" -v --fulltrace tests\python\test_basic.py
 
-echo "Uploading Python wheels..."
+echo "##[section]Uploading Python wheels..."
 for /R %%i in (main\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" %COMMIT_ID% win_amd64
 for /R %%i in (runtime\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" %COMMIT_ID% win_amd64
 for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .

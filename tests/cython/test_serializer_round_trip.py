@@ -4,20 +4,21 @@ import pytest
 import treelite
 import numpy as np
 from sklearn.datasets import load_iris
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    ExtraTreesClassifier,
+    GradientBoostingClassifier,
+)
 from serializer import treelite_serialize, treelite_deserialize
 
 
-@pytest.mark.parametrize("clazz", [RandomForestClassifier,
-    ExtraTreesClassifier, GradientBoostingClassifier])
+@pytest.mark.parametrize(
+    "clazz", [RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier]
+)
 def test_serialize_as_buffer(clazz):
     """Test whether Treelite objects can be serialized to a buffer"""
     X, y = load_iris(return_X_y=True)
-    params = {
-        "max_depth": 5,
-        "random_state": 0,
-        "n_estimators": 10
-    }
+    params = {"max_depth": 5, "random_state": 0, "n_estimators": 10}
     if clazz == GradientBoostingClassifier:
         params["init"] = "zero"
     clf = clazz(**params)
@@ -39,16 +40,13 @@ def test_serialize_as_buffer(clazz):
         assert np.array_equal(x, y)
 
 
-@pytest.mark.parametrize("clazz", [RandomForestClassifier,
-    ExtraTreesClassifier, GradientBoostingClassifier])
+@pytest.mark.parametrize(
+    "clazz", [RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier]
+)
 def test_serialize_as_checkpoint(tmpdir, clazz):
     """Test whether Treelite objects can be serialized to a checkpoint"""
     X, y = load_iris(return_X_y=True)
-    params = {
-        "max_depth": 5,
-        "random_state": 0,
-        "n_estimators": 10
-    }
+    params = {"max_depth": 5, "random_state": 0, "n_estimators": 10}
     if clazz == GradientBoostingClassifier:
         params["init"] = "zero"
     clf = clazz(**params)

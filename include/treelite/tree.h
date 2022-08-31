@@ -346,7 +346,7 @@ class Tree {
                 || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
                 "Node size incorrect");
 
-  Tree(bool use_opt_field = true);
+  explicit Tree(bool use_opt_field = true);
   ~Tree() = default;
   Tree(const Tree&) = delete;
   Tree& operator=(const Tree&) = delete;

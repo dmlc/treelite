@@ -9,6 +9,7 @@
 
 #include <treelite/error.h>
 #include <treelite/version.h>
+#include <treelite/logging.h>
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -929,6 +930,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
   }
 
   DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
+  TREELITE_CHECK_EQ(num_tree_, this->trees.size());
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -945,6 +947,7 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) 
   };
 
   DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
+  TREELITE_CHECK_EQ(num_tree_, this->trees.size());
 }
 
 inline void InitParamAndCheck(ModelParam* param,

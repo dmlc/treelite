@@ -6,10 +6,20 @@ from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 
 
-def save(args):
+def _fetch_data():
     X, y = load_iris(return_X_y=True)
-    clf = RandomForestClassifier(max_depth=5, random_state=0, n_estimators=10)
+    return X, y
+
+
+def _train_model(X, y):
+    clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=3)
     clf.fit(X, y)
+    return clf
+
+
+def save(args):
+    X, y = _fetch_data()
+    clf = _train_model(X, y)
     with open(args.model_pickle_path, "wb") as f:
         pickle.dump(clf, f)
     tl_model = treelite.sklearn.import_model(clf)
@@ -17,7 +27,7 @@ def save(args):
 
 
 def load(args):
-    X, y = load_iris(return_X_y=True)
+    X, y = _fetch_data()
     with open(args.model_pickle_path, "rb") as f:
         clf = pickle.load(f)
     tl_model = treelite.Model.deserialize(args.checkpoint_path)
@@ -29,20 +39,19 @@ def load(args):
 
 def main(args):
     if treelite.__version__ != args.expected_treelite_version:
-        raise ValueError(f"Expected Treelite {args.expected_treelite_version} "
-                         f"but running Treelite {treelite.__version__}")
+        raise ValueError(
+            f"Expected Treelite {args.expected_treelite_version} "
+            f"but running Treelite {treelite.__version__}"
+        )
     if args.task == "save":
         save(args)
     elif args.task == "load":
         load(args)
-    else:
-        raise ValueError(f"Unknown task type: {args.task}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, choices=["save", "load"],
-                        required=True)
+    parser.add_argument("--task", type=str, choices=["save", "load"], required=True)
     parser.add_argument("--checkpoint-path", type=str, required=True)
     parser.add_argument("--model-pickle-path", type=str, required=True)
     parser.add_argument("--expected-treelite-version", type=str, required=True)

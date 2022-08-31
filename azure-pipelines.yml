@@ -41,14 +41,14 @@ jobs:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: call ops/build-windows-part1.ps1
+  - script: call .\ops\build-windows-part1.bat
   - task: MSBuild@1
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
-  - script: call ops/build-windows-part2.ps1
+  - script: call .\ops\build-windows-part2.bat
   - task: PublishPipelineArtifact@1
     inputs:
       artifactName: 'python_win_whl'
@@ -57,12 +57,6 @@ jobs:
     inputs:
       artifactName: 'runtime_python_win_whl'
       targetPath: 'runtime/python/dist/'
-  - task: Bash@3
-    inputs:
-      targetType: 'filePath'
-      filePath: ops/cpp-python-coverage.sh
-    env:
-      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: cpp_python_coverage
   pool:
     vmImage: 'ubuntu-latest'
@@ -72,6 +66,12 @@ jobs:
       versionSpec: '3.9'
       addToPath: true
   - checkout: self
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/cpp-python-coverage.sh
+    env:
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: win_python_coverage
   pool:
     vmImage: 'windows-2019'
@@ -79,14 +79,14 @@ jobs:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: ops/win-python-coverage-part1.ps1
+  - script: .\ops\win-python-coverage-part1.bat
   - task: MSBuild@1
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
-  - script: ops/win-python-coverage-part2.ps1
+  - script: .\ops\win-python-coverage-part2.bat
     env:
       WORKING_DIR: '$(System.DefaultWorkingDirectory)'
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'

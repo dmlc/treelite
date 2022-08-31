@@ -1,6 +1,6 @@
 echo "##[section]Setting up Python environment..."
-call activate
-conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov || cd .
+conda create -n dev -y -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov || cd .
+call activate dev
 python -m pip install xgboost lightgbm codecov
 
 echo "##[section]Generating Visual Studio solution..."

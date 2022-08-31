@@ -1,6 +1,6 @@
 echo "##[section]Setting up Python environment..."
-call activate
-conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest awscli
+conda create -n dev -y -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest awscli
+call activate dev
 python -m pip install lightgbm xgboost
 
 echo "##[section]Installing Treelite into Python environment..."

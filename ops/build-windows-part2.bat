@@ -3,7 +3,7 @@ echo "##[section]Running C++ tests..."
 
 echo "##[section]Setting up Python environment..."
 call activate
-conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas
+conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas || cd .
 
 echo "##[section]Packaging Python wheel for Treelite..."
 cd python

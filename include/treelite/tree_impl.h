@@ -575,6 +575,10 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
 
     /* Extension slot 3: Per-node optional fields -- to be added later */
     scalar_handler(&num_opt_field_per_node_);
+  } else {
+    // Legacy (version 2.4)
+    num_opt_field_per_tree_ = 0;
+    num_opt_field_per_node_ = 0;
   }
 }
 
@@ -893,6 +897,9 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
   const bool use_opt_field = (major_ver_ >= 3);
   if (use_opt_field) {
     header_field_handler(&num_opt_field_per_model_);
+  } else {
+    // Legacy (version 2.4)
+    num_opt_field_per_model_ = 0;
   }
 
   /* Body */

@@ -1,5 +1,5 @@
 echo "##[section]Setting up Python environment..."
-conda create -n dev -y -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov || cd .
+conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov || cd .
 call activate dev
 python -m pip install xgboost lightgbm codecov
 

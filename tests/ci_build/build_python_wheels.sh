@@ -71,5 +71,5 @@ python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}
 python tests/ci_build/rename_whl.py wheelhouse-runtime/*.whl ${commit_id} ${wheel_tag}
-mv -v wheelhouse/*.whl .
-mv -v wheelhouse-runtime/*.whl .
+mv -v wheelhouse-runtime/*.whl wheelhouse/
+rmdir wheelhouse-runtime/

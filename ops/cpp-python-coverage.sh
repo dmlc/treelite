@@ -16,7 +16,9 @@ echo "##[section]Running Google C++ tests..."
 ./build/treelite_cpp_test
 
 echo "##[section]Setting up Python environment..."
-python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm cython xgboost
+conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy pandas pytest pytest-cov \
+  scikit-learn lightgbm cython xgboost
+source activate dev
 cd tests/cython
 python setup.py build_ext --inplace
 cd ../..

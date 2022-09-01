@@ -1,6 +1,5 @@
 trigger:
 - mainline
-- multi_type_support_refactor
 
 jobs:
 - job: formatting_check
@@ -9,40 +8,28 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.7'
+      versionSpec: '3.9'
       addToPath: true
   - checkout: self
-  - script: python -m pip install --upgrade pip cpplint pylint numpy scipy pandas scikit-learn pytest xgboost lightgbm
-    displayName: 'Installing pylint and cpplint...'
-  - script: make lint
-    displayName: 'Running pylint and cpplint...'
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/run-formatting-check.sh
 - job: linux_build
   pool:
     vmImage: 'ubuntu-latest'
   steps:
   - checkout: self
-  - script: tests/ci_build/ci_build.sh cpu tests/ci_build/build_via_cmake.sh
-    displayName: 'Building Treelite...'
-  - script: |
-      TAG=manylinux2014_x86_64
-      tests/ci_build/ci_build.sh cpu bash -c "cd python/ && python setup.py bdist_wheel --universal"
-      tests/ci_build/ci_build.sh auditwheel_x86_64 auditwheel repair --only-plat --plat ${TAG} python/dist/*.whl
-      rm -v python/dist/*.whl
-      mv -v wheelhouse/*.whl python/dist/
-      tests/ci_build/ci_build.sh cpu python tests/ci_build/rename_whl.py python/dist/*.whl $(Build.SourceVersion) ${TAG}
-    displayName: 'Packaging Python wheel for Treelite...'
-  - task: PublishPipelineArtifact@0
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/build-linux.sh
+    env:
+      COMMIT_ID: $(Build.SourceVersion)
+  - task: PublishPipelineArtifact@1
     inputs:
       artifactName: 'python_linux_whl'
       targetPath: 'python/dist/'
-  - script: |
-      TAG=manylinux2014_x86_64
-      tests/ci_build/ci_build.sh cpu bash -c "cd runtime/python/ && python setup.py bdist_wheel --universal"
-      tests/ci_build/ci_build.sh auditwheel_x86_64 auditwheel repair --only-plat --plat ${TAG} runtime/python/dist/*.whl
-      rm -v runtime/python/dist/*.whl
-      mv -v wheelhouse/*.whl runtime/python/dist/
-      tests/ci_build/ci_build.sh cpu python tests/ci_build/rename_whl.py runtime/python/dist/*.whl $(Build.SourceVersion) ${TAG}
-    displayName: 'Packaging Python wheel for Treelite runtime...'
   - task: PublishPipelineArtifact@1
     inputs:
       artifactName: 'runtime_python_linux_whl'
@@ -54,38 +41,18 @@ jobs:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: |
-      call activate
-      conda install --yes --quiet numpy scipy scikit-learn pandas
-    displayName: 'Setting up Python environment...'
-  - script: |
-      mkdir build
-      cd build
-      cmake .. -G"Visual Studio 16 2019" -A x64 -DBUILD_CPP_TEST=ON
-    displayName: 'Generating Visual Studio solution...'
+  - script: call .\ops\build-windows-part1.bat
   - task: MSBuild@1
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
-  - script: |
-      .\build\treelite_cpp_test.exe
-    displayName: 'Running C++ tests...'
-  - script: |
-      call activate
-      cd python
-      python setup.py bdist_wheel --universal
-    displayName: 'Packaging Python wheel for Treelite...'
-  - task: PublishPipelineArtifact@0
+  - script: call .\ops\build-windows-part2.bat
+  - task: PublishPipelineArtifact@1
     inputs:
       artifactName: 'python_win_whl'
       targetPath: 'python/dist/'
-  - script: |
-      call activate
-      cd runtime\python
-      python setup.py bdist_wheel --universal
-    displayName: 'Packaging Python wheel for Treelite runtime...'
   - task: PublishPipelineArtifact@1
     inputs:
       artifactName: 'runtime_python_win_whl'
@@ -96,38 +63,13 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.7'
+      versionSpec: '3.9'
       addToPath: true
   - checkout: self
-  - script: sudo apt-get install lcov ninja-build
-    displayName: 'Installing lcov and Ninja...'
-  - script: |
-      mkdir build/
-      cd build/
-      cmake .. -DTEST_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
-      ninja
-    displayName: 'Building Treelite...'
-  - script: |
-      python -m pip install --upgrade pip numpy scipy pandas pytest pytest-cov scikit-learn lightgbm cython
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-manylinux2014_x86_64.whl
-      cd tests/cython
-      python setup.py build_ext --inplace
-      cd ../..
-    displayName: 'Setting up Python environment...'
-  - script: ./build/treelite_cpp_test
-    displayName: 'Running C++ integration tests...'
-  - script:
-      python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python tests/cython
-    displayName: 'Running Python integration tests...'
-    env:
-      PYTHONPATH: ./python:./runtime/python
-  - script: |
-      lcov --directory . --capture --output-file coverage.info
-      lcov --remove coverage.info '*/usr/*' --output-file coverage.info
-      lcov --remove coverage.info '*/build/_deps/*' --output-file coverage.info
-    displayName: 'Collecting coverage data...'
-  - script: bash <(curl -s https://codecov.io/bash) -X gcov || echo "Codecov did not collect coverage reports"
-    displayName: 'Submitting code coverage data to CodeCov...'
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/cpp-python-coverage.sh
     env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: win_python_coverage
@@ -137,38 +79,17 @@ jobs:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: |
-      call activate
-      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov
-    displayName: 'Setting up Python environment...'
-  - script: |
-      call activate
-      python -m pip install lightgbm codecov
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
-    displayName: 'Setting up Python environment...'
-  - script: |
-      mkdir build
-      cd build
-      cmake .. -G"Visual Studio 16 2019" -A x64
-    displayName: 'Generating Visual Studio solution...'
+  - script: call .\ops\win-python-coverage-part1.bat
   - task: MSBuild@1
     inputs:
       solution: 'build/*.sln'
       msbuildArchitecture: 'x64'
       msbuildArguments: '/p:Configuration=Release /m /nodeReuse:false'
     displayName: 'Building Treelite...'
-  - script: |
-      call activate
-      mkdir temp
-      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" --cov=treelite --cov=treelite_runtime --cov-report xml -v --fulltrace tests\python
-    displayName: 'Running Python tests...'
+  - script: call .\ops\win-python-coverage-part2.bat
     env:
+      WORKING_DIR: '$(System.DefaultWorkingDirectory)'
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
-  - script: |
-      call activate
-      python -m codecov -f coverage.xml
-    displayName: 'Submitting code coverage data to CodeCov...'
-    env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: java_coverage
   pool:
@@ -176,19 +97,16 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.7'
+      versionSpec: '3.9'
       addToPath: true
   - checkout: self
-  - script: |
-      cd runtime/java/treelite4j
-      mvn test -DJNI.args=cpp-coverage
-    displayName: 'Running integration tests for Java runtime (treelite4j)...'
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/java-coverage.sh
     env:
       JAVA_HOME: $(JAVA_HOME_8_X64)
       PATH: $(JAVA_HOME_8_X64)/bin:$(PATH)
-  - script: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
-    displayName: 'Submitting Java code (treelite4j) coverage data to CodeCov...'
-    env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: linux_python_wheel_test
   dependsOn: linux_build
@@ -197,32 +115,23 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.7'
+      versionSpec: '3.9'
       addToPath: true
   - checkout: self
-  - script: |
-      python -m pip install --upgrade pip numpy scipy pandas pytest scikit-learn lightgbm awscli
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-manylinux2014_x86_64.whl
-    displayName: 'Setting up Python environment...'
-  - task: DownloadPipelineArtifact@0
+  - task: DownloadPipelineArtifact@2
     inputs:
       artifactName: 'python_linux_whl'
       targetPath: $(System.DefaultWorkingDirectory)/main
     displayName: 'Downloading Treelite Python wheel for Linux...'
-  - task: DownloadPipelineArtifact@1
+  - task: DownloadPipelineArtifact@2
     inputs:
       artifactName: 'runtime_python_linux_whl'
       targetPath: $(System.DefaultWorkingDirectory)/runtime
     displayName: 'Downloading Treelite runtime Python wheel for Linux...'
-  - script: |
-      python -m pip install main/*.whl runtime/*.whl
-    displayName: 'Installing Treelite into Python environment...'
-  - script: python -m pytest -v --fulltrace tests/python/test_basic.py
-    displayName: 'Running Python tests...'
-  - script: |
-      python -m awscli s3 cp main/*.whl s3://treelite-wheels/ --acl public-read || true
-      python -m awscli s3 cp runtime/*.whl s3://treelite-wheels/ --acl public-read || true
-    displayName: 'Uploading Python wheels...'
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/test-linux-python-wheel.sh
     env:
       AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
@@ -231,44 +140,22 @@ jobs:
   pool:
     vmImage: 'windows-2019'
   steps:
+  - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
     displayName: 'Add conda to PATH'
-  - script: |
-      call activate
-      conda install --yes --quiet -c conda-forge numpy scipy scikit-learn pandas scikit-learn pytest awscli
-    displayName: 'Setting up Python environment...'
-  - script: |
-      call activate
-      python -m pip install lightgbm
-      python -m pip install https://s3-us-west-2.amazonaws.com/xgboost-nightly-builds/master/xgboost-1.6.0.dev0%%2B12949c6b3134817f2f38ca765f42d9fdbda6e600-py3-none-win_amd64.whl
-    displayName: 'Setting up Python environment...'
-  - task: DownloadPipelineArtifact@0
+  - task: DownloadPipelineArtifact@2
     inputs:
       artifactName: 'python_win_whl'
       targetPath: $(System.DefaultWorkingDirectory)/main
     displayName: 'Downloading Treelite Python wheel for Windows...'
-  - task: DownloadPipelineArtifact@1
+  - task: DownloadPipelineArtifact@2
     inputs:
       artifactName: 'runtime_python_win_whl'
       targetPath: $(System.DefaultWorkingDirectory)/runtime
     displayName: 'Downloading Treelite runtime Python wheel for Windows...'
-  - script: |
-      call activate
-      for /R %%i in (main\\*.whl) DO python -m pip install "%%i"
-      for /R %%i in (runtime\\*.whl) DO python -m pip install "%%i"
-    displayName: 'Installing Treelite into Python environment...'
-  - script: |
-      call activate
-      mkdir temp
-      python -m pytest --basetemp="$(System.DefaultWorkingDirectory)\temp" -v --fulltrace tests\python\test_basic.py
-    displayName: 'Running Python tests...'
-  - script: |
-      call activate
-      for /R %%i in (main\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
-      for /R %%i in (runtime\\*.whl) DO python tests\ci_build\rename_whl.py "%%i" $(Build.SourceVersion) win_amd64
-      for /R %%i in (main\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
-      for /R %%i in (runtime\\*.whl) DO python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
-    displayName: 'Uploading Python wheels...'
+  - script: call ops/test-win-python-wheel.bat
     env:
+      WORKING_DIR: $(System.DefaultWorkingDirectory)
+      COMMIT_ID: $(Build.SourceVersion)
       AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)

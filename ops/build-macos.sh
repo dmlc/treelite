@@ -4,7 +4,9 @@ set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
 conda create -n python3 -y -q -c conda-forge python=3.9
+source activate python3
 pip install cibuildwheel
+source deactivate
 
 echo "##[section]Building MacOS Python wheels..."
 tests/ci_build/build_python_wheels.sh ${CIBW_PLATFORM_ID} ${COMMIT_ID}

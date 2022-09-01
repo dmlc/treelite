@@ -17,7 +17,6 @@ cd ..
 
 CURRENT_VERSION=$(cat python/treelite/VERSION)
 
-set -x
 echo "##[section]Testing serialization: 2.4 -> ${CURRENT_VERSION}"
 python tests/cython/compatibility_tester.py --task save --checkpoint-path checkpoint.bin \
   --model-pickle-path model.pkl --expected-treelite-version 2.4.0

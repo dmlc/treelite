@@ -193,3 +193,21 @@ jobs:
       COMMIT_ID: $(Build.SourceVersion)
       AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
+
+- job: macos_python_wheel_test
+  dependsOn: macos_build
+  pool:
+    vmImage: 'macOS-11'
+  steps:
+  - checkout: self
+  - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+    displayName: 'Enable Conda'
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifactName: 'python_macos_whl'
+      targetPath: $(System.DefaultWorkingDirectory)/wheelhouse
+    displayName: 'Downloading Treelite Python wheel for MacOS...'
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/test-macos-python-wheel.sh

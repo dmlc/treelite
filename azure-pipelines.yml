@@ -72,11 +72,13 @@ jobs:
     inputs:
       targetType: 'filePath'
       filePath: ops/build-macos.sh
+      # Build Python wheels for MacOS Intel and Apple Silicon
+      # pypa/cibuildwheel is used, hence CIBW prefix
     env:
       COMMIT_ID: $(Build.SourceVersion)
       CIBW_PLATFORM_ID: $(cibw_platform_id)
-    # Build Python wheels for MacOS Intel and Apple Silicon
-    # pypa/cibuildwheel is used, hence CIBW prefix
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
 - job: cpp_python_coverage
   pool:
     vmImage: 'ubuntu-latest'
@@ -108,6 +110,19 @@ jobs:
     env:
       WORKING_DIR: '$(System.DefaultWorkingDirectory)'
       PYTHONPATH: '$(System.DefaultWorkingDirectory)\python;$(System.DefaultWorkingDirectory)\runtime\python;$(PYTHONPATH)'
+      CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
+- job: macos_python_coverage
+  pool:
+    vmImage: 'macOS-11'
+  steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
+  - checkout: self
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/macos-python-coverage.sh
+    env:
       CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
 - job: java_coverage
   pool:

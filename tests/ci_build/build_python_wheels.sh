@@ -49,7 +49,7 @@ if [[ "$platform_id" == macosx_* ]]; then
     export CIBW_TEST_SKIP='*-macosx_arm64'
     export CIBW_BUILD_VERBOSITY=3
 
-    sudo conda create -n build $OPENMP_URL
+    conda create -n build $OPENMP_URL
     conda info -e
     PREFIX="/usr/local/miniconda/envs/build"
 
@@ -66,9 +66,7 @@ else
     exit 2
 fi
 
-conda create -n python3 -y -q -c conda-forge python=3.9
 source activate python3
-pip install cibuildwheel
 python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}

@@ -6,10 +6,8 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.9'
-      addToPath: true
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
   - checkout: self
   - task: Bash@3
     inputs:
@@ -40,7 +38,7 @@ jobs:
   steps:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-    displayName: 'Add conda to PATH'
+    displayName: 'Enable Conda'
   - script: call .\ops\build-windows-part1.bat
   - task: MSBuild@1
     inputs:
@@ -61,10 +59,8 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.9'
-      addToPath: true
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
   - checkout: self
   - task: Bash@3
     inputs:
@@ -78,7 +74,7 @@ jobs:
   steps:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-    displayName: 'Add conda to PATH'
+    displayName: 'Enable Conda'
   - script: call .\ops\win-python-coverage-part1.bat
   - task: MSBuild@1
     inputs:
@@ -95,10 +91,8 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.9'
-      addToPath: true
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
   - checkout: self
   - task: Bash@3
     inputs:
@@ -113,10 +107,8 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.9'
-      addToPath: true
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
   - checkout: self
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -142,7 +134,7 @@ jobs:
   steps:
   - checkout: self
   - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-    displayName: 'Add conda to PATH'
+    displayName: 'Enable Conda'
   - task: DownloadPipelineArtifact@2
     inputs:
       artifactName: 'python_win_whl'

@@ -200,7 +200,7 @@ jobs:
     vmImage: 'macOS-11'
   steps:
   - checkout: self
-  - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
     displayName: 'Enable Conda'
   - task: DownloadPipelineArtifact@2
     inputs:

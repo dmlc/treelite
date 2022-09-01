@@ -29,6 +29,13 @@
 
 #define TREELITE_MAX_PRED_TRANSFORM_LENGTH 256
 
+/* Indicator that certain functions should be visible from a library (Windows only) */
+#if defined(_MSC_VER) || defined(_WIN32)
+#define TREELITE_DLL_EXPORT __declspec(dllexport)
+#else
+#define TREELITE_DLL_EXPORT
+#endif
+
 namespace treelite {
 
 class GTILBridge;
@@ -750,8 +757,9 @@ class Model {
   }
 
   /* In-memory serialization, zero-copy */
-  std::vector<PyBufferFrame> GetPyBuffer();
-  static std::unique_ptr<Model> CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+  TREELITE_DLL_EXPORT std::vector<PyBufferFrame> GetPyBuffer();
+  TREELITE_DLL_EXPORT static std::unique_ptr<Model>
+    CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
 
   /* Serialization to a file stream */
   void SerializeToFile(FILE* dest_fp);

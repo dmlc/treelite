@@ -79,6 +79,16 @@ jobs:
       CIBW_PLATFORM_ID: $(cibw_platform_id)
       AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
       AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'python_win_whl'
+      targetPath: 'python/dist/'
+    condition: eq(variables.cibw_platform_id, 'macosx_x86_64')
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'runtime_python_win_whl'
+      targetPath: 'runtime/python/dist/'
+    condition: eq(variables.cibw_platform_id, 'macosx_x86_64')
 - job: cpp_python_coverage
   pool:
     vmImage: 'ubuntu-latest'

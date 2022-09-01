@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda create -n python3 -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn coverage \
+conda create -n python3 -y -q -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn coverage \
   cmake ninja awscli
 source activate python3
 python --version

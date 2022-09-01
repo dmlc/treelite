@@ -18,7 +18,7 @@ echo "##[section]Running Google C++ tests..."
 echo "##[section]Setting up Python environment..."
 conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy pandas pytest pytest-cov \
   scikit-learn lightgbm cython xgboost
-conda activate dev
+source activate dev
 cd tests/cython
 python setup.py build_ext --inplace
 cd ../..

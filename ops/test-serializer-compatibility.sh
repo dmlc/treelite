@@ -2,17 +2,18 @@
 
 set -euo pipefail
 
+echo "##[section]Setting up Python environment..."
+conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn awscli \
+  ninja cmake
+source activate dev
+pip install treelite==2.4.0 treelite_runtime==2.4.0
+
 echo "##[section]Building Treelite..."
 mkdir build
 cd build
 cmake .. -GNinja
 ninja
 cd ..
-
-echo "##[section]Setting up Python environment..."
-conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn awscli
-source activate dev
-pip install treelite==2.4.0 treelite_runtime==2.4.0
 
 CURRENT_VERSION=$(cat python/treelite/VERSION)
 

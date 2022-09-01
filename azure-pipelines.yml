@@ -13,6 +13,21 @@ jobs:
     inputs:
       targetType: 'filePath'
       filePath: ops/run-formatting-check.sh
+- job: test_sdist
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
+  - checkout: self
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/test-sdist.sh
+    env:
+      COMMIT_ID: $(Build.SourceVersion)
+      AWS_ACCESS_KEY_ID: $(S3UPLOAD_AWS_ACCESS_KEY_ID)
+      AWS_SECRET_ACCESS_KEY: $(S3UPLOAD_AWS_SECRET_ACCESS_KEY)
 - job: linux_build
   pool:
     vmImage: 'ubuntu-latest'

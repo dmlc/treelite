@@ -66,9 +66,9 @@ else
     exit 2
 fi
 
-source $HOME/miniconda/bin/activate
-conda activate python3
-python -m pip install cibuildwheel
+conda create -n python3 python=3.9
+source activate python3
+pip install cibuildwheel
 python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}

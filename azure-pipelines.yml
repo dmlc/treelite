@@ -55,6 +55,28 @@ jobs:
     inputs:
       artifactName: 'runtime_python_win_whl'
       targetPath: 'runtime/python/dist/'
+- job: macos_build
+  pool:
+    vmImage: 'macOS-11'
+  strategy:
+    matrix:
+      amd64:
+        cibw_platform_id: macosx_x86_64
+      arm64:
+        cibw_platform_id: macosx_arm64
+  steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
+  - checkout: self
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/build-macos.sh
+    env:
+      COMMIT_ID: $(Build.SourceVersion)
+      CIBW_PLATFORM_ID: $(cibw_platform_id)
+    # Build Python wheels for MacOS Intel and Apple Silicon
+    # pypa/cibuildwheel is used, hence CIBW prefix
 - job: cpp_python_coverage
   pool:
     vmImage: 'ubuntu-latest'

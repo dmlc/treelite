@@ -66,7 +66,7 @@ else
     exit 2
 fi
 
-conda create -n python3 python=3.9
+conda create -n python3 -y -q -c conda-forge python=3.9
 source activate python3
 pip install cibuildwheel
 python -m cibuildwheel python --output-dir wheelhouse

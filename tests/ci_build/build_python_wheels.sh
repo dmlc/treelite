@@ -51,7 +51,7 @@ if [[ "$platform_id" == macosx_* ]]; then
 
     sudo conda create -n build $OPENMP_URL
     conda info -e
-    PREFIX="$HOME/miniconda/envs/build"
+    PREFIX="/usr/local/miniconda/envs/build"
 
     # Set up build flags for cibuildwheel
     # This is needed to bundle libomp lib we downloaded earlier

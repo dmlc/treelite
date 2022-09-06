@@ -391,9 +391,10 @@ class Tree {
   inline void
   SerializeTemplate(ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
       CompositeArrayHandler composite_array_handler);
-  template <typename ScalarHandler, typename ArrayHandler>
+  template <typename ScalarHandler, typename ArrayHandler, typename SkipOptFieldHandlerFunc>
   inline void
-  DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler);
+  DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler,
+      SkipOptFieldHandlerFunc skip_opt_field_handler);
 
   friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
 
@@ -852,11 +853,13 @@ class ModelImpl : public Model {
       HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
       HeaderCompositeFieldHandlerFunc header_composite_field_handler,
       TreeHandlerFunc tree_handler);
-  template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
+  template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc,
+      typename SkipOptFieldHandlerFunc>
   inline void DeserializeTemplate(
       size_t num_tree,
       HeaderFieldHandlerFunc header_field_handler,
-      TreeHandlerFunc tree_handler);
+      TreeHandlerFunc tree_handler,
+      SkipOptFieldHandlerFunc skip_opt_field_handler);
 };
 
 }  // namespace treelite

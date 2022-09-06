@@ -499,6 +499,19 @@ inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
   }
 }
 
+inline void SkipOptFieldInFile(FILE* fp) {
+  uint16_t elem_size;
+  uint64_t nelem;
+  ReadScalarFromFile(&elem_size, fp);
+  ReadScalarFromFile(&nelem, fp);
+
+  const uint64_t nbytes = elem_size * nelem;
+  TREELITE_CHECK_LE(nbytes, std::numeric_limits<long>::max());
+  if (std::fseek(fp, static_cast<long>(nbytes), SEEK_CUR) != 0) {
+    throw Error("Reached end of file");
+  }
+}
+
 template <typename ThresholdType, typename LeafOutputType>
 Tree<ThresholdType, LeafOutputType>::Tree(bool use_opt_field)
   : use_opt_field_(use_opt_field)
@@ -553,10 +566,12 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-template <typename ScalarHandler, typename ArrayHandler>
+template <typename ScalarHandler, typename ArrayHandler, typename SkipOptFieldHandlerFunc>
 inline void
 Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
-    ScalarHandler scalar_handler, ArrayHandler array_handler) {
+    ScalarHandler scalar_handler,
+    ArrayHandler array_handler,
+    SkipOptFieldHandlerFunc skip_opt_field_handler) {
   scalar_handler(&num_nodes);
   scalar_handler(&has_categorical_split_);
   array_handler(&nodes_);
@@ -572,9 +587,17 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
   if (use_opt_field_) {
     /* Extension slot 2: Per-tree optional fields -- to be added later */
     scalar_handler(&num_opt_field_per_tree_);
+    // Ignore extra fields; the input is likely from a later version of Treelite
+    for (int32_t i = 0; i < num_opt_field_per_tree_; ++i) {
+      skip_opt_field_handler();
+    }
 
     /* Extension slot 3: Per-node optional fields -- to be added later */
     scalar_handler(&num_opt_field_per_node_);
+    // Ignore extra fields; the input is likely from a later version of Treelite
+    for (int32_t i = 0; i < num_opt_field_per_node_; ++i) {
+      skip_opt_field_handler();
+    }
   } else {
     // Legacy (version 2.4)
     num_opt_field_per_tree_ = 0;
@@ -621,7 +644,10 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>
   auto array_handler = [&it](auto* field) {
     InitArrayFromPyBuffer(field, *it++);
   };
-  DeserializeTemplate(scalar_handler, array_handler);
+  auto skip_opt_field_handler = [&it]() {
+    *it++;
+  };
+  DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -633,7 +659,10 @@ Tree<ThresholdType, LeafOutputType>::DeserializeFromFile(FILE* src_fp) {
   auto array_handler = [src_fp](auto* field) {
     ReadArrayFromFile(field, src_fp);
   };
-  DeserializeTemplate(scalar_handler, array_handler);
+  auto skip_opt_field_handler = [src_fp]() {
+    SkipOptFieldInFile(src_fp);
+  };
+  DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -880,12 +909,14 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc>
+template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc,
+    typename SkipOptFieldHandlerFunc>
 inline void
 ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
     std::size_t num_tree,
     HeaderFieldHandlerFunc header_field_handler,
-    TreeHandlerFunc tree_handler) {
+    TreeHandlerFunc tree_handler,
+    SkipOptFieldHandlerFunc skip_opt_field_handler) {
   /* Header */
   header_field_handler(&num_feature);
   header_field_handler(&task_type);
@@ -893,10 +924,14 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
   header_field_handler(&task_param);
   header_field_handler(&param);
 
-  /* Extension Slot 1: Per-model optional fields */
+  /* Extension Slot 1: Per-model optional fields -- to be added later */
   const bool use_opt_field = (major_ver_ >= 3);
   if (use_opt_field) {
     header_field_handler(&num_opt_field_per_model_);
+    // Ignore extra fields; the input is likely from a later version of Treelite
+    for (int32_t i = 0; i < num_opt_field_per_model_; ++i) {
+      skip_opt_field_handler();
+    }
   } else {
     // Legacy (version 2.4)
     num_opt_field_per_model_ = 0;
@@ -952,6 +987,10 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     InitScalarFromPyBuffer(field, *it++);
   };
 
+  auto skip_opt_field_handler = [&it]() {
+    *it++;
+  };
+
   auto tree_handler = [&it](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.InitFromPyBuffer(it);
   };
@@ -968,7 +1007,7 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     header_field_handler(&num_tree_);
   }
 
-  DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
+  DeserializeTemplate(num_tree_, header_field_handler, tree_handler, skip_opt_field_handler);
   TREELITE_CHECK_EQ(num_tree_, this->trees.size());
 }
 
@@ -981,11 +1020,15 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) 
     ReadScalarFromFile(field, src_fp);
   };
 
+  auto skip_opt_field_handler = [src_fp]() {
+    SkipOptFieldInFile(src_fp);
+  };
+
   auto tree_handler = [src_fp](Tree<ThresholdType, LeafOutputType>& tree) {
     tree.DeserializeFromFile(src_fp);
   };
 
-  DeserializeTemplate(num_tree_, header_field_handler, tree_handler);
+  DeserializeTemplate(num_tree_, header_field_handler, tree_handler, skip_opt_field_handler);
   TREELITE_CHECK_EQ(num_tree_, this->trees.size());
 }
 

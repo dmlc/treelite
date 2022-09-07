@@ -636,18 +636,20 @@ Tree<ThresholdType, LeafOutputType>::SerializeToFile(FILE* dest_fp) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator& it) {
-  auto scalar_handler = [&it](auto* field) {
-    InitScalarFromPyBuffer(field, *it++);
+inline std::vector<PyBufferFrame>::iterator
+Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator it) {
+  std::vector<PyBufferFrame>::iterator new_it = it;
+  auto scalar_handler = [&new_it](auto* field) {
+    InitScalarFromPyBuffer(field, *(new_it++));
   };
-  auto array_handler = [&it](auto* field) {
-    InitArrayFromPyBuffer(field, *it++);
+  auto array_handler = [&new_it](auto* field) {
+    InitArrayFromPyBuffer(field, *(new_it++));
   };
-  auto skip_opt_field_handler = [&it]() {
-    *it++;
+  auto skip_opt_field_handler = [&new_it]() {
+    ++new_it;
   };
   DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
+  return new_it;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -980,19 +982,20 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
+inline std::vector<PyBufferFrame>::iterator
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator& it, std::size_t num_frame) {
-  auto header_field_handler = [&it](auto* field) {
-    InitScalarFromPyBuffer(field, *it++);
+    std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) {
+  std::vector<PyBufferFrame>::iterator new_it = it;
+  auto header_field_handler = [&new_it](auto* field) {
+    InitScalarFromPyBuffer(field, *(new_it++));
   };
 
-  auto skip_opt_field_handler = [&it]() {
-    *it++;
+  auto skip_opt_field_handler = [&new_it]() {
+    ++new_it;
   };
 
-  auto tree_handler = [&it](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.InitFromPyBuffer(it);
+  auto tree_handler = [&new_it](Tree<ThresholdType, LeafOutputType>& tree) {
+    new_it = tree.InitFromPyBuffer(new_it);
   };
 
   if (major_ver_ == 2) {
@@ -1009,6 +1012,8 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 
   DeserializeTemplate(num_tree_, header_field_handler, tree_handler, skip_opt_field_handler);
   TREELITE_CHECK_EQ(num_tree_, this->trees.size());
+
+  return new_it;
 }
 
 template <typename ThresholdType, typename LeafOutputType>

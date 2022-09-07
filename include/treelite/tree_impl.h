@@ -506,8 +506,8 @@ inline void SkipOptFieldInFile(FILE* fp) {
   ReadScalarFromFile(&nelem, fp);
 
   const uint64_t nbytes = elem_size * nelem;
-  TREELITE_CHECK_LE(nbytes, std::numeric_limits<long>::max());
-  if (std::fseek(fp, static_cast<long>(nbytes), SEEK_CUR) != 0) {
+  TREELITE_CHECK_LE(nbytes, std::numeric_limits<long>::max());  // NOLINT
+  if (std::fseek(fp, static_cast<long>(nbytes), SEEK_CUR) != 0) {  // NOLINT
     throw Error("Reached end of file");
   }
 }

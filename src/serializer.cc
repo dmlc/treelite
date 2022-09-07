@@ -28,7 +28,9 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   auto header_primitive_field_handler = [&it](auto* field) {
     InitScalarFromPyBuffer(field, *it++);
   };
-  int32_t major_ver, minor_ver, patch_ver;
+  int32_t major_ver;
+  int32_t minor_ver;
+  int32_t patch_ver;
   DeserializeTemplate(header_primitive_field_handler, major_ver, minor_ver, patch_ver,
     threshold_type, leaf_output_type);
 

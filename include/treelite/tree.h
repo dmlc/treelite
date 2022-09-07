@@ -377,9 +377,12 @@ class Tree {
   ContiguousArray<std::size_t> matching_categories_offset_;
   bool has_categorical_split_{false};
 
-  // Magic numbers, to be computed as part of serialization
+  /* Note: the following member fields shall be re-computed at serialization time */
+  // Whether to use optional fields
   bool use_opt_field_{false};
-  int num_opt_field_per_tree_{0}, num_opt_field_per_node_{0};
+  // Number of optional fields in the extension slots
+  int32_t num_opt_field_per_tree_{0};
+  int32_t num_opt_field_per_node_{0};
 
   template <typename WriterType, typename X, typename Y>
   friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
@@ -798,10 +801,15 @@ class Model {
   ModelParam param{};
 
  protected:
-  // Magic numbers, to be computed as part of serialization
+  /* Note: the following member fields shall be re-computed at serialization time */
+  // Number of trees
   uint64_t num_tree_{0};
+  // Number of optional fields in the extension slot
   int32_t num_opt_field_per_model_{0};
-  int32_t major_ver_, minor_ver_, patch_ver_;
+  // Which Treelite version produced this model
+  int32_t major_ver_;
+  int32_t minor_ver_;
+  int32_t patch_ver_;
 
  private:
   TypeInfo threshold_type_{TypeInfo::kInvalid};

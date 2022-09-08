@@ -24,22 +24,22 @@ Model::GetPyBuffer() {
 std::unique_ptr<Model>
 Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
   TypeInfo threshold_type, leaf_output_type;
-  constexpr std::size_t kNumFrameInHeader = 5;
-  if (frames.size() < kNumFrameInHeader) {
-    throw Error(std::string("Insufficient number of frames: there must be at least ")
-                + std::to_string(kNumFrameInHeader));
-  }
-  int idx = 0;
-  auto header_primitive_field_handler = [&idx, &frames](auto* field) {
-    InitScalarFromPyBuffer(field, frames[idx++]);
+  auto it = frames.begin();
+  auto header_primitive_field_handler = [&it](auto* field) {
+    InitScalarFromPyBuffer(field, *it++);
   };
-  DeserializeTemplate(header_primitive_field_handler, threshold_type, leaf_output_type);
-  if (idx != kNumFrameInHeader) {
-    throw Error("Did not read from a sufficient number of frames");
-  }
+  int32_t major_ver;
+  int32_t minor_ver;
+  int32_t patch_ver;
+  DeserializeTemplate(header_primitive_field_handler, major_ver, minor_ver, patch_ver,
+    threshold_type, leaf_output_type);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
-  model->InitFromPyBuffer(frames.begin() + kNumFrameInHeader, frames.end());
+  model->major_ver_ = major_ver;
+  model->minor_ver_ = minor_ver;
+  model->patch_ver_ = patch_ver;
+  std::size_t num_frame = std::distance(it, frames.end());
+  model->InitFromPyBuffer(it, num_frame);
   return model;
 }
 
@@ -59,9 +59,16 @@ Model::DeserializeFromFile(FILE* src_fp) {
   auto header_primitive_field_handler = [src_fp](auto* field) {
     ReadScalarFromFile(field, src_fp);
   };
-  DeserializeTemplate(header_primitive_field_handler, threshold_type, leaf_output_type);
+  int32_t major_ver;
+  int32_t minor_ver;
+  int32_t patch_ver;
+  DeserializeTemplate(header_primitive_field_handler, major_ver, minor_ver, patch_ver,
+    threshold_type, leaf_output_type);
 
   std::unique_ptr<Model> model = Model::Create(threshold_type, leaf_output_type);
+  model->major_ver_ = major_ver;
+  model->minor_ver_ = minor_ver;
+  model->patch_ver_ = patch_ver;
   model->DeserializeFromFileImpl(src_fp);
   return model;
 }

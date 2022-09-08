@@ -45,6 +45,23 @@ jobs:
     inputs:
       targetType: 'filePath'
       filePath: ops/test-cmake-import.sh
+- job: test_serializer_compatibility
+  strategy:
+    matrix:
+      linux:
+        vm_image: 'ubuntu-latest'
+      macos:
+        vm_image: 'macOS-11'
+  pool:
+    vmImage: $(vm_image)
+  steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: 'Enable Conda'
+  - checkout: self
+  - task: Bash@3
+    inputs:
+      targetType: 'filePath'
+      filePath: ops/test-serializer-compatibility.sh
 - job: linux_build
   pool:
     vmImage: 'ubuntu-latest'

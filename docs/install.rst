@@ -51,6 +51,8 @@ Treelite is also available on Conda.
 to install the Treelite package. See https://anaconda.org/conda-forge/treelite to check the
 available platforms.
 
+.. _install-source:
+
 Compile Treelite from the source
 --------------------------------
 Installation consists of two steps:

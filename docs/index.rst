@@ -20,19 +20,6 @@ efficient deployment.
 Why Treelite?
 *************
 
-Compile and optimize your model for fast prediction
-===================================================
-**Treelite compiles your tree model into optimized shared library.**
-A :py:doc:`benchmark` demonstrates 2-6x improvement in prediction throughput,
-due to more efficient use of compute resources.
-
-.. raw:: html
-
-  <p>
-  <img src="_static/benchmark_plot.svg"
-       onerror="this.src='_static/benchmark_plot.png'; this.onerror=null;"
-       width="100%">
-  </p>
 
 Use machine learning package of your choice
 ===========================================
@@ -55,6 +42,17 @@ LightGBM, scikit-learn, etc.) on every machine your tree model will run. This is
 the case no longer: Treelite will export your model as a stand-alone
 prediction library so that predictions will be made without any machine
 learning package installed.
+
+Universal, lightweight specification for all tree models
+========================================================
+Are you designing an optimized prediction runtime software for tree models?
+Do not be overwhelmed by the variety of tree models in the wild. Treelite
+lets you convert many kinds of tree models into a **single, lightweight
+exchange format**. You can serialize (save) any tree model into a byte
+sequence or a file. Plus, Treelite is designed to be used as a component in
+prediction runtimes. Currently, Treelite is used by
+`Amazon SageMaker Neo <https://github.com/neo-ai/neo-ai-dlr>`_ and
+and `RAPIDS cuML <https://github.com/rapidsai/cuml>`_.
 
 ***********
 Quick start
@@ -158,6 +156,7 @@ Contents
   javadoc/packages
   Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>
   knobs/index
+  notes-on-serialization
   Internal docs <http://treelite.readthedocs.io/en/latest/dev/>
   
 

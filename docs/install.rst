@@ -4,6 +4,7 @@ Installation
 You may choose one of two methods to install Treelite on your system:
 
 * :ref:`install-pip`
+* :ref:`install-conda`
 * :ref:`install-source`
 
 .. _install-pip:
@@ -36,7 +37,19 @@ For other operating systems, see the next section.
 
     brew install libomp
 
-.. _install-source:
+
+.. _install-conda:
+
+Download binary releases from Conda
+------------------------------------------------
+Treelite is also available on Conda.
+
+.. code-block:: console
+
+  conda install -c conda-forge treelite
+
+to install the Treelite package. See https://anaconda.org/conda-forge/treelite to check the
+available platforms.
 
 Compile Treelite from the source
 --------------------------------

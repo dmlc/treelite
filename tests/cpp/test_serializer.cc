@@ -12,7 +12,10 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <cstdio>
+#include <cstdint>
 #include <string>
+#include <map>
+#include <vector>
 #include <memory>
 #include <stdexcept>
 
@@ -785,6 +788,81 @@ TEST(PyBufferInterfaceRoundTrip, XGBoostBoston) {
   }
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
+}
+
+TEST(ForwardCompatibility, TreeStump) {
+  TypeInfo threshold_type = TypeInfo::kFloat32;
+  TypeInfo leaf_output_type = TypeInfo::kFloat32;
+  std::unique_ptr<frontend::ModelBuilder> builder{
+      new frontend::ModelBuilder(2, 1, false, threshold_type, leaf_output_type)
+  };
+  constexpr std::size_t num_tree = 3;
+  for (std::size_t i = 0; i < num_tree; ++i) {
+    std::unique_ptr<frontend::TreeBuilder> tree{
+        new frontend::TreeBuilder(threshold_type, leaf_output_type)
+    };
+    tree->CreateNode(0);
+    tree->CreateNode(1);
+    tree->CreateNode(2);
+    tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<float>(0), true, 1, 2);
+    tree->SetRootNode(0);
+    tree->SetLeafNode(1, frontend::Value::Create<float>(-1));
+    tree->SetLeafNode(2, frontend::Value::Create<float>(1));
+    builder->InsertTree(tree.get());
+  }
+
+  std::unique_ptr<Model> model = builder->CommitModel();
+
+  std::vector<PyBufferFrame> frames = model->GetPyBuffer();
+  std::vector<PyBufferFrame> new_frames;
+
+  // Mapping to indicate where to insert new frames
+  std::map<std::size_t, PyBufferFrame> frames_to_add;
+
+  std::vector<int64_t> extra_opt_field1{1, 2, 3};
+  std::vector<int32_t> extra_opt_field2{100, 200, 300};
+  std::vector<double> extra_opt_field3{1.0, -1.0, 1.5};
+
+  /* Locate the frames containing the extension slots */
+  std::size_t num_opt_field_per_model_offset = 5 + 1 + 5;
+  std::vector<std::size_t> num_opt_field_per_tree_offset{num_opt_field_per_model_offset + 9};
+  std::vector<std::size_t> num_opt_field_per_node_offset{num_opt_field_per_tree_offset[0] + 1};
+  for (std::size_t i = 1; i < num_tree; ++i) {
+    num_opt_field_per_tree_offset.push_back(num_opt_field_per_tree_offset.back() + 10);
+    num_opt_field_per_node_offset.push_back(num_opt_field_per_node_offset.back() + 10);
+  }
+
+  /* Insert new optional fields to the extension slots */
+  frames_to_add[num_opt_field_per_model_offset] = PyBufferFrame{
+    extra_opt_field1.data(), "=q",
+    sizeof(decltype(extra_opt_field1)::value_type), extra_opt_field1.size()};
+  for (std::size_t i : num_opt_field_per_tree_offset) {
+    frames_to_add[i] = PyBufferFrame{
+      extra_opt_field2.data(), "=l",
+      sizeof(decltype(extra_opt_field2)::value_type), extra_opt_field2.size()};
+  }
+  for (std::size_t i : num_opt_field_per_node_offset) {
+    frames_to_add[i] = PyBufferFrame{
+      extra_opt_field3.data(), "=d",
+      sizeof(decltype(extra_opt_field3)::value_type), extra_opt_field3.size()};
+  }
+
+  for (std::size_t i = 0; i < frames.size(); ++i) {
+    if (frames_to_add.count(i) > 0) {
+      // Increment count field by one
+      PyBufferFrame new_cnt_frame = frames[i];
+      ++(*static_cast<int32_t*>(new_cnt_frame.buf));
+      new_frames.push_back(new_cnt_frame);
+      // Insert new optional field
+      new_frames.push_back(frames_to_add.at(i));
+    } else {
+      new_frames.push_back(frames[i]);
+    }
+  }
+
+  // Ensure that the extra fields don't cause an error when deserializing
+  std::unique_ptr<Model> received_model = Model::CreateFromPyBuffer(new_frames);
+  ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
 }
 
 }  // namespace treelite

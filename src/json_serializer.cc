@@ -8,6 +8,8 @@
 
 #include <treelite/tree.h>
 #include <treelite/logging.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
@@ -157,6 +159,14 @@ void DumpTreeAsJSON(WriterType& writer, const Tree<ThresholdType, LeafOutputType
   TREELITE_CHECK_EQ(tree.matching_categories_offset_.Back(), tree.matching_categories_.Size());
 }
 
+template <typename ParsedJSONType, typename ThresholdType, typename LeafOutputType>
+void ImportModelFromJSON(const ParsedJSONType& parsed_json,
+                         ModelImpl<ThresholdType, LeafOutputType>& model) {
+  model.num_feature = parsed_json["num_feature"].GetInt();
+  model.task_type = TaskTypeFromString(parsed_json["task_type"].GetString());
+  model.average_tree_output = parsed_json["average_tree_output"].GetBool();
+}
+
 template <typename WriterType, typename ThresholdType, typename LeafOutputType>
 void DumpModelAsJSON(WriterType& writer,
                      const ModelImpl<ThresholdType, LeafOutputType>& model) {
@@ -184,6 +194,15 @@ void DumpModelAsJSON(WriterType& writer,
 
 template <typename ThresholdType, typename LeafOutputType>
 void
+ModelImpl<ThresholdType, LeafOutputType>::ImportFromJSON(std::istream& fi) {
+  rapidjson::IStreamWrapper is(fi);
+  rapidjson::Document d;
+  d.ParseStream(is);
+  ImportModelFromJSON(d, *this);
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+void
 ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(std::ostream& fo, bool pretty_print) const {
   rapidjson::OStreamWrapper os(fo);
   if (pretty_print) {
@@ -196,9 +215,13 @@ ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(std::ostream& fo, bool pret
   }
 }
 
-template void ModelImpl<float, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<float, float>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, double>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
+template void ModelImpl<float, uint32_t>::ImportFromJSON(std::istream&);
+template void ModelImpl<float, float>::ImportFromJSON(std::istream&);
+template void ModelImpl<double, uint32_t>::ImportFromJSON(std::istream&);
+template void ModelImpl<double, double>::ImportFromJSON(std::istream&);
+template void ModelImpl<float, uint32_t>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<float, float>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<double, uint32_t>::DumpAsJSON(std::ostream&, bool) const;
+template void ModelImpl<double, double>::DumpAsJSON(std::ostream&, bool) const;
 
 }  // namespace treelite

@@ -9,6 +9,7 @@
 
 #include <treelite/base.h>
 #include <treelite/version.h>
+#include <treelite/logging.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -175,6 +176,23 @@ inline std::string TaskTypeToString(TaskType type) {
     case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
     default: return "";
   }
+}
+
+inline TaskType TaskTypeFromString(const std::string& type) {
+  if (type == "BinaryClfRegr") {
+    return TaskType::kBinaryClfRegr;
+  }
+  if (type == "MultiClfGrovePerClass") {
+    return TaskType::kMultiClfGrovePerClass;
+  }
+  if (type == "MultiClfProbDistLeaf") {
+    return TaskType::kMultiClfProbDistLeaf;
+  }
+  if (type == "MultiClfCategLeaf") {
+    return TaskType::kMultiClfCategLeaf;
+  }
+  TREELITE_LOG(FATAL) << "Unrecognized task type: " << type;
+  return TaskType::kBinaryClfRegr;
 }
 
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
@@ -384,10 +402,12 @@ class Tree {
   int32_t num_opt_field_per_tree_{0};
   int32_t num_opt_field_per_node_{0};
 
+  template <typename ParsedJSONType, typename X, typename Y>
+  friend void ImportModelFromJSON(const ParsedJSONType&, ModelImpl<X, Y>&);
   template <typename WriterType, typename X, typename Y>
-  friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
+  friend void DumpModelAsJSON(WriterType&, const ModelImpl<X, Y>&);
   template <typename WriterType, typename X, typename Y>
-  friend void DumpTreeAsJSON(WriterType& writer, const Tree<X, Y>& tree);
+  friend void DumpTreeAsJSON(WriterType&, const Tree<X, Y>&);
 
   // allocate a new node
   inline int AllocNode();
@@ -758,6 +778,7 @@ class Model {
 
   virtual std::size_t GetNumTree() const = 0;
   virtual void SetTreeLimit(std::size_t limit) = 0;
+  virtual void ImportFromJSON(std::istream& fi) = 0;
   virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
 
   inline std::string DumpAsJSON(bool pretty_print) const {
@@ -845,6 +866,7 @@ class ModelImpl : public Model {
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
+  void ImportFromJSON(std::istream& fi) override;
   void DumpAsJSON(std::ostream& fo, bool pretty_print) const override;
   inline std::size_t GetNumTree() const override {
     return trees.size();

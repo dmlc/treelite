@@ -877,6 +877,8 @@ class ModelImpl : public Model {
       SkipOptFieldHandlerFunc skip_opt_field_handler);
 };
 
+std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& objs);
+
 }  // namespace treelite
 
 #include "tree_impl.h"

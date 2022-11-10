@@ -1,13 +1,14 @@
 # coding: utf-8
 """Frontend collection for Treelite"""
 from __future__ import absolute_import as _abs
+from __future__ import annotations
 import ctypes
 import collections
 import shutil
 import os
 import json
 from tempfile import TemporaryDirectory
-from typing import Union
+from typing import Union, List
 
 from pkg_resources import parse_version
 
@@ -525,6 +526,45 @@ class Model:
             raise ValueError('Unknown model_format: must be one of ' \
                              + '{lightgbm, xgboost, xgboost_json}')
         return Model(handle)
+
+    @classmethod
+    def concatenate(
+        cls,
+        model_objs : List[Model]
+    ) -> Model:
+        """
+        Concatenate multiple model objects into a single model object by copying
+        all member trees into the destination model object.
+
+        Parameters
+        ----------
+        model_objs :
+            List of :py:class:`Model` objects
+
+        Returns
+        -------
+        model : :py:class:`Model` object
+            Concatenated model
+
+        Example
+        -------
+
+        .. code-block:: python
+
+           concatenated_model = Model.concatenate([model1, model2, model3])
+        """
+        concatenated_model_handle = ctypes.c_void_p()
+        model_obj_handles = []
+        for i, obj in enumerate(model_objs):
+            if obj.handle is None:
+                raise RuntimeError(f"Model at index {i} not loaded yet")
+            model_obj_handles.append(obj.handle)
+        _check_call(_LIB.TreeliteConcatenateModelObjects(
+            c_array(ctypes.c_void_p, model_obj_handles),
+            len(model_obj_handles),
+            ctypes.byref(concatenated_model_handle)
+        ))
+        return Model(handle=concatenated_model_handle)
 
 
 class ModelBuilder:

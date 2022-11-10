@@ -31,6 +31,12 @@ std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& 
           << " has a different type than the first model object (at index 0)";
       }
     }
+    /* Copy model metadata */
+    concatenated_model->num_feature = first_model_obj.num_feature;
+    concatenated_model->task_type = first_model_obj.task_type;
+    concatenated_model->average_tree_output = first_model_obj.average_tree_output;
+    concatenated_model->task_param = first_model_obj.task_param;
+    concatenated_model->param = first_model_obj.param;
     return std::unique_ptr<Model>(concatenated_model.release());
   });
 }

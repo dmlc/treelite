@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Tests for model concatenation"""
 
-import treelite
 import json
+import treelite
 
 
 def test_model_concat_with_tree_stump():

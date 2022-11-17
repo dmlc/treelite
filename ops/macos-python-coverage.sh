@@ -22,7 +22,7 @@ ninja
 cd ..
 
 ./build/treelite_cpp_test
-PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v \
+PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v -rxXs \
   --fulltrace tests/python
 lcov --directory . --capture --output-file coverage.info
 lcov --remove coverage.info '*dmlccore*' --output-file coverage.info

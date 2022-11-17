@@ -11,4 +11,4 @@ echo "##[section]Installing Treelite into Python environment..."
 pip install wheelhouse/*.whl
 
 echo "##[section]Running Python tests..."
-python -m pytest -v --fulltrace tests/python/test_basic.py
+python -m pytest -v -rxXs --fulltrace tests/python/test_basic.py

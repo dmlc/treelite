@@ -1,7 +1,7 @@
 echo ##[section]Running Python tests...
 mkdir temp
 call activate dev
-python -m pytest --basetemp="%WORKING_DIR%\temp" --cov=treelite --cov=treelite_runtime --cov-report xml -v --fulltrace tests\python
+python -m pytest --basetemp="%WORKING_DIR%\temp" --cov=treelite --cov=treelite_runtime --cov-report xml -v -rxXs --fulltrace tests\python
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo ##[section]Submitting code coverage data to CodeCov...

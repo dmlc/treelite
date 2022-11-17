@@ -15,7 +15,7 @@ make pippack
 echo "##[section]Testing the source distribution..."
 python -m pip install -v treelite-*.tar.gz
 python -m pip install -v treelite_runtime-*.tar.gz
-python -m pytest -v --fulltrace tests/python/test_basic.py
+python -m pytest -v -rxXs --fulltrace tests/python/test_basic.py
 
 # Deploy source distribution to S3
 for file in ./treelite-*.tar.gz ./treelite_runtime-*.tar.gz

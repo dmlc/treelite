@@ -1,7 +1,7 @@
 echo ##[section]Setting up Python environment...
-conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest awscli
+conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest awscli \
+  lightgbm xgboost
 call activate dev
-python -m pip install lightgbm xgboost
 
 echo ##[section]Installing Treelite into Python environment...
 for /R %%i in (main\\*.whl) DO python -m pip install "%%i"

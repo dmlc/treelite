@@ -385,6 +385,16 @@ TREELITE_DLL int TreeliteSerializeModel(const char* filename, ModelHandle handle
 TREELITE_DLL int TreeliteDeserializeModel(const char* filename, ModelHandle* out);
 
 /*!
+ * \brief Concatenate multiple model objects into a single model object by copying
+ *        all member trees into the destination model object
+ * \param objs Pointer to the beginning of the list of model objects
+ * \param len Number of model objects
+ * \param out Used to save the concatenated model
+ */
+TREELITE_DLL int TreeliteConcatenateModelObjects(const ModelHandle* objs, size_t len,
+                                                 ModelHandle* out);
+
+/*!
  * \brief Dump a model object as a JSON string
  * \param handle The handle to the model object
  * \param pretty_print Whether to pretty-print JSON string (0 for false, != 0 for true)

@@ -4,8 +4,8 @@ set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
 conda create -n python3 -y -q -c conda-forge python=3.9 numpy scipy pandas pytest pytest-cov \
-  scikit-learn coverage ninja lcov cmake llvm-openmp
-python -m pip install xgboost lightgbm codecov
+  scikit-learn coverage ninja lcov cmake llvm-openmp xgboost lightgbm
+python -m pip install codecov
 
 echo "##[section]Building Treelite..."
 source activate python3
@@ -22,7 +22,7 @@ ninja
 cd ..
 
 ./build/treelite_cpp_test
-PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v \
+PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v -rxXs \
   --fulltrace tests/python
 lcov --directory . --capture --output-file coverage.info
 lcov --remove coverage.info '*dmlccore*' --output-file coverage.info

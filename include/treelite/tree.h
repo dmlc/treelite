@@ -877,6 +877,14 @@ class ModelImpl : public Model {
       SkipOptFieldHandlerFunc skip_opt_field_handler);
 };
 
+/*!
+ * \brief Concatenate multiple model objects into a single model object by copying
+ *        all member trees into the destination model object
+ * \param objs List of model objects
+ * \return Concatenated model
+ */
+std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& objs);
+
 }  // namespace treelite
 
 #include "tree_impl.h"

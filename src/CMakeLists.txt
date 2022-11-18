@@ -19,6 +19,7 @@ if(USE_OPENMP)
     find_package(OpenMP)
     if (NOT OpenMP_FOUND)
       # Try again with extra path info; required for libomp 15+ from Homebrew
+      message(STATUS "OpenMP not found; attempting to locate libomp from Homebrew...")
       execute_process(COMMAND brew --prefix libomp
           OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
           OUTPUT_STRIP_TRAILING_WHITESPACE)

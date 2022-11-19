@@ -25,7 +25,7 @@ cd ../..
 
 echo "##[section]Running Python integration tests..."
 export PYTHONPATH='./python:./runtime/python'
-python -m pytest --cov=treelite --cov=treelite_runtime -v --fulltrace tests/python tests/cython
+python -m pytest --cov=treelite --cov=treelite_runtime -v -rxXs --fulltrace tests/python tests/cython
 
 echo "##[section]Collecting coverage data..."
 lcov --directory . --capture --output-file coverage.info

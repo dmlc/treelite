@@ -240,6 +240,17 @@ int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
   API_END();
 }
 
+int TreeliteConcatenateModelObjects(const ModelHandle* objs, size_t len,
+                                    ModelHandle* out) {
+  API_BEGIN();
+  std::vector<const Model*> model_objs(len, nullptr);
+  std::transform(objs, objs + len, model_objs.begin(),
+                 [](const ModelHandle e) { return static_cast<const Model*>(e); });
+  auto concatenated_model = ConcatenateModelObjects(model_objs);
+  *out = static_cast<ModelHandle>(concatenated_model.release());
+  API_END();
+}
+
 int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_json_str) {
   API_BEGIN();
   auto* model_ = static_cast<Model*>(handle);

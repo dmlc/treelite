@@ -27,6 +27,7 @@ target_sources(treelite_cpp_test
            test_frontend.cc
            test_compiler_param.cc
            test_threading_utils.cc
+           test_model_concat.cc
 )
 
 target_include_directories(treelite_cpp_test

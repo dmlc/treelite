@@ -405,7 +405,8 @@ bool LearnerParamHandler::String(const char *str,
                        output.param.global_bias) ||
           assign_value("num_class", static_cast<unsigned int>(std::max(std::atoi(str), 1)),
                        output.task_param.num_class) ||
-          assign_value("num_feature", std::atoi(str), output.num_feature));
+          assign_value("num_feature", std::atoi(str), output.num_feature) ||
+          check_cur_key("boost_from_average"));
 }
 
 /******************************************************************************

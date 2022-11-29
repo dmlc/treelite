@@ -1,5 +1,4 @@
 echo ##[section]Setting up Python environment...
-conda update -n base -c conda-forge conda
 conda install -c conda-forge -y mamba>=1.0.0
 if %errorlevel% neq 0 exit /b %errorlevel%
 mamba env create -q -f ops/conda_env/dev.yml

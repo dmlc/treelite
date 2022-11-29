@@ -12,10 +12,10 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-    
+
 env:
   CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
-    
+
 jobs:
   cpp-python-coverage:
     name: Run Python and C++ tests with test coverage (Linux)

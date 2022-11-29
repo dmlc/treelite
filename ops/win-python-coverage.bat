@@ -7,6 +7,7 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 echo ##[section]Building Visual Studio solution...
 cmake --build . --config Release -- /m
 if %errorlevel% neq 0 exit /b %errorlevel%
+cd ..
 
 echo ##[section]Running Python tests...
 mkdir temp

@@ -26,6 +26,12 @@ jobs:
   macos-wheel-builder:
     name: Build and test Python wheels (MacOS)
     runs-on: macos-11
+    strategy:
+      fail-fast: false
+      matrix:
+        cibw_platform_id: [macosx_x86_64, macosx_arm64]
+    env:
+      CIBW_PLATFORM_ID: ${{ matrix.cibw_platform_id }}
     steps:
     - uses: actions/checkout@v2
       with:

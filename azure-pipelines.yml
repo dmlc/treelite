@@ -10,17 +10,6 @@ schedules:
   always: true
 
 jobs:
-- job: formatting_check
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - bash: echo "##vso[task.prependpath]$CONDA/bin"
-    displayName: 'Enable Conda'
-  - checkout: self
-  - task: Bash@3
-    inputs:
-      targetType: 'filePath'
-      filePath: ops/run-formatting-check.sh
 - job: test_sdist
   pool:
     vmImage: 'ubuntu-latest'

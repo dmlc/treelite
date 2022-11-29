@@ -56,7 +56,7 @@ jobs:
     - name: Run tests with test coverage computation
       shell: cmd /C CALL {0}
       run: |
-        call win-python-coverage.bat
+        call ops/win-python-coverage.bat
   macos-python-coverage:
     name: Run Python and C++ tests with test coverage (MacOS)
     runs-on: macos-latest

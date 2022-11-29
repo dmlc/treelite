@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda install -c conda-forge -q -y mamba
+conda install -c conda-forge -q -y mamba>=1.0.0
 mamba env create -q -f ops/conda_env/dev.yml
 source activate dev
 pip install treelite==2.4.0 treelite_runtime==2.4.0

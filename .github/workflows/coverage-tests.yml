@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
   schedule:
-    - cron: "30 6 * * *"  # Run once daily
+    - cron: "0 7 * * *"  # Run once daily
 
 permissions:
   contents: read  # to fetch code (actions/checkout)

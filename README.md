@@ -1,6 +1,6 @@
 # Treelite
 
-[![Build Status](https://dev.azure.com/hcho3/treelite/_apis/build/status/dmlc.treelite?branchName=mainline)](https://dev.azure.com/hcho3/treelite/_build)
+![Coverage tests](https://github.com/dmlc/treelite/actions/workflows/coverage-tests.yml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/treelite/badge/?version=latest)](http://treelite.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/dmlc/treelite/branch/mainline/graph/badge.svg)](https://codecov.io/gh/dmlc/treelite)
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)

@@ -3,8 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda create -n python3 -y -q -c conda-forge python=3.9 numpy scipy pandas pytest pytest-cov \
-  scikit-learn coverage ninja lcov cmake llvm-openmp xgboost lightgbm
+conda env create -q -f ops/conda_env/dev.yml
 python -m pip install codecov
 
 echo "##[section]Building Treelite..."

@@ -1,6 +1,5 @@
 echo ##[section]Setting up Python environment...
-conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest awscli \
-  lightgbm xgboost
+conda env create -q -f ops/conda_env/dev.yml
 call activate dev
 
 echo ##[section]Installing Treelite into Python environment...

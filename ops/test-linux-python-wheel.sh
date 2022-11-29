@@ -3,8 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn awscli \
-  xgboost lightgbm
+conda env create -q -f ops/conda_env/dev.yml
 source activate dev
 
 echo "##[section]Installing Treelite into Python environment..."

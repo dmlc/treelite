@@ -1,5 +1,5 @@
 echo ##[section]Setting up Python environment...
-conda create -n dev -y -q -c conda-forge python=3.9 numpy scipy scikit-learn pandas scikit-learn pytest pytest-cov xgboost lightgbm || cd .
+conda env create -q -f ops/conda_env/dev.yml || cd .
 call activate dev
 python -m pip install codecov
 if %errorlevel% neq 0 exit /b %errorlevel%

@@ -54,6 +54,7 @@ jobs:
         micromamba info
         micromamba list
     - name: Run tests with test coverage computation
+      shell: cmd /C CALL {0}
       run: |
         call win-python-coverage.bat
   macos-python-coverage:

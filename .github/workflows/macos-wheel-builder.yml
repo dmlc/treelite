@@ -51,5 +51,6 @@ jobs:
       run: |
         bash ops/build-macos.sh
     - name: Test wheel
+      if: matrix.cibw_platform_id == 'macosx_x86_64'
       run: |
         bash ops/test-macos-python-wheel.sh

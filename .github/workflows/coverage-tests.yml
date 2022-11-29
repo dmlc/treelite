@@ -63,7 +63,7 @@ jobs:
         call ops/win-python-coverage.bat
   macos-python-coverage:
     name: Run Python and C++ tests with test coverage (MacOS)
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
     - uses: actions/checkout@v2
       with:

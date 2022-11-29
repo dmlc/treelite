@@ -1,0 +1,111 @@
+name: coverage-tests
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "0 7 * * *"  # Run once daily
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
+
+jobs:
+  cpp-python-coverage:
+    name: Run Python and C++ tests with test coverage (Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda list
+    - name: Run tests with test coverage computation
+      shell: bash -l {0}
+      run: |
+        bash ops/cpp-python-coverage.sh
+  win-python-coverage:
+    name: Run Python and C++ tests with test coverage (Windows)
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      shell: cmd /C CALL {0}
+      run: |
+        micromamba info
+        micromamba list
+    - name: Run tests with test coverage computation
+      shell: cmd /C CALL {0}
+      run: |
+        call ops/win-python-coverage.bat
+  macos-python-coverage:
+    name: Run Python and C++ tests with test coverage (MacOS)
+    runs-on: macos-11
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda list
+    - name: Run tests with test coverage computation
+      shell: bash -l {0}
+      run: |
+        bash ops/macos-python-coverage.sh
+  java-coverage:
+    name: Run Java tests with test coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: treelite4j-${{ runner.os }}-m2-${{ hashFiles('./runtime/java/treelite4j/pom.xml') }}
+        restore-keys: treelite4j-${{ runner.os }}-m2
+    - name: Run tests with test coverage computation
+      shell: bash -l {0}
+      run: |
+        bash ops/java-coverage.sh

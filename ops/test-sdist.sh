@@ -2,12 +2,6 @@
 
 set -euo pipefail
 
-echo "##[section]Setting up Python environment..."
-conda create -n python3 -y -q -c conda-forge python=3.9 numpy scipy pandas pytest scikit-learn coverage \
-  cmake ninja awscli xgboost lightgbm
-source activate python3
-python --version
-
 echo "##[section]Building a source distribution..."
 make pippack
 

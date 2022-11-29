@@ -1,0 +1,92 @@
+name: misc-tests
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "0 7 * * *"  # Run once daily
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-sdist:
+    name: Test sdist
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_ID: ${{ github.sha }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_IAM_S3_UPLOADER }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_IAM_S3_UPLOADER }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Test sdist
+      run: |
+        bash ops/test-sdist.sh
+  test-cmake-import:
+    name: Test using Treelite as a library, via CMake export (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-11]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Test using Treelite as a library
+      run: |
+        bash ops/test-cmake-import.sh
+  test-serializer-compatibility:
+    name: Test backward compatibility of serializers
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-11]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Test compatibility
+      run: |
+        bash ops/test-serializer-compatibility.sh

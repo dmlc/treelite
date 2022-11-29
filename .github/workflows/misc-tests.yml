@@ -67,7 +67,7 @@ jobs:
       run: |
         bash ops/test-cmake-import.sh
   test-serializer-compatibility:
-    name: Test forward and backward compatibility of serializers
+    name: Test backward compatibility of serializers
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda update -n base -c conda-forge -q -y conda
+./update-conda.sh
 conda install -c conda-forge -y mamba>=1.0.0
 mamba env create -q -f ops/conda_env/dev.yml
 python -m pip install codecov

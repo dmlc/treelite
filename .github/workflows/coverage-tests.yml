@@ -103,8 +103,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('./jvm-packages/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        key: treelite4j-${{ runner.os }}-m2-${{ hashFiles('./runtime/java/treelite4j/pom.xml') }}
+        restore-keys: treelite4j-${{ runner.os }}-m2
     - name: Run tests with test coverage computation
       shell: bash -l {0}
       run: |

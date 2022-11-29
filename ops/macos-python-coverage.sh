@@ -3,7 +3,8 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda env create -q -f ops/conda_env/dev.yml
+conda install -c conda-forge -y mamba
+mamba env create -q -f ops/conda_env/dev.yml
 python -m pip install codecov
 
 echo "##[section]Building Treelite..."

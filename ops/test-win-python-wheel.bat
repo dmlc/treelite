@@ -1,5 +1,6 @@
 echo ##[section]Setting up Python environment...
-conda env create -q -f ops/conda_env/dev.yml
+conda install -c conda-forge -y mamba
+mamba env create -q -f ops/conda_env/dev.yml
 call activate dev
 
 echo ##[section]Installing Treelite into Python environment...

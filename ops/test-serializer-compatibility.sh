@@ -2,13 +2,6 @@
 
 set -euo pipefail
 
-echo "##[section]Setting up Python environment..."
-${BASH_SOURCE%/*}/update-conda.sh
-conda install -c conda-forge -y mamba>=1.0.0
-mamba env create -q -f ops/conda_env/dev.yml
-source activate dev
-pip install treelite==2.4.0 treelite_runtime==2.4.0
-
 echo "##[section]Building Treelite..."
 mkdir build
 cd build
@@ -19,6 +12,7 @@ cd ..
 CURRENT_VERSION=$(cat python/treelite/VERSION)
 
 echo "##[section]Testing serialization: 2.4 -> ${CURRENT_VERSION}"
+pip install treelite==2.4.0 treelite_runtime==2.4.0
 python tests/cython/compatibility_tester.py --task save --checkpoint-path checkpoint.bin \
   --model-pickle-path model.pkl --expected-treelite-version 2.4.0
 PYTHONPATH=./python/:./runtime/python/ python tests/cython/compatibility_tester.py --task load \

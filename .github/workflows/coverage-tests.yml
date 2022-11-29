@@ -49,7 +49,7 @@ jobs:
         environment-name: dev
         environment-file: ops/conda_env/dev.yml
     - name: Display Conda env
-      cmd /C CALL {0}
+      shell: cmd /C CALL {0}
       run: |
         micromamba info
         micromamba list

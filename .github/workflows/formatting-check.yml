@@ -24,7 +24,7 @@ jobs:
       run: |
         conda info
         conda list
-    - name: Run mypy
+    - name: Run formatting check
       shell: bash -l {0}
       run: |
-        bash run-formatting-check.sh
+        bash ops/run-formatting-check.sh

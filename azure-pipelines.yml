@@ -2,6 +2,13 @@ trigger:
 - mainline
 - release_*
 
+schedules:
+- cron: 0 3 * * *
+  displayName: Daily Build
+  branches:
+    include: [ mainline ]
+  always: true
+
 jobs:
 - job: formatting_check
   pool:

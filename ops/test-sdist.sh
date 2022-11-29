@@ -2,13 +2,6 @@
 
 set -euo pipefail
 
-echo "##[section]Setting up Python environment..."
-${BASH_SOURCE%/*}/update-conda.sh
-conda install -c conda-forge -y mamba>=1.0.0
-mamba env create -q -f ops/conda_env/dev.yml
-source activate dev
-python --version
-
 echo "##[section]Building a source distribution..."
 make pippack
 

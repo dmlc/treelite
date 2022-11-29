@@ -8,6 +8,10 @@ on:
 
 permissions:
   contents: read  # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
     
 env:
   CODECOV_TOKEN: afe9868c-2c27-4853-89fa-4bc5d3d2b255
@@ -79,3 +83,29 @@ jobs:
       shell: bash -l {0}
       run: |
         bash ops/macos-python-coverage.sh
+  java-coverage:
+    name: Run Java tests with test coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('./jvm-packages/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    - name: Run tests with test coverage computation
+      shell: bash -l {0}
+      run: |
+        bash ops/java-coverage.sh

@@ -9,6 +9,10 @@ defaults:
   run:
     shell: bash -l {0}
 
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   formatting-check:
     name: Formatting Check

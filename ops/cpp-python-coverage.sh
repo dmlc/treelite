@@ -16,7 +16,7 @@ echo "##[section]Running Google C++ tests..."
 ./build/treelite_cpp_test
 
 echo "##[section]Setting up Python environment..."
-conda install -c conda-forge -y mamba
+conda install -c conda-forge -q -y mamba
 mamba env create -q -f ops/conda_env/dev.yml
 source activate dev
 cd tests/cython

@@ -2,8 +2,5 @@
 
 set -euo pipefail
 
-echo "##[section]Installing pylint and cpplint..."
-conda activate dev
-
 echo "##[section]Running pylint and cpplint..."
 make lint

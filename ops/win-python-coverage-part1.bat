@@ -1,6 +1,8 @@
 echo ##[section]Setting up Python environment...
 conda install -c conda-forge -q -y mamba>=1.0.0
-mamba env create -q -f ops/conda_env/dev.yml || cd .
+if %errorlevel% neq 0 exit /b %errorlevel%
+mamba env create -q -f ops/conda_env/dev.yml
+if %errorlevel% neq 0 exit /b %errorlevel%
 call activate dev
 python -m pip install codecov
 if %errorlevel% neq 0 exit /b %errorlevel%

@@ -42,6 +42,13 @@ jobs:
         cache-env: true
         environment-name: dev
         environment-file: ops/conda_env/dev.yml
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: dev
+        environment-file: ops/conda_env/dev.yml
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        use-mamba: true
     - name: Display Conda env
       run: |
         conda info

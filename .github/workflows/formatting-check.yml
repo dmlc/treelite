@@ -4,7 +4,11 @@ on: [push, pull_request]
 
 permissions:
   contents: read  # to fetch code (actions/checkout)
-  
+
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   formatting-check:
     name: Formatting Check
@@ -20,11 +24,9 @@ jobs:
         environment-name: dev
         environment-file: ops/conda_env/dev.yml
     - name: Display Conda env
-      shell: bash -l {0}
       run: |
         conda info
         conda list
     - name: Run formatting check
-      shell: bash -l {0}
       run: |
         bash ops/run-formatting-check.sh

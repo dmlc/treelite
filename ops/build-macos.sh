@@ -3,10 +3,10 @@
 set -euo pipefail
 
 echo "##[section]Setting up Python environment..."
-conda deactivate
+source deactivate
 micromamba activate dev
 pip install cibuildwheel
-conda deactivate
+source deactivate
 
 echo "##[section]Building MacOS Python wheels..."
 tests/ci_build/build_macos_python_wheels.sh ${CIBW_PLATFORM_ID} ${COMMIT_ID}

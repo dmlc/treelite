@@ -10,6 +10,7 @@ dependencies:
 - pytest-cov
 - scikit-learn
 - coverage
+- codecov
 - ninja
 - lcov
 - cmake

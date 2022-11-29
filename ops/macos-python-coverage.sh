@@ -2,14 +2,7 @@
 
 set -euo pipefail
 
-echo "##[section]Setting up Python environment..."
-${BASH_SOURCE%/*}/update-conda.sh
-conda install -c conda-forge -y mamba>=1.0.0
-mamba env create -q -f ops/conda_env/dev.yml
-python -m pip install codecov
-
 echo "##[section]Building Treelite..."
-source activate dev
 conda --version
 python --version
 

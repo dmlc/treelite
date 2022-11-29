@@ -15,11 +15,7 @@ cd ..
 echo "##[section]Running Google C++ tests..."
 ./build/treelite_cpp_test
 
-echo "##[section]Setting up Python environment..."
-${BASH_SOURCE%/*}/update-conda.sh
-conda install -c conda-forge -y mamba>=1.0.0
-mamba env create -q -f ops/conda_env/dev.yml
-source activate dev
+echo "##[section]Build Cython extension..."
 cd tests/cython
 python setup.py build_ext --inplace
 cd ../..

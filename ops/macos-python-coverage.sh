@@ -8,7 +8,7 @@ mamba env create -q -f ops/conda_env/dev.yml
 python -m pip install codecov
 
 echo "##[section]Building Treelite..."
-source activate python3
+source activate dev
 conda --version
 python --version
 

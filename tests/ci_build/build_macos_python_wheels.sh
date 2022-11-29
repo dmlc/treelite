@@ -50,7 +50,7 @@ if [[ "$platform_id" == macosx_* ]]; then
     export CIBW_BUILD_VERBOSITY=3
 
     micromamba create -n build $OPENMP_URL
-    micromamba info -e
+    micromamba info
     PREFIX="/Users/runner/micromamba-root/envs/build"
 
     # Set up build flags for cibuildwheel
@@ -66,7 +66,6 @@ else
     exit 2
 fi
 
-micromamba activate dev
 python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}

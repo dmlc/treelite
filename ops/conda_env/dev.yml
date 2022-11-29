@@ -21,3 +21,6 @@ dependencies:
 - cpplint
 - pylint
 - awscli
+- pip
+- pip:
+  - cibuildwheel

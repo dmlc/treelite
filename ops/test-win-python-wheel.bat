@@ -3,14 +3,10 @@ call micromamba activate dev
 
 echo ##[section]Installing Treelite into Python environment...
 setlocal enabledelayedexpansion
-for /R %%i in (python\\dist\\*.whl) DO (
-  python tests\ci_build\rename_whl.py "%%i" %COMMIT_ID% win_amd64
-  if !errorlevel! neq 0 exit /b !errorlevel!
-)
-for /R %%i in (runtime\\python\\dist\\*.whl) DO (
-  python tests\ci_build\rename_whl.py "%%i" %COMMIT_ID% win_amd64
-  if !errorlevel! neq 0 exit /b !errorlevel!
-)
+python tests\ci_build\rename_whl.py python\dist %COMMIT_ID% win_amd64
+if %errorlevel% neq 0 exit /b %errorlevel%
+python tests\ci_build\rename_whl.py runtime\python\dist %COMMIT_ID% win_amd64
+if %errorlevel% neq 0 exit /b %errorlevel%
 for /R %%i in (python\\dist\\*.whl) DO (
   python -m pip install "%%i"
   if !errorlevel! neq 0 exit /b !errorlevel!

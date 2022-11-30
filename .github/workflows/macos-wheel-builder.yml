@@ -1,0 +1,52 @@
+name: macos-wheel-builder
+
+on: [push, pull_request]
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMMIT_ID: ${{ github.sha }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_IAM_S3_UPLOADER }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_IAM_S3_UPLOADER }}
+
+jobs:
+  macos-wheel-builder:
+    name: Build and test Python wheels (MacOS)
+    runs-on: macos-11
+    strategy:
+      fail-fast: false
+      matrix:
+        cibw_platform_id: [macosx_x86_64, macosx_arm64]
+    env:
+      CIBW_PLATFORM_ID: ${{ matrix.cibw_platform_id }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: dev
+        environment-file: ops/conda_env/dev.yml
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        use-mamba: true
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Build wheel
+      run: |
+        bash ops/build-macos.sh
+    - name: Test wheel
+      if: matrix.cibw_platform_id == 'macosx_x86_64'
+      run: |
+        bash ops/test-macos-python-wheel.sh

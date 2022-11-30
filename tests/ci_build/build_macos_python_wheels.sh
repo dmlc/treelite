@@ -49,9 +49,9 @@ if [[ "$platform_id" == macosx_* ]]; then
     export CIBW_TEST_SKIP='*-macosx_arm64'
     export CIBW_BUILD_VERBOSITY=3
 
-    conda create -n build $OPENMP_URL
+    mamba create -n build $OPENMP_URL
     conda info -e
-    PREFIX="/usr/local/miniconda/envs/build"
+    PREFIX="/Users/runner/miniconda3/envs/build"
 
     # Set up build flags for cibuildwheel
     # This is needed to bundle libomp lib we downloaded earlier
@@ -66,10 +66,9 @@ else
     exit 2
 fi
 
-source activate python3
 python -m cibuildwheel python --output-dir wheelhouse
 python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
-python tests/ci_build/rename_whl.py wheelhouse/*.whl ${commit_id} ${wheel_tag}
-python tests/ci_build/rename_whl.py wheelhouse-runtime/*.whl ${commit_id} ${wheel_tag}
+python tests/ci_build/rename_whl.py wheelhouse ${commit_id} ${wheel_tag}
+python tests/ci_build/rename_whl.py wheelhouse-runtime ${commit_id} ${wheel_tag}
 mv -v wheelhouse-runtime/*.whl wheelhouse/
 rmdir wheelhouse-runtime/

@@ -2,12 +2,6 @@
 
 set -euo pipefail
 
-echo "##[section]Setting up Python environment..."
-conda create -n python3 -y -q -c conda-forge python=3.9 ninja cmake rapidjson fmt llvm-openmp
-source activate python3
-conda --version
-python --version
-
 # Install Treelite C++ library into the Conda env
 set -x
 rm -rf build/

@@ -430,7 +430,7 @@ The usage of this function is as follows:
 We won't have space here to discuss all internals of scikit-learn objects, but
 a few details should be noted:
 
-* The attribute ``n_features_`` stores the number of features used anywhere
+* The attribute ``n_features_in_`` stores the number of features used anywhere
   in the tree ensemble.
 * The attribute ``n_estimators`` stores the number of member trees.
 * The attribute ``estimators_`` is an array of handles that store the individual

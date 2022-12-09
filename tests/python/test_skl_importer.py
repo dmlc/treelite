@@ -33,7 +33,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, import_method, clazz, toolc
         model = treelite.sklearn.import_model(clf)
     else:
         model = treelite.sklearn.import_model_with_model_builder(clf)
-    assert model.num_feature == clf.n_features_
+    assert model.num_feature == clf.n_features_in_
     assert model.num_class == clf.n_classes_
     assert (model.num_tree ==
             clf.n_estimators * (clf.n_classes_ if clazz == GradientBoostingClassifier else 1))
@@ -48,7 +48,7 @@ def test_skl_converter_multiclass_classifier(tmpdir, import_method, clazz, toolc
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'annotate_in': annotation_path},
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == clf.n_features_
+    assert predictor.num_feature == clf.n_features_in_
     assert predictor.num_class == clf.n_classes_
     assert (predictor.pred_transform ==
             ('softmax' if clazz == GradientBoostingClassifier else 'identity_multiclass'))
@@ -77,7 +77,7 @@ def test_skl_converter_binary_classifier(tmpdir, import_method, clazz, toolchain
         model = treelite.sklearn.import_model(clf)
     else:
         model = treelite.sklearn.import_model_with_model_builder(clf)
-    assert model.num_feature == clf.n_features_
+    assert model.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
 
@@ -91,7 +91,7 @@ def test_skl_converter_binary_classifier(tmpdir, import_method, clazz, toolchain
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'annotate_in': annotation_path},
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == clf.n_features_
+    assert predictor.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert (predictor.pred_transform
             == ('sigmoid' if clazz == GradientBoostingClassifier else 'identity'))
@@ -120,7 +120,7 @@ def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
         model = treelite.sklearn.import_model(clf)
     else:
         model = treelite.sklearn.import_model_with_model_builder(clf)
-    assert model.num_feature == clf.n_features_
+    assert model.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
 
@@ -134,7 +134,7 @@ def test_skl_converter_regressor(tmpdir, import_method, clazz, toolchain):
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'annotate_in': annotation_path},
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == clf.n_features_
+    assert predictor.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert predictor.pred_transform == 'identity'
     assert predictor.global_bias == 0.0
@@ -152,7 +152,7 @@ def test_skl_converter_iforest(tmpdir, toolchain):  # pylint: disable=W0212
     expected_pred = clf._compute_chunked_score_samples(X) # pylint: disable=W0212
 
     model = treelite.sklearn.import_model(clf)
-    assert model.num_feature == clf.n_features_
+    assert model.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert model.num_tree == clf.n_estimators
 
@@ -166,7 +166,7 @@ def test_skl_converter_iforest(tmpdir, toolchain):  # pylint: disable=W0212
     model.export_lib(toolchain=toolchain, libpath=libpath, params={'annotate_in': annotation_path},
                      verbose=True)
     predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == clf.n_features_
+    assert predictor.num_feature == clf.n_features_in_
     assert model.num_class == 1
     assert predictor.pred_transform == 'exponential_standard_ratio'
     assert predictor.global_bias == 0.0

@@ -16,7 +16,7 @@ class SKLGBMRegressorMixin:
         # Initialize Treelite model builder
         # Set average_tree_output=False for gradient boosted trees
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, average_tree_output=False,
+            num_feature=sklearn_model.n_features_in_, average_tree_output=False,
             threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder

@@ -228,7 +228,8 @@ AnnotateImpl(
   // change layout of counts
   std::vector<std::vector<uint64_t>>& counts = *out_counts;
   for (size_t i = 0; i < ntree; ++i) {
-    counts.emplace_back(&new_counts[count_row_ptr[i]], &new_counts[count_row_ptr[i + 1]]);
+    counts.emplace_back(new_counts.begin() + count_row_ptr[i],
+                        new_counts.begin() + count_row_ptr[i + 1]);
   }
 }
 

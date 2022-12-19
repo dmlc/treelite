@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions for hypothesis-based testing"""
 
-import os
 from sys import platform as _platform
 
 import numpy as np

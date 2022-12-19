@@ -97,16 +97,17 @@ def check_predictor_output(dataset, shape, out_margin, out_prob):
 
 @contextmanager
 def TemporaryDirectory(*args, **kwargs):
+    # pylint: disable=C0103
     """
     Simulate the effect of 'ignore_cleanup_errors' parameter of tempfile.TemporaryDirectory.
     The parameter is only available for Python >= 3.10.
     """
-    dir = tempfile.TemporaryDirectory(*args, **kwargs)
+    tmpdir = tempfile.TemporaryDirectory(*args, **kwargs)
     try:
-        yield dir.name
+        yield tmpdir.name
     finally:
         try:
-            dir.cleanup()
+            tmpdir.cleanup()
         except (PermissionError, NotADirectoryError):
             if _platform != "win32":
                 raise

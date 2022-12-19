@@ -75,7 +75,7 @@ def test_lightgbm_regression(toolchain, objective, reg_sqrt, dataset):
         dmat = treelite_runtime.DMatrix(X_test, dtype="float64")
         out_pred = predictor.predict(dmat)
         expected_pred = bst.predict(X_test)
-        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
 
 
 @pytest.mark.parametrize("toolchain", os_compatible_toolchains())

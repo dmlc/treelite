@@ -379,7 +379,7 @@ def test_lightgbm_regression(objective, reg_sqrt, dataset):
 
         tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
         out_pred = treelite.gtil.predict(tl_model, X_test)
-        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
 
 
 @pytest.mark.parametrize("objective", ["binary", "xentlambda", "xentropy"])

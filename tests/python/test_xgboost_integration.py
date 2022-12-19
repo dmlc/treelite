@@ -100,7 +100,7 @@ def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, d
         dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
         out_pred = predictor.predict(dmat)
         expected_pred = bst.predict(dtest)
-        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
 @pytest.mark.parametrize("num_parallel_tree", [1, 3, 5])
@@ -346,9 +346,9 @@ def test_xgb_deserializers(toolchain, dataset):
         json_str_pred = predictor_json_str.predict(dmat)
 
         expected_pred = bst.predict(dtest)
-        np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=5)
-        np.testing.assert_almost_equal(json_pred, expected_pred, decimal=5)
-        np.testing.assert_almost_equal(json_str_pred, expected_pred, decimal=5)
+        np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=4)
+        np.testing.assert_almost_equal(json_pred, expected_pred, decimal=4)
+        np.testing.assert_almost_equal(json_str_pred, expected_pred, decimal=4)
 
 
 @pytest.mark.parametrize("parallel_comp", [None, 5])

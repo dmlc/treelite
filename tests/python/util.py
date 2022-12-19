@@ -102,6 +102,8 @@ def TemporaryDirectory(*args, **kwargs):
     Simulate the effect of 'ignore_cleanup_errors' parameter of tempfile.TemporaryDirectory.
     The parameter is only available for Python >= 3.10.
     """
+    if "PYTEST_TMPDIR" in os.environ and "dir" not in kwargs:
+        kwargs["dir"] = os.environ["PYTEST_TMPDIR"]
     tmpdir = tempfile.TemporaryDirectory(*args, **kwargs)
     try:
         yield tmpdir.name

@@ -14,6 +14,7 @@ mkdir temp
 call micromamba activate dev
 if %errorlevel% neq 0 exit /b %errorlevel%
 set "PYTHONPATH=./python;./runtime/python"
+set "PYTEST_TMPDIR=%WORKING_DIR%\temp"
 python -m pytest --basetemp="%WORKING_DIR%\temp" --cov=treelite --cov=treelite_runtime --cov-report xml -v -rxXs --fulltrace --durations=0 tests\python
 if %errorlevel% neq 0 exit /b %errorlevel%
 

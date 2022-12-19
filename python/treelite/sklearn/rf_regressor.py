@@ -12,7 +12,7 @@ class SKLRFRegressorMixin:
         # Initialize Treelite model builder
         # Set average_tree_output=True for random forests
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, average_tree_output=True,
+            num_feature=sklearn_model.n_features_in_, average_tree_output=True,
             threshold_type='float64', leaf_output_type='float64')
 
         # Iterate over individual trees

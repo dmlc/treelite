@@ -12,7 +12,7 @@ class SKLRFMultiClassifierMixin:
            Treelite model"""
         # Must specify num_class and pred_transform
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, num_class=sklearn_model.n_classes_,
+            num_feature=sklearn_model.n_features_in_, num_class=sklearn_model.n_classes_,
             average_tree_output=True, pred_transform='identity_multiclass',
             threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):

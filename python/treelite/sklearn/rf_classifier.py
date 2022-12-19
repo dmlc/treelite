@@ -11,7 +11,7 @@ class SKLRFClassifierMixin:
         """Process a RandomForestClassifier (binary classifier) to convert it into a
            Treelite model"""
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_, average_tree_output=True,
+            num_feature=sklearn_model.n_features_in_, average_tree_output=True,
             threshold_type='float64', leaf_output_type='float64')
         for i in range(sklearn_model.n_estimators):
             # Process i-th tree and add to the builder

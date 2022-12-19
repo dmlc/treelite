@@ -157,7 +157,7 @@ def test_skl_converter_regressor(toolchain, clazz, import_method, dataset):
         dtrain = treelite_runtime.DMatrix(X, dtype="float32")
         annotation_path = os.path.join(tmpdir, "annotation.json")
         annotator = treelite.Annotator()
-        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True, nthread=1)
+        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
         annotator.save(path=annotation_path)
 
         libpath = os.path.join(tmpdir, "skl" + _libext())

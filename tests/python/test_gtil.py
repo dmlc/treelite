@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 import scipy
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 from hypothesis.strategies import integers, sampled_from
 from sklearn.datasets import load_breast_cancer, load_iris, load_svmlight_file
 from sklearn.ensemble import (
@@ -131,6 +131,8 @@ def test_xgb_regression(objective, model_format, num_parallel_tree, dataset):
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
     X, y = dataset
+    if objective == "reg:squaredlogerror":
+        assume(np.all(y > -1))
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )

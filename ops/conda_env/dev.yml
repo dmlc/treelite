@@ -8,6 +8,7 @@ dependencies:
 - pandas
 - pytest
 - pytest-cov
+- hypothesis
 - scikit-learn
 - coverage
 - codecov

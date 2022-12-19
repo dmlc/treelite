@@ -17,7 +17,7 @@ cd ..
 
 ./build/treelite_cpp_test
 PYTHONPATH=./python:./runtime/python python -m pytest --cov=treelite --cov=treelite_runtime -v -rxXs \
-  --fulltrace tests/python
+  --fulltrace --durations=0 tests/python
 lcov --directory . --capture --output-file coverage.info
 lcov --remove coverage.info '*dmlccore*' --output-file coverage.info
 lcov --remove coverage.info '*fmtlib*' --output-file coverage.info

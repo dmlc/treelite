@@ -1,9 +1,12 @@
-import pickle
 import argparse
+import os
+import pickle
+
+import lightgbm as lgb
 import numpy as np
-import treelite
 from sklearn.datasets import load_iris
-from sklearn.ensemble import RandomForestClassifier
+
+import treelite
 
 
 def _fetch_data():
@@ -12,7 +15,7 @@ def _fetch_data():
 
 
 def _train_model(X, y):
-    clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=3)
+    clf = lgb.LGBMClassifier(max_depth=3, random_state=0, n_estimators=3)
     clf.fit(X, y)
     return clf
 
@@ -22,7 +25,7 @@ def save(args):
     clf = _train_model(X, y)
     with open(args.model_pickle_path, "wb") as f:
         pickle.dump(clf, f)
-    tl_model = treelite.sklearn.import_model(clf)
+    tl_model = treelite.Model.from_lightgbm(clf.booster_)
     tl_model.serialize(args.checkpoint_path)
 
 

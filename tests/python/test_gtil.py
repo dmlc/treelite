@@ -172,7 +172,7 @@ def test_xgb_regression(objective, model_format, num_parallel_tree, dataset):
 
         out_pred = treelite.gtil.predict(tl_model, X_test)
         expected_pred = xgb_model.predict(dtest)
-        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
 @pytest.mark.parametrize("num_parallel_tree", [1, 3, 5])

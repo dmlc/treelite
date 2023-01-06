@@ -114,6 +114,11 @@ int TreeliteCompilerFree(CompilerHandle handle) {
 }
 
 int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
+  return TreeliteLoadLightGBMModelEx(filename, "{}", out);
+}
+
+int TreeliteLoadLightGBMModelEx(const char* filename, const char* config_json, ModelHandle* out) {
+  // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModel(filename);
   *out = static_cast<ModelHandle>(model.release());
@@ -121,6 +126,11 @@ int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
 }
 
 int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
+  return TreeliteLoadXGBoostModelEx(filename, "{}", out);
+}
+
+int TreeliteLoadXGBoostModelEx(const char* filename, const char* config_json, ModelHandle* out) {
+  // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(filename);
   *out = static_cast<ModelHandle>(model.release());
@@ -128,20 +138,36 @@ int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
 }
 
 int TreeliteLoadXGBoostJSON(const char* filename, ModelHandle* out) {
+  return TreeliteLoadXGBoostJSONEx(filename, "{}", out);
+}
+
+int TreeliteLoadXGBoostJSONEx(const char* filename, const char* config_json, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModel(filename);
+  std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModel(filename, config_json);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadXGBoostJSONString(const char* json_str, size_t length, ModelHandle* out) {
+  return TreeliteLoadXGBoostJSONStringEx(json_str, length, "{}", out);
+}
+
+int TreeliteLoadXGBoostJSONStringEx(
+    const char* json_str, size_t length, const char* config_json, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModelString(json_str, length);
+  std::unique_ptr<Model> model =
+      frontend::LoadXGBoostJSONModelString(json_str, length, config_json);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelHandle* out) {
+  return TreeliteLoadXGBoostModelFromMemoryBufferEx(buf, len, "{}", out);
+}
+
+int TreeliteLoadXGBoostModelFromMemoryBufferEx(
+    const void* buf, size_t len, const char* config_json, ModelHandle* out) {
+  // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(buf, len);
   *out = static_cast<ModelHandle>(model.release());
@@ -149,6 +175,12 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelH
 }
 
 int TreeliteLoadLightGBMModelFromString(const char* model_str, ModelHandle* out) {
+  return TreeliteLoadLightGBMModelFromStringEx(model_str, "{}", out);
+}
+
+int TreeliteLoadLightGBMModelFromStringEx(
+    const char* model_str, const char* config_json, ModelHandle* out) {
+  // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModelFromString(model_str);
   *out = static_cast<ModelHandle>(model.release());

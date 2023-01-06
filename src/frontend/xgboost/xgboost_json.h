@@ -20,14 +20,18 @@ namespace details {
 
 class BaseHandler;
 
-/*! \brief class for handling delegation of JSON handling*/
+/*! \brief class for handling delegation of JSON handling */
 class Delegator {
  public:
-  /*! \brief pop stack of delegate handlers*/
+  /*! \brief pop stack of delegate handlers */
   virtual void pop_delegate() = 0;
-  /*! \brief push new delegate handler onto stack*/
+  /*! \brief push new delegate handler onto stack */
   virtual void push_delegate(std::shared_ptr<BaseHandler> new_delegate) = 0;
+  /*! \brief Get configuration for handlers */
+  virtual const rapidjson::Document& get_handler_config() = 0;
 };
+
+class IgnoreHandler;
 
 /*! \brief base class for parsing all JSON objects*/
 class BaseHandler
@@ -37,26 +41,82 @@ class BaseHandler
    * \brief construct handler to be added to given delegator's stack
    * \param parent_delegator pointer to Delegator for this handler
    */
-  explicit BaseHandler(std::weak_ptr<Delegator> parent_delegator) :
-    delegator{parent_delegator} {};
+  explicit BaseHandler(std::weak_ptr<Delegator> parent_delegator)
+      : delegator{parent_delegator}, allow_unknown_field_{false}, state_next_field_ignore_{false} {
+    if (auto parent = delegator.lock()) {
+      // Configure the allow_unknown_field flag
+      const auto& handler_config = parent->get_handler_config();
+      auto itr = handler_config.FindMember("allow_unknown_field");
+      if (itr != handler_config.MemberEnd() && itr->value.IsBool()) {
+        allow_unknown_field_ = itr->value.GetBool();
+      }
+    }
+  }
 
-  virtual bool Null() { return false; }
-  virtual bool Bool(bool) { return false; }
-  virtual bool Int(int) { return false; }
-  virtual bool Uint(unsigned) { return false; }
-  virtual bool Int64(int64_t) { return false; }
-  virtual bool Uint64(uint64_t) { return false; }
-  virtual bool Double(double) { return false; }
-  virtual bool String(const char *, std::size_t, bool) {
+  virtual bool Null() {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
     return false;
   }
-  virtual bool StartObject() { return false; }
+  virtual bool Bool(bool) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool Int(int) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool Uint(unsigned) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool Int64(std::int64_t) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool Uint64(std::uint64_t) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool Double(double) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool String(const char *, std::size_t, bool) {
+    if (should_ignore_upcoming_value()) {
+      return true;
+    }
+    return false;
+  }
+  virtual bool StartObject() {
+    if (should_ignore_upcoming_value()) {
+      return push_handler<IgnoreHandler>();
+    }
+    return false;
+  }
   virtual bool Key(const char *str, std::size_t length, bool) {
-    set_cur_key(str, length);
-    return true;
+    return set_cur_key(str, length);
   }
   virtual bool EndObject(std::size_t) { return pop_handler(); }
-  virtual bool StartArray() { return false; }
+  virtual bool StartArray() {
+    if (should_ignore_upcoming_value()) {
+      return push_handler<IgnoreHandler>();
+    }
+    return false;
+  }
   virtual bool EndArray(std::size_t) { return pop_handler(); }
 
  protected:
@@ -92,8 +152,9 @@ class BaseHandler
   /* \brief store current JSON key
    * \param str the key to store
    * \param length the length of the str char array
+   * \return whether the key is acceptable
    */
-  void set_cur_key(const char *str, std::size_t length);
+  bool set_cur_key(const char *str, std::size_t length);
   /* \brief retrieve current JSON key */
   const std::string &get_cur_key();
   /* \brief check if current JSON key is indicated key
@@ -114,11 +175,30 @@ class BaseHandler
                     const ValueType &value,
                     ValueType &output);
 
+  virtual bool is_recognized_key(const std::string& key) {
+    return false;
+  }
+
+  // Perform this check at the top of every value handling function,
+  // to ignore extra fields from the JSON string
+  virtual bool should_ignore_upcoming_value() {
+    bool ret = state_next_field_ignore_;
+    state_next_field_ignore_ = false;  // The state should be reset for every value token
+    return ret;
+  }
+
  private:
   /* \brief the delegator which delegated parsing responsibility to this handler */
   std::weak_ptr<Delegator> delegator;
   /* \brief the JSON key for the object currently being parsed */
   std::string cur_key;
+  /* \brief Whether to allow extra fields with unrecognized key; when false, extra fields
+   *        will cause a fatal error. */
+  bool allow_unknown_field_;
+  /* \brief A boolean state, indicating whether the upcoming value should be ignored. This
+   *        boolean will be set to true when an unknown key is encountered (and
+   *        allow_unknown_field_ is set). */
+  bool state_next_field_ignore_;
 };
 
 /*! \brief JSON handler that ignores all delegated input*/
@@ -166,6 +246,9 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   /* Note: This method will only be instantiated (and therefore override the
    * base `bool Bool(bool)` method) if ElemType is bool. */
   bool Bool(ElemType b) {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
     this->output.push_back(b);
     return true;
   }
@@ -182,14 +265,37 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
     return false;
   }
 
-  bool Int(int i) override { return store_int<int>(i); }
-  bool Uint(unsigned u) override { return store_int<unsigned>(u); }
-  bool Int64(int64_t i) override { return store_int<int64_t>(i); }
-  bool Uint64(uint64_t u) override { return store_int<uint64_t>(u); }
+  bool Int(int i) override {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
+    return store_int<int>(i);
+  }
+  bool Uint(unsigned u) override {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
+    return store_int<unsigned>(u);
+  }
+  bool Int64(int64_t i) override {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
+    return store_int<int64_t>(i);
+  }
+  bool Uint64(uint64_t u) override {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
+    return store_int<uint64_t>(u);
+  }
 
   /* Note: This method will only be instantiated (and therefore override the
    * base `bool Double(double)` method) if ElemType is double. */
   bool Double(ElemType d) {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
     this->output.push_back(d);
     return true;
   }
@@ -209,10 +315,16 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
   }
 
   bool String(const char *str, std::size_t length, bool copy) override {
+    if (this->should_ignore_upcoming_value()) {
+      return true;
+    }
     return store_string(str, length, copy);
   }
 
   bool StartObject(std::true_type) {
+    if (this->should_ignore_upcoming_value()) {
+      return this->template push_handler<IgnoreHandler>();
+    }
     this->output.emplace_back();
     return this->template push_handler<HandlerType, ElemType>(
         this->output.back());
@@ -241,6 +353,9 @@ class TreeParamHandler : public OutputHandler<int> {
   using OutputHandler<int>::OutputHandler;
 
   bool String(const char *str, std::size_t length, bool copy) override;
+
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for RegTree objects from XGBoost schema*/
@@ -248,12 +363,12 @@ class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
  public:
   using OutputHandler<treelite::Tree<float, float>>::OutputHandler;
   bool StartArray() override;
-
   bool StartObject() override;
-
   bool Uint(unsigned u) override;
-
   bool EndObject(std::size_t memberCount) override;
+
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 
  private:
   std::vector<double> loss_changes;
@@ -278,6 +393,8 @@ class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
@@ -288,6 +405,8 @@ class GradientBoosterHandler : public OutputHandler<ParsedXGBoostModel> {
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
  private:
   std::string name;
   std::vector<double> weight_drop;
@@ -295,11 +414,12 @@ class GradientBoosterHandler : public OutputHandler<ParsedXGBoostModel> {
 
 /*! \brief handler for ObjectiveHandler objects from XGBoost schema*/
 class ObjectiveHandler : public OutputHandler<std::string> {
+ public:
   using OutputHandler<std::string>::OutputHandler;
-
   bool StartObject() override;
-
   bool String(const char *str, std::size_t length, bool copy) override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
@@ -307,6 +427,8 @@ class LearnerParamHandler : public OutputHandler<treelite::ModelImpl<float, floa
  public:
   using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
   bool String(const char *str, std::size_t length, bool copy) override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for Learner objects from XGBoost schema*/
@@ -316,6 +438,9 @@ class LearnerHandler : public OutputHandler<ParsedXGBoostModel> {
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
   bool StartArray() override;
+
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 
  private:
   std::string objective;
@@ -327,6 +452,8 @@ class XGBoostCheckpointHandler : public OutputHandler<ParsedXGBoostModel> {
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for XGBoostModel objects from XGBoost schema */
@@ -336,6 +463,8 @@ class XGBoostModelHandler : public OutputHandler<ParsedXGBoostModel> {
   bool StartArray() override;
   bool StartObject() override;
   bool EndObject(std::size_t memberCount) override;
+ protected:
+  bool is_recognized_key(const std::string& key) override;
 };
 
 /*! \brief handler for root object of XGBoost schema*/
@@ -350,17 +479,24 @@ class DelegatedHandler
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DelegatedHandler>,
       public Delegator {
  public:
-  /*! \brief create DelegatedHandler with empty stack */
-  static std::shared_ptr<DelegatedHandler> create_empty() {
-    struct make_shared_enabler : public DelegatedHandler {};
+  /*! \brief create DelegatedHandler with empty stack
+   *  \param handler_config Configuration to affect the behavior of handlers
+   */
+  static std::shared_ptr<DelegatedHandler> create_empty(const rapidjson::Document& handler_config) {
+    struct make_shared_enabler : public DelegatedHandler {
+      explicit make_shared_enabler(const rapidjson::Document& handler_config)
+        : DelegatedHandler{handler_config} {}
+    };
     std::shared_ptr<DelegatedHandler> new_handler =
-      std::make_shared<make_shared_enabler>();
+      std::make_shared<make_shared_enabler>(handler_config);
     return new_handler;
   }
 
-  /*! \brief create DelegatedHandler with initial RootHandler on stack */
-  static std::shared_ptr<DelegatedHandler> create() {
-    std::shared_ptr<DelegatedHandler> new_handler = create_empty();
+  /*! \brief create DelegatedHandler with initial RootHandler on stack
+   *  \param handler_config Configuration to affect the behavior of handlers
+   */
+  static std::shared_ptr<DelegatedHandler> create(const rapidjson::Document& handler_config) {
+    std::shared_ptr<DelegatedHandler> new_handler = create_empty(handler_config);
     new_handler->push_delegate(std::make_shared<RootHandler>(
       new_handler,
       new_handler->result));
@@ -380,6 +516,9 @@ class DelegatedHandler
   void pop_delegate() override {
     delegates.pop();
   }
+  const rapidjson::Document& get_handler_config() override {
+    return handler_config_;
+  }
   ParsedXGBoostModel get_result();
   bool Null();
   bool Bool(bool b);
@@ -396,15 +535,17 @@ class DelegatedHandler
   bool EndArray(std::size_t elementCount);
 
  private:
-  DelegatedHandler()
+  explicit DelegatedHandler(const rapidjson::Document& handler_config)
   : delegates{},
-    result{treelite::Model::Create<float, float>(), nullptr, {}, {}, ""}
+    result{treelite::Model::Create<float, float>(), nullptr, {}, {}, ""},
+    handler_config_{handler_config}
   {
     result.model = dynamic_cast<treelite::ModelImpl<float, float>*>(result.model_ptr.get());
   }
 
   std::stack<std::shared_ptr<BaseHandler>> delegates;
   ParsedXGBoostModel result;
+  const rapidjson::Document& handler_config_;
 };
 
 }  // namespace details

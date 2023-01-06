@@ -8,7 +8,7 @@ import shutil
 import os
 import json
 from tempfile import TemporaryDirectory
-from typing import Union, List
+from typing import Union, List, Optional
 
 from pkg_resources import parse_version
 
@@ -404,7 +404,11 @@ class Model:
         return Model(handle)
 
     @classmethod
-    def from_xgboost_json(cls, json_str: Union[bytearray, str]):
+    def from_xgboost_json(
+        cls,
+        json_str: Union[bytearray, str],
+        allow_unknown_field: Optional[bool] = False
+    ):
         """
         Load a tree ensemble model from a string containing XGBoost JSON
 
@@ -412,6 +416,8 @@ class Model:
         ----------
         json_str :
             a string specifying an XGBoost model in the XGBoost JSON format
+        allow_unknown_field: bool, optional
+            Whether to allow extra fields with unrecognized keys
 
         Returns
         -------
@@ -430,18 +436,25 @@ class Model:
                json_str = file_.read()
            tl_model = Model.from_xgboost_json(json_str)
         """
+        parser_config = {
+            "allow_unknown_field": allow_unknown_field
+        }
+        parser_config = json.dumps(parser_config)
+
         handle = ctypes.c_void_p()
         length = len(json_str)
         if isinstance(json_str, bytearray):
             json_buffer = ctypes.create_string_buffer(bytes(json_str), length)
-            _check_call(_LIB.TreeliteLoadXGBoostJSONString(
+            _check_call(_LIB.TreeliteLoadXGBoostJSONStringEx(
                 json_buffer,
                 ctypes.c_size_t(length),
+                c_str(parser_config),
                 ctypes.byref(handle)))
         else:
-            _check_call(_LIB.TreeliteLoadXGBoostJSONString(
+            _check_call(_LIB.TreeliteLoadXGBoostJSONStringEx(
                 c_str(json_str),
                 ctypes.c_size_t(length),
+                c_str(parser_config),
                 ctypes.byref(handle)))
         return Model(handle)
 
@@ -486,16 +499,24 @@ class Model:
         return Model(handle)
 
     @classmethod
-    def load(cls, filename, model_format):
+    def load(
+        cls,
+        filename: str,
+        model_format: str,
+        allow_unknown_field: Optional[bool] = False
+    ):
         """
         Load a tree ensemble model from a file
 
         Parameters
         ----------
-        filename : :py:class:`str <python:str>`
-            path to model file
-        model_format : :py:class:`str <python:str>`
-            model file format. Must be 'xgboost', 'xgboost_json', or 'lightgbm'
+        filename : str
+            Path to model file
+        model_format : str
+            Model file format. Must be "xgboost", "xgboost_json", or "lightgbm"
+        allow_unknown_field: bool, optional
+            Whether to allow extra fields with unrecognized keys. This flag is only
+            applicable if model_format = "xgboost_json"
 
         Returns
         -------
@@ -509,22 +530,30 @@ class Model:
 
            xgb_model = Model.load('xgboost_model.model', 'xgboost')
         """
+        parser_config = {
+            "allow_unknown_field": allow_unknown_field
+        }
+        parser_config = json.dumps(parser_config)
+
         handle = ctypes.c_void_p()
         if not _isascii(model_format):
             raise ValueError('model_format parameter must be an ASCII string')
         model_format = model_format.lower()
         if model_format == 'lightgbm':
-            _check_call(_LIB.TreeliteLoadLightGBMModel(c_str(filename),
-                                                       ctypes.byref(handle)))
+            _check_call(_LIB.TreeliteLoadLightGBMModelEx(c_str(filename),
+                                                         c_str(parser_config),
+                                                         ctypes.byref(handle)))
         elif model_format == 'xgboost':
-            _check_call(_LIB.TreeliteLoadXGBoostModel(c_str(filename),
-                                                      ctypes.byref(handle)))
+            _check_call(_LIB.TreeliteLoadXGBoostModelEx(c_str(filename),
+                                                        c_str(parser_config),
+                                                        ctypes.byref(handle)))
         elif model_format == 'xgboost_json':
-            _check_call(_LIB.TreeliteLoadXGBoostJSON(c_str(filename),
-                                                     ctypes.byref(handle)))
+            _check_call(_LIB.TreeliteLoadXGBoostJSONEx(c_str(filename),
+                                                       c_str(parser_config),
+                                                       ctypes.byref(handle)))
         else:
-            raise ValueError('Unknown model_format: must be one of ' \
-                             + '{lightgbm, xgboost, xgboost_json}')
+            raise ValueError("Unknown model_format: must be one of "
+                             "{lightgbm, xgboost, xgboost_json}")
         return Model(handle)
 
     @classmethod

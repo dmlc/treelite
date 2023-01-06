@@ -46,9 +46,11 @@ class BaseHandler
     if (auto parent = delegator.lock()) {
       // Configure the allow_unknown_field flag
       const auto& handler_config = parent->get_handler_config();
-      auto itr = handler_config.FindMember("allow_unknown_field");
-      if (itr != handler_config.MemberEnd() && itr->value.IsBool()) {
-        allow_unknown_field_ = itr->value.GetBool();
+      if (handler_config.IsObject()) {
+        auto itr = handler_config.FindMember("allow_unknown_field");
+        if (itr != handler_config.MemberEnd() && itr->value.IsBool()) {
+          allow_unknown_field_ = itr->value.GetBool();
+        }
       }
     }
   }

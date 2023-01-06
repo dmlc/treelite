@@ -21,6 +21,11 @@ class MockDelegator : public details::Delegator {
   MOCK_METHOD(void, pop_delegate, (), (override));
   MOCK_METHOD(void, push_delegate,
     (std::shared_ptr<details::BaseHandler> new_delegate), (override));
+  const rapidjson::Document& get_handler_config() override {
+    return mock_handler_config_;
+  }
+ private:
+  rapidjson::Document mock_handler_config_;
 };
 
 class MockArrayStarter : public details::BaseHandler {
@@ -380,7 +385,9 @@ TEST(RegTreeHandlerSuite, DefaultLeft) {
     }
     Tree<float, float> output;
   };
-  auto handler = details::DelegatedHandler::create_empty();
+  rapidjson::Document handler_config;
+  handler_config.Parse(R"({"allow_unknown_fields": false})");
+  auto handler = details::DelegatedHandler::create_empty(handler_config);
   auto wrapped_handler = std::make_shared<RegTreeHandlerWrapper>(handler);
   handler->push_delegate(wrapped_handler);
   rapidjson::Reader reader;
@@ -460,7 +467,9 @@ TEST(GBTreeModelHandlerSuite, TreeInfoField) {
     }
     details::ParsedXGBoostModel output;
   };
-  auto handler = details::DelegatedHandler::create_empty();
+  rapidjson::Document handler_config;
+  handler_config.Parse(R"({"allow_unknown_fields": false})");
+  auto handler = details::DelegatedHandler::create_empty(handler_config);
   auto wrapped_handler = std::make_shared<GBTreeModelHandlerWrapper>(handler);
   wrapped_handler->output.model_ptr = Model::Create<float, float>();
   wrapped_handler->output.model =
@@ -468,7 +477,7 @@ TEST(GBTreeModelHandlerSuite, TreeInfoField) {
   handler->push_delegate(wrapped_handler);
   rapidjson::Reader reader;
 
-  std::string json_str = "{\"trees\": [], \"tree_info\": [0, 1, 2]}";
+  std::string json_str = R"({"trees": [], "tree_info": [0, 1, 2]})";
   auto input_stream = rapidjson::MemoryStream(json_str.c_str(),
                                               json_str.size());
   ASSERT_TRUE(reader.Parse(input_stream, *handler));

@@ -595,7 +595,7 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   }
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
-  const bool need_transform_to_margin = (output.version[0] >= 1);
+  const bool need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
     treelite::details::xgboost::TransformGlobalBiasToMargin(&output.model->param);
   }

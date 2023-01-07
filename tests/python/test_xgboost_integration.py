@@ -430,6 +430,7 @@ def test_xgb_dart(tmpdir, toolchain, model_format):
     sampled_from(["string", "object", "list"]),
     sampled_from([True, False])
 )
+@settings(print_blob=True)
 def test_extra_field_in_xgb_json(
     random_integer_seq,
     extra_field_type,
@@ -481,12 +482,12 @@ def test_extra_field_in_xgb_json(
             if isinstance(model_obj, dict):
                 model_obj["extra_field"] = get_extra_field_value()
                 return True
-        if isinstance(model_obj, list):
+        elif isinstance(model_obj, list):
             idx = seq[0] % len(model_obj)
             subobj = model_obj[idx]
             if isinstance(subobj, (dict, list)):
                 return insert_extra_field(subobj, seq[1:])
-        if isinstance(model_obj, dict):
+        elif isinstance(model_obj, dict):
             idx = seq[0] % len(model_obj)
             subobj = list(model_obj.items())[idx][1]
             if isinstance(subobj, (dict, list)):

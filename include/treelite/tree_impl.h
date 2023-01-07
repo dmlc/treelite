@@ -88,11 +88,17 @@ template <typename T>
 inline ContiguousArray<T>
 ContiguousArray<T>::Clone() const {
   ContiguousArray clone;
-  clone.buffer_ = static_cast<T*>(std::malloc(sizeof(T) * capacity_));
-  if (!clone.buffer_) {
-    throw Error("Could not allocate memory for the clone");
+  if (buffer_) {
+    clone.buffer_ = static_cast<T*>(std::malloc(sizeof(T) * capacity_));
+    if (!clone.buffer_) {
+      throw Error("Could not allocate memory for the clone");
+    }
+    std::memcpy(clone.buffer_, buffer_, sizeof(T) * size_);
+  } else {
+    TREELITE_CHECK_EQ(size_, 0);
+    TREELITE_CHECK_EQ(capacity_, 0);
+    clone.buffer_ = nullptr;
   }
-  std::memcpy(clone.buffer_, buffer_, sizeof(T) * size_);
   clone.size_ = size_;
   clone.capacity_ = capacity_;
   clone.owned_buffer_ = true;

@@ -72,6 +72,7 @@ DEFINE_CHECK_FUNC(_NE, !=)
 
 #define TREELITE_LOG_INFO ::treelite::LogMessage(__FILE__, __LINE__)
 #define TREELITE_LOG_ERROR TREELITE_LOG_INFO
+#define TREELITE_LOG_WARNING TREELITE_LOG_INFO
 #define TREELITE_LOG_FATAL ::treelite::LogMessageFatal(__FILE__, __LINE__)
 #define TREELITE_LOG(severity) TREELITE_LOG_##severity.stream()
 

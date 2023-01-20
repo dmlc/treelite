@@ -31,14 +31,16 @@ namespace {
 
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
-                                             ErrorHandlerFunc error_handler);
+                                             ErrorHandlerFunc error_handler,
+                                             const rapidjson::Document& config);
 
 }  // anonymous namespace
 
 namespace treelite {
 namespace frontend {
 
-std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
+    const char* filename, const char* config_json) {
   char read_buffer[65536];
 
 #ifdef _WIN32
@@ -73,12 +75,15 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(const char* filename) {
     std::fclose(fp);
     return oss.str() + "\n" + oss2.str();
   };
-  auto parsed_model = ParseStream(std::move(input_stream), error_handler);
+  rapidjson::Document parsed_config;
+  parsed_config.Parse(config_json);
+  auto parsed_model = ParseStream(std::move(input_stream), error_handler, parsed_config);
   std::fclose(fp);
   return parsed_model;
 }
 
-std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str, size_t length) {
+std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
+    const char* json_str, std::size_t length, const char* config_json) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
   auto error_handler = [json_str](size_t offset) -> std::string {
     size_t cur = (offset >= 50 ? (offset - 50) : 0);
@@ -97,7 +102,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(const char* json_str
     }
     return oss.str() + "\n" + oss2.str();
   };
-  return ParseStream(std::move(input_stream), error_handler);
+  rapidjson::Document parsed_config;
+  parsed_config.Parse(config_json);
+  return ParseStream(std::move(input_stream), error_handler, parsed_config);
 }
 
 }  // namespace frontend
@@ -117,8 +124,19 @@ bool BaseHandler::pop_handler() {
   }
 }
 
-void BaseHandler::set_cur_key(const char *str, std::size_t length) {
-  cur_key = std::string{str, length};
+bool BaseHandler::set_cur_key(const char *str, std::size_t length) {
+  if (is_recognized_key(str)) {
+    cur_key = std::string{str, length};
+  } else if (allow_unknown_field_) {
+    TREELITE_LOG(WARNING) << "Warning: Encountered unknown key \"" << str << "\"";
+    cur_key = "";
+    state_next_field_ignore_ = true;
+  } else {
+    // Extra field with unknown key is a fatal error if allow_unknown_field_ is not set
+    TREELITE_LOG(ERROR) << "Error: key \"" << str << "\" is not recognized!";
+    return false;
+  }
+  return true;
 }
 
 const std::string &BaseHandler::get_cur_key() { return cur_key; }
@@ -172,18 +190,27 @@ bool IgnoreHandler::StartArray() { return push_handler<IgnoreHandler>(); }
  * TreeParamHandler
  * ***************************************************************************/
 bool TreeParamHandler::String(const char *str, std::size_t, bool) {
+  if (this->should_ignore_upcoming_value()) {
+    return true;
+  }
   // Key "num_deleted" deprecated but still present in some xgboost output
   return (check_cur_key("num_feature") ||
-          assign_value("num_nodes", std::atoi(str), output) ||
+          assign_value("num_nodes", std::stoi(str), output) ||
           check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
+}
+
+bool TreeParamHandler::is_recognized_key(const std::string& key) {
+  return (key == "num_feature" || key == "num_nodes" || key == "size_leaf_vector"
+          || key == "num_deleted");
 }
 
 /******************************************************************************
  * RegTreeHandler
  * ***************************************************************************/
 bool RegTreeHandler::StartArray() {
-  /* Keys "categories" and "split_type" not currently documented in schema but
-   * will be used for upcoming categorical split feature */
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return (
       push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes) ||
       push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian) ||
@@ -203,10 +230,18 @@ bool RegTreeHandler::StartArray() {
 }
 
 bool RegTreeHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<TreeParamHandler, int>("tree_param", num_nodes);
 }
 
-bool RegTreeHandler::Uint(unsigned) { return check_cur_key("id"); }
+bool RegTreeHandler::Uint(unsigned) {
+  if (this->should_ignore_upcoming_value()) {
+    return true;
+  }
+  return check_cur_key("id");
+}
 
 bool RegTreeHandler::EndObject(std::size_t) {
   output.Init();
@@ -306,10 +341,22 @@ bool RegTreeHandler::EndObject(std::size_t) {
   return pop_handler();
 }
 
+bool RegTreeHandler::is_recognized_key(const std::string& key) {
+  return (key == "loss_changes" || key == "sum_hessian" || key == "base_weights"
+          || key == "categories_segments" || key == "categories_sizes"
+          || key == "categories_nodes" || key == "categories" || key == "leaf_child_counts"
+          || key == "left_children" || key == "right_children" || key == "parents"
+          || key == "split_indices" || key == "split_type" || key == "split_conditions"
+          || key == "default_left" || key == "tree_param" || key == "id");
+}
+
 /******************************************************************************
  * GBTreeHandler
  * ***************************************************************************/
 bool GBTreeModelHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
                            std::vector<treelite::Tree<float, float>>>(
                                "trees", output.model->trees) ||
@@ -317,7 +364,14 @@ bool GBTreeModelHandler::StartArray() {
 }
 
 bool GBTreeModelHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<IgnoreHandler>("gbtree_model_param");
+}
+
+bool GBTreeModelHandler::is_recognized_key(const std::string& key) {
+  return (key == "trees" || key == "tree_info" || key == "gbtree_model_param");
 }
 
 /******************************************************************************
@@ -326,6 +380,9 @@ bool GBTreeModelHandler::StartObject() {
 bool GradientBoosterHandler::String(const char *str,
                                     std::size_t length,
                                     bool) {
+  if (this->should_ignore_upcoming_value()) {
+    return true;
+  }
   if (assign_value("name", std::string{str, length}, name)) {
     if (name == "gbtree" || name == "dart") {
       return true;
@@ -337,7 +394,11 @@ bool GradientBoosterHandler::String(const char *str,
     return false;
   }
 }
+
 bool GradientBoosterHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   if (push_key_handler<GBTreeModelHandler, ParsedXGBoostModel>("model", output)) {
     return true;
   } else if (push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>("gbtree", output)) {
@@ -349,9 +410,14 @@ bool GradientBoosterHandler::StartObject() {
     return false;
   }
 }
+
 bool GradientBoosterHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<ArrayHandler<double>, std::vector<double>>("weight_drop", weight_drop);
 }
+
 bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
@@ -368,10 +434,19 @@ bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   return pop_handler();
 }
 
+bool GradientBoosterHandler::is_recognized_key(const std::string& key) {
+  return (key == "name" || key == "model" || key == "gbtree" || key == "weight_drop");
+}
+
 /******************************************************************************
  * ObjectiveHandler
  * ***************************************************************************/
 bool ObjectiveHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
+  // pseduo_huber_param is a mispelled variant of pseudo_huber_param; it's used in a past version
+  // of XGBoost
   return (push_key_handler<IgnoreHandler>("reg_loss_param") ||
           push_key_handler<IgnoreHandler>("poisson_regression_param") ||
           push_key_handler<IgnoreHandler>("tweedie_regression_param") ||
@@ -383,7 +458,17 @@ bool ObjectiveHandler::StartObject() {
 }
 
 bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {
+  if (this->should_ignore_upcoming_value()) {
+    return true;
+  }
   return assign_value("name", std::string{str, length}, output);
+}
+
+bool ObjectiveHandler::is_recognized_key(const std::string& key) {
+  return (key == "reg_loss_param" || key == "poisson_regression_param"
+          || key == "tweedie_regression_param" || key == "softmax_multiclass_param"
+          || key == "lambda_rank_param" || key == "aft_loss_param"
+          || key == "pseduo_huber_param" || key == "pseudo_huber_param" || key == "name");
 }
 
 /******************************************************************************
@@ -392,8 +477,11 @@ bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {
 bool LearnerParamHandler::String(const char *str,
                                  std::size_t,
                                  bool) {
+  if (this->should_ignore_upcoming_value()) {
+    return true;
+  }
   int num_target = 1;
-  if (assign_value("num_target", std::atoi(str), num_target)) {
+  if (assign_value("num_target", std::stoi(str), num_target)) {
     if (num_target != 1) {
       TREELITE_LOG(ERROR)
         << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
@@ -403,16 +491,24 @@ bool LearnerParamHandler::String(const char *str,
   }
   return (assign_value("base_score", strtof(str, nullptr),
                        output.param.global_bias) ||
-          assign_value("num_class", static_cast<unsigned int>(std::max(std::atoi(str), 1)),
+          assign_value("num_class", static_cast<unsigned int>(std::max(std::stoi(str), 1)),
                        output.task_param.num_class) ||
-          assign_value("num_feature", std::atoi(str), output.num_feature) ||
+          assign_value("num_feature", std::stoi(str), output.num_feature) ||
           check_cur_key("boost_from_average"));
+}
+
+bool LearnerParamHandler::is_recognized_key(const std::string& key) {
+  return (key == "num_target" || key == "base_score" || key == "num_class"
+          || key == "num_feature" || key == "boost_from_average");
 }
 
 /******************************************************************************
  * LearnerHandler
  * ***************************************************************************/
 bool LearnerHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   // "attributes" key is not documented in schema
   return (push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
               "learner_model_param", *output.model) ||
@@ -429,8 +525,16 @@ bool LearnerHandler::EndObject(std::size_t) {
 }
 
 bool LearnerHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return (push_key_handler<IgnoreHandler>("feature_names") ||
           push_key_handler<IgnoreHandler>("feature_types"));
+}
+
+bool LearnerHandler::is_recognized_key(const std::string& key) {
+  return (key == "learner_model_param" || key == "gradient_booster" || key == "objective"
+          || key == "attributes" || key == "feature_names" || key == "feature_types");
 }
 
 /******************************************************************************
@@ -438,33 +542,45 @@ bool LearnerHandler::StartArray() {
  * ***************************************************************************/
 
 bool XGBoostCheckpointHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
       "version", output.version);
 }
 
 bool XGBoostCheckpointHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output);
+}
+
+bool XGBoostCheckpointHandler::is_recognized_key(const std::string &key) {
+  return (key == "version" || key == "learner");
 }
 
 /******************************************************************************
  * XGBoostModelHandler
  * ***************************************************************************/
 bool XGBoostModelHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
       "version", output.version);
 }
 
 bool XGBoostModelHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return (push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output) ||
           push_key_handler<IgnoreHandler>("Config") ||
           push_key_handler<XGBoostCheckpointHandler, ParsedXGBoostModel>("Model", output));
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
-  if (memberCount != 2) {
-    TREELITE_LOG(ERROR) << "Expected two members in XGBoostModel";
-    return false;
-  }
   output.model->average_tree_output = false;
   output.model->task_param.output_type = TaskParam::OutputType::kFloat;
   output.model->task_param.leaf_vector_size = 1;
@@ -479,17 +595,24 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   }
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
-  const bool need_transform_to_margin = (output.version[0] >= 1);
+  const bool need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
     treelite::details::xgboost::TransformGlobalBiasToMargin(&output.model->param);
   }
   return pop_handler();
 }
 
+bool XGBoostModelHandler::is_recognized_key(const std::string &key) {
+  return (key == "version" || key == "learner" || key == "Config" || key == "Model");
+}
+
 /******************************************************************************
  * RootHandler
  * ***************************************************************************/
 bool RootHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
   return push_handler<XGBoostModelHandler, ParsedXGBoostModel>(output);
 }
 
@@ -526,9 +649,10 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 namespace {
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
-                                             ErrorHandlerFunc error_handler) {
+                                             ErrorHandlerFunc error_handler,
+                                             const rapidjson::Document& config) {
   std::shared_ptr<treelite::details::DelegatedHandler> handler =
-    treelite::details::DelegatedHandler::create();
+    treelite::details::DelegatedHandler::create(config);
   rapidjson::Reader reader;
 
   rapidjson::ParseResult result

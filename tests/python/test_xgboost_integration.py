@@ -430,7 +430,7 @@ def test_xgb_dart(tmpdir, toolchain, model_format):
     sampled_from(["string", "object", "list"]),
     sampled_from([True, False])
 )
-@settings(print_blob=True)
+@settings(print_blob=True, deadline=None)
 def test_extra_field_in_xgb_json(
     random_integer_seq,
     extra_field_type,

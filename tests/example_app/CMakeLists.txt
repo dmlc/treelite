@@ -17,7 +17,7 @@ add_executable(c_example example.c)
 target_link_libraries(c_example PRIVATE treelite::treelite treelite::treelite_runtime)
 
 set_target_properties(cpp_example PROPERTIES
-    CXX_STANDARD 14
+    CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
 )
 

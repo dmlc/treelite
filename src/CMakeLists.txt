@@ -73,7 +73,7 @@ endforeach()
 set_target_properties(objtreelite objtreelite_runtime objtreelite_common
   PROPERTIES
   POSITION_INDEPENDENT_CODE ON
-  CXX_STANDARD 14
+  CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON)
 
 target_sources(objtreelite

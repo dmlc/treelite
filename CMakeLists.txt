@@ -2,8 +2,6 @@ set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.13)
 project(treelite LANGUAGES CXX C VERSION 3.2.0)
 
-set(CMAKE_CXX_STANDARD 14)
-
 # check MSVC version
 if(MSVC)
   if(MSVC_VERSION LESS 1910)

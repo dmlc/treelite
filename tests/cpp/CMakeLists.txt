@@ -1,7 +1,7 @@
 add_executable(treelite_cpp_test)
 set_target_properties(treelite_cpp_test
     PROPERTIES
-    CXX_STANDARD 14
+    CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON)
 target_link_libraries(treelite_cpp_test
     PRIVATE objtreelite objtreelite_runtime objtreelite_common rapidjson

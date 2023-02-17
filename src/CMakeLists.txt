@@ -113,6 +113,7 @@ target_sources(objtreelite
     frontend/xgboost_json.cc
     frontend/xgboost_util.cc
     gtil/predict.cc
+    gtil/config.cc
     gtil/pred_transform.h
     gtil/pred_transform.cc
     threading_utils/parallel_for.h

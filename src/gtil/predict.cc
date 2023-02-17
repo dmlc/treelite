@@ -405,12 +405,13 @@ inline void PredictRaw(const treelite::ModelImpl<ThresholdType, LeafOutputType>&
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                  const DMatrixType* input, float* output,
-                                 const ThreadConfig& thread_config, bool pred_transform) {
+                                 const ThreadConfig& thread_config,
+                                 const treelite::gtil::GTILConfig& pred_config) {
   std::size_t output_size_per_row;
   const auto num_class = model.task_param.num_class;
   std::size_t num_row = input->GetNumRow();
-  if (pred_transform) {
-    std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row));
+  if (pred_config.pred_transform) {
+    std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row, pred_config));
     PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);
     auto sched = treelite::threading_utils::ParallelSchedule::Static();
@@ -434,9 +435,10 @@ inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOu
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                const DMatrixType* input, float* output,
-                               const ThreadConfig& thread_config, bool pred_transform) {
+                               const ThreadConfig& thread_config,
+                               const treelite::gtil::GTILConfig& pred_config) {
   PredictRaw(model, input, output, thread_config);
-  return PredTransform(model, input, output, thread_config, pred_transform);
+  return PredTransform(model, input, output, thread_config, pred_config);
 }
 
 }  // anonymous namespace
@@ -444,20 +446,20 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
 namespace treelite {
 namespace gtil {
 
-std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
-                    bool pred_transform) {
+std::size_t Predict(const Model* model, const DMatrix* input, float* output,
+                    const GTILConfig& config) {
   // If nthread <= 0, then use all CPU cores in the system
-  auto thread_config = threading_utils::ConfigureThreadConfig(nthread);
+  auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
   if (d1) {
-    return model->Dispatch([d1, output, thread_config, pred_transform](const auto& model) {
-      return PredictImpl(model, d1, output, thread_config, pred_transform);
+    return model->Dispatch([d1, output, thread_config, config](const auto& model) {
+      return PredictImpl(model, d1, output, thread_config, config);
     });
   } else if (d2) {
-    return model->Dispatch([d2, output, thread_config, pred_transform](const auto& model) {
-      return PredictImpl(model, d2, output, thread_config, pred_transform);
+    return model->Dispatch([d2, output, thread_config, config](const auto& model) {
+      return PredictImpl(model, d2, output, thread_config, config);
     });
   } else {
     TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
@@ -466,22 +468,24 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
 }
 
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    int nthread, bool pred_transform) {
+                    const GTILConfig& pred_config) {
   std::unique_ptr<DenseDMatrixImpl<float>> dmat =
       std::make_unique<DenseDMatrixImpl<float>>(
           std::vector<float>(input, input + num_row * model->num_feature),
           std::numeric_limits<float>::quiet_NaN(),
           num_row,
           model->num_feature);
-  return Predict(model, dmat.get(), output, nthread, pred_transform);
+  return Predict(model, dmat.get(), output, pred_config);
 }
 
-std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row) {
+std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
+                                 const GTILConfig& config) {
   return model->task_param.num_class * num_row;
 }
 
-std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input) {
-  return GetPredictOutputSize(model, input->GetNumRow());
+std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,
+                                 const GTILConfig& config) {
+  return GetPredictOutputSize(model, input->GetNumRow(), config);
 }
 
 }  // namespace gtil

@@ -31,6 +31,8 @@ typedef void* AnnotationHandle;
 typedef void* CompilerHandle;
 /*! \brief handle to a polymorphic value type, used in the model builder API */
 typedef void* ValueHandle;
+/*! \brief handle to a configuration of GTIL predictor */
+typedef void* GTILConfigHandle;
 /*! \} */
 
 /*!
@@ -471,32 +473,63 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
  */
 
 /*!
+ * \brief Load a configuration for GTIL predictor from a JSON string.
+ * \param config_json a JSON string. Valid entries are:
+ *   - nthread (optional): Number of threads used for initializing DMatrix.
+ *   - pred_transform (optional, defaults to True): Whether to apply post-prediction transformation
+ * \param out Parsed configuration
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILParseConfig(const char* config_json, GTILConfigHandle* out);
+
+/*!
+ * \brief Delete a GTIL configuration from memory
+ * \param handle Handle to the GTIL configuration to be deleted
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILDeleteConfig(GTILConfigHandle handle);
+
+/*!
+ * \brief Deprecated. Please use \ref TreeliteGTILGetPredictOutputSizeEx instead.
+ */
+TREELITE_DLL int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* out);
+
+/*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
  * \param model Treelite Model object
  * \param num_row Number of rows in the input
+ * \param config Configuration of GTIL predictor. Set this by calling \ref TreeliteGTILParseConfig.
  * \param out Size of output buffer that should be allocated
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* out);
+TREELITE_DLL int TreeliteGTILGetPredictOutputSizeEx(ModelHandle model, size_t num_row,
+                                                    GTILConfigHandle config, size_t* out);
+
+/*!
+ * \brief Deprecated. Please use \ref TreeliteGTILPredictEx instead.
+ */
+TREELITE_DLL int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row,
+                                     float* output, int nthread, int pred_transform,
+                                     size_t* out_result_size);
 
 /*!
  * \brief Predict with a 2D dense array
  * \param model Treelite Model object
  * \param input The 2D data array, laid out in row-major layout
  * \param num_row Number of rows in the data matrix.
- * \param output Pointer to buffer to store the output. Call TreeliteGTILGetPredictOutputSize()
- *               to get the amount of buffer you should allocate for this parameter.
- * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
- * \param pred_transform After computing the prediction score, whether to transform it.
+ * \param output Pointer to buffer to store the output. Call \ref
+ *               TreeliteGTILGetPredictOutputSizeEx to get the amount of buffer you should
+ *               allocate for this parameter.
+ * \param config Configuration of GTIL predictor. Set this by calling \ref TreeliteGTILParseConfig.
  * \param out_result_size Size of output. This could be smaller than
- *                        TreeliteGTILGetPredictOutputSize() but could never be larger than
- *                        TreeliteGTILGetPredictOutputSize().
+ *                        \ref TreeliteGTILGetPredictOutputSizeEx but could never be larger than
+ *                        \ref TreeliteGTILGetPredictOutputSizeEx.
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row,
-                                     float* output, int nthread, int pred_transform,
-                                     size_t* out_result_size);
+TREELITE_DLL int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row,
+                                       float* output, GTILConfigHandle config,
+                                       size_t* out_result_size);
 
 /*! \} */
 

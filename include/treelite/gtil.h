@@ -19,19 +19,25 @@ class DMatrix;
 
 namespace gtil {
 
+struct GTILConfig {
+  int nthread{0};  // use all threads by default
+  bool pred_transform{true};
+  GTILConfig() = default;
+  explicit GTILConfig(const char* config_json);
+};
+
 /*!
  * \brief Predict with a DMatrix
  * \param model The model object
  * \param input The data matrix (sparse or dense)
  * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
  *               amount of buffer you should allocate for this parameter.
- * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
- * \param pred_transform After computing the prediction score, whether to transform it.
+ * \param config Configuration for GTIL Predictor
  * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
  *         larger than GetPredictOutputSize().
  */
-std::size_t Predict(const Model* model, const DMatrix* input, float* output, int nthread,
-                    bool pred_transform);
+std::size_t Predict(const Model* model, const DMatrix* input, float* output,
+                    const GTILConfig& config);
 /*!
  * \brief Predict with a 2D dense array
  * \param model The model object
@@ -39,29 +45,31 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output, int
  * \param num_row Number of rows in the data matrix.
  * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
  *               amount of buffer you should allocate for this parameter.
- * \param nthread number of CPU threads to use. Set <= 0 to use all CPU cores.
- * \param pred_transform After computing the prediction score, whether to transform it.
+ * \param config Configuration for GTIL Predictor
  * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
  *         larger than GetPredictOutputSize().
  */
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    int nthread, bool pred_transform);
+                    const GTILConfig& config);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
  * \param model Treelite Model object
  * \param num_row Number of rows in the input
+ * \param config Configuration for GTIL Predictor
  * \return Size of output buffer that should be allocated
  */
-std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row);
+std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row, const GTILConfig& config);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
  * \param model Treelite Model object
  * \param input The input matrix
+ * \param config Configuration for GTIL Predictor
  * \return Size of output buffer that should be allocated
  */
-std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input);
+std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,
+                                 const GTILConfig& config);
 
 }  // namespace gtil
 }  // namespace treelite

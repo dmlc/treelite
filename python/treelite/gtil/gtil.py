@@ -2,12 +2,36 @@
 General Tree Inference Library (GTIL)
 """
 import ctypes
+import json
+
 import numpy as np
-from ..frontend import Model
+
 from ..core import _LIB, _check_call
+from ..frontend import Model
+from ..util import c_str
 
 
-def predict(model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool = False):
+class GTILConfig:
+    """Object holding configuration data"""
+
+    def __init__(self, *, nthread: int, pred_margin: bool):
+        predictor_config = {"nthread": nthread, "pred_transform": (not pred_margin)}
+        predictor_config = json.dumps(predictor_config)
+        self.handle = ctypes.c_void_p()
+        _check_call(
+            _LIB.TreeliteGTILParseConfig(
+                c_str(predictor_config), ctypes.byref(self.handle)
+            )
+        )
+
+    def __del__(self):
+        if self.handle is not None:
+            _check_call(_LIB.TreeliteGTILDeleteConfig(self.handle))
+
+
+def predict(
+    model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool = False
+):
     """
     Predict with a Treelite model using General Tree Inference Library (GTIL). GTIL is intended to
     be a reference implementation. GTIL is also useful in situations where using a C compiler is
@@ -37,21 +61,29 @@ def predict(model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool
     assert isinstance(model, Model)
     assert isinstance(data, np.ndarray)
     assert len(data.shape) == 2
-    data = np.array(data, copy=False, dtype=np.float32, order='C')
+    data = np.array(data, copy=False, dtype=np.float32, order="C")
     output_size = ctypes.c_size_t()
-    _check_call(_LIB.TreeliteGTILGetPredictOutputSize(model.handle, ctypes.c_size_t(data.shape[0]),
-                                                      ctypes.byref(output_size)))
-    out_result = np.zeros(shape=output_size.value, dtype=np.float32, order='C')
+    config = GTILConfig(nthread=nthread, pred_margin=pred_margin)
+    _check_call(
+        _LIB.TreeliteGTILGetPredictOutputSizeEx(
+            model.handle,
+            ctypes.c_size_t(data.shape[0]),
+            config.handle,
+            ctypes.byref(output_size),
+        )
+    )
+    out_result = np.zeros(shape=output_size.value, dtype=np.float32, order="C")
     out_result_size = ctypes.c_size_t()
-    _check_call(_LIB.TreeliteGTILPredict(
-        model.handle,
-        data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        ctypes.c_size_t(data.shape[0]),
-        out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        ctypes.c_int(nthread),
-        ctypes.c_int(0 if pred_margin else 1),
-        ctypes.byref(out_result_size)
-    ))
+    _check_call(
+        _LIB.TreeliteGTILPredictEx(
+            model.handle,
+            data.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            ctypes.c_size_t(data.shape[0]),
+            out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            config.handle,
+            ctypes.byref(out_result_size),
+        )
+    )
     idx = int(out_result_size.value)
     res = out_result[0:idx].reshape((data.shape[0], -1)).squeeze()
     if model.num_class > 1 and data.shape[0] != idx:

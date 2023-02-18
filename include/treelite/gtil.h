@@ -28,6 +28,12 @@ enum class PredictType : std::int8_t {
    *  - (num_row,) for model type kBinaryClfRegr
    *  - (num_row,) for model type kMultiClfGrovePerClass, when pred_transform="max_index"
    *  - (num_row, num_class) for model type kMultiClfGrovePerClass / kMultiClfProbDistLeaf
+   *
+   * \note Most of the time, the dimensions of the prediction output is the same as the return
+   * value of \ref GetPredictOutputSize, with one exception: when pred_transform is "max_index",
+   * \ref GetPredictOutputSize returns (num_row * num_class), to hold the margin scores. The final
+   * output dimension is (num_row,) since the class with the largest margin score is chosen for
+   * each data row.
    */
   kPredictDefault = 0,
   /*!
@@ -63,11 +69,11 @@ struct Configuration {
  * \brief Predict with a DMatrix
  * \param model The model object
  * \param input The data matrix (sparse or dense)
- * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
+ * \param output Pointer to buffer to store the output. Call \ref GetPredictOutputSize to get the
  *               amount of buffer you should allocate for this parameter.
  * \param config Configuration for GTIL Predictor
- * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
- *         larger than GetPredictOutputSize().
+ * \return Size of output. This could be smaller than \ref GetPredictOutputSize but could never be
+ *         larger than \ref GetPredictOutputSize.
  */
 std::size_t Predict(const Model* model, const DMatrix* input, float* output,
                     const Configuration& config);
@@ -76,11 +82,11 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output,
  * \param model The model object
  * \param input The 2D data array, laid out in row-major layout
  * \param num_row Number of rows in the data matrix.
- * \param output Pointer to buffer to store the output. Call GetPredictOutputSize() to get the
+ * \param output Pointer to buffer to store the output. Call \ref GetPredictOutputSize to get the
  *               amount of buffer you should allocate for this parameter.
  * \param config Configuration for GTIL Predictor
- * \return Size of output. This could be smaller than GetPredictOutputSize() but could never be
- *         larger than GetPredictOutputSize().
+ * \return Size of output. This could be smaller than \ref GetPredictOutputSize but could never be
+ *         larger than \ref GetPredictOutputSize.
  */
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
                     const Configuration& config);

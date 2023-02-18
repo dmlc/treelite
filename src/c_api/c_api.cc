@@ -318,14 +318,14 @@ int TreeliteFreeModel(ModelHandle handle) {
 
 int TreeliteGTILParseConfig(const char* config_json, GTILConfigHandle* out) {
   API_BEGIN();
-  auto parsed_config = std::make_unique<gtil::GTILConfig>(config_json);
+  auto parsed_config = std::make_unique<gtil::Configuration>(config_json);
   *out = static_cast<GTILConfigHandle>(parsed_config.release());
   API_END();
 }
 
 int TreeliteGTILDeleteConfig(GTILConfigHandle handle) {
   API_BEGIN();
-  delete static_cast<gtil::GTILConfig*>(handle);
+  delete static_cast<gtil::Configuration*>(handle);
   API_END();
 }
 
@@ -335,7 +335,7 @@ int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* 
     << "TreeliteGTILGetPredictOutputSize() is deprecated; "
     << "please use TreeliteGTILGetPredictOutputSizeEx() instead";
   const auto* model_ = static_cast<const Model*>(model);
-  *out = gtil::GetPredictOutputSize(model_, num_row, gtil::GTILConfig{});
+  *out = gtil::GetPredictOutputSize(model_, num_row, gtil::Configuration{});
   API_END();
 }
 
@@ -343,7 +343,7 @@ int TreeliteGTILGetPredictOutputSizeEx(ModelHandle model, size_t num_row, GTILCo
                                        size_t* out) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(model);
-  const auto* config_ = static_cast<const gtil::GTILConfig*>(config);
+  const auto* config_ = static_cast<const gtil::Configuration*>(config);
   *out = gtil::GetPredictOutputSize(model_, num_row, *config_);
   API_END();
 }
@@ -354,8 +354,9 @@ int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row, f
   TREELITE_LOG(WARNING)
     << "TreeliteGTILPredict() is deprecated; please use TreeliteGTILPredictEx() instead.";
   const auto* model_ = static_cast<const Model*>(model);
-  gtil::GTILConfig config;
-  config.pred_transform = (pred_transform == 1);
+  gtil::Configuration config;
+  config.pred_type = (pred_transform == 1 ? treelite::gtil::PredictType::kPredictDefault
+                                          : treelite::gtil::PredictType::kPredictRaw);
   config.nthread = nthread;
   *out_result_size =
       gtil::Predict(model_, input, num_row, output, config);
@@ -366,7 +367,7 @@ int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row,
                           GTILConfigHandle config, size_t* out_result_size) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(model);
-  const auto* config_ = static_cast<const gtil::GTILConfig*>(config);
+  const auto* config_ = static_cast<const gtil::Configuration*>(config);
   *out_result_size =
       gtil::Predict(model_, input, num_row, output, *config_);
   API_END();

@@ -406,11 +406,11 @@ template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                  const DMatrixType* input, float* output,
                                  const ThreadConfig& thread_config,
-                                 const treelite::gtil::GTILConfig& pred_config) {
+                                 const treelite::gtil::Configuration& pred_config) {
   std::size_t output_size_per_row;
   const auto num_class = model.task_param.num_class;
   std::size_t num_row = input->GetNumRow();
-  if (pred_config.pred_transform) {
+  if (pred_config.pred_type == treelite::gtil::PredictType::kPredictDefault) {
     std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row, pred_config));
     PredTransformFuncType pred_transform_func
         = treelite::gtil::LookupPredTransform(model.param.pred_transform);
@@ -436,7 +436,7 @@ template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                const DMatrixType* input, float* output,
                                const ThreadConfig& thread_config,
-                               const treelite::gtil::GTILConfig& pred_config) {
+                               const treelite::gtil::Configuration& pred_config) {
   PredictRaw(model, input, output, thread_config);
   return PredTransform(model, input, output, thread_config, pred_config);
 }
@@ -447,7 +447,7 @@ namespace treelite {
 namespace gtil {
 
 std::size_t Predict(const Model* model, const DMatrix* input, float* output,
-                    const GTILConfig& config) {
+                    const Configuration& config) {
   // If nthread <= 0, then use all CPU cores in the system
   auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
   // Check type of DMatrix
@@ -468,7 +468,7 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output,
 }
 
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    const GTILConfig& pred_config) {
+                    const Configuration& pred_config) {
   std::unique_ptr<DenseDMatrixImpl<float>> dmat =
       std::make_unique<DenseDMatrixImpl<float>>(
           std::vector<float>(input, input + num_row * model->num_feature),
@@ -479,12 +479,12 @@ std::size_t Predict(const Model* model, const float* input, std::size_t num_row,
 }
 
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
-                                 const GTILConfig& config) {
+                                 const Configuration& config) {
   return model->task_param.num_class * num_row;
 }
 
 std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,
-                                 const GTILConfig& config) {
+                                 const Configuration& config) {
   return GetPredictOutputSize(model, input->GetNumRow(), config);
 }
 

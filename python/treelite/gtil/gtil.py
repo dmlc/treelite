@@ -14,8 +14,13 @@ from ..util import c_str
 class GTILConfig:
     """Object holding configuration data"""
 
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, *, nthread: int, pred_margin: bool):
-        predictor_config = {"nthread": nthread, "pred_transform": (not pred_margin)}
+        predictor_config = {
+            "nthread": nthread,
+            "predict_type": ("raw" if pred_margin else "default"),
+        }
         predictor_config = json.dumps(predictor_config)
         self.handle = ctypes.c_void_p()
         _check_call(

@@ -10,6 +10,7 @@
 #ifndef TREELITE_GTIL_H_
 #define TREELITE_GTIL_H_
 
+#include <cstdint>
 #include <cstddef>
 
 namespace treelite {
@@ -19,11 +20,43 @@ class DMatrix;
 
 namespace gtil {
 
-struct GTILConfig {
+/*! \brief Prediction type */
+enum class PredictType : std::int8_t {
+  /*!
+   * \brief Usual prediction method: sum over trees and apply post-processing.
+   * Expected output dimensions:
+   *  - (num_row,) for model type kBinaryClfRegr
+   *  - (num_row,) for model type kMultiClfGrovePerClass, when pred_transform="max_index"
+   *  - (num_row, num_class) for model type kMultiClfGrovePerClass / kMultiClfProbDistLeaf
+   */
+  kPredictDefault = 0,
+  /*!
+   * \brief Sum over trees, but don't apply post-processing; get raw margin scores instead.
+   * Expected output dimensions:
+   *  - (num_row,) for model type kBinaryClfRegr
+   *  - (num_row, num_class) for model type kMultiClfGrovePerClass / kMultiClfProbDistLeaf
+   */
+  kPredictRaw = 1,
+  /*!
+   * \brief Output one (integer) leaf ID per tree.
+   * Expected output dimensions: (num_row, num_tree)
+   */
+  kPredictLeafID = 2,
+  /*!
+   * \brief Output one or more margin scores per tree.
+   * Expected output dimensions:
+   *  - (num_row, num_tree) for model type kBinaryClfRegr
+   *  - (num_row, num_tree, num_class) for model type kMultiClfGrovePerClass / kMultiClfProbDistLeaf
+   */
+  kPredictPerTree = 3
+};
+
+/*! \brief Configuration class */
+struct Configuration {
   int nthread{0};  // use all threads by default
-  bool pred_transform{true};
-  GTILConfig() = default;
-  explicit GTILConfig(const char* config_json);
+  PredictType pred_type{PredictType::kPredictDefault};
+  Configuration() = default;
+  explicit Configuration(const char* config_json);
 };
 
 /*!
@@ -37,7 +70,7 @@ struct GTILConfig {
  *         larger than GetPredictOutputSize().
  */
 std::size_t Predict(const Model* model, const DMatrix* input, float* output,
-                    const GTILConfig& config);
+                    const Configuration& config);
 /*!
  * \brief Predict with a 2D dense array
  * \param model The model object
@@ -50,7 +83,7 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output,
  *         larger than GetPredictOutputSize().
  */
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    const GTILConfig& config);
+                    const Configuration& config);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
@@ -59,7 +92,8 @@ std::size_t Predict(const Model* model, const float* input, std::size_t num_row,
  * \param config Configuration for GTIL Predictor
  * \return Size of output buffer that should be allocated
  */
-std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row, const GTILConfig& config);
+std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
+                                 const Configuration& config);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
@@ -69,7 +103,7 @@ std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row, const 
  * \return Size of output buffer that should be allocated
  */
 std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,
-                                 const GTILConfig& config);
+                                 const Configuration& config);
 
 }  // namespace gtil
 }  // namespace treelite

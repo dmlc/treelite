@@ -474,9 +474,13 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 
 /*!
  * \brief Load a configuration for GTIL predictor from a JSON string.
- * \param config_json a JSON string. Valid entries are:
- *   - nthread (optional): Number of threads used for initializing DMatrix.
- *   - pred_transform (optional, defaults to True): Whether to apply post-prediction transformation
+ * \param config_json a JSON string with the following fields:
+ *   - "nthread" (optional): Number of threads used for initializing DMatrix.
+ *   - "predict_type" (required): Must be one of the following.
+ *     - "default": Sum over trees and apply post-processing
+ *     - "raw": Sum over trees, but don't apply post-processing; get raw margin scores instead.
+ *     - "leaf_id": Output one (integer) leaf ID per tree.
+ *     - "score_per_tree": Output one or more margin scores per tree.
  * \param out Parsed configuration
  * \return 0 for success; -1 for failure
  */

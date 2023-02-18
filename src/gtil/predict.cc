@@ -410,25 +410,23 @@ inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOu
   std::size_t output_size_per_row;
   const auto num_class = model.task_param.num_class;
   std::size_t num_row = input->GetNumRow();
-  if (pred_config.pred_type == treelite::gtil::PredictType::kPredictDefault) {
-    std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row, pred_config));
-    PredTransformFuncType pred_transform_func
-        = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-    auto sched = treelite::threading_utils::ParallelSchedule::Static();
-    // Query the size of output per input row.
-    output_size_per_row = pred_transform_func(model, &output[0], &temp[0]);
-    // Now transform predictions in parallel
-    treelite::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config, sched,
-                                           [&](std::size_t row_id, int thread_id) {
-      pred_transform_func(model, &output[row_id * num_class],
-                          &temp[row_id * output_size_per_row]);
-    });
-    // Copy transformed score back to output
-    temp.resize(output_size_per_row * num_row);
-    std::copy(temp.begin(), temp.end(), output);
-  } else {
-    output_size_per_row = model.task_param.num_class;
-  }
+
+  std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row, pred_config));
+  PredTransformFuncType pred_transform_func
+      = treelite::gtil::LookupPredTransform(model.param.pred_transform);
+  auto sched = treelite::threading_utils::ParallelSchedule::Static();
+  // Query the size of output per input row.
+  output_size_per_row = pred_transform_func(model, &output[0], &temp[0]);
+  // Now transform predictions in parallel
+  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config, sched,
+                                         [&](std::size_t row_id, int thread_id) {
+    pred_transform_func(model, &output[row_id * num_class],
+                        &temp[row_id * output_size_per_row]);
+  });
+  // Copy transformed score back to output
+  temp.resize(output_size_per_row * num_row);
+  std::copy(temp.begin(), temp.end(), output);
+
   return output_size_per_row * num_row;
 }
 
@@ -437,8 +435,16 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
                                const DMatrixType* input, float* output,
                                const ThreadConfig& thread_config,
                                const treelite::gtil::Configuration& pred_config) {
-  PredictRaw(model, input, output, thread_config);
-  return PredTransform(model, input, output, thread_config, pred_config);
+  using treelite::gtil::PredictType;
+  if (pred_config.pred_type == PredictType::kPredictDefault) {
+    PredictRaw(model, input, output, thread_config);
+    return PredTransform(model, input, output, thread_config, pred_config);
+  } else if (pred_config.pred_type == PredictType::kPredictRaw) {
+    PredictRaw(model, input, output, thread_config);
+    return input->GetNumRow() * model.task_param.num_class;
+  } else {
+    TREELITE_LOG(FATAL) << "Not implemented";
+  }
 }
 
 }  // anonymous namespace

@@ -480,7 +480,15 @@ std::size_t Predict(const Model* model, const float* input, std::size_t num_row,
 
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
                                  const Configuration& config) {
-  return model->task_param.num_class * num_row;
+  switch (config.pred_type) {
+  case PredictType::kPredictDefault:
+  case PredictType::kPredictRaw:
+    return num_row * model->task_param.num_class;
+  case PredictType::kPredictLeafID:
+    return num_row * model->GetNumTree();
+  case PredictType::kPredictPerTree:
+    return num_row * model->GetNumTree() * model->task_param.num_class;
+  }
 }
 
 std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,

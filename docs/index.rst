@@ -152,6 +152,7 @@ Contents
   tutorials/index
   treelite-api
   treelite-runtime-api
+  treelite-gtil-api
   treelite-c-api
   javadoc/packages
   Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>

@@ -33,9 +33,7 @@ def predict(
     model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool = False
 ):
     """
-    Predict with a Treelite model using General Tree Inference Library (GTIL). GTIL is intended to
-    be a reference implementation. GTIL is also useful in situations where using a C compiler is
-    not feasible.
+    Predict with a Treelite model using General Tree Inference Library (GTIL).
 
     .. note:: GTIL is currently experimental
 

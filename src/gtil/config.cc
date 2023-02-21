@@ -31,11 +31,15 @@ Configuration::Configuration(const char* config_json) {
       } else {
         TREELITE_LOG(FATAL) << "Unknown prediction type: " << value;
       }
+    } else {
+      TREELITE_LOG(FATAL) << "The field \"predict_type\" must be specified";
     }
     itr = parsed_config.FindMember("nthread");
     if (itr != parsed_config.MemberEnd() && itr->value.IsInt()) {
       this->nthread = itr->value.GetInt();
     }
+  } else {
+    TREELITE_LOG(FATAL) << "The JSON string must be a valid JSON object";
   }
 }
 

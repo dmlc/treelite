@@ -444,6 +444,7 @@ inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutp
     return input->GetNumRow() * model.task_param.num_class;
   } else {
     TREELITE_LOG(FATAL) << "Not implemented";
+    return 0;
   }
 }
 
@@ -494,6 +495,9 @@ std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
     return num_row * model->GetNumTree();
   case PredictType::kPredictPerTree:
     return num_row * model->GetNumTree() * model->task_param.num_class;
+  default:
+    TREELITE_LOG(FATAL) << "Unrecognized prediction type: " << static_cast<int>(config.pred_type);
+    return 0;
   }
 }
 

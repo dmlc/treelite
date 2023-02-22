@@ -529,11 +529,16 @@ TREELITE_DLL int TreeliteGTILPredict(ModelHandle model, const float* input, size
  * \param out_result_size Size of output. This could be smaller than
  *                        \ref TreeliteGTILGetPredictOutputSizeEx but could never be larger than
  *                        \ref TreeliteGTILGetPredictOutputSizeEx.
+ * \param out_result_ndim Number of dimensions in the output array.
+ * \param out_result_shape Pointer to an array containing dimensions of the prediction output.
+ *                         This array shall have [out_result_ndim] elements.
+ *                         The product of the elements shall be equal to out_result_size.
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row,
                                        float* output, GTILConfigHandle config,
-                                       size_t* out_result_size);
+                                       size_t* out_result_size, size_t* out_result_ndim,
+                                       size_t** out_result_shape);
 
 /*! \} */
 

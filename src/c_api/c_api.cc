@@ -17,11 +17,13 @@
 #include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
+#include <numeric>
 #include <memory>
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <cstdio>
+#include <cstddef>
 
 using namespace treelite;
 
@@ -31,6 +33,8 @@ namespace {
 struct TreeliteAPIThreadLocalEntry {
   /*! \brief result holder for returning string */
   std::string ret_str;
+  /*! \brief Temp variable for returning prediction shape. */
+  std::vector<std::size_t> prediction_shape;
 };
 
 // define threadlocal store for returning information
@@ -358,18 +362,26 @@ int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row, f
   config.pred_type = (pred_transform == 1 ? treelite::gtil::PredictType::kPredictDefault
                                           : treelite::gtil::PredictType::kPredictRaw);
   config.nthread = nthread;
-  *out_result_size =
-      gtil::Predict(model_, input, num_row, output, config);
+  auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
+  *out_result_size = gtil::Predict(model_, input, num_row, output, config,
+                                   pred_shape);
   API_END();
 }
 
 int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row, float* output,
-                          GTILConfigHandle config, size_t* out_result_size) {
+                          GTILConfigHandle config, size_t* out_result_size,
+                          size_t* out_result_ndim, size_t** out_result_shape) {
   API_BEGIN();
   const auto* model_ = static_cast<const Model*>(model);
   const auto* config_ = static_cast<const gtil::Configuration*>(config);
-  *out_result_size =
-      gtil::Predict(model_, input, num_row, output, *config_);
+  auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
+  *out_result_size = gtil::Predict(model_, input, num_row, output, *config_,
+                                   pred_shape);
+  auto prod = std::reduce<>(std::begin(pred_shape), std::end(pred_shape),
+                                1, std::multiplies<>{});
+  TREELITE_CHECK_EQ(prod, *out_result_size);
+  *out_result_ndim = pred_shape.size();
+  *out_result_shape = pred_shape.data();
   API_END();
 }
 

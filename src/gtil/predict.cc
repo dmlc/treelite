@@ -406,7 +406,8 @@ template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                  const DMatrixType* input, float* output,
                                  const ThreadConfig& thread_config,
-                                 const treelite::gtil::Configuration& pred_config) {
+                                 const treelite::gtil::Configuration& pred_config,
+                                 std::vector<std::size_t>& output_shape) {
   std::size_t output_size_per_row;
   const auto num_class = model.task_param.num_class;
   std::size_t num_row = input->GetNumRow();
@@ -427,20 +428,23 @@ inline std::size_t PredTransform(const treelite::ModelImpl<ThresholdType, LeafOu
   temp.resize(output_size_per_row * num_row);
   std::copy(temp.begin(), temp.end(), output);
 
-  return output_size_per_row * num_row;
+  output_shape = {num_row, output_size_per_row};
+  return num_row * output_size_per_row;
 }
 
 template <typename ThresholdType, typename LeafOutputType, typename DMatrixType>
 inline std::size_t PredictImpl(const treelite::ModelImpl<ThresholdType, LeafOutputType>& model,
                                const DMatrixType* input, float* output,
                                const ThreadConfig& thread_config,
-                               const treelite::gtil::Configuration& pred_config) {
+                               const treelite::gtil::Configuration& pred_config,
+                               std::vector<std::size_t>& output_shape) {
   using treelite::gtil::PredictType;
   if (pred_config.pred_type == PredictType::kPredictDefault) {
     PredictRaw(model, input, output, thread_config);
-    return PredTransform(model, input, output, thread_config, pred_config);
+    return PredTransform(model, input, output, thread_config, pred_config, output_shape);
   } else if (pred_config.pred_type == PredictType::kPredictRaw) {
     PredictRaw(model, input, output, thread_config);
+    output_shape = {input->GetNumRow(), model.task_param.num_class};
     return input->GetNumRow() * model.task_param.num_class;
   } else {
     TREELITE_LOG(FATAL) << "Not implemented";
@@ -454,19 +458,19 @@ namespace treelite {
 namespace gtil {
 
 std::size_t Predict(const Model* model, const DMatrix* input, float* output,
-                    const Configuration& config) {
+                    const Configuration& config, std::vector<std::size_t>& output_shape) {
   // If nthread <= 0, then use all CPU cores in the system
-  auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
+  auto tconfig = threading_utils::ConfigureThreadConfig(config.nthread);
   // Check type of DMatrix
   const auto* d1 = dynamic_cast<const DenseDMatrixImpl<float>*>(input);
   const auto* d2 = dynamic_cast<const CSRDMatrixImpl<float>*>(input);
   if (d1) {
-    return model->Dispatch([d1, output, thread_config, config](const auto& model) {
-      return PredictImpl(model, d1, output, thread_config, config);
+    return model->Dispatch([d1, output, &tconfig, &config, &output_shape](const auto& model) {
+      return PredictImpl(model, d1, output, tconfig, config, output_shape);
     });
   } else if (d2) {
-    return model->Dispatch([d2, output, thread_config, config](const auto& model) {
-      return PredictImpl(model, d2, output, thread_config, config);
+    return model->Dispatch([d2, output, &tconfig, &config, &output_shape](const auto& model) {
+      return PredictImpl(model, d2, output, tconfig, config, output_shape);
     });
   } else {
     TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
@@ -475,14 +479,14 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output,
 }
 
 std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    const Configuration& pred_config) {
+                    const Configuration& pred_config, std::vector<std::size_t>& output_shape) {
   std::unique_ptr<DenseDMatrixImpl<float>> dmat =
       std::make_unique<DenseDMatrixImpl<float>>(
           std::vector<float>(input, input + num_row * model->num_feature),
           std::numeric_limits<float>::quiet_NaN(),
           num_row,
           model->num_feature);
-  return Predict(model, dmat.get(), output, pred_config);
+  return Predict(model, dmat.get(), output, pred_config, output_shape);
 }
 
 std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,

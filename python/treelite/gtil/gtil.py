@@ -109,6 +109,8 @@ def predict(
     )
     out_result = np.zeros(shape=output_size.value, dtype=np.float32, order="C")
     out_result_size = ctypes.c_size_t()
+    out_result_ndim = ctypes.c_size_t()
+    out_result_shape = ctypes.POINTER(ctypes.c_size_t)()
     _check_call(
         _LIB.TreeliteGTILPredictEx(
             model.handle,
@@ -117,10 +119,13 @@ def predict(
             out_result.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
             config.handle,
             ctypes.byref(out_result_size),
+            ctypes.byref(out_result_ndim),
+            ctypes.byref(out_result_shape)
         )
     )
+    # Reshape the result according to out_result_shape
+    out_shape = np.ctypeslib.as_array(out_result_shape, shape=(out_result_ndim.value,))
     idx = int(out_result_size.value)
-    res = out_result[0:idx].reshape((data.shape[0], -1)).squeeze()
-    if model.num_class > 1 and data.shape[0] != idx:
-        res = res.reshape((-1, model.num_class))
+    assert idx == np.prod(out_shape)
+    res = out_result[0:idx].reshape(out_shape).squeeze()
     return res

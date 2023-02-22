@@ -154,14 +154,14 @@ def test_xgb_regression(objective, model_format, num_parallel_tree, dataset):
     )
     with TemporaryDirectory() as tmpdir:
         if model_format == "json":
-            model_name = "boston.json"
+            model_name = "model.json"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
             tl_model = treelite.Model.load(
                 filename=model_path, model_format="xgboost_json"
             )
         else:
-            model_name = "boston.model"
+            model_name = "model.model"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
             tl_model = treelite.Model.load(filename=model_path, model_format="xgboost")

@@ -107,6 +107,7 @@ def predict(
             ctypes.byref(output_size),
         )
     )
+    print(f"Allocating output with size {output_size.value}")
     out_result = np.zeros(shape=output_size.value, dtype=np.float32, order="C")
     out_result_size = ctypes.c_size_t()
     out_result_ndim = ctypes.c_size_t()

@@ -517,3 +517,30 @@ def test_lightgbm_sparse_categorical_model():
     Xa[Xa == 0] = "nan"
     out_pred = treelite.gtil.predict(tl_model, Xa, predict_type="raw")
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.xfail
+def test_predict_leaf():
+    # pylint: disable=too-many-locals
+    """Test XGBoost with Iris data (multi-class classification)"""
+    X, y = load_iris(return_X_y=True)
+    dtrain = xgb.DMatrix(X, label=y)
+    num_class = 3
+    param = {
+        "max_depth": 6,
+        "eta": 0.05,
+        "num_class": num_class,
+        "verbosity": 0,
+        "objective": "multi:softprob",
+        "metric": "mlogloss",
+    }
+    num_round = 3
+    xgb_model = xgb.train(
+        param,
+        dtrain,
+        num_boost_round=num_round,
+        evals=[(dtrain, "train")],
+    )
+    model = treelite.Model.from_xgboost(xgb_model)
+    leaf_pred = treelite.gtil.predict(model, X, predict_type="leaf_id")
+    print(leaf_pred)

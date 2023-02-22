@@ -3,6 +3,8 @@ General Tree Inference Library (GTIL)
 """
 import ctypes
 import json
+import warnings
+from typing import Optional
 
 import numpy as np
 
@@ -16,10 +18,10 @@ class GTILConfig:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, *, nthread: int, pred_margin: bool):
+    def __init__(self, *, nthread: int, predict_type: str):
         predictor_config = {
             "nthread": nthread,
-            "predict_type": ("raw" if pred_margin else "default"),
+            "predict_type": predict_type,
         }
         predictor_config = json.dumps(predictor_config)
         self.handle = ctypes.c_void_p()
@@ -35,7 +37,12 @@ class GTILConfig:
 
 
 def predict(
-    model: Model, data: np.ndarray, nthread: int = -1, pred_margin: bool = False
+        model: Model,
+        data: np.ndarray,
+        *,
+        nthread: int = -1,
+        pred_margin: Optional[bool] = None,
+        predict_type: Optional[str] = None
 ):
     """
     Predict with a Treelite model using General Tree Inference Library (GTIL).
@@ -53,20 +60,45 @@ def predict(
         2D NumPy array, with which to run prediction
     nthread : :py:class:`int <python:int>`, optional
         Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
-    pred_margin : :py:class:`bool <python:bool>`, optional
-        Whether to produce raw margin scores
+    pred_margin : bool, optional
+        Deprecated. Set predict_type="raw" instead.
+    predict_type : string, optional
+        One of the following:
+        * "default": Usual prediction method. Sum over trees and apply post-processing.
+        * "raw": Sum over trees, but don't apply post-processing; get raw margin scores
+                 instead.
+        * "leaf_id": Output one (integer) leaf ID per tree.
+        * "score_per_tree": Output one or more margin scores per tree.
 
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
         Prediction
     """
-    assert isinstance(model, Model)
-    assert isinstance(data, np.ndarray)
-    assert len(data.shape) == 2
+    # Parameter validation
+    if pred_margin is not None:
+        if predict_type:
+            raise ValueError(
+                "Cannot specify pred_margin and predict_type at the same "
+                "time. Please set predict_type only."
+            )
+        warnings.warn(
+            "The pred_margin argument is deprecated. Please use "
+            'predict_type="raw" instead.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        predict_type = "raw"
+    if not predict_type:
+        predict_type = "default"
+    if not isinstance(model, Model):
+        raise ValueError('Argument "model" must be a Model type')
+    if (not isinstance(data, np.ndarray)) or len(data.shape) != 2:
+        raise ValueError('Argument "data" must be a 2D NumPy array')
+
     data = np.array(data, copy=False, dtype=np.float32, order="C")
     output_size = ctypes.c_size_t()
-    config = GTILConfig(nthread=nthread, pred_margin=pred_margin)
+    config = GTILConfig(nthread=nthread, predict_type=predict_type)
     _check_call(
         _LIB.TreeliteGTILGetPredictOutputSizeEx(
             model.handle,

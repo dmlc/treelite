@@ -515,5 +515,5 @@ def test_lightgbm_sparse_categorical_model():
     # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
     Xa = X.toarray()
     Xa[Xa == 0] = "nan"
-    out_pred = treelite.gtil.predict(tl_model, Xa, pred_margin=True)
+    out_pred = treelite.gtil.predict(tl_model, Xa, predict_type="raw")
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

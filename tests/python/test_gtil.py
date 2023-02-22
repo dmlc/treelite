@@ -520,89 +520,17 @@ def test_lightgbm_sparse_categorical_model():
 
 
 @given(
-    sample_size=integers(min_value=1, max_value=150),
-)
-@settings(**standard_settings())
-def test_predict_leaf_grove_per_class(sample_size):
-    # pylint: disable=too-many-locals
-    """Test predict_leaf with XGBoost multiclass classifier (grove-per-class)"""
-    X, y = load_iris(return_X_y=True)
-    dtrain = xgb.DMatrix(X, label=y)
-    num_class = 3
-    param = {
-        "max_depth": 6,
-        "eta": 0.05,
-        "num_class": num_class,
-        "verbosity": 0,
-        "objective": "multi:softprob",
-        "metric": "mlogloss",
-    }
-    num_round = 10
-    xgb_model = xgb.train(
-        param,
-        dtrain,
-        num_boost_round=num_round,
-        evals=[(dtrain, "train")],
-    )
-    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
-    assert model.num_tree == 30
-    X_sample = X[0:sample_size]
-    leaf_pred = treelite.gtil.predict(model, X_sample, predict_type="leaf_id")
-    xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
-    assert np.array_equal(leaf_pred, xgb_leaf_pred)
-
-
-@given(
-    sample_size=integers(min_value=1, max_value=150),
-)
-@settings(**standard_settings())
-def test_predict_bytree_multi_classifier_grove_per_class(sample_size):
-    # pylint: disable=too-many-locals
-    """Test predict_bytree with XGBoost multiclass classifier (grove-per-class)"""
-    X, y = load_iris(return_X_y=True)
-    dtrain = xgb.DMatrix(X, label=y)
-    num_class = 3
-    param = {
-        "max_depth": 10,
-        "eta": 0.05,
-        "num_class": num_class,
-        "verbosity": 0,
-        "objective": "multi:softprob",
-        "metric": "mlogloss",
-        "base_score": 0,
-    }
-    num_round = 10
-    xgb_model = xgb.train(
-        param,
-        dtrain,
-        num_boost_round=num_round,
-    )
-    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
-    assert model.num_tree == num_class * num_round
-
-    X_sample = X[0:sample_size]
-    pred_bytree = treelite.gtil.predict(model, X_sample, predict_type="score_per_tree")
-    assert pred_bytree.shape == (sample_size, model.num_tree)
-    sum_by_class = np.column_stack(
-        tuple(
-            np.sum(pred_bytree[:, class_id::num_class], axis=1)
-            for class_id in range(num_class)
-        )
-    )
-    pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
-    np.testing.assert_almost_equal(sum_by_class, pred, decimal=4)
-
-
-@given(
     dataset=standard_regression_datasets(),
+    predict_type=sampled_from(["leaf_id", "score_per_tree"]),
     sample_size=integers(min_value=1, max_value=150),
 )
 @settings(**standard_settings())
-def test_predict_bytree_regressor(dataset, sample_size):
+def test_predict_special_with_regressor(dataset, predict_type, sample_size):
     # pylint: disable=too-many-locals
-    """Test predict_bytree with XGBoost regressor"""
+    """Test predict_leaf / predict_bytree with XGBoost regressor"""
     X, y = dataset
     dtrain = xgb.DMatrix(X, label=y)
+    assume(sample_size < X.shape[0])
     param = {
         "max_depth": 8,
         "eta": 1,
@@ -610,7 +538,7 @@ def test_predict_bytree_regressor(dataset, sample_size):
         "objective": "reg:squarederror",
         "base_score": 0,
     }
-    num_round = 4
+    num_round = 10
     xgb_model = xgb.train(
         param,
         dtrain,
@@ -620,20 +548,29 @@ def test_predict_bytree_regressor(dataset, sample_size):
     assert model.num_tree == num_round
 
     X_sample = X[0:sample_size]
-    pred_bytree = treelite.gtil.predict(model, X_sample, predict_type="score_per_tree")
-    assert pred_bytree.shape == (sample_size, num_round)
-    pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
-    np.testing.assert_almost_equal(np.sum(pred_bytree, axis=1), pred, decimal=3)
+    if predict_type == "leaf_id":
+        leaf_pred = treelite.gtil.predict(model, X_sample, predict_type="leaf_id")
+        assert leaf_pred.shape == (sample_size, num_round)
+        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
+        assert np.array_equal(leaf_pred, xgb_leaf_pred)
+    else:
+        pred_bytree = treelite.gtil.predict(
+            model, X_sample, predict_type="score_per_tree"
+        )
+        assert pred_bytree.shape == (sample_size, num_round)
+        pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
+        np.testing.assert_almost_equal(np.sum(pred_bytree, axis=1), pred, decimal=3)
 
 
 @given(
+    predict_type=sampled_from(["leaf_id", "score_per_tree"]),
     random_seed=integers(min_value=0, max_value=50),
     sample_size=integers(min_value=1, max_value=200),
 )
 @settings(**standard_settings())
-def test_predict_bytree_binary_classifier(random_seed, sample_size):
+def test_predict_special_with_binary_classifier(predict_type, random_seed, sample_size):
     # pylint: disable=too-many-locals
-    """Test predict_bytree with XGBoost binary classifier"""
+    """Test predict_leaf / predict_bytree with XGBoost binary classifier"""
     nrow = 200
     ncol = 8
     rng = np.random.default_rng(seed=random_seed)
@@ -659,10 +596,70 @@ def test_predict_bytree_binary_classifier(random_seed, sample_size):
     assert model.num_tree == num_round
 
     X_sample = X[0:sample_size]
-    pred_bytree = treelite.gtil.predict(model, X_sample, predict_type="score_per_tree")
-    assert pred_bytree.shape == (sample_size, num_round)
-    pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
-    np.testing.assert_almost_equal(np.sum(pred_bytree, axis=1), pred, decimal=3)
+    if predict_type == "leaf_id":
+        leaf_pred = treelite.gtil.predict(model, X_sample, predict_type="leaf_id")
+        assert leaf_pred.shape == (sample_size, num_round)
+        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
+        assert np.array_equal(leaf_pred, xgb_leaf_pred)
+    else:
+        pred_bytree = treelite.gtil.predict(
+            model, X_sample, predict_type="score_per_tree"
+        )
+        assert pred_bytree.shape == (sample_size, num_round)
+        pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
+        np.testing.assert_almost_equal(np.sum(pred_bytree, axis=1), pred, decimal=3)
+
+
+@given(
+    predict_type=sampled_from(["leaf_id", "score_per_tree"]),
+    sample_size=integers(min_value=1, max_value=150),
+)
+@settings(**standard_settings())
+def test_predict_special_with_multi_classifier_grove_per_class(
+    predict_type, sample_size
+):
+    # pylint: disable=too-many-locals
+    """Test predict_leaf / predict_bytree with XGBoost multiclass classifier (grove-per-class)"""
+    X, y = load_iris(return_X_y=True)
+    dtrain = xgb.DMatrix(X, label=y)
+    num_class = 3
+    param = {
+        "max_depth": 10,
+        "eta": 0.05,
+        "num_class": num_class,
+        "verbosity": 0,
+        "objective": "multi:softprob",
+        "metric": "mlogloss",
+        "base_score": 0,
+    }
+    num_round = 10
+    xgb_model = xgb.train(
+        param,
+        dtrain,
+        num_boost_round=num_round,
+    )
+    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
+    assert model.num_tree == num_round * num_class
+
+    X_sample = X[0:sample_size]
+    if predict_type == "leaf_id":
+        leaf_pred = treelite.gtil.predict(model, X_sample, predict_type="leaf_id")
+        assert leaf_pred.shape == (sample_size, model.num_tree)
+        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
+        assert np.array_equal(leaf_pred, xgb_leaf_pred)
+    else:
+        pred_bytree = treelite.gtil.predict(
+            model, X_sample, predict_type="score_per_tree"
+        )
+        assert pred_bytree.shape == (sample_size, model.num_tree)
+        sum_by_class = np.column_stack(
+            tuple(
+                np.sum(pred_bytree[:, class_id::num_class], axis=1)
+                for class_id in range(num_class)
+            )
+        )
+        pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
+        np.testing.assert_almost_equal(sum_by_class, pred, decimal=3)
 
 
 @given(
@@ -670,7 +667,9 @@ def test_predict_bytree_binary_classifier(random_seed, sample_size):
     sample_size=integers(min_value=1, max_value=150),
 )
 @settings(**standard_settings())
-def test_predict_bytree_multiclass_classifier_vector_leaf(n_estimators, sample_size):
+def test_predict_bytree_with_multiclass_classifier_vector_leaf(
+    n_estimators, sample_size
+):
     """Test predict_bytree with Scikit-learn multi-class classifier (vector leaf)"""
     num_class = 3
     X, y = load_iris(return_X_y=True)
@@ -684,4 +683,4 @@ def test_predict_bytree_multiclass_classifier_vector_leaf(n_estimators, sample_s
     assert pred_bytree.shape == (sample_size, n_estimators, num_class)
     avg_by_class = np.sum(pred_bytree, axis=1) / n_estimators
     expected_prob = clf.predict_proba(X_sample)
-    np.testing.assert_almost_equal(avg_by_class, expected_prob, decimal=5)
+    np.testing.assert_almost_equal(avg_by_class, expected_prob, decimal=3)

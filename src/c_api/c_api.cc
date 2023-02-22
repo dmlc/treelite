@@ -377,8 +377,8 @@ int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row,
   auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
   *out_result_size = gtil::Predict(model_, input, num_row, output, *config_,
                                    pred_shape);
-  auto prod = std::reduce<>(std::begin(pred_shape), std::end(pred_shape),
-                                1, std::multiplies<>{});
+  auto prod = std::accumulate<>(std::begin(pred_shape), std::end(pred_shape), 1,
+                                std::multiplies<>{});
   TREELITE_CHECK_EQ(prod, *out_result_size);
   *out_result_ndim = pred_shape.size();
   *out_result_shape = pred_shape.data();

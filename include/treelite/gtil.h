@@ -52,8 +52,8 @@ enum class PredictType : std::int8_t {
   /*!
    * \brief Output one or more margin scores per tree.
    * Expected output dimensions:
-   *  - (num_row, num_tree) for model type kBinaryClfRegr
-   *  - (num_row, num_tree, num_class) for model type kMultiClfGrovePerClass / kMultiClfProbDistLeaf
+   *  - (num_row, num_tree) for model type kBinaryClfRegr / kMultiClfGrovePerClass
+   *  - (num_row, num_tree, num_class) for model type kMultiClfProbDistLeaf
    */
   kPredictPerTree = 3
 };

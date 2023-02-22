@@ -476,6 +476,7 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
  * \brief Load a configuration for GTIL predictor from a JSON string.
  * \param config_json a JSON string with the following fields:
  *   - "nthread" (optional): Number of threads used for initializing DMatrix.
+ *                           Set <= 0 to use all CPU cores.
  *   - "predict_type" (required): Must be one of the following.
  *     - "default": Sum over trees and apply post-processing
  *     - "raw": Sum over trees, but don't apply post-processing; get raw margin scores instead.

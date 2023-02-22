@@ -37,12 +37,12 @@ class GTILConfig:
 
 
 def predict(
-        model: Model,
-        data: np.ndarray,
-        *,
-        nthread: int = -1,
-        pred_margin: Optional[bool] = None,
-        predict_type: Optional[str] = None
+    model: Model,
+    data: np.ndarray,
+    *,
+    nthread: int = -1,
+    pred_margin: Optional[bool] = None,
+    predict_type: Optional[str] = None
 ):
     """
     Predict with a Treelite model using General Tree Inference Library (GTIL).
@@ -107,7 +107,6 @@ def predict(
             ctypes.byref(output_size),
         )
     )
-    print(f"Allocating output with size {output_size.value}")
     out_result = np.zeros(shape=output_size.value, dtype=np.float32, order="C")
     out_result_size = ctypes.c_size_t()
     out_result_ndim = ctypes.c_size_t()
@@ -121,12 +120,14 @@ def predict(
             config.handle,
             ctypes.byref(out_result_size),
             ctypes.byref(out_result_ndim),
-            ctypes.byref(out_result_shape)
+            ctypes.byref(out_result_shape),
         )
     )
     # Reshape the result according to out_result_shape
     out_shape = np.ctypeslib.as_array(out_result_shape, shape=(out_result_ndim.value,))
     idx = int(out_result_size.value)
     assert idx == np.prod(out_shape)
-    res = out_result[0:idx].reshape(out_shape).squeeze()
+    res = out_result[0:idx].reshape(out_shape)
+    if data.shape[0] > 1:
+        res = res.squeeze()
     return res

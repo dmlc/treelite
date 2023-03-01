@@ -28,6 +28,7 @@ class GTILConfig:
     # <= 0 indicates using all threads
 
     def to_json(self):
+        """Convert configuration object into a JSON string"""
         return json.dumps(asdict(self))
 
     def __post_init__(self):

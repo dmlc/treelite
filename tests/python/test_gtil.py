@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import scipy
 from hypothesis import assume, given, settings
+from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import integers, just, sampled_from
 from sklearn.datasets import load_breast_cancer, load_iris, load_svmlight_file
 from sklearn.ensemble import (
@@ -526,15 +527,15 @@ def test_lightgbm_sparse_categorical_model():
 @given(
     dataset=standard_regression_datasets(),
     predict_type=sampled_from(["leaf_id", "score_per_tree"]),
-    sample_size=integers(min_value=1, max_value=150),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_predict_special_with_regressor(dataset, predict_type, sample_size):
+def test_predict_special_with_regressor(dataset, predict_type, callback):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost regressor"""
     X, y = dataset
+    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
     dtrain = xgb.DMatrix(X, label=y)
-    assume(sample_size < X.shape[0])
     param = {
         "max_depth": 8,
         "eta": 1,
@@ -567,14 +568,14 @@ def test_predict_special_with_regressor(dataset, predict_type, sample_size):
 @given(
     predict_type=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_classification_datasets(n_classes=just(2)),
-    sample_size=integers(min_value=1, max_value=200),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_predict_special_with_binary_classifier(predict_type, dataset, sample_size):
+def test_predict_special_with_binary_classifier(predict_type, dataset, callback):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost binary classifier"""
     X, y = dataset
-    assume(sample_size <= X.shape[0])
+    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
 
     num_round = 10
     dtrain = xgb.DMatrix(X, label=y)
@@ -607,20 +608,24 @@ def test_predict_special_with_binary_classifier(predict_type, dataset, sample_si
 
 @given(
     predict_type=sampled_from(["leaf_id", "score_per_tree"]),
-    sample_size=integers(min_value=1, max_value=150),
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
+    ),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_predict_special_with_multi_classifier_grove_per_class(
-    predict_type, sample_size
+    predict_type, dataset, callback
 ):
     # pylint: disable=too-many-locals
     """
     Test predict_leaf / predict_per_tree with XGBoost multiclass classifier
     (grove-per-class)
     """
-    X, y = load_iris(return_X_y=True)
+    X, y = dataset
+    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
+    num_class = np.max(y) + 1
     dtrain = xgb.DMatrix(X, label=y)
-    num_class = 3
     param = {
         "max_depth": 10,
         "eta": 0.05,
@@ -660,15 +665,19 @@ def test_predict_special_with_multi_classifier_grove_per_class(
 
 @given(
     n_estimators=integers(min_value=10, max_value=50),
-    sample_size=integers(min_value=1, max_value=150),
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
+    ),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_predict_per_tree_with_multiclass_classifier_vector_leaf(
-    n_estimators, sample_size
+    n_estimators, dataset, callback
 ):
     """Test predict_per_tree with Scikit-learn multi-class classifier (vector leaf)"""
-    num_class = 3
-    X, y = load_iris(return_X_y=True)
+    X, y = dataset
+    num_class = np.max(y) + 1
+    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
     kwargs = {"max_depth": 3, "random_state": 0, "n_estimators": n_estimators}
     clf = RandomForestClassifier(**kwargs)
     clf.fit(X, y)

@@ -68,15 +68,16 @@ def predict(
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output.
-        Expected output dimensions for pred_margin=False:
+        Prediction output. Expected output dimensions:
+
         - (num_row,) for regressors and binary classifiers
-        - (num_row,) for multi-class classifiers,
-                     where task_type="MultiClfGrovePerClass", pred_transform="max_index"
-        - (num_row, num_class) for all other multi-class classifiers
-        Expected output dimensions for pred_margin=True:
-        - (num_row,) for regressors and binary classifiers
-        - (num_row, num_class) for multi-class classifiers
+        - (num_row, num_class) for multi-class classifiers (See Notes for a special
+          case.)
+
+    Notes
+    -----
+    The output has shape (num_row,) if the model is a multi-class classifier with
+    task_type="MultiClfGrovePerClass" and pred_transform="max_index".
     """
     if pred_margin is None:
         pred_margin = False
@@ -102,8 +103,8 @@ def predict_leaf(model: Model, data: np.ndarray, *, nthread: int = -1):
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output.
-        Expected output dimensions:
+        Prediction output. Expected output dimensions:
+
         - (num_row,) for regressors and binary classifiers
         - (num_row, num_class) for multi-class classifiers
 
@@ -137,13 +138,12 @@ def predict_per_tree(model: Model, data: np.ndarray, *, nthread: int = -1):
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output.
-        Expected output dimensions:
+        Prediction output. Expected output dimensions:
+
         - (num_row, num_tree) for regressors, binary classifiers,
-                              and multi-class classifiers with
-                              task_type="MultiClfGrovePerClass"
+          and multi-class classifiers with task_type="MultiClfGrovePerClass"
         - (num_row, num_tree, num_class) for multi-class classifiers with
-                                         task_type="kMultiClfProbDistLeaf"
+          task_type="kMultiClfProbDistLeaf"
     """
 
     config = GTILConfig(nthread=nthread, predict_type="score_per_tree")

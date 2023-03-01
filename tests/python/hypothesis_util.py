@@ -47,6 +47,7 @@ def standard_classification_datasets(
     shuffle=just(True),
     random_state=None,
 ):
+    # pylint: disable=too-many-locals
     """
     Returns a strategy to generate classification problem input datasets.
     Note:

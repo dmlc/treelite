@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import scipy
 from hypothesis import assume, given, settings
-from hypothesis.strategies import integers, sampled_from
+from hypothesis.strategies import integers, just, sampled_from
 from sklearn.datasets import load_breast_cancer, load_iris, load_svmlight_file
 from sklearn.ensemble import (
     ExtraTreesClassifier,
@@ -24,7 +24,11 @@ from sklearn.model_selection import train_test_split
 
 import treelite
 
-from .hypothesis_util import standard_regression_datasets, standard_settings
+from .hypothesis_util import (
+    standard_classification_datasets,
+    standard_regression_datasets,
+    standard_settings,
+)
 from .metadata import dataset_db
 from .util import TemporaryDirectory, load_txt
 
@@ -562,20 +566,15 @@ def test_predict_special_with_regressor(dataset, predict_type, sample_size):
 
 @given(
     predict_type=sampled_from(["leaf_id", "score_per_tree"]),
-    random_seed=integers(min_value=0, max_value=50),
+    dataset=standard_classification_datasets(n_classes=just(2)),
     sample_size=integers(min_value=1, max_value=200),
 )
 @settings(**standard_settings())
-def test_predict_special_with_binary_classifier(predict_type, random_seed, sample_size):
+def test_predict_special_with_binary_classifier(predict_type, dataset, sample_size):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost binary classifier"""
-    nrow = 200
-    ncol = 8
-    rng = np.random.default_rng(seed=random_seed)
-    X = rng.standard_normal(size=(nrow, ncol), dtype=np.float32)
-    y = rng.integers(0, 2, size=nrow)
-    assert np.min(y) == 0
-    assert np.max(y) == 1
+    X, y = dataset
+    assume(sample_size <= X.shape[0])
 
     num_round = 10
     dtrain = xgb.DMatrix(X, label=y)

@@ -35,7 +35,8 @@ Configuration::Configuration(const char* config_json) {
       TREELITE_LOG(FATAL) << "The field \"predict_type\" must be specified";
     }
     itr = parsed_config.FindMember("nthread");
-    if (itr != parsed_config.MemberEnd() && itr->value.IsInt()) {
+    if (itr != parsed_config.MemberEnd()) {
+      TREELITE_CHECK(itr->value.IsInt()) << "nthread must be an integer";
       this->nthread = itr->value.GetInt();
     }
   } else {

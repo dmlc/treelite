@@ -3,8 +3,9 @@ General Tree Inference Library (GTIL)
 """
 import ctypes
 import json
+import warnings
 from dataclasses import asdict, dataclass
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 
@@ -17,7 +18,7 @@ from ..util import c_str
 class GTILConfig:
     """Object holding configuration data"""
 
-    predict_type: str
+    predict_type: Literal["default", "raw", "leaf_id", "score_per_tree"]
     # Prediction type is one of the following:
     # * "default": Usual prediction method. Sum over trees and apply post-processing.
     # * "raw": Sum over trees, but don't apply post-processing; get raw margin scores
@@ -158,6 +159,12 @@ def _predict_impl(model, data, *, config):
     if (not isinstance(data, np.ndarray)) or len(data.shape) != 2:
         raise ValueError('Argument "data" must be a 2D NumPy array')
 
+    if data.dtype != np.float32:
+        warnings.warn(
+            "GTIL currently only supports float32 type; data will be "
+            "converted to float32 and information might be lost.",
+            UserWarning,
+        )
     data = np.array(data, copy=False, dtype=np.float32, order="C")
     output_size = ctypes.c_size_t()
 

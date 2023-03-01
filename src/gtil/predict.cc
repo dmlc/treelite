@@ -38,8 +38,6 @@ using treelite::threading_utils::ThreadConfig;
 using PredTransformFuncType = std::size_t (*) (const treelite::Model&, const float*, float*);
 
 constexpr std::size_t kBlockOfRowsSize = 64;
-constexpr std::int32_t largest_representable_int
-  = (static_cast<std::int32_t>(1) << std::numeric_limits<float>::digits);
 
 /*!
  * \brief A dense feature vector.

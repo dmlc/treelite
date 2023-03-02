@@ -17,11 +17,13 @@
 #include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
+#include <numeric>
 #include <memory>
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <cstdio>
+#include <cstddef>
 
 using namespace treelite;
 
@@ -31,6 +33,8 @@ namespace {
 struct TreeliteAPIThreadLocalEntry {
   /*! \brief result holder for returning string */
   std::string ret_str;
+  /*! \brief Temp variable for returning prediction shape. */
+  std::vector<std::size_t> prediction_shape;
 };
 
 // define threadlocal store for returning information
@@ -114,6 +118,9 @@ int TreeliteCompilerFree(CompilerHandle handle) {
 }
 
 int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadLightGBMModel() is deprecated. Please use "
+      << "TreeliteLoadLightGBMModelEx() instead.";
   return TreeliteLoadLightGBMModelEx(filename, "{}", out);
 }
 
@@ -126,6 +133,9 @@ int TreeliteLoadLightGBMModelEx(const char* filename, const char* config_json, M
 }
 
 int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadXGBoostModel() is deprecated. Please use "
+      << "TreeliteLoadXGBoostModelEx() instead.";
   return TreeliteLoadXGBoostModelEx(filename, "{}", out);
 }
 
@@ -138,6 +148,9 @@ int TreeliteLoadXGBoostModelEx(const char* filename, const char* config_json, Mo
 }
 
 int TreeliteLoadXGBoostJSON(const char* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadXGBoostJSON() is deprecated. Please use "
+      << "TreeliteLoadXGBoostJSONEx() instead.";
   return TreeliteLoadXGBoostJSONEx(filename, "{}", out);
 }
 
@@ -149,6 +162,9 @@ int TreeliteLoadXGBoostJSONEx(const char* filename, const char* config_json, Mod
 }
 
 int TreeliteLoadXGBoostJSONString(const char* json_str, size_t length, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+    << "TreeliteLoadXGBoostJSONString() is deprecated. Please use "
+    << "TreeliteLoadXGBoostJSONStringEx() instead.";
   return TreeliteLoadXGBoostJSONStringEx(json_str, length, "{}", out);
 }
 
@@ -162,6 +178,9 @@ int TreeliteLoadXGBoostJSONStringEx(
 }
 
 int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadXGBoostModelFromMemoryBuffer() is deprecated. Please use "
+      << "TreeliteLoadXGBoostModelFromMemoryBufferEx() instead.";
   return TreeliteLoadXGBoostModelFromMemoryBufferEx(buf, len, "{}", out);
 }
 
@@ -175,6 +194,9 @@ int TreeliteLoadXGBoostModelFromMemoryBufferEx(
 }
 
 int TreeliteLoadLightGBMModelFromString(const char* model_str, ModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadLightGBMModelFromString() is deprecated. Please use "
+      << "TreeliteLoadLightGBMModelFromStringEx() instead.";
   return TreeliteLoadLightGBMModelFromStringEx(model_str, "{}", out);
 }
 
@@ -298,19 +320,68 @@ int TreeliteFreeModel(ModelHandle handle) {
   API_END();
 }
 
+int TreeliteGTILParseConfig(const char* config_json, GTILConfigHandle* out) {
+  API_BEGIN();
+  auto parsed_config = std::make_unique<gtil::Configuration>(config_json);
+  *out = static_cast<GTILConfigHandle>(parsed_config.release());
+  API_END();
+}
+
+int TreeliteGTILDeleteConfig(GTILConfigHandle handle) {
+  API_BEGIN();
+  delete static_cast<gtil::Configuration*>(handle);
+  API_END();
+}
+
 int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* out) {
   API_BEGIN();
+  TREELITE_LOG(WARNING)
+    << "TreeliteGTILGetPredictOutputSize() is deprecated; "
+    << "please use TreeliteGTILGetPredictOutputSizeEx() instead";
   const auto* model_ = static_cast<const Model*>(model);
-  *out = gtil::GetPredictOutputSize(model_, num_row);
+  *out = gtil::GetPredictOutputSize(model_, num_row, gtil::Configuration{});
+  API_END();
+}
+
+int TreeliteGTILGetPredictOutputSizeEx(ModelHandle model, size_t num_row, GTILConfigHandle config,
+                                       size_t* out) {
+  API_BEGIN();
+  const auto* model_ = static_cast<const Model*>(model);
+  const auto* config_ = static_cast<const gtil::Configuration*>(config);
+  *out = gtil::GetPredictOutputSize(model_, num_row, *config_);
   API_END();
 }
 
 int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row, float* output,
                         int nthread, int pred_transform, size_t* out_result_size) {
   API_BEGIN();
+  TREELITE_LOG(WARNING)
+    << "TreeliteGTILPredict() is deprecated; please use TreeliteGTILPredictEx() instead.";
   const auto* model_ = static_cast<const Model*>(model);
-  *out_result_size =
-      gtil::Predict(model_, input, num_row, output, nthread, (pred_transform == 1));
+  gtil::Configuration config;
+  config.pred_type = (pred_transform == 1 ? treelite::gtil::PredictType::kPredictDefault
+                                          : treelite::gtil::PredictType::kPredictRaw);
+  config.nthread = nthread;
+  auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
+  *out_result_size = gtil::Predict(model_, input, num_row, output, config,
+                                   pred_shape);
+  API_END();
+}
+
+int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row, float* output,
+                          GTILConfigHandle config, size_t* out_result_size,
+                          size_t* out_result_ndim, size_t** out_result_shape) {
+  API_BEGIN();
+  const auto* model_ = static_cast<const Model*>(model);
+  const auto* config_ = static_cast<const gtil::Configuration*>(config);
+  auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
+  *out_result_size = gtil::Predict(model_, input, num_row, output, *config_,
+                                   pred_shape);
+  auto prod = std::accumulate<>(std::begin(pred_shape), std::end(pred_shape), 1,
+                                std::multiplies<>{});
+  TREELITE_CHECK_EQ(prod, *out_result_size);
+  *out_result_ndim = pred_shape.size();
+  *out_result_shape = pred_shape.data();
   API_END();
 }
 

@@ -78,6 +78,13 @@ from shared libraries and to make predictions.
    :project: treelite
    :content-only:
 
+General Tree Inference Library (GTIL)
+-------------------------------------
+
+.. doxygengroup:: gtil
+   :project: treelite
+   :content-only:
+
 Handle types
 ------------
 Treelite uses C++ classes to define its internal data structures. In order to

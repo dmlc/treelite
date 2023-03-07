@@ -135,7 +135,7 @@ void ParseTree(const rapidjson::Value::ConstObject& object, treelite::Tree<float
 
   // Assign node ID's so that a breadth-wise traversal would yield
   // the monotonic sequence 0, 1, 2, ...
-  std::queue<std::pair<std::int32_t, int>> Q; // (old ID, new ID) pair
+  std::queue<std::pair<std::int32_t, int>> Q;  // (old ID, new ID) pair
   Q.emplace(0, 0);
   while (!Q.empty()) {
     auto [node_id, new_node_id] = Q.front();

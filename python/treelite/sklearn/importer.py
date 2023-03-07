@@ -34,6 +34,7 @@ class ArrayOfArrays:
     def add(self, array, *, expected_shape=None):
         """Add an array to the collection"""
         assert array.dtype == self.dtype
+        assert array.flags.c_contiguous
         if expected_shape:
             assert (
                 array.shape == expected_shape
@@ -336,6 +337,7 @@ def _import_hist_gradient_boosting(sklearn_model):
         HistGradientBoostingRegressor as HistGradientBoostingR,
     )
 
+    # Arrays to be passed to C API functions
     node_count = []
     children_left = ArrayOfArrays(dtype=np.int64)
     children_right = ArrayOfArrays(dtype=np.int64)
@@ -345,6 +347,10 @@ def _import_hist_gradient_boosting(sklearn_model):
     value = ArrayOfArrays(dtype=np.float64)
     n_node_samples = ArrayOfArrays(dtype=np.int64)
     gain = ArrayOfArrays(dtype=np.float64)
+
+    # Store all arrays here, so that they don't get garbage collected away
+    trees = []
+
     for estimator in sklearn_model._predictors:
         estimator_range = estimator
         learning_rate = sklearn_model.learning_rate
@@ -355,20 +361,24 @@ def _import_hist_gradient_boosting(sklearn_model):
             #  "is_categorical", "bitset_idx")
             nodes = sub_estimator.nodes
             node_count.append(len(nodes))
-            children_left.add(
-                np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64)
-            )
-            children_right.add(
-                np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64)
-            )
-            feature.add(np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64))
-            threshold.add(np.array([n[3] for n in nodes], dtype=np.float64))
-            default_left.add(np.array([n[4] for n in nodes], dtype=np.int8))
-            value.add(
-                np.array([[n[0] * learning_rate] for n in nodes], dtype=np.float64)
-            )
-            n_node_samples.add(np.array([[n[1]] for n in nodes], dtype=np.int64))
-            gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
+            trees.append({
+                "children_left": np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64),
+                "children_right": np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64),
+                "feature": np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64),
+                "threshold": np.array([n[3] for n in nodes], dtype=np.float64),
+                "default_left": np.array([n[4] for n in nodes], dtype=np.int8),
+                "value": np.array([[n[0] * learning_rate] for n in nodes], dtype=np.float64),
+                "n_node_samples": np.array([[n[1]] for n in nodes], dtype=np.int64),
+                "gain": np.array([n[7] for n in nodes], dtype=np.float64),
+            })
+            children_left.add(trees[-1]["children_left"])
+            children_right.add(trees[-1]["children_right"])
+            feature.add(trees[-1]["feature"])
+            threshold.add(trees[-1]["threshold"])
+            default_left.add(trees[-1]["default_left"])
+            value.add(trees[-1]["value"])
+            n_node_samples.add(trees[-1]["n_node_samples"])
+            gain.add(trees[-1]["gain"])
 
             # TODO(hcho3): Add support for categorical splits
             for (node_idx, node) in enumerate(nodes):

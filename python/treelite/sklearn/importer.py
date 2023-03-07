@@ -17,12 +17,15 @@ class ArrayOfArrays:
     """
 
     def __init__(self, *, dtype):
+        int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
         if dtype == np.int64:
             self.ptr_type = int64_ptr_type
         elif dtype == np.float64:
             self.ptr_type = float64_ptr_type
+        elif dtype == np.int8:
+            self.ptr_type = int8_ptr_type
         else:
             raise ValueError(f"dtype {dtype} is not supported")
         self.dtype = dtype
@@ -94,6 +97,8 @@ def import_model(sklearn_model):
                     :py:class:`~sklearn.ensemble.ExtraTreesClassifier` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
                     :py:class:`~sklearn.ensemble.GradientBoostingClassifier` / \
+                    :py:class:`~sklearn.ensemble.HistGradientBoostingRegressor` / \
+                    :py:class:`~sklearn.ensemble.HistGradientBoostingClassifier` / \
                     :py:class:`~sklearn.ensemble.IsolationForest`
         Python handle to scikit-learn model
 
@@ -116,17 +121,32 @@ def import_model(sklearn_model):
 
       import treelite.sklearn
       model = treelite.sklearn.import_model(clf)
+
+    Notes
+    -----
+    This function does not yet support categorical splits in HistGradientBoostingRegressor and
+    HistGradientBoostingClassifier. If you are using either estimator types, make sure that all
+    test nodes have numerical test conditions.
     """
     try:
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
         from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
         from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
+        from sklearn.ensemble import (
+            HistGradientBoostingClassifier as HistGradientBoostingC,
+        )
+        from sklearn.ensemble import (
+            HistGradientBoostingRegressor as HistGradientBoostingR,
+        )
         from sklearn.ensemble import IsolationForest
         from sklearn.ensemble import RandomForestClassifier as RandomForestC
         from sklearn.ensemble import RandomForestRegressor as RandomForestR
     except ImportError as e:
         raise TreeliteError("This function requires scikit-learn package") from e
+
+    if isinstance(sklearn_model, (HistGradientBoostingR, HistGradientBoostingC)):
+        return _import_hist_gradient_boosting(sklearn_model)
 
     if isinstance(
         sklearn_model,
@@ -305,3 +325,96 @@ def import_model(sklearn_model):
             + "boosted trees are supported"
         )
     return Model(handle)
+
+
+def _import_hist_gradient_boosting(sklearn_model):
+    """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
+    from sklearn.ensemble import (
+        HistGradientBoostingClassifier as HistGradientBoostingC,
+    )
+    from sklearn.ensemble import (
+        HistGradientBoostingRegressor as HistGradientBoostingR,
+    )
+
+    node_count = []
+    children_left = ArrayOfArrays(dtype=np.int64)
+    children_right = ArrayOfArrays(dtype=np.int64)
+    feature = ArrayOfArrays(dtype=np.int64)
+    threshold = ArrayOfArrays(dtype=np.float64)
+    default_left = ArrayOfArrays(dtype=np.int8)
+    value = ArrayOfArrays(dtype=np.float64)
+    n_node_samples = ArrayOfArrays(dtype=np.int64)
+    gain = ArrayOfArrays(dtype=np.float64)
+    for estimator in sklearn_model._predictors:
+        estimator_range = estimator
+        learning_rate = sklearn_model.learning_rate
+        for sub_estimator in estimator_range:
+            # each node has values:
+            # ("value", "count", "feature_idx", "threshold", "missing_go_to_left",
+            #  "left", "right", "gain", "depth", "is_leaf", "bin_threshold",
+            #  "is_categorical", "bitset_idx")
+            nodes = sub_estimator.nodes
+            node_count.append(len(nodes))
+            children_left.add(
+                np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64)
+            )
+            children_right.add(
+                np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64)
+            )
+            feature.add(np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64))
+            threshold.add(np.array([n[3] for n in nodes], dtype=np.float64))
+            default_left.add(np.array([n[4] for n in nodes], dtype=np.int8))
+            value.add(
+                np.array([[n[0] * learning_rate] for n in nodes], dtype=np.float64)
+            )
+            n_node_samples.add(np.array([[n[1]] for n in nodes], dtype=np.int64))
+            gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
+
+            # TODO(hcho3): Add support for categorical splits
+            for (node_idx, node) in enumerate(nodes):
+                if node[11]:
+                    raise NotImplementedError(
+                        "Categorical splits are not yet supported for "
+                        "HistGradientBoostingClassifier / HistGradientBoostingRegressor"
+                    )
+
+    handle = ctypes.c_void_p()
+    if isinstance(sklearn_model, (HistGradientBoostingR,)):
+        _check_call(
+            _LIB.TreeliteLoadSKLearnHistGradientBoostingRegressor(
+                ctypes.c_int(sklearn_model.n_iter_),
+                ctypes.c_int(sklearn_model.n_features_in_),
+                c_array(ctypes.c_int64, node_count),
+                children_left.as_c_array(),
+                children_right.as_c_array(),
+                feature.as_c_array(),
+                threshold.as_c_array(),
+                default_left.as_c_array(),
+                value.as_c_array(),
+                n_node_samples.as_c_array(),
+                gain.as_c_array(),
+                ctypes.byref(handle),
+            )
+        )
+    elif isinstance(sklearn_model, (HistGradientBoostingC,)):
+        _check_call(
+            _LIB.TreeliteLoadSKLearnHistGradientBoostingClassifier(
+                ctypes.c_int(sklearn_model.n_iter_),
+                ctypes.c_int(sklearn_model.n_features_in_),
+                ctypes.c_int(len(sklearn_model.classes_)),
+                c_array(ctypes.c_int64, node_count),
+                children_left.as_c_array(),
+                children_right.as_c_array(),
+                feature.as_c_array(),
+                threshold.as_c_array(),
+                default_left.as_c_array(),
+                value.as_c_array(),
+                n_node_samples.as_c_array(),
+                gain.as_c_array(),
+                ctypes.byref(handle),
+            )
+        )
+    else:
+        raise TreeliteError(
+            f"Unsupported model type {sklearn_model.__class__.__name__}"
+        )

@@ -225,6 +225,69 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity);
 
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \return loaded model
+ */
+std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingRegressor(
+    int n_iter, int n_features, const std::int64_t* node_count, const std::int64_t** children_left,
+    const std::int64_t** children_right, const std::int64_t** feature, const double** threshold,
+    const std::int8_t** default_left, const double** value, const std::int64_t** n_node_samples,
+    const double** gain);
+
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param n_classes Number of classes in the target variable
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \return loaded model
+ */
+std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifier(
+    int n_iter, int n_features, int n_classes, const std::int64_t* node_count,
+    const std::int64_t** children_left, const std::int64_t** children_right,
+    const std::int64_t** feature, const double** threshold, const std::int8_t** default_left,
+    const double** value, const std::int64_t** n_node_samples, const double** gain);
+
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally
 //--------------------------------------------------------------------------

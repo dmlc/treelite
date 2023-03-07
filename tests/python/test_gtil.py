@@ -17,6 +17,7 @@ from sklearn.ensemble import (
     ExtraTreesRegressor,
     GradientBoostingClassifier,
     GradientBoostingRegressor,
+    HistGradientBoostingClassifier,
     IsolationForest,
     RandomForestClassifier,
     RandomForestRegressor,
@@ -70,9 +71,7 @@ def test_skl_regressor(clazz, dataset, n_estimators):
 
 
 @given(
-    clazz=sampled_from(
-        [RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier]
-    ),
+    clazz=sampled_from([HistGradientBoostingClassifier]),
     dataset=standard_classification_datasets(n_classes=just(2)),
     n_estimators=integers(min_value=5, max_value=50),
 )
@@ -80,9 +79,13 @@ def test_skl_regressor(clazz, dataset, n_estimators):
 def test_skl_binary_classifier(clazz, dataset, n_estimators):
     """Scikit-learn binary classifier"""
     X, y = dataset
-    kwargs = {"max_depth": 3, "random_state": 0, "n_estimators": n_estimators}
+    kwargs = {"max_depth": 3, "random_state": 0}
     if clazz == GradientBoostingClassifier:
         kwargs["init"] = "zero"
+    if clazz == HistGradientBoostingClassifier:
+        kwargs["max_iter"] = n_estimators
+    else:
+        kwargs["n_estimators"] = n_estimators
     clf = clazz(**kwargs)
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
@@ -129,6 +132,26 @@ def test_skl_converter_iforest(dataset):
     tl_model = treelite.sklearn.import_model(clf)
     out_pred = treelite.gtil.predict(tl_model, X)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=2)
+
+
+def test_skl_hist_gradient_boosting_with_categorical():
+    # We don't yet support HistGradientBoostingClassifier with categorical splits
+    # So make sure that an exception is thrown properly
+    rng = np.random.RandomState(0)
+    n_samples = 1000
+    f1 = rng.rand(n_samples)
+    f2 = rng.randint(4, size=n_samples)
+    X = np.c_[f1, f2]
+    y = np.zeros(shape=n_samples)
+    y[X[:, 1] % 2 == 0] = 1
+    clf = HistGradientBoostingClassifier(max_iter=20, categorical_features=[1])
+    clf.fit(X, y)
+    np.testing.assert_array_equal(clf.is_categorical_, [False, True])
+
+    with pytest.raises(
+        NotImplementedError, match=r"Categorical splits are not yet supported.*"
+    ):
+        treelite.sklearn.import_model(clf)
 
 
 @given(

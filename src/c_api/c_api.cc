@@ -274,6 +274,32 @@ int TreeliteLoadSKLearnGradientBoostingClassifier(
   API_END();
 }
 
+int TreeliteLoadSKLearnHistGradientBoostingRegressor(
+    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const int8_t** default_left, const double** value, const int64_t** n_node_samples,
+    const double** gain, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingRegressor(
+      n_iter, n_features, node_count, children_left, children_right, feature,
+      threshold, default_left, value, n_node_samples, gain);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnHistGradientBoostingClassifier(
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
+    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
+    const double** threshold, const int8_t** default_left, const double** value,
+    const int64_t** n_node_samples, const double** gain, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingClassifier(
+      n_iter, n_features, n_classes, node_count, children_left, children_right, feature,
+      threshold, default_left, value, n_node_samples, gain);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteSerializeModel(const char* filename, ModelHandle handle) {
   API_BEGIN();
   FILE* fp = std::fopen(filename, "wb");

@@ -371,14 +371,6 @@ def _import_hist_gradient_boosting(sklearn_model):
                 "n_node_samples": np.array([[n[1]] for n in nodes], dtype=np.int64),
                 "gain": np.array([n[7] for n in nodes], dtype=np.float64),
             })
-            children_left.add(trees[-1]["children_left"])
-            children_right.add(trees[-1]["children_right"])
-            feature.add(trees[-1]["feature"])
-            threshold.add(trees[-1]["threshold"])
-            default_left.add(trees[-1]["default_left"])
-            value.add(trees[-1]["value"])
-            n_node_samples.add(trees[-1]["n_node_samples"])
-            gain.add(trees[-1]["gain"])
 
             # TODO(hcho3): Add support for categorical splits
             for (node_idx, node) in enumerate(nodes):
@@ -387,6 +379,16 @@ def _import_hist_gradient_boosting(sklearn_model):
                         "Categorical splits are not yet supported for "
                         "HistGradientBoostingClassifier / HistGradientBoostingRegressor"
                     )
+
+    for tree in trees:
+        children_left.add(tree["children_left"])
+        children_right.add(tree["children_right"])
+        feature.add(tree["feature"])
+        threshold.add(tree["threshold"])
+        default_left.add(tree["default_left"])
+        value.add(tree["value"])
+        n_node_samples.add(tree["n_node_samples"])
+        gain.add(tree["gain"])
 
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):

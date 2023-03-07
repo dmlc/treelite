@@ -383,7 +383,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierBinary
       const double leaf_value = value[tree_id][node_id];
       dest_tree.SetLeaf(new_node_id, leaf_value);
   };
-  return LoadSKLearnHistGradientBoosting(n_iter * n_classes, n_features, n_classes, node_count,
+  return LoadSKLearnHistGradientBoosting(n_iter, n_features, n_classes, node_count,
       children_left, children_right, feature, threshold, default_left, value, n_node_samples, gain,
       meta_handler, leaf_handler);
 }

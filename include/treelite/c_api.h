@@ -224,6 +224,18 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromStringEx(const char* model_str,
                                                        ModelHandle* out);
 
 /*!
+ * \brief Construct a new Treelite model from a JSON string.
+ * \param json_str JSON string
+ * \param config_json Configuration to use when parsing the JSON string. Configuration should be
+ *                    a JSON object consisting of key-value pairs.
+ * \param out Constructed model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteBuildModelFromJSONString(const char* json_str,
+                                                  const char* config_json,
+                                                  ModelHandle* out);
+
+/*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
  *        learn the mearning of the arrays in detail. Note that this function can also be used to

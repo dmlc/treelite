@@ -71,6 +71,15 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
     const char* json_str, std::size_t length, const char* config_json);
 /*!
+ * \brief Construct a new Treelite model from a JSON string.
+ * \param json_str JSON string
+ * \param config_json Configuration to use when parsing the JSON string. Configuration should be
+ *                    a JSON object consisting of key-value pairs.
+ * \return Constructed model
+ */
+std::unique_ptr<treelite::Model> BuildModelFromJSONString(
+    const char* json_str, const char* config_json);
+/*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
  *        learn the mearning of the arrays in detail. Note that this function can also be used to

@@ -422,6 +422,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifier(
   } else {
     // TODO(hcho3): Add support for multi-class HistGradientBoostingClassifier
     TREELITE_LOG(FATAL) << "HistGradientBoostingClassifier with n_classes > 2 is not supported yet";
+    return {};
   }
 }
 

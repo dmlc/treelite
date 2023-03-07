@@ -120,7 +120,6 @@ target_sources(objtreelite
     threading_utils/parallel_for.h
     annotator.cc
     filesystem.cc
-    optable.cc
     serializer.cc
     json_serializer.cc
     model_concat.cc

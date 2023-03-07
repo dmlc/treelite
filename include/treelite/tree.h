@@ -9,6 +9,7 @@
 
 #include <treelite/base.h>
 #include <treelite/version.h>
+#include <treelite/logging.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -177,6 +178,21 @@ inline std::string TaskTypeToString(TaskType type) {
   }
 }
 
+inline TaskType StringToTaskType(const std::string& str) {
+  if (str == "BinaryClfRegr") {
+    return TaskType::kBinaryClfRegr;
+  } else if (str == "MultiClfGrovePerClass") {
+    return TaskType::kMultiClfGrovePerClass;
+  } else if (str == "MultiClfProbDistLeaf") {
+    return TaskType::kMultiClfProbDistLeaf;
+  } else if (str == "MultiClfCategLeaf") {
+    return TaskType::kMultiClfCategLeaf;
+  } else {
+    TREELITE_LOG(FATAL) << "Unknown task type: " << str;
+    return TaskType::kBinaryClfRegr;  // to avoid compiler warning
+  }
+}
+
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
   enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
@@ -212,6 +228,17 @@ inline std::string OutputTypeToString(TaskParam::OutputType type) {
     case TaskParam::OutputType::kFloat: return "float";
     case TaskParam::OutputType::kInt: return "int";
     default: return "";
+  }
+}
+
+inline TaskParam::OutputType StringToOutputType(const std::string& str) {
+  if (str == "float") {
+    return TaskParam::OutputType::kFloat;
+  } else if (str == "int") {
+    return TaskParam::OutputType::kInt;
+  } else {
+    TREELITE_LOG(FATAL) << "Unrecognized output type: " << str;
+    return TaskParam::OutputType::kFloat;  // to avoid compiler warning
   }
 }
 

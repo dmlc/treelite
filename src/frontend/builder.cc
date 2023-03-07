@@ -217,8 +217,7 @@ void
 TreeBuilder::SetNumericalTestNode(int node_key, unsigned feature_id, const char* opname,
                                   Value threshold, bool default_left, int left_child_key,
                                   int right_child_key) {
-  TREELITE_CHECK_GT(optable.count(opname), 0) << "No operator \"" << opname << "\" exists";
-  Operator op = optable.at(opname);
+  Operator op = LookupOperatorByName(opname);
   SetNumericalTestNode(node_key, feature_id, op, std::move(threshold), default_left,
                        left_child_key, right_child_key);
 }

@@ -71,7 +71,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
     const char* json_str, std::size_t length, const char* config_json);
 /*!
- * \brief Construct a new Treelite model from a JSON string.
+ * \brief Construct a new Treelite model from a JSON string. Note: The built model will use float32
+ *        to store thresholds and leaf values.
  * \param json_str JSON string
  * \param config_json Configuration to use when parsing the JSON string. Configuration should be
  *                    a JSON object consisting of key-value pairs.

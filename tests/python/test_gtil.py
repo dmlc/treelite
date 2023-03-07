@@ -178,6 +178,7 @@ def test_skl_converter_iforest(dataset):
 
 
 def test_skl_hist_gradient_boosting_with_categorical():
+    """Scikit-learn HistGradientBoostingClassifier, with categorical splits"""
     # We don't yet support HistGradientBoostingClassifier with categorical splits
     # So make sure that an exception is thrown properly
     rng = np.random.RandomState(0)

@@ -331,6 +331,7 @@ def import_model(sklearn_model):
 
 
 def _import_hist_gradient_boosting(sklearn_model):
+    # pylint: disable=R0914,W0212
     """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
     from sklearn.ensemble import HistGradientBoostingClassifier as HistGradientBoostingC
     from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
@@ -369,7 +370,7 @@ def _import_hist_gradient_boosting(sklearn_model):
             gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
 
             # TODO(hcho3): Add support for categorical splits
-            for (node_idx, node) in enumerate(nodes):
+            for node in nodes:
                 if node[11]:
                     raise NotImplementedError(
                         "Categorical splits are not yet supported for "

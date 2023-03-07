@@ -210,7 +210,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
-    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
     const double** impurity) {
@@ -230,13 +230,13 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
   };
-  return LoadSKLearnModel(n_estimators, n_features, 1, node_count, children_left,
+  return LoadSKLearnModel(n_iter, n_features, 1, node_count, children_left,
       children_right, feature, threshold, value, n_node_samples, weighted_n_node_samples, impurity,
       meta_handler, leaf_handler);
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity) {
@@ -256,13 +256,13 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
   };
-  return LoadSKLearnModel(n_estimators, n_features, n_classes, node_count, children_left,
+  return LoadSKLearnModel(n_iter, n_features, n_classes, node_count, children_left,
       children_right, feature, threshold, value, n_node_samples, weighted_n_node_samples, impurity,
       meta_handler, leaf_handler);
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity) {
@@ -282,23 +282,23 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
   };
-  return LoadSKLearnModel(n_estimators * n_classes, n_features, n_classes, node_count,
+  return LoadSKLearnModel(n_iter * n_classes, n_features, n_classes, node_count,
       children_left, children_right, feature, threshold, value, n_node_samples,
       weighted_n_node_samples, impurity, meta_handler, leaf_handler);
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity) {
   TREELITE_CHECK_GE(n_classes, 2);
   if (n_classes == 2) {
-    return LoadSKLearnGradientBoostingClassifierBinary(n_estimators, n_features, n_classes,
+    return LoadSKLearnGradientBoostingClassifierBinary(n_iter, n_features, n_classes,
         node_count, children_left, children_right, feature, threshold, value, n_node_samples,
         weighted_n_node_samples, impurity);
   } else {
-    return LoadSKLearnGradientBoostingClassifierMulticlass(n_estimators, n_features, n_classes,
+    return LoadSKLearnGradientBoostingClassifierMulticlass(n_iter, n_features, n_classes,
         node_count, children_left, children_right, feature, threshold, value, n_node_samples,
         weighted_n_node_samples, impurity);
   }

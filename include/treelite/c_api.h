@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2023 by Contributors
  * \file c_api.h
  * \author Hyunsu Cho
  * \brief C API of Treelite, used for interfacing with other languages
@@ -226,7 +226,7 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromStringEx(const char* model_str,
 /*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail. Note that this function can also be used to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
  *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesRegressor).
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
@@ -259,7 +259,7 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
 /*!
  * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
+ *        learn the meaning of the arrays in detail.
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
@@ -291,7 +291,7 @@ TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail. Note that this function can also be used to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
  *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesClassifier).
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
@@ -325,8 +325,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
 /*!
  * \brief Load a scikit-learn gradient boosting regressor model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
- * \param n_estimators number of trees in the random forest
+ *        learn the meaning of the arrays in detail.
+ * \param n_iter Number of boosting iterations
  * \param n_features number of features in the training data
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
  * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
@@ -349,7 +349,7 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
-    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
     const double** impurity, ModelHandle* out);
@@ -357,8 +357,8 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
 /*!
  * \brief Load a scikit-learn gradient boosting classifier model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
- * \param n_estimators number of trees in the random forest
+ *        learn the meaning of the arrays in detail.
+ * \param n_iter Number of boosting iterations
  * \param n_features number of features in the training data
  * \param n_classes number of classes in the target variable
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
@@ -382,7 +382,7 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity, ModelHandle* out);

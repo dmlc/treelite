@@ -30,21 +30,23 @@ class ArrayOfArrays:
             raise ValueError(f"dtype {dtype} is not supported")
         self.dtype = dtype
         self.collection = []
+        self.collection_ptr = []
 
     def add(self, array, *, expected_shape=None):
         """Add an array to the collection"""
         assert array.dtype == self.dtype
-        assert array.flags.c_contiguous
         if expected_shape:
             assert (
                 array.shape == expected_shape
             ), f"Expected shape: {expected_shape}, Got shape {array.shape}"
         v = np.array(array, copy=False, dtype=self.dtype, order="C")
-        self.collection.append(v.ctypes.data_as(self.ptr_type))
+        self.collection.append(v)
 
     def as_c_array(self):
         """Prepare the collection to pass as an argument of a C function"""
-        return c_array(self.ptr_type, self.collection)
+        for v in self.collection:
+            self.collection_ptr.append(v.ctypes.data_as(self.ptr_type))
+        return c_array(self.ptr_type, self.collection_ptr)
 
 
 # Helpers for isolation forests
@@ -330,12 +332,8 @@ def import_model(sklearn_model):
 
 def _import_hist_gradient_boosting(sklearn_model):
     """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
-    from sklearn.ensemble import (
-        HistGradientBoostingClassifier as HistGradientBoostingC,
-    )
-    from sklearn.ensemble import (
-        HistGradientBoostingRegressor as HistGradientBoostingR,
-    )
+    from sklearn.ensemble import HistGradientBoostingClassifier as HistGradientBoostingC
+    from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
 
     # Arrays to be passed to C API functions
     node_count = []
@@ -348,12 +346,8 @@ def _import_hist_gradient_boosting(sklearn_model):
     n_node_samples = ArrayOfArrays(dtype=np.int64)
     gain = ArrayOfArrays(dtype=np.float64)
 
-    # Store all arrays here, so that they don't get garbage collected away
-    trees = []
-
     for estimator in sklearn_model._predictors:
         estimator_range = estimator
-        learning_rate = sklearn_model.learning_rate
         for sub_estimator in estimator_range:
             # each node has values:
             # ("value", "count", "feature_idx", "threshold", "missing_go_to_left",
@@ -361,16 +355,18 @@ def _import_hist_gradient_boosting(sklearn_model):
             #  "is_categorical", "bitset_idx")
             nodes = sub_estimator.nodes
             node_count.append(len(nodes))
-            trees.append({
-                "children_left": np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64),
-                "children_right": np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64),
-                "feature": np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64),
-                "threshold": np.array([n[3] for n in nodes], dtype=np.float64),
-                "default_left": np.array([n[4] for n in nodes], dtype=np.int8),
-                "value": np.array([[n[0] * learning_rate] for n in nodes], dtype=np.float64),
-                "n_node_samples": np.array([[n[1]] for n in nodes], dtype=np.int64),
-                "gain": np.array([n[7] for n in nodes], dtype=np.float64),
-            })
+            children_left.add(
+                np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64)
+            )
+            children_right.add(
+                np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64)
+            )
+            feature.add(np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64))
+            threshold.add(np.array([n[3] for n in nodes], dtype=np.float64))
+            default_left.add(np.array([n[4] for n in nodes], dtype=np.int8))
+            value.add(np.array([[n[0]] for n in nodes], dtype=np.float64))
+            n_node_samples.add(np.array([[n[1]] for n in nodes], dtype=np.int64))
+            gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
 
             # TODO(hcho3): Add support for categorical splits
             for (node_idx, node) in enumerate(nodes):
@@ -379,16 +375,6 @@ def _import_hist_gradient_boosting(sklearn_model):
                         "Categorical splits are not yet supported for "
                         "HistGradientBoostingClassifier / HistGradientBoostingRegressor"
                     )
-
-    for tree in trees:
-        children_left.add(tree["children_left"])
-        children_right.add(tree["children_right"])
-        feature.add(tree["feature"])
-        threshold.add(tree["threshold"])
-        default_left.add(tree["default_left"])
-        value.add(tree["value"])
-        n_node_samples.add(tree["n_node_samples"])
-        gain.add(tree["gain"])
 
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):
@@ -405,6 +391,9 @@ def _import_hist_gradient_boosting(sklearn_model):
                 value.as_c_array(),
                 n_node_samples.as_c_array(),
                 gain.as_c_array(),
+                sklearn_model._baseline_prediction.ctypes.data_as(
+                    ctypes.POINTER(ctypes.c_double)
+                ),
                 ctypes.byref(handle),
             )
         )
@@ -423,6 +412,9 @@ def _import_hist_gradient_boosting(sklearn_model):
                 value.as_c_array(),
                 n_node_samples.as_c_array(),
                 gain.as_c_array(),
+                sklearn_model._baseline_prediction.ctypes.data_as(
+                    ctypes.POINTER(ctypes.c_double)
+                ),
                 ctypes.byref(handle),
             )
         )
@@ -430,3 +422,4 @@ def _import_hist_gradient_boosting(sklearn_model):
         raise TreeliteError(
             f"Unsupported model type {sklearn_model.__class__.__name__}"
         )
+    return Model(handle)

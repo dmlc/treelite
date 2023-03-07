@@ -357,17 +357,37 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingRegressor(
     int n_iter, int n_features, const std::int64_t* node_count, const std::int64_t** children_left,
     const std::int64_t** children_right, const std::int64_t** feature, const double** threshold,
     const std::int8_t** default_left, const double** value, const std::int64_t** n_node_samples,
-    const double** gain) {
-  TREELITE_LOG(FATAL) << "Not implemented";
-  return {};
+    const double** gain, const double* baseline_prediction) {
+  const auto global_bias = static_cast<float>(baseline_prediction[0]);
+  auto meta_handler = [global_bias](treelite::Model* model, int n_features, int n_classes) {
+      model->num_feature = n_features;
+      model->average_tree_output = false;
+      model->task_type = treelite::TaskType::kBinaryClfRegr;
+      model->task_param.grove_per_class = false;
+      model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
+      model->task_param.num_class = 1;
+      model->task_param.leaf_vector_size = 1;
+      std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
+      model->param.global_bias = global_bias;
+  };
+  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, const double** value,
+                         int n_classes, treelite::Tree<double, double>& dest_tree) {
+      const double leaf_value = value[tree_id][node_id];
+      dest_tree.SetLeaf(new_node_id, leaf_value);
+  };
+  return LoadSKLearnHistGradientBoosting(n_iter, n_features, 1, node_count,
+      children_left, children_right, feature, threshold, default_left, value, n_node_samples, gain,
+      meta_handler, leaf_handler);
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierBinary(
     int n_iter, int n_features, int n_classes, const std::int64_t* node_count,
     const std::int64_t** children_left, const std::int64_t** children_right,
     const std::int64_t** feature, const double** threshold, const std::int8_t** default_left,
-    const double** value, const std::int64_t** n_node_samples, const double** gain) {
-  auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
+    const double** value, const std::int64_t** n_node_samples, const double** gain,
+    const double* baseline_prediction) {
+  const auto global_bias = static_cast<float>(baseline_prediction[0]);
+  auto meta_handler = [global_bias](treelite::Model* model, int n_features, int n_classes) {
       model->num_feature = n_features;
       model->average_tree_output = false;
       model->task_type = treelite::TaskType::kBinaryClfRegr;
@@ -376,7 +396,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierBinary
       model->task_param.num_class = 1;
       model->task_param.leaf_vector_size = 1;
       std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
-      model->param.global_bias = 0.0f;
+      model->param.global_bias = global_bias;
   };
   auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, const double** value,
                          int n_classes, treelite::Tree<double, double>& dest_tree) {
@@ -388,46 +408,20 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierBinary
       meta_handler, leaf_handler);
 }
 
-std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierMulticlass(
-    int n_iter, int n_features, int n_classes, const std::int64_t* node_count,
-    const std::int64_t** children_left, const std::int64_t** children_right,
-    const std::int64_t** feature, const double** threshold, const std::int8_t** default_left,
-    const double** value, const std::int64_t** n_node_samples, const double** gain) {
-  auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
-      model->num_feature = n_features;
-      model->average_tree_output = false;
-      model->task_type = treelite::TaskType::kMultiClfGrovePerClass;
-      model->task_param.grove_per_class = true;
-      model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
-      model->task_param.num_class = n_classes;
-      model->task_param.leaf_vector_size = 1;
-      std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
-      model->param.global_bias = 0.0f;
-  };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, const double** value,
-                         int n_classes, treelite::Tree<double, double>& dest_tree) {
-      const double leaf_value = value[tree_id][node_id];
-      dest_tree.SetLeaf(new_node_id, leaf_value);
-  };
-  return LoadSKLearnHistGradientBoosting(n_iter * n_classes, n_features, n_classes, node_count,
-      children_left, children_right, feature, threshold, default_left, value, n_node_samples, gain,
-      meta_handler, leaf_handler);
-}
-
 std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifier(
     int n_iter, int n_features, int n_classes, const std::int64_t* node_count,
     const std::int64_t** children_left, const std::int64_t** children_right,
     const std::int64_t** feature, const double** threshold, const std::int8_t** default_left,
-    const double** value, const std::int64_t** n_node_samples, const double** gain) {
+    const double** value, const std::int64_t** n_node_samples, const double** gain,
+    const double* baseline_prediction) {
   TREELITE_CHECK_GE(n_classes, 2) << "Number of classes must be at least 2";
   if (n_classes == 2) {
     return LoadSKLearnHistGradientBoostingClassifierBinary(n_iter, n_features, n_classes,
         node_count, children_left, children_right, feature, threshold, default_left, value,
-        n_node_samples, gain);
+        n_node_samples, gain, baseline_prediction);
   } else {
-    return LoadSKLearnHistGradientBoostingClassifierMulticlass(n_iter, n_features, n_classes,
-        node_count, children_left, children_right, feature, threshold, default_left, value,
-        n_node_samples, gain);
+    // TODO(hcho3): Add support for multi-class HistGradientBoostingClassifier
+    TREELITE_LOG(FATAL) << "HistGradientBoostingClassifier with n_classes > 2 is not supported yet";
   }
 }
 

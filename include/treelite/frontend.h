@@ -248,13 +248,16 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(
  *                       node k of the i-th tree.
  * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
  *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,)
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingRegressor(
     int n_iter, int n_features, const std::int64_t* node_count, const std::int64_t** children_left,
     const std::int64_t** children_right, const std::int64_t** feature, const double** threshold,
     const std::int8_t** default_left, const double** value, const std::int64_t** n_node_samples,
-    const double** gain);
+    const double** gain, const double* baseline_prediction);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
@@ -280,13 +283,18 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingRegressor(
  *                       node k of the i-th tree.
  * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
  *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,) for binary classification;
+ *                            (n_classes,) for multi-class classification
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifier(
     int n_iter, int n_features, int n_classes, const std::int64_t* node_count,
     const std::int64_t** children_left, const std::int64_t** children_right,
     const std::int64_t** feature, const double** threshold, const std::int8_t** default_left,
-    const double** value, const std::int64_t** n_node_samples, const double** gain);
+    const double** value, const std::int64_t** n_node_samples, const double** gain,
+    const double* baseline_prediction);
 
 //--------------------------------------------------------------------------
 // model builder interface: build trees incrementally

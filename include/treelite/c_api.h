@@ -412,6 +412,9 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(
  *                       node k of the i-th tree.
  * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
  *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,)
  * \param out pointer to store the loaded model
  * \return 0 for success, -1 for failure
  */
@@ -419,7 +422,7 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(
     int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const int8_t** default_left, const double** value, const int64_t** n_node_samples,
-    const double** gain, ModelHandle* out);
+    const double** gain, const double* baseline_prediction, ModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
@@ -447,6 +450,10 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(
  *                       node k of the i-th tree.
  * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
  *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,) for binary classification;
+ *                            (n_classes,) for multi-class classification
  * \param out pointer to store the loaded model
  * \return 0 for success, -1 for failure
  */
@@ -454,7 +461,8 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(
     int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const int8_t** default_left, const double** value,
-    const int64_t** n_node_samples, const double** gain, ModelHandle* out);
+    const int64_t** n_node_samples, const double** gain, const double* baseline_prediction,
+    ModelHandle* out);
 
 /*!
  * \brief Query the number of trees in the model

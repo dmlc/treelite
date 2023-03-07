@@ -10,7 +10,7 @@ import pytest
 import scipy
 from hypothesis import assume, given, settings
 from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import integers, just, sampled_from
+from hypothesis.strategies import floats, integers, just, sampled_from
 from sklearn.datasets import load_svmlight_file
 from sklearn.ensemble import (
     ExtraTreesClassifier,
@@ -18,6 +18,7 @@ from sklearn.ensemble import (
     GradientBoostingClassifier,
     GradientBoostingRegressor,
     HistGradientBoostingClassifier,
+    HistGradientBoostingRegressor,
     IsolationForest,
     RandomForestClassifier,
     RandomForestRegressor,
@@ -25,6 +26,7 @@ from sklearn.ensemble import (
 from sklearn.model_selection import train_test_split
 
 import treelite
+from treelite import TreeliteError
 
 from .hypothesis_util import (
     standard_classification_datasets,
@@ -49,18 +51,30 @@ except ImportError:
 
 @given(
     clazz=sampled_from(
-        [RandomForestRegressor, ExtraTreesRegressor, GradientBoostingRegressor]
+        [
+            RandomForestRegressor,
+            ExtraTreesRegressor,
+            GradientBoostingRegressor,
+            HistGradientBoostingRegressor,
+        ]
     ),
     dataset=standard_regression_datasets(),
     n_estimators=integers(min_value=5, max_value=50),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_skl_regressor(clazz, dataset, n_estimators):
+def test_skl_regressor(clazz, dataset, n_estimators, callback):
     """Scikit-learn regressor"""
     X, y = dataset
-    kwargs = {"max_depth": 3, "random_state": 0, "n_estimators": n_estimators}
+    kwargs = {"max_depth": 3, "random_state": 0}
     if clazz == GradientBoostingRegressor:
         kwargs["init"] = "zero"
+    if clazz == HistGradientBoostingRegressor:
+        kwargs["max_iter"] = n_estimators
+    else:
+        kwargs["n_estimators"] = n_estimators
+    if clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]:
+        kwargs["learning_rate"] = callback.draw(floats(min_value=0.01, max_value=1.0))
     clf = clazz(**kwargs)
     clf.fit(X, y)
     expected_pred = clf.predict(X)
@@ -71,12 +85,20 @@ def test_skl_regressor(clazz, dataset, n_estimators):
 
 
 @given(
-    clazz=sampled_from([HistGradientBoostingClassifier]),
+    clazz=sampled_from(
+        [
+            RandomForestClassifier,
+            ExtraTreesClassifier,
+            GradientBoostingClassifier,
+            HistGradientBoostingClassifier,
+        ]
+    ),
     dataset=standard_classification_datasets(n_classes=just(2)),
     n_estimators=integers(min_value=5, max_value=50),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_skl_binary_classifier(clazz, dataset, n_estimators):
+def test_skl_binary_classifier(clazz, dataset, n_estimators, callback):
     """Scikit-learn binary classifier"""
     X, y = dataset
     kwargs = {"max_depth": 3, "random_state": 0}
@@ -86,6 +108,8 @@ def test_skl_binary_classifier(clazz, dataset, n_estimators):
         kwargs["max_iter"] = n_estimators
     else:
         kwargs["n_estimators"] = n_estimators
+    if clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]:
+        kwargs["learning_rate"] = callback.draw(floats(min_value=0.01, max_value=1.0))
     clf = clazz(**kwargs)
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)[:, 1]
@@ -97,27 +121,46 @@ def test_skl_binary_classifier(clazz, dataset, n_estimators):
 
 @given(
     clazz=sampled_from(
-        [RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier]
+        [
+            RandomForestClassifier,
+            ExtraTreesClassifier,
+            GradientBoostingClassifier,
+            HistGradientBoostingClassifier,
+        ]
     ),
     dataset=standard_classification_datasets(
         n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
     ),
     n_estimators=integers(min_value=5, max_value=50),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_skl_multiclass_classifier(clazz, dataset, n_estimators):
+def test_skl_multiclass_classifier(clazz, dataset, n_estimators, callback):
     """Scikit-learn multi-class classifier"""
     X, y = dataset
-    kwargs = {"max_depth": 3, "random_state": 0, "n_estimators": n_estimators}
+    kwargs = {"max_depth": 3, "random_state": 0}
     if clazz == GradientBoostingClassifier:
         kwargs["init"] = "zero"
+    if clazz == HistGradientBoostingClassifier:
+        kwargs["max_iter"] = n_estimators
+    else:
+        kwargs["n_estimators"] = n_estimators
+    if clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]:
+        kwargs["learning_rate"] = callback.draw(floats(min_value=0.01, max_value=1.0))
     clf = clazz(**kwargs)
     clf.fit(X, y)
     expected_prob = clf.predict_proba(X)
 
-    tl_model = treelite.sklearn.import_model(clf)
-    out_prob = treelite.gtil.predict(tl_model, X)
-    np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
+    if clazz == HistGradientBoostingClassifier:
+        with pytest.raises(
+            TreeliteError,
+            match=r".*HistGradientBoostingClassifier with n_classes > 2 is not supported yet.*",
+        ):
+            treelite.sklearn.import_model(clf)
+    else:
+        tl_model = treelite.sklearn.import_model(clf)
+        out_prob = treelite.gtil.predict(tl_model, X)
+        np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 
 @given(standard_regression_datasets())

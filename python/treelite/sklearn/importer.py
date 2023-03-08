@@ -15,29 +15,45 @@ class ArrayOfArrays:
     Utility class to marshall a collection of arrays in order to pass to a C function
     """
     def __init__(self, *, dtype):
+        int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
+        uint32_ptr_type = ctypes.POINTER(ctypes.c_uint32)
+        float32_ptr_type = ctypes.POINTER(ctypes.c_float)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
         if dtype == np.int64:
             self.ptr_type = int64_ptr_type
         elif dtype == np.float64:
             self.ptr_type = float64_ptr_type
+        elif dtype == np.float32:
+            self.ptr_type = float32_ptr_type
+        elif dtype == np.int8:
+            self.ptr_type = int8_ptr_type
+        elif dtype == np.uint32:
+            self.ptr_type = uint32_ptr_type
         else:
             raise ValueError(f'dtype {dtype} is not supported')
         self.dtype = dtype
         self.collection = []
+        self.collection_ptr = []
 
     def add(self, array, *, expected_shape=None):
         """Add an array to the collection"""
-        assert array.dtype == self.dtype
+        try:
+            assert array.dtype == self.dtype
+        except AttributeError:
+            pass
         if expected_shape:
-            assert array.shape == expected_shape, \
-                    f'Expected shape: {expected_shape}, Got shape {array.shape}'
-        v = np.array(array, copy=False, dtype=self.dtype, order='C')
-        self.collection.append(v.ctypes.data_as(self.ptr_type))
+            assert (
+                array.shape == expected_shape
+            ), f"Expected shape: {expected_shape}, Got shape {array.shape}"
+        v = np.array(array, copy=False, dtype=self.dtype, order="C")
+        self.collection.append(v)
 
     def as_c_array(self):
         """Prepare the collection to pass as an argument of a C function"""
-        return c_array(self.ptr_type, self.collection)
+        for v in self.collection:
+            self.collection_ptr.append(v.ctypes.data_as(self.ptr_type))
+        return c_array(self.ptr_type, self.collection_ptr)
 
 # Helpers for isolation forests
 def harmonic(number):

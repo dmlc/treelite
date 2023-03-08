@@ -131,7 +131,7 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
     const Metadata& metadata, const std::int64_t* node_count, const std::int8_t** split_type,
     const std::int8_t** default_left, const std::int64_t** children_left,
     const std::int64_t** children_right, const std::int64_t** split_feature,
-    const float** threshold, const float** leaf_value, const std::uint32_t* categories_list,
+    const float** threshold, const float** leaf_value, const std::uint32_t** categories_list,
     const std::int64_t** categories_list_offset_begin,
     const std::int64_t** categories_list_offset_end,
     const std::int8_t** categories_list_right_child);

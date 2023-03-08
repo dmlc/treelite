@@ -71,7 +71,7 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
     const Metadata& metadata, const std::int64_t* node_count, const std::int8_t** split_type,
     const std::int8_t** default_left, const std::int64_t** children_left,
     const std::int64_t** children_right, const std::int64_t** split_feature,
-    const float** threshold, const float** leaf_value, const std::uint32_t* categories_list,
+    const float** threshold, const float** leaf_value, const std::uint32_t** categories_list,
     const std::int64_t** categories_list_offset_begin,
     const std::int64_t** categories_list_offset_end,
     const std::int8_t** categories_list_right_child) {
@@ -118,8 +118,8 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
         } else {
           // categorical split
           std::vector<std::uint32_t> categories_list_{
-              &categories_list[categories_list_offset_begin[tree_id][node_id]],
-              &categories_list[categories_list_offset_end[tree_id][node_id]]
+              &categories_list[tree_id][categories_list_offset_begin[tree_id][node_id]],
+              &categories_list[tree_id][categories_list_offset_end[tree_id][node_id]]
           };
           tree.SetCategoricalSplit(new_node_id, split_feature[tree_id][node_id],
                                    static_cast<bool>(default_left[tree_id][node_id]),

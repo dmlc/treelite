@@ -209,6 +209,23 @@ int TreeliteLoadLightGBMModelFromStringEx(
   API_END();
 }
 
+int TreeliteBuildModelFromArrays(
+    const char* metadata_json, const int64_t* node_count, const int8_t** split_type,
+    const int8_t** default_left, const int64_t** children_left, const int64_t** children_right,
+    const int64_t** split_feature, const float** threshold, const float** leaf_value,
+    const uint32_t* categories_list, const int64_t** categories_list_offset_begin,
+    const int64_t** categories_list_offset_end, const int8_t** categories_list_right_child,
+    ModelHandle* out) {
+  API_BEGIN();
+  auto parsed_metadata = frontend::ParseMetadata(metadata_json);
+  std::unique_ptr<Model> model = frontend::BuildModelFromArrays(
+      parsed_metadata, node_count, split_type, default_left, children_left, children_right,
+      split_feature, threshold, leaf_value, categories_list, categories_list_offset_begin,
+      categories_list_offset_end, categories_list_right_child);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
 int TreeliteLoadSKLearnRandomForestRegressor(
     int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,

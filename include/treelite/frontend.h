@@ -8,16 +8,29 @@
 #define TREELITE_FRONTEND_H_
 
 #include <treelite/base.h>
+#include <treelite/tree.h>
 #include <string>
 #include <memory>
 #include <vector>
+#include <cstddef>
 #include <cstdint>
 
 namespace treelite {
 
-class Model;  // forward declaration
+// forward declaration
+class Model;
 
 namespace frontend {
+
+struct Metadata {
+  std::int32_t num_tree;
+  std::int32_t num_feature;
+  bool average_tree_output;
+  TaskType task_type;
+  TaskParam task_param;
+  ModelParam model_param;
+  Operator comparison_op;
+};
 
 //--------------------------------------------------------------------------
 // model loader interface: read from the disk
@@ -70,6 +83,67 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
  */
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
     const char* json_str, std::size_t length, const char* config_json);
+
+/*!
+ * \brief Build a Treelite model from a collection of arrays. For this function, we prioritize
+ *        performance and efficiency over the ease of use. For small models, you may want to
+ *        consider using \ref BuildModelFromJSONString instead. Note: The built model will
+ *        use float32 to store thresholds and leaf values.
+ * \param metadata Model metadata. Call \ref ParseMetadata to obtain it.
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param split_type split_type[i][k] stores the split type of node k of the i-th tree. Currently,
+ *   we define the following split types:
+ *   - 0: Leaf node, not a split
+ *   - 1: Numerical split
+ *   - 2: Categorical split
+ * \param default_left default_left[i][k] indicates how to handle the missing value in evaluating
+ *   the test condition at node k of the i-th tree. Only defined if node k is an internal node.
+ *   This flag determines which child to choose when the feature in the test condition has a missing
+ *   value.
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *   i-th tree. Only defined if node k is an internal (non-leaf) node; set children_left[i][k]=-1
+ *   if node k is a leaf node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *   i-th tree. Only defined if node k is an internal (non-leaf) node; set children_left[i][k]=-1
+ *   if node k is a leaf node.
+ * \param split_feature split_feature[i][k] stores the feature ID used in the test condition at node
+ *   k of the i-th tree. Only defined if node k is an internal (non-leaf) node and it has a
+ *   numerical split.
+ * \param threshold threshold[i][k] stores the threshold used in the test condition at node k of
+ *   the i-th tree. Only defined if node k is an internal (non-leaf) node and it has a numerical
+ *   split.
+ * \param leaf_value leaf_value[i][k * leaf_vector_size] stores the leaf value or vector associated
+ *   with node k of the i-th tree. This is only defined if node k is a leaf node.
+ * \param categories_list categories_list[i] contains the list of categories associated with
+ *   each internal node with a categorical split. To obtain the category list for node k of i-th
+ *   tree, access the half-open range [categories_list_offset_begin[i][k],
+ *   categories_list_offset_end[i][k]) of categories_list[i].
+ * \param categories_list_offset_begin See the docstring for categories_list.
+ * \param categories_list_offset_end See the docstring for categories_list.
+ * \param categories_list_right_child categories_list_right_child[i][k] is a boolean indicating
+ *   whether the category list for node k of the i-th tree is associated with the right child or
+ *   the left child. The categorical test condition is of form (x in categories_list), and this flag
+ *   determines which child to choose when the condition evaluates to True during tree traversal.
+ *   Only relevant if node k of the i-th tree is an internal node with a categorical split.
+ * \return Constructed model
+ */
+std::unique_ptr<treelite::Model> BuildModelFromArrays(
+    const Metadata& metadata, const std::int64_t* node_count, const std::int8_t** split_type,
+    const std::int8_t** default_left, const std::int64_t** children_left,
+    const std::int64_t** children_right, const std::int64_t** split_feature,
+    const float** threshold, const float** leaf_value, const std::uint32_t* categories_list,
+    const std::int64_t** categories_list_offset_begin,
+    const std::int64_t** categories_list_offset_end,
+    const std::int8_t** categories_list_right_child);
+
+/*!
+ * \brief Parse model metadata from a JSON string
+ * \param metadata_json JSON string containing parameters and their values. See the docstring of
+ *   \ref TreeliteBuildModelFromArrays for detailed description of this JSON string.
+ * \return Parsed metadata
+ */
+Metadata ParseMetadata(const char* metadata_json);
+
 /*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to

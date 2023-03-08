@@ -106,6 +106,7 @@ target_sources(objtreelite
     compiler/failsafe.cc
     compiler/pred_transform.cc
     compiler/pred_transform.h
+    frontend/array_builder.cc
     frontend/builder.cc
     frontend/lightgbm.cc
     frontend/sklearn.cc

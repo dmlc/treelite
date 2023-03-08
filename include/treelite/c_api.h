@@ -224,6 +224,88 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromStringEx(const char* model_str,
                                                        ModelHandle* out);
 
 /*!
+ * \brief Build a Treelite model from a collection of arrays. For this function, we prioritize
+ *        performance and efficiency over the ease of use. For small models, you may want to
+ *        consider using \ref TreeliteBuildModelFromJSONString instead. Note: The built model will
+ *        use float32 to store thresholds and leaf values.
+ * \param metadata_json a JSON string with the following fields:
+ *   - "num_tree" (required): Number of trees in the tree ensemble
+ *   - "num_feature" (required): Number of features in the training data
+ *   - "average_tree_output" (required): Whether to average tree outputs
+ *   - "comparison_op" (required): Operator use in numerical test condition. One of the following:
+ *     "==", "<", "<=", ">", ">="
+ *   - "task_type" (required): String indicate task type. Must be one of the following:
+ *     - "BinaryClfRegr": binary classification or regression
+ *     - "MultiClfGrovePerClass": multi-class classification, where each class's prediction is
+ *       computed by summing up outputs from a subset of trees
+ *     - "MultiClfProbDistLeaf": multi-class classification, where each class's prediction is
+ *       given from the vector output of each leaf node
+ *     - "MultiClfCategLeaf": multi-class classification, where each leaf node outputs a one-hot
+ *       vector. This option is currently not supported.
+ *   - "task_param" (required): Object containing parameters related to specifying the ML task:
+ *     - "num_class" (required): Number of classes. Set num_class=1 if the model is not a
+ *       multi-class classifier.
+ *     - "grove_per_class" (required): Boolean indicating whether a subset of the trees are used to
+ *       compute the prediction for each class. Set grove_per_class=False if the model is not a
+ *       multi-class classifier.
+ *     - "leaf_vector_size" (required): Size of the leaf output. Set leaf_vector_size=1 if the leaf
+ *       node outputs a scalar.
+ *   - "model_param" (required): Object containing parameters influencing the prediction
+ *     - "pred_transform" (required): Post-processing function to apply to raw margin scores.
+ *       The final prediction is obtained as pred_transform(margin + global_bias).
+ *     - "sigmoid_alpha" (optional): Scaling factor to use when applying the sigmoid function. Only
+ *       relevant if pred_transform="sigmoid". Set to 1.0 if unspecified.
+ *     - "ratio_c" (optional): Scaling factor to use when applying the exp2 function. Only relevant
+ *       if pred_transform="exponential_standard_ratio". Set to 1.0 if unspecified.
+ *     - "global_bias" (optional): A scalar intercept to add to the margin score before applying the
+ *       post-processing function. The final prediction is pred_transform(margin + global_bias).
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param split_type split_type[i][k] stores the split type of node k of the i-th tree. Currently,
+ *   we define the following split types:
+ *   - 0: Leaf node, not a split
+ *   - 1: Numerical split
+ *   - 2: Categorical split
+ * \param default_left default_left[i][k] indicates how to handle the missing value in evaluating
+ *   the test condition at node k of the i-th tree. Only defined if node k is an internal node.
+ *   This flag determines which child to choose when the feature in the test condition has a missing
+ *   value.
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *   i-th tree. Only defined if node k is an internal (non-leaf) node; set children_left[i][k]=-1
+ *   if node k is a leaf node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *   i-th tree. Only defined if node k is an internal (non-leaf) node; set children_left[i][k]=-1
+ *   if node k is a leaf node.
+ * \param split_feature split_feature[i][k] stores the feature ID used in the test condition at node
+ *   k of the i-th tree. Only defined if node k is an internal (non-leaf) node and it has a
+ *   numerical split.
+ * \param threshold threshold[i][k] stores the threshold used in the test condition at node k of
+ *   the i-th tree. Only defined if node k is an internal (non-leaf) node and it has a numerical
+ *   split.
+ * \param leaf_value leaf_value[i][k * leaf_vector_size] stores the leaf value or vector associated
+ *   with node k of the i-th tree. This is only defined if node k is a leaf node.
+ * \param categories_list categories_list[i] contains the list of categories associated with
+ *   each internal node with a categorical split. To obtain the category list for node k of i-th
+ *   tree, access the half-open range [categories_list_offset_begin[i][k],
+ *   categories_list_offset_end[i][k]) of categories_list[i].
+ * \param categories_list_offset_begin See the docstring for categories_list.
+ * \param categories_list_offset_end See the docstring for categories_list.
+ * \param categories_list_right_child categories_list_right_child[i][k] is a boolean indicating
+ *   whether the category list for node k of the i-th tree is associated with the right child or
+ *   the left child. The categorical test condition is of form (x in categories_list), and this flag
+ *   determines which child to choose when the condition evaluates to True during tree traversal.
+ *   Only relevant if node k of the i-th tree is an internal node with a categorical split.
+ * \param out Constructed model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteBuildModelFromArrays(
+    const char* metadata_json, const int64_t* node_count, const int8_t** split_type,
+    const int8_t** default_left, const int64_t** children_left, const int64_t** children_right,
+    const int64_t** split_feature, const float** threshold, const float** leaf_value,
+    const uint32_t* categories_list, const int64_t** categories_list_offset_begin,
+    const int64_t** categories_list_offset_end, const int8_t** categories_list_right_child,
+    ModelHandle* out);
+
+/*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
  *        learn the mearning of the arrays in detail. Note that this function can also be used to
@@ -305,8 +387,8 @@ TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
  *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
  * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
  *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
- *              if node k is a leaf node.
+ * \param value value[i][k * n_classes] stores the leaf output of node k of the i-th tree. This is
+ *              only defined if node k is a leaf node.
  * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
  *                       node k of the i-th tree.
  * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data

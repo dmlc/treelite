@@ -39,7 +39,12 @@
 
 namespace treelite {
 
-class GTILBridge;
+namespace unsafe {
+
+template<int>
+class InternalAccessor;
+
+}  // namespace unsafe
 
 template <typename ThresholdType, typename LeafOutputType>
 class ModelImpl;
@@ -429,7 +434,9 @@ class Tree {
   DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler,
       SkipOptFieldHandlerFunc skip_opt_field_handler);
 
-  friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
+  template <int>
+  friend class unsafe::InternalAccessor;
+    // bridge to enable optimized access to nodes and other private fields
 
  public:
   /*! \brief number of nodes */

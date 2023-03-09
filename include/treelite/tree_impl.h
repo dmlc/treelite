@@ -1057,5 +1057,70 @@ inline void InitParamAndCheck(ModelParam* param,
   }
 }
 
+// Bridge to enable unsafe (but fast) access to internals of Treelite model objects.
+// Usage: unsafe::InternalAccessor<unsafe::HERE_COMES_THE_DRAGON>::SomeMethod()
+
+namespace unsafe {
+
+constexpr int HERE_COMES_THE_DRAGON = -100;
+
+template<int T>
+class InternalAccessor {
+};
+
+template<>
+class InternalAccessor<HERE_COMES_THE_DRAGON> {
+ public:
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static const typename Tree<ThresholdType, LeafOutputType>::Node*
+  GetNode(const Tree<ThresholdType, LeafOutputType>& tree, int nid) {
+    return &tree.nodes_[nid];
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<typename Tree<ThresholdType, LeafOutputType>::Node>&
+  GetNodeArray(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.nodes_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<LeafOutputType>&
+  GetLeafVector(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.leaf_vector_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<std::size_t>&
+  GetLeafVectorBegin(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.leaf_vector_begin_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<std::size_t>&
+  GetLeafVectorEnd(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.leaf_vector_end_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<std::uint32_t>&
+  GetMatchingCategories(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.matching_categories_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static ContiguousArray<std::size_t>&
+  GetMatchingCategoriesOffset(Tree<ThresholdType, LeafOutputType>& tree) {
+    return tree.matching_categories_offset_;
+  }
+
+  template <typename ThresholdType, typename LeafOutputType>
+  inline static void
+  SetCategoricalSplitFlag(Tree<ThresholdType, LeafOutputType>& tree, bool value) {
+    tree.has_categorical_split_ = value;
+  }
+};
+
+}  // namespace unsafe
+
 }  // namespace treelite
 #endif  // TREELITE_TREE_IMPL_H_

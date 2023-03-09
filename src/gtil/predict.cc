@@ -19,19 +19,6 @@
 #include "../threading_utils/parallel_for.h"
 #include "./pred_transform.h"
 
-namespace treelite {
-
-class GTILBridge {
- public:
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static const typename Tree<ThresholdType, LeafOutputType>::Node*
-  GetNode(const Tree<ThresholdType, LeafOutputType>& tree, int nid)  {
-    return &tree.nodes_[nid];
-  }
-};
-
-}  // namespace treelite
-
 namespace {
 
 using treelite::threading_utils::ThreadConfig;
@@ -265,8 +252,10 @@ void PredValueByOneTreeImpl(const treelite::Tree<ThresholdType, LeafOutputType>&
                             std::size_t tree_id, const FVec& feats, float* output,
                             std::size_t num_class) {
   int node_id = 0;
+  using ModelAccessor =
+      treelite::unsafe::InternalAccessor<treelite::unsafe::HERE_COMES_THE_DRAGON>;
   const typename treelite::Tree<ThresholdType, LeafOutputType>::Node* node
-    = treelite::GTILBridge::GetNode(tree, node_id);
+    = ModelAccessor::GetNode(tree, node_id);
   while (!node->IsLeaf()) {
     const auto split_index = node->SplitIndex();
     if (has_missing && feats.IsMissing(split_index)) {
@@ -281,7 +270,7 @@ void PredValueByOneTreeImpl(const treelite::Tree<ThresholdType, LeafOutputType>&
         node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild());
       }
     }
-    node = treelite::GTILBridge::GetNode(tree, node_id);
+    node = ModelAccessor::GetNode(tree, node_id);
   }
   OutputLogic::PushOutput(tree, tree_id, node_id, output, num_class);
 }

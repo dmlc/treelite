@@ -211,8 +211,8 @@ int TreeliteLoadLightGBMModelFromStringEx(
 
 int TreeliteBuildModelFromArrays(
     const char* metadata_json, const int64_t* node_count, const int8_t** split_type,
-    const int8_t** default_left, const int64_t** children_left, const int64_t** children_right,
-    const int64_t** split_feature, const float** threshold, const float** leaf_value,
+    const int8_t** default_left, const int32_t** children_left, const int32_t** children_right,
+    const uint32_t** split_feature, const float** threshold, const float** leaf_value,
     const uint32_t** categories_list, const int64_t** categories_list_offset_begin,
     const int64_t** categories_list_offset_end, const int8_t** categories_list_right_child,
     ModelHandle* out) {

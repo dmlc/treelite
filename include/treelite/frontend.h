@@ -86,9 +86,11 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
 
 /*!
  * \brief Build a Treelite model from a collection of arrays. For this function, we prioritize
- *        performance and efficiency over the ease of use. For small models, you may want to
- *        consider using \ref BuildModelFromJSONString instead. Note: The built model will
- *        use float32 to store thresholds and leaf values.
+ *        performance and efficiency over the ease of use. You must ensure that the nodes are
+ *        sorted in bredth-first order (so node 0 is the root and so on). This function will
+ *        exhibit an undefined behavior if the nodes are ordered incorrectly. For small models, you
+ *        may want to consider using \ref BuildModelFromJSONString instead. Note: The built model
+ *        will use float32 to store thresholds and leaf values.
  * \param metadata Model metadata. Call \ref ParseMetadata to obtain it.
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
  * \param split_type split_type[i][k] stores the split type of node k of the i-th tree. Currently,
@@ -129,8 +131,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
  */
 std::unique_ptr<treelite::Model> BuildModelFromArrays(
     const Metadata& metadata, const std::int64_t* node_count, const std::int8_t** split_type,
-    const std::int8_t** default_left, const std::int64_t** children_left,
-    const std::int64_t** children_right, const std::int64_t** split_feature,
+    const std::int8_t** default_left, const std::int32_t** children_left,
+    const std::int32_t** children_right, const std::uint32_t** split_feature,
     const float** threshold, const float** leaf_value, const std::uint32_t** categories_list,
     const std::int64_t** categories_list_offset_begin,
     const std::int64_t** categories_list_offset_end,

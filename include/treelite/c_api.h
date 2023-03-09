@@ -225,9 +225,11 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromStringEx(const char* model_str,
 
 /*!
  * \brief Build a Treelite model from a collection of arrays. For this function, we prioritize
- *        performance and efficiency over the ease of use. For small models, you may want to
- *        consider using \ref TreeliteBuildModelFromJSONString instead. Note: The built model will
- *        use float32 to store thresholds and leaf values.
+ *        performance and efficiency over the ease of use. You must ensure that the nodes are
+ *        sorted in bredth-first order (so node 0 is the root and so on). This function will
+ *        exhibit an undefined behavior if the nodes are ordered incorrectly. For small models, you
+ *        may want to consider using \ref TreeliteBuildModelFromJSONString instead. Note: The built
+ *        model will use float32 to store thresholds and leaf values.
  * \param metadata_json a JSON string with the following fields:
  *   - "num_tree" (required): Number of trees in the tree ensemble
  *   - "num_feature" (required): Number of features in the training data
@@ -299,8 +301,8 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromStringEx(const char* model_str,
  */
 TREELITE_DLL int TreeliteBuildModelFromArrays(
     const char* metadata_json, const int64_t* node_count, const int8_t** split_type,
-    const int8_t** default_left, const int64_t** children_left, const int64_t** children_right,
-    const int64_t** split_feature, const float** threshold, const float** leaf_value,
+    const int8_t** default_left, const int32_t** children_left, const int32_t** children_right,
+    const uint32_t** split_feature, const float** threshold, const float** leaf_value,
     const uint32_t** categories_list, const int64_t** categories_list_offset_begin,
     const int64_t** categories_list_offset_end, const int8_t** categories_list_right_child,
     ModelHandle* out);

@@ -10,8 +10,10 @@
 
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
+#include "../threading_utils/parallel_for.h"
 
-#include <queue>
+#include <algorithm>
+#include <limits>
 
 namespace {
 
@@ -69,8 +71,8 @@ namespace treelite::frontend {
 
 std::unique_ptr<treelite::Model> BuildModelFromArrays(
     const Metadata& metadata, const std::int64_t* node_count, const std::int8_t** split_type,
-    const std::int8_t** default_left, const std::int64_t** children_left,
-    const std::int64_t** children_right, const std::int64_t** split_feature,
+    const std::int8_t** default_left, const std::int32_t** children_left,
+    const std::int32_t** children_right, const std::uint32_t** split_feature,
     const float** threshold, const float** leaf_value, const std::uint32_t** categories_list,
     const std::int64_t** categories_list_offset_begin,
     const std::int64_t** categories_list_offset_end,
@@ -83,53 +85,114 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
   model->task_param = metadata.task_param;
   model->param = metadata.model_param;
 
+  // TODO(hcho3): comparison op must be configurable per-node
+  const auto comparison_op = metadata.comparison_op;
+
+  // Access internals of Tree objects directly, since we trust the user to format the
+  // arrays the right way
+  using ModelAccessor =
+      treelite::unsafe::InternalAccessor<treelite::unsafe::HERE_COMES_THE_DRAGON>;
+
   for (std::int32_t tree_id = 0; tree_id < metadata.num_tree; ++tree_id) {
     model->trees.emplace_back();
     treelite::Tree<float, float>& tree = model->trees.back();
     tree.Init();
 
-    // Assign node ID's so that a breadth-wise traversal would yield
-    // the monotonic sequence 0, 1, 2, ...
-    std::queue<std::pair<std::int32_t, std::int32_t>> Q;  // (old ID, new ID) pair
-    Q.emplace(0, 0);
-    while (!Q.empty()) {
-      auto [node_id, new_node_id] = Q.front();
-      Q.pop();
-      const auto split_type_ = static_cast<SplitFeatureType>(split_type[tree_id][node_id]);
-      if (split_type_ == SplitFeatureType::kNone) {
-        // Leaf node
-        const auto leaf_vector_size = metadata.task_param.leaf_vector_size;
-        if (leaf_vector_size == 1) {
-          tree.SetLeaf(new_node_id, leaf_value[tree_id][node_id]);
-        } else {
-          std::vector<float> leaf_vector{&leaf_value[tree_id][node_id * leaf_vector_size],
-                                         &leaf_value[tree_id][(node_id + 1) * leaf_vector_size]};
-          tree.SetLeafVector(new_node_id, leaf_vector);
-        }
-      } else {
-        // internal (test) node
-        tree.AddChilds(new_node_id);
-        if (split_type_ == SplitFeatureType::kNumerical) {
-          // numerical split
-          tree.SetNumericalSplit(new_node_id, split_feature[tree_id][node_id],
-                                 threshold[tree_id][node_id],
-                                 static_cast<bool>(default_left[tree_id][node_id]),
-                                 metadata.comparison_op);
-        } else {
-          // categorical split
-          std::vector<std::uint32_t> categories_list_{
-              &categories_list[tree_id][categories_list_offset_begin[tree_id][node_id]],
-              &categories_list[tree_id][categories_list_offset_end[tree_id][node_id]]
-          };
-          tree.SetCategoricalSplit(new_node_id, split_feature[tree_id][node_id],
-                                   static_cast<bool>(default_left[tree_id][node_id]),
-                                   categories_list_, categories_list_right_child[tree_id][node_id]);
-        }
+    const std::size_t n_nodes = node_count[tree_id];
+    auto& nodes = ModelAccessor::GetNodeArray(tree);
+    nodes.Resize(n_nodes);
+    tree.num_nodes = static_cast<int>(n_nodes);
 
-        Q.emplace(children_left[tree_id][node_id], tree.LeftChild(new_node_id));
-        Q.emplace(children_right[tree_id][node_id], tree.RightChild(new_node_id));
+    // If nthread <= 0, then use all CPU cores in the system
+    // TODO(hcho3): nthread must be configurable
+    auto thread_config = threading_utils::ConfigureThreadConfig(-1);
+    auto sched = threading_utils::ParallelSchedule::Static();
+    const auto leaf_vector_size = metadata.task_param.leaf_vector_size;
+    TREELITE_LOG(INFO) << "leaf_vector_size = " << leaf_vector_size;
+
+    if (leaf_vector_size > 1) {
+      // Special handling for leaf vectors
+      // Populating leaf_vector field is straightforward, since all leaf node have the
+      // identical leaf vector size
+      auto& leaf_vector = ModelAccessor::GetLeafVector(tree);
+      leaf_vector.Resize(n_nodes * leaf_vector_size);
+      std::copy(&leaf_value[tree_id][0], &leaf_value[tree_id][n_nodes * leaf_vector_size],
+                leaf_vector.Data());
+      auto& leaf_vector_offset_beg = ModelAccessor::GetLeafVectorBegin(tree);
+      auto& leaf_vector_offset_end = ModelAccessor::GetLeafVectorEnd(tree);
+      leaf_vector_offset_beg.Resize(n_nodes);
+      leaf_vector_offset_end.Resize(n_nodes);
+      std::transform(&categories_list_offset_begin[tree_id][0],
+                     &categories_list_offset_begin[tree_id][n_nodes],
+                     leaf_vector_offset_beg.Data(),
+                     [](std::int64_t e) { return static_cast<std::size_t>(e); });
+      std::transform(&categories_list_offset_end[tree_id][0],
+                     &categories_list_offset_end[tree_id][n_nodes],
+                     leaf_vector_offset_end.Data(),
+                     [](std::int64_t e) { return static_cast<std::size_t>(e); });
+    } else {
+      auto& leaf_vector_offset_beg = ModelAccessor::GetLeafVectorBegin(tree);
+      auto& leaf_vector_offset_end = ModelAccessor::GetLeafVectorEnd(tree);
+      leaf_vector_offset_beg.Resize(n_nodes, 0);
+      leaf_vector_offset_end.Resize(n_nodes, 0);
+    }
+
+    {
+      // Special handling for category list in categorical splits
+      auto& categories = ModelAccessor::GetMatchingCategories(tree);
+      auto& categories_offset = ModelAccessor::GetMatchingCategoriesOffset(tree);
+      const auto n_cat = categories_list_offset_end[tree_id][n_nodes - 1];
+      if (n_cat > 0) {
+        ModelAccessor::SetCategoricalSplitFlag(tree, true);
+        categories.Resize(n_cat);
+        std::copy(&categories_list[tree_id][0], &categories_list[tree_id][n_cat],
+                  categories.Data());
+        categories_offset.Resize(n_nodes + 1);
+        std::copy(&categories_list_offset_begin[tree_id][0],
+                  &categories_list_offset_begin[tree_id][n_nodes], categories_offset.Data());
+        std::copy(&categories_list_offset_end[tree_id][n_nodes - 1],
+                  &categories_list_offset_end[tree_id][n_nodes],
+                  categories_offset.Data() + static_cast<std::size_t>(n_nodes));
+      } else {
+        ModelAccessor::SetCategoricalSplitFlag(tree, false);
       }
     }
+
+    TREELITE_LOG(INFO) << "n_nodes = " << n_nodes;
+
+    threading_utils::ParallelFor(std::size_t(0), n_nodes, thread_config, sched,
+                                 [&](std::size_t node_id, int) {
+      Tree<float, float>::Node& node = nodes[node_id];
+      node.Init();
+      node.split_type_ = static_cast<SplitFeatureType>(split_type[tree_id][node_id]);
+      if (node.split_type_ == SplitFeatureType::kNone) {
+        // Leaf node
+        node.cleft_ = -1;
+        node.cright_ = -1;
+        if (leaf_vector_size == 1) {
+          (node.info_).leaf_value = leaf_value[tree_id][node_id];
+        }  // no need to handle leaf vectors here, since we've already dealt with them earlier
+      } else {
+        // Internal node
+        std::uint32_t split_index = split_feature[tree_id][node_id];
+        TREELITE_CHECK_LT(split_index, ((1U << 31U) - 1)) << "split_index too big";
+        if (default_left[tree_id][node_id]) {
+          split_index |= (1U << 31U);
+        }
+        node.sindex_ = split_index;
+        node.cleft_ = children_left[tree_id][node_id];
+        node.cright_ = children_right[tree_id][node_id];
+        if (node.split_type_ == SplitFeatureType::kNumerical) {
+          (node.info_).threshold = threshold[tree_id][node_id];
+          node.cmp_ = comparison_op;
+          node.split_type_ = SplitFeatureType::kNumerical;
+          node.categories_list_right_child_ = false;
+        } else if (node.split_type_ == SplitFeatureType::kCategorical) {
+          node.split_type_ = SplitFeatureType::kCategorical;
+          node.categories_list_right_child_ = categories_list_right_child[tree_id][node_id];
+        }
+      }
+    });
   }
 
   return model_ptr;

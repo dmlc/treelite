@@ -16,20 +16,23 @@ class ArrayOfArrays:
     """
     def __init__(self, *, dtype):
         int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
+        int32_ptr_type = ctypes.POINTER(ctypes.c_int32)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
         uint32_ptr_type = ctypes.POINTER(ctypes.c_uint32)
         float32_ptr_type = ctypes.POINTER(ctypes.c_float)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
-        if dtype == np.int64:
-            self.ptr_type = int64_ptr_type
-        elif dtype == np.float64:
-            self.ptr_type = float64_ptr_type
-        elif dtype == np.float32:
-            self.ptr_type = float32_ptr_type
-        elif dtype == np.int8:
+        if dtype == np.int8:
             self.ptr_type = int8_ptr_type
+        elif dtype == np.int32:
+            self.ptr_type = int32_ptr_type
+        elif dtype == np.int64:
+            self.ptr_type = int64_ptr_type
         elif dtype == np.uint32:
             self.ptr_type = uint32_ptr_type
+        elif dtype == np.float32:
+            self.ptr_type = float32_ptr_type
+        elif dtype == np.float64:
+            self.ptr_type = float64_ptr_type
         else:
             raise ValueError(f'dtype {dtype} is not supported')
         self.dtype = dtype

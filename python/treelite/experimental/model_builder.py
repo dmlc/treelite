@@ -100,9 +100,9 @@ class ModelSpec:
         node_count = []
         split_type = ArrayOfArrays(dtype=np.int8)
         default_left = ArrayOfArrays(dtype=np.int8)
-        children_left = ArrayOfArrays(dtype=np.int64)
-        children_right = ArrayOfArrays(dtype=np.int64)
-        split_feature = ArrayOfArrays(dtype=np.int64)
+        children_left = ArrayOfArrays(dtype=np.int32)
+        children_right = ArrayOfArrays(dtype=np.int32)
+        split_feature = ArrayOfArrays(dtype=np.uint32)
         threshold = ArrayOfArrays(dtype=np.float32)
         leaf_value = ArrayOfArrays(dtype=np.float32)
         categories_list = ArrayOfArrays(dtype=np.uint32)

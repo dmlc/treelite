@@ -108,7 +108,6 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
     auto thread_config = threading_utils::ConfigureThreadConfig(-1);
     auto sched = threading_utils::ParallelSchedule::Static();
     const auto leaf_vector_size = metadata.task_param.leaf_vector_size;
-    TREELITE_LOG(INFO) << "leaf_vector_size = " << leaf_vector_size;
 
     if (leaf_vector_size > 1) {
       // Special handling for leaf vectors
@@ -157,8 +156,6 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
         ModelAccessor::SetCategoricalSplitFlag(tree, false);
       }
     }
-
-    TREELITE_LOG(INFO) << "n_nodes = " << n_nodes;
 
     threading_utils::ParallelFor(std::size_t(0), n_nodes, thread_config, sched,
                                  [&](std::size_t node_id, int) {

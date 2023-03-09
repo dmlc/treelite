@@ -121,14 +121,11 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
       auto& leaf_vector_offset_end = ModelAccessor::GetLeafVectorEnd(tree);
       leaf_vector_offset_beg.Resize(n_nodes);
       leaf_vector_offset_end.Resize(n_nodes);
-      std::transform(&categories_list_offset_begin[tree_id][0],
-                     &categories_list_offset_begin[tree_id][n_nodes],
-                     leaf_vector_offset_beg.Data(),
-                     [](std::int64_t e) { return static_cast<std::size_t>(e); });
-      std::transform(&categories_list_offset_end[tree_id][0],
-                     &categories_list_offset_end[tree_id][n_nodes],
-                     leaf_vector_offset_end.Data(),
-                     [](std::int64_t e) { return static_cast<std::size_t>(e); });
+
+      for (std::size_t i = 0; i < n_nodes; ++i) {
+        leaf_vector_offset_beg[i] = i * leaf_vector_size;
+        leaf_vector_offset_end[i] = (i + 1) * leaf_vector_size;
+      }
     } else {
       auto& leaf_vector_offset_beg = ModelAccessor::GetLeafVectorBegin(tree);
       auto& leaf_vector_offset_end = ModelAccessor::GetLeafVectorEnd(tree);
@@ -154,6 +151,7 @@ std::unique_ptr<treelite::Model> BuildModelFromArrays(
                   categories_offset.Data() + static_cast<std::size_t>(n_nodes));
       } else {
         ModelAccessor::SetCategoricalSplitFlag(tree, false);
+        categories_offset.Resize(n_nodes + 1, 0);
       }
     }
 

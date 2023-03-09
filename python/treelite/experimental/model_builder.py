@@ -138,6 +138,7 @@ class ModelSpec:
                     categories_list_offset_begin_l.append(len(categories_list_l))
                     categories_list_offset_end_l.append(len(categories_list_l))
                     categories_list_right_child_l.append(False)
+                    continue
                 node = tree.nodes[node_id]
                 if isinstance(node, LeafNode):
                     split_type_l.append(0)

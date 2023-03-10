@@ -6,7 +6,7 @@ import sys
 import os
 import ctypes
 
-from .util import py_str, _log_callback, TreeliteError
+from .util import py_str, _log_callback, _warn_callback, TreeliteError
 from .libpath import find_lib_path, TreeliteLibraryNotFound
 
 
@@ -18,8 +18,11 @@ def _load_lib():
         os.add_dll_directory(os.path.join(os.path.normpath(sys.prefix), 'Library', 'bin'))
     lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
-    lib.callback = _log_callback
-    if lib.TreeliteRegisterLogCallback(lib.callback) != 0:
+    lib.log_callback = _log_callback
+    lib.warn_callback = _warn_callback
+    if lib.TreeliteRegisterLogCallback(lib.log_callback) != 0:
+        raise TreeliteError(py_str(lib.TreeliteGetLastError()))
+    if lib.TreeliteRegisterWarningCallback(lib.warn_callback) != 0:
         raise TreeliteError(py_str(lib.TreeliteGetLastError()))
     return lib
 

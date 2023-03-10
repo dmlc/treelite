@@ -37,13 +37,21 @@ typedef void* DMatrixHandle;
 TREELITE_DLL const char* TreeliteGetLastError(void);
 
 /*!
- * \brief register callback function for LOG(INFO) messages -- helpful messages
+ * \brief Register callback function for LOG(INFO) messages -- helpful messages
  *        that are not errors.
- * Note: this function can be called by multiple threads. The callback function
+ * Note: This function can be called by multiple threads. The callback function
  *       will run on the thread that registered it
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
+
+/*!
+ * \brief Register callback function for LOG(WARNING) messages
+ * Note: This function can be called by multiple threads. The callback function
+ *       will run on the thread that registered it
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteRegisterWarningCallback(void (*callback)(const char*));
 
 /*!
  * \brief Get the version string for the Treelite library.

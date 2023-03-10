@@ -72,7 +72,7 @@ DEFINE_CHECK_FUNC(_NE, !=)
 
 #define TREELITE_LOG_INFO ::treelite::LogMessage(__FILE__, __LINE__)
 #define TREELITE_LOG_ERROR TREELITE_LOG_INFO
-#define TREELITE_LOG_WARNING TREELITE_LOG_INFO
+#define TREELITE_LOG_WARNING ::treelite::LogMessageWarning(__FILE__, __LINE__)
 #define TREELITE_LOG_FATAL ::treelite::LogMessageFatal(__FILE__, __LINE__)
 #define TREELITE_LOG(severity) TREELITE_LOG_##severity.stream()
 
@@ -141,19 +141,43 @@ class LogMessage {
   std::ostringstream log_stream_;
 };
 
+class LogMessageWarning {
+ public:
+  LogMessageWarning(const char* file, int line) {
+    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
+                << line << ": ";
+  }
+  ~LogMessageWarning() {
+    Log(log_stream_.str());
+  }
+  std::ostream& stream() { return log_stream_; }
+  static void Log(const std::string& msg);
+
+ private:
+  std::ostringstream log_stream_;
+};
+
 class LogCallbackRegistry {
  public:
   using Callback = void (*)(const char*);
   LogCallbackRegistry()
-    : log_callback_([] (const char* msg) { std::cerr << msg << std::endl; }) {}
-  inline void Register(Callback log_callback) {
-    this->log_callback_ = log_callback;
+    : log_callback_info_([] (const char* msg) { std::cerr << msg << std::endl; }),
+      log_callback_warn_([] (const char* msg) { std::cerr << msg << std::endl; }) {}
+  inline void RegisterCallBackLogInfo(Callback log_callback) {
+    this->log_callback_info_ = log_callback;
   }
-  inline Callback Get() const {
-    return log_callback_;
+  inline Callback GetCallbackLogInfo() const {
+    return log_callback_info_;
+  }
+  inline void RegisterCallBackLogWarning(Callback log_callback) {
+    this->log_callback_warn_ = log_callback;
+  }
+  inline Callback GetCallbackLogWarning() const {
+    return log_callback_warn_;
   }
  private:
-  Callback log_callback_;
+  Callback log_callback_info_;
+  Callback log_callback_warn_;
 };
 
 using LogCallbackRegistryStore = ThreadLocalStore<LogCallbackRegistry>;

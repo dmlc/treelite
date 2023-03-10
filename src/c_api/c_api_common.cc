@@ -16,7 +16,14 @@ using namespace treelite;
 int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
-  registry->Register(callback);
+  registry->RegisterCallBackLogInfo(callback);
+  API_END();
+}
+
+int TreeliteRegisterWarningCallback(void (*callback)(const char*)) {
+  API_BEGIN();
+    LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
+    registry->RegisterCallBackLogWarning(callback);
   API_END();
 }
 

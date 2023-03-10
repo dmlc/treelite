@@ -5,6 +5,8 @@ Miscellaneous utilities
 import inspect
 import ctypes
 import time
+import warnings
+
 import numpy as np
 
 _CTYPES_TYPE_TABLE = {
@@ -51,7 +53,13 @@ def py_str(string):
 @ctypes.CFUNCTYPE(None, ctypes.c_char_p)
 def _log_callback(msg: bytes) -> None:
     """Redirect logs from native library into Python console"""
-    print("{0:s}".format(py_str(msg)))
+    print(py_str(msg))
+
+
+@ctypes.CFUNCTYPE(None, ctypes.c_char_p)
+def _warn_callback(msg: bytes) -> None:
+    """Redirect warnings from native library into Python console"""
+    warnings.warn(py_str(msg))
 
 
 def lineno():

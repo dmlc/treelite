@@ -105,10 +105,7 @@ def predict_leaf(model: Model, data: np.ndarray, *, nthread: int = -1):
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output. Expected output dimensions:
-
-        - (num_row,) for regressors and binary classifiers
-        - (num_row, num_class) for multi-class classifiers
+        Prediction output. Expected output dimensions: (num_row, num_tree)
 
     Notes
     -----

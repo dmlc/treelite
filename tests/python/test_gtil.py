@@ -730,7 +730,7 @@ def test_predict_special_with_binary_classifier(
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_predict_special_with_multi_classifier_grove_per_class(
+def test_predict_special_with_multiclass_classifier_grove_per_class(
     predict_type, dataset, num_boost_round, callback
 ):
     # pylint: disable=too-many-locals

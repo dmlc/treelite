@@ -557,9 +557,37 @@ class Model:
         return Model(handle)
 
     @classmethod
+    def import_from_json(
+        cls,
+        json_str: str
+    ) -> Model:
+        """
+        Import a tree ensemble model from a JSON string.
+
+        TODO(hcho3): Add link to JSON spec of a valid Treelite model
+
+        Parameters
+        ----------
+        json_str : str
+            JSON string representing a tree ensemble model
+
+        Returns
+        -------
+        model : :py:class:`Model` object
+            Imported model
+        """
+        parser_config = json.dumps({})
+        handle = ctypes.c_void_p()
+        _check_call(_LIB.TreeliteBuildModelFromJSONString(
+            c_str(json_str),
+            c_str(parser_config),
+            ctypes.byref(handle)))
+        return Model(handle)
+
+    @classmethod
     def concatenate(
         cls,
-        model_objs : List[Model]
+        model_objs: List[Model]
     ) -> Model:
         """
         Concatenate multiple model objects into a single model object by copying

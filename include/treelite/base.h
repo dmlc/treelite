@@ -7,6 +7,7 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
+#include <treelite/logging.h>
 #include <treelite/error.h>
 #include <treelite/typeinfo.h>
 #include <cstdint>
@@ -33,9 +34,6 @@ enum class Operator : int8_t {
   kGE,  /*!< operator >= */
 };
 
-/*! \brief conversion table from string to Operator, defined in tables.cc */
-extern const std::unordered_map<std::string, Operator> optable;
-
 /*!
  * \brief get string representation of comparison operator
  * \param op comparison operator
@@ -53,6 +51,28 @@ inline std::string OpName(Operator op) {
 }
 
 /*!
+ * \brief Build operator enum from a string representation
+ * \param name Name of operator
+ * \return Operator enum
+ */
+inline Operator LookupOperatorByName(const std::string& name) {
+  if (name == "==") {
+    return Operator::kEQ;
+  } else if (name == "<") {
+    return Operator::kLT;
+  } else if (name == "<=") {
+    return Operator::kLE;
+  } else if (name == ">") {
+    return Operator::kGT;
+  } else if (name == ">=") {
+    return Operator::kGE;
+  } else {
+    TREELITE_LOG(FATAL) << "Unknown operator: " << name;
+    return Operator::kNone;
+  }
+}
+
+/*!
  * \brief Get string representation of split type
  * \param type Type of a split
  * \return String representation
@@ -63,6 +83,24 @@ inline std::string SplitFeatureTypeName(SplitFeatureType type) {
     case SplitFeatureType::kNumerical: return "numerical";
     case SplitFeatureType::kCategorical: return "categorical";
     default: return "";
+  }
+}
+
+/*!
+ * \brief Build split type from a string representation
+ * \param name Name of split type
+ * \return Split type enum
+ */
+inline SplitFeatureType LookupSplitFeatureTypeByName(const std::string& name) {
+  if (name == "none") {
+    return SplitFeatureType::kNone;
+  } else if (name == "numerical") {
+    return SplitFeatureType::kNumerical;
+  } else if (name == "categorical") {
+    return SplitFeatureType::kCategorical;
+  } else {
+    TREELITE_LOG(FATAL) << "Unknown split type: " << name;
+    return SplitFeatureType::kNone;
   }
 }
 
@@ -83,7 +121,7 @@ inline bool CompareWithOp(ElementType lhs, Operator op, ThresholdType rhs) {
     case Operator::kGT: return lhs >  rhs;
     case Operator::kGE: return lhs >= rhs;
     default:
-      throw Error("operator undefined");
+      TREELITE_LOG(FATAL) << "operator undefined: " << static_cast<int>(op);
       return false;
   }
 }

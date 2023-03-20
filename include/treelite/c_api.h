@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2020 by Contributors
+ * Copyright (c) 2017-2023 by Contributors
  * \file c_api.h
  * \author Hyunsu Cho
  * \brief C API of Treelite, used for interfacing with other languages
@@ -238,7 +238,7 @@ TREELITE_DLL int TreeliteBuildModelFromJSONString(const char* json_str,
 /*!
  * \brief Load a scikit-learn random forest regressor model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail. Note that this function can also be used to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
  *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesRegressor).
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
@@ -271,7 +271,7 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressor(
 /*!
  * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
+ *        learn the meaning of the arrays in detail.
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
@@ -303,7 +303,7 @@ TREELITE_DLL int TreeliteLoadSKLearnIsolationForest(
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail. Note that this function can also be used to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
  *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesClassifier).
  * \param n_estimators number of trees in the random forest
  * \param n_features number of features in the training data
@@ -337,8 +337,8 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
 /*!
  * \brief Load a scikit-learn gradient boosting regressor model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
- * \param n_estimators number of trees in the random forest
+ *        learn the meaning of the arrays in detail.
+ * \param n_iter Number of boosting iterations
  * \param n_features number of features in the training data
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
  * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
@@ -361,7 +361,7 @@ TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifier(
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
-    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
+    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
     const int64_t** children_right, const int64_t** feature, const double** threshold,
     const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
     const double** impurity, ModelHandle* out);
@@ -369,8 +369,8 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
 /*!
  * \brief Load a scikit-learn gradient boosting classifier model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
- *        learn the mearning of the arrays in detail.
- * \param n_estimators number of trees in the random forest
+ *        learn the meaning of the arrays in detail.
+ * \param n_iter Number of boosting iterations
  * \param n_features number of features in the training data
  * \param n_classes number of classes in the target variable
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
@@ -394,10 +394,87 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingRegressor(
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
     const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
     const double** threshold, const double** value, const int64_t** n_node_samples,
     const double** weighted_n_node_samples, const double** impurity, ModelHandle* out);
+
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.
+ *        Unlike other scikit-learn models, this model class natively handles missing values like
+ *        XGBooost does.
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,)
+ * \param out pointer to store the loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(
+    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
+    const int64_t** children_right, const int64_t** feature, const double** threshold,
+    const int8_t** default_left, const double** value, const int64_t** n_node_samples,
+    const double** gain, const double* baseline_prediction, ModelHandle* out);
+
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
+ *        Unlike other scikit-learn models, this model class natively handles missing values like
+ *        XGBooost does.
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param n_classes Number of classes in the target variable
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,) for binary classification;
+ *                            (n_classes,) for multi-class classification
+ * \param out pointer to store the loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(
+    int n_iter, int n_features, int n_classes, const int64_t* node_count,
+    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
+    const double** threshold, const int8_t** default_left, const double** value,
+    const int64_t** n_node_samples, const double** gain, const double* baseline_prediction,
+    ModelHandle* out);
 
 /*!
  * \brief Query the number of trees in the model

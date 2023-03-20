@@ -263,7 +263,7 @@ def standard_regression_datasets(
 
 
 def standard_settings():
-    """Default hypotheiss settings. Set a smaller max_examples on Windows"""
+    """Default hypothesis settings. Set a smaller max_examples on Windows"""
     kwargs = {
         "deadline": None,
         "max_examples": 20,

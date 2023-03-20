@@ -107,6 +107,7 @@ target_sources(objtreelite
     compiler/pred_transform.cc
     compiler/pred_transform.h
     frontend/builder.cc
+    frontend/json_importer.cc
     frontend/lightgbm.cc
     frontend/sklearn.cc
     frontend/xgboost.cc
@@ -119,7 +120,6 @@ target_sources(objtreelite
     threading_utils/parallel_for.h
     annotator.cc
     filesystem.cc
-    optable.cc
     serializer.cc
     json_serializer.cc
     model_concat.cc

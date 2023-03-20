@@ -77,6 +77,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
   };
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
+  TREELITE_CHECK(!parsed_config.HasParseError())
+    << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset()
+    << ", " << rapidjson::GetParseError_En(parsed_config.GetParseError());
   auto parsed_model = ParseStream(std::move(input_stream), error_handler, parsed_config);
   std::fclose(fp);
   return parsed_model;
@@ -104,6 +107,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
   };
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
+  TREELITE_CHECK(!parsed_config.HasParseError())
+    << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset()
+    << ", " << rapidjson::GetParseError_En(parsed_config.GetParseError());
   return ParseStream(std::move(input_stream), error_handler, parsed_config);
 }
 

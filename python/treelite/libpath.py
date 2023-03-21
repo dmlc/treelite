@@ -59,7 +59,7 @@ def find_lib_path():
     dll_path = [os.path.join(p, lib_name) for p in dll_path]
     lib_path = [p for p in dll_path if os.path.exists(p) and os.path.isfile(p)]
 
-    if not lib_path:
+    if not lib_path and not os.environ.get("TREELITE_BUILD_DOC", False):
         candidate_list = '\n'.join([os.path.normpath(x) for x in dll_path])
         raise TreeliteLibraryNotFound(
             f'Cannot find library {lib_name} in the candidate path: ' +

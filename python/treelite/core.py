@@ -13,6 +13,9 @@ from .libpath import find_lib_path, TreeliteLibraryNotFound
 def _load_lib():
     """Load Treelite Library."""
     lib_path = find_lib_path()
+    if not lib_path:
+        # Building docs
+        return None  # type: ignore
     if sys.version_info >= (3, 8) and sys.platform == 'win32':
         # pylint: disable=no-member
         os.add_dll_directory(os.path.join(os.path.normpath(sys.prefix), 'Library', 'bin'))

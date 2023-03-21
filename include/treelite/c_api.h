@@ -36,8 +36,7 @@ typedef void* GTILConfigHandle;
 /*! \} */
 
 /*!
- * \defgroup annotator
- * Branch annotator interface
+ * \defgroup annotator Branch annotator interface
  * \{
  */
 /*!
@@ -69,8 +68,7 @@ TREELITE_DLL int TreeliteAnnotationFree(AnnotationHandle handle);
 /*! \} */
 
 /*!
- * \defgroup compiler
- * Compiler interface
+ * \defgroup compiler Compiler interface
  * \{
  */
 /*!
@@ -112,8 +110,7 @@ TREELITE_DLL int TreeliteCompilerFree(CompilerHandle handle);
 /*! \} */
 
 /*!
- * \defgroup model_loader
- * Model loader interface: read trees from the disk
+ * \defgroup model_loader Model loader interface: read trees from the disk
  * \{
  */
 /*!
@@ -520,7 +517,7 @@ TREELITE_DLL int TreeliteSerializeModel(const char* filename, ModelHandle handle
  * \brief Deserialize (load) a model object from disk
  * \param filename name of the file from which to deserialize the model. The file should be created
  *                 by a call to TreeliteSerializeModel().
- * \param handle handle to the model object
+ * \param out Handle to the model object
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDeserializeModel(const char* filename, ModelHandle* out);
@@ -554,8 +551,7 @@ TREELITE_DLL int TreeliteFreeModel(ModelHandle handle);
 /*! \} */
 
 /*!
- * \defgroup gtil
- * General Tree Inference Library (GTIL), providing a reference implementation for
+ * \defgroup gtil General Tree Inference Library (GTIL), providing a reference implementation for
  * predicting with decision trees. GTIL is useful in cases it is infeasible to build the
  * tree models as native shared libs.
  * \{
@@ -633,8 +629,7 @@ TREELITE_DLL int TreeliteGTILPredictEx(ModelHandle model, const float* input, si
 /*! \} */
 
 /*!
- * \defgroup model_builder
- * Model builder interface: build trees incrementally
+ * \defgroup model_builder Model builder interface: build trees incrementally
  * \{
  */
 /*!

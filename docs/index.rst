@@ -141,7 +141,7 @@ Contents
   Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>
   knobs/index
   notes-on-serialization
-  Internal docs <http://treelite.readthedocs.io/en/latest/dev/>
+  treelite-doxygen
   
 
 *******

@@ -23,7 +23,6 @@ languages. This page will be most useful for:
 
 .. contents:: Contents
   :local:
-  :backlinks: none
 
 Data matrix interface
 ---------------------

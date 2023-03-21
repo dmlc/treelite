@@ -22,15 +22,15 @@ void CreateDirectoryIfNotExist(const char* dirpath);
 /*!
  * \brief Write a sequence of strings to a text file, with newline character (\n) inserted between
  *        strings. This function is suitable for creating multi-line text files.
- * \param filename name of text file
- * \param lines a sequence of strings to be written.
+ * \param filename Name of text file
+ * \param content A sequence of strings to be written.
  */
 void WriteToFile(const std::string& filename, const std::string& content);
 
 /*!
  * \brief Write a sequence of bytes to a text file
- * \param filename name of text file
- * \param lines a sequence of strings to be written.
+ * \param filename Name of text file
+ * \param content A sequence of bytes to be written.
  */
 void WriteToFile(const std::string& filename, const std::vector<char>& content);
 

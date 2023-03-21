@@ -6,6 +6,6 @@ from a tree ensemble model.
 
 -----------------------------
 
-.. doxygengroup:: Compiler_param
+.. doxygengroup:: compiler_param
    :project: treelite
    :content-only:

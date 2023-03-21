@@ -34,8 +34,8 @@ TypeInfo GetTypeInfoByName(const std::string& str);
 
 /*!
  * \brief Get string representation of type info
- * \param info a type info
- * \return string representation
+ * \param type Type info
+ * \return String representation
  */
 inline std::string TypeInfoToString(treelite::TypeInfo type) {
   switch (type) {

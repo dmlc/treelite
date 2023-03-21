@@ -11,7 +11,6 @@ instead.
 
 .. contents:: Contents
   :local:
-  :backlinks: none
 
 What is the model builder?
 --------------------------

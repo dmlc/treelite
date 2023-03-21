@@ -68,8 +68,7 @@ extern const char* TREELITE_VERSION;
 #endif
 
 /*!
- * \defgroup dmatrix
- * Data matrix interface
+ * \defgroup dmatrix Data matrix interface
  * \{
  */
 /*!

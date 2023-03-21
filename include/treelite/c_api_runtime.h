@@ -27,8 +27,7 @@ typedef void* PredictorOutputHandle;
 /*! \} */
 
 /*!
- * \defgroup predictor
- * Predictor interface
+ * \defgroup predictor Predictor interface
  * \{
  */
 

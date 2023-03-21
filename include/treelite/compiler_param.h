@@ -16,8 +16,7 @@ namespace compiler {
 /*! \brief parameters for tree compiler */
 struct CompilerParam {
   /*!
-  * \defgroup compiler_param
-  * parameters for tree compiler
+  * \defgroup compiler_param Parameters for tree compiler
   * \{
   */
   /*! \brief name of model annotation file. Use the class ``treelite.Annotator``

@@ -8,7 +8,6 @@ trained elsewhere.
 
 .. contents:: Contents
   :local:
-  :backlinks: none
 
 Importing XGBoost models
 ------------------------

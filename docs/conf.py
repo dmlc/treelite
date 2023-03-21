@@ -21,7 +21,7 @@ DOX_DIR = "doxygen"
 def run_doxygen():
     """Run the doxygen make command in the designated folder."""
     curdir = os.path.normpath(os.path.abspath(os.path.curdir))
-    tmpdir = os.path.join(curdir, "tmp")
+    tmpdir = os.path.join(CURR_PATH, "tmp")
     if os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     else:
@@ -170,7 +170,7 @@ autoclass_content = "both"
 exclude_patterns = ["_build"]
 html_extra_path = []
 if is_readthedocs_build():
-    html_extra_path = ["./tmp"]
+    html_extra_path = [os.path.join(CURR_PATH, "tmp")]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

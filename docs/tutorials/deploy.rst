@@ -26,7 +26,6 @@ interface each deployment option presents, as well as its dependencies and requi
 
 .. contents:: Contents
   :local:
-  :backlinks: none
   :depth: 2
 
 Option 1: Deploy prediction code with the runtime package

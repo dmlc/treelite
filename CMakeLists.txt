@@ -11,6 +11,7 @@ endif()
 
 option(TEST_COVERAGE "C++ test coverage" OFF)
 option(USE_OPENMP "Use OpenMP" ON)
+option(BUILD_DOXYGEN "Build documentation for C/C++ functions using Doxygen." OFF)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
@@ -29,6 +30,11 @@ if(ENABLE_ALL_WARNINGS)
   if((NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
     message(SEND_ERROR "ENABLE_ALL_WARNINGS is only available for Clang and GCC.")
   endif()
+endif()
+
+if(BUILD_DOXYGEN)
+  include(cmake/Doxygen.cmake)
+  run_doxygen()
 endif()
 
 # When installing dependencies, use Conda environment if available

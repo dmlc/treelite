@@ -689,8 +689,7 @@ class Tree {
 
 struct ModelParam {
   /*!
-  * \defgroup model_param
-  * Extra parameters for tree ensemble models
+  * \defgroup model_param Extra parameters for tree ensemble models
   * \{
   */
   /*!

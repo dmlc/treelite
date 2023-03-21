@@ -1,7 +1,9 @@
-div.breathe-sectiondef.container {
-  width: 100%;
-}
+@import url('theme.css');
 
 .red {
   color: red;
+}
+
+.wy-side-nav-search div.version {
+  color: #FFFFFF;
 }

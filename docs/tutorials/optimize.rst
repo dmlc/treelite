@@ -7,7 +7,6 @@ affect the manner at which prediction is performed.
 
 .. contents:: Contents
   :local:
-  :backlinks: none
   :depth: 2
 
 Annotate conditional branches

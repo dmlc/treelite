@@ -23,7 +23,6 @@ languages. This page will be most useful for:
 
 .. contents:: Contents
   :local:
-  :backlinks: none
 
 Data matrix interface
 ---------------------
@@ -91,7 +90,7 @@ Treelite uses C++ classes to define its internal data structures. In order to
 pass C++ objects to C functions, *opaque handles* are used. Opaque handles
 are ``void*`` pointers that store raw memory addresses.
 
-.. doxygengroup:: Opaque_handles
+.. doxygengroup:: opaque_handles
    :project: treelite
    :content-only:
 

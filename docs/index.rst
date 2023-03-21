@@ -14,8 +14,6 @@ efficient deployment.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
-|longrelease|
-
 *************
 Why Treelite?
 *************
@@ -105,20 +103,6 @@ Read :doc:`tutorials/first` for a more detailed example. See
   Since Treelite is in early development, its API may change substantially
   in the future.
 
-*********
-Benchmark
-*********
-
-.. raw:: html
-
-  <p>
-  <img src="_static/benchmark_plot.svg"
-       onerror="this.src='_static/benchmark_plot.png'; this.onerror=null;"
-       width="100%">
-  </p>
-
-See the page :py:doc:`benchmark` for details.
-
 ******************
 How Treelite works
 ******************
@@ -154,7 +138,6 @@ Contents
   treelite-runtime-api
   treelite-gtil-api
   treelite-c-api
-  javadoc/packages
   Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>
   knobs/index
   notes-on-serialization

@@ -3,7 +3,7 @@ Specifying models using JSON string
 
 Treelite supports loading models from major tree libraries, such as XGBoost and
 scikit-learn. However, you may want to use models trained by other tree
-libraries that are not directly supported by Treelite. The model builder is
+libraries that are not directly supported by Treelite. The JSON importer is
 useful in this use case. (Alternatively, consider
 :doc:`using the model builder <builder>` instead.)
 
@@ -20,7 +20,7 @@ Consider the following tree ensemble, consisting of two regression trees:
 
   from graphviz import Source
   source = r"""
-    digraph toy1_1 {
+    digraph toy1 {
       graph [fontname = "helvetica"];
       node [fontname = "helvetica"];
       edge [fontname = "helvetica"];
@@ -43,7 +43,7 @@ Consider the following tree ensemble, consisting of two regression trees:
 
   from graphviz import Source
   source = r"""
-    digraph toy2_1 {
+    digraph toy2 {
       graph [fontname = "helvetica"];
       node [fontname = "helvetica"];
       edge [fontname = "helvetica"];

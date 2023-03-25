@@ -75,6 +75,16 @@ rapidjson::Value::ConstArray ExpectArray(const ObjectType& doc, const char* key)
   return itr->value.GetArray();
 }
 
+template <typename ObjectType>
+void ExpectFloatOptional(const ObjectType& doc, const char* key, float& result) {
+  auto itr = doc.FindMember(key);
+  if (itr != doc.MemberEnd()) {
+    TREELITE_CHECK(itr->value.IsFloat())
+      << "Key \"" << key << "\" must be a single-precision float";
+    result = itr->value.GetFloat();
+  }
+}
+
 treelite::TaskParam ParseTaskParam(const rapidjson::Value::ConstObject& object) {
   treelite::TaskParam param;
   param.output_type = treelite::StringToOutputType(ExpectString(object, "output_type"));
@@ -95,9 +105,9 @@ treelite::ModelParam ParseModelParam(const rapidjson::Value::ConstObject& object
     << "pred_transform cannot be longer than " << max_pred_transform_len << " characters";
   std::strncpy(param.pred_transform, pred_transform.c_str(), max_pred_transform_len);
 
-  param.sigmoid_alpha = ExpectFloat(object, "sigmoid_alpha");
-  param.ratio_c = ExpectFloat(object, "ratio_c");
-  param.global_bias = ExpectFloat(object, "global_bias");
+  ExpectFloatOptional(object, "sigmoid_alpha", param.sigmoid_alpha);
+  ExpectFloatOptional(object, "ratio_c", param.ratio_c);
+  ExpectFloatOptional(object, "global_bias", param.global_bias);
 
   return param;
 }

@@ -11,6 +11,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <memory>
+#include <map>
 #include <string>
 #include <utility>
 #include <queue>
@@ -75,8 +76,18 @@ rapidjson::Value::ConstArray ExpectArray(const ObjectType& doc, const char* key)
   return itr->value.GetArray();
 }
 
+template <typename ObjectType>
+void ExpectFloatOptional(const ObjectType& doc, const char* key, float& result) {
+  auto itr = doc.FindMember(key);
+  if (itr != doc.MemberEnd()) {
+    TREELITE_CHECK(itr->value.IsFloat())
+      << "Key \"" << key << "\" must be a single-precision float";
+    result = itr->value.GetFloat();
+  }
+}
+
 treelite::TaskParam ParseTaskParam(const rapidjson::Value::ConstObject& object) {
-  treelite::TaskParam param;
+  treelite::TaskParam param{};
   param.output_type = treelite::StringToOutputType(ExpectString(object, "output_type"));
   TREELITE_CHECK(param.output_type != treelite::TaskParam::OutputType::kInt)
     << "Integer output type is not supported";
@@ -95,16 +106,16 @@ treelite::ModelParam ParseModelParam(const rapidjson::Value::ConstObject& object
     << "pred_transform cannot be longer than " << max_pred_transform_len << " characters";
   std::strncpy(param.pred_transform, pred_transform.c_str(), max_pred_transform_len);
 
-  param.sigmoid_alpha = ExpectFloat(object, "sigmoid_alpha");
-  param.ratio_c = ExpectFloat(object, "ratio_c");
-  param.global_bias = ExpectFloat(object, "global_bias");
+  ExpectFloatOptional(object, "sigmoid_alpha", param.sigmoid_alpha);
+  ExpectFloatOptional(object, "ratio_c", param.ratio_c);
+  ExpectFloatOptional(object, "global_bias", param.global_bias);
 
   return param;
 }
 
 void ParseInternalNode(
     const rapidjson::Value& node, int new_node_id, treelite::Tree<float, float>& tree) {
-  const std::int64_t split_index = ExpectInt(node, "split_feature_id");
+  const unsigned int split_index = ExpectUint(node, "split_feature_id");
   const bool default_left = ExpectBool(node, "default_left");
   const treelite::SplitFeatureType split_type =
       treelite::LookupSplitFeatureTypeByName(ExpectString(node, "split_type"));
@@ -116,8 +127,8 @@ void ParseInternalNode(
   } else if (split_type == treelite::SplitFeatureType::kCategorical) {  // categorical split
     const bool categories_list_right_child = ExpectBool(node, "categories_list_right_child");
     std::vector<std::uint32_t> categories_list;
-    for (const auto& e : ExpectArray(node, "matching_categories")) {
-      TREELITE_CHECK(e.IsUint()) << "Expected an unsigned in matching_categories field";
+    for (const auto& e : ExpectArray(node, "categories_list")) {
+      TREELITE_CHECK(e.IsUint()) << "Expected an unsigned integer in categories_list field";
       categories_list.push_back(e.GetUint());
     }
     tree.SetCategoricalSplit(new_node_id, split_index, default_left, categories_list,
@@ -126,26 +137,32 @@ void ParseInternalNode(
 }
 
 void ParseTree(const rapidjson::Value::ConstObject& object, treelite::Tree<float, float>& tree) {
+  const int root_id = ExpectInt(object, "root_id");
+  TREELITE_CHECK_GE(root_id, 0) << "root_id cannot be negative";
   const auto& nodes = ExpectArray(object, "nodes");
   TREELITE_CHECK(!nodes.Empty()) << "The nodes array must not be empty";
   const std::size_t num_nodes = nodes.Size();
 
-  // TODO(hcho3): Clearly document that node 0 is assumed to be the root node
-  tree.Init();
+  // Scan through nodes and create a lookup table. This is so that users can specify custom
+  // node IDs via field "node_id". Note that the constructed Treelite model objects will use
+  // different node IDs than the ones specified by the user.
+  std::map<int, const rapidjson::Value&> node_lookup_table;
+  for (const auto& e : nodes) {
+    TREELITE_CHECK(e.IsObject()) << "All elements in the nodes array must be objects";
+    int node_id = ExpectInt(e, "node_id");
+    TREELITE_CHECK_GE(node_id, 0) << "node_id cannot be negative";
+    node_lookup_table.insert({node_id, e});
+  }
 
-  // Assign node ID's so that a breadth-wise traversal would yield
+  tree.Init();
+  // Assign new node IDs so that a breadth-wise traversal would yield
   // the monotonic sequence 0, 1, 2, ...
-  std::queue<std::pair<std::int32_t, int>> Q;  // (old ID, new ID) pair
-  Q.emplace(0, 0);
+  std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
+  Q.emplace(root_id, 0);
   while (!Q.empty()) {
     auto [node_id, new_node_id] = Q.front();
     Q.pop();
-    TREELITE_CHECK_LT(node_id, num_nodes) << "node_id must be less than the nodes array size ("
-      << num_nodes << ")";
-    const auto& node = nodes[node_id];
-    TREELITE_CHECK(node.IsObject()) << "The element " << node_id << "of the nodes array must be "
-      << " an object";
-
+    const auto& node = node_lookup_table.at(node_id);
     auto leaf_itr = node.FindMember("leaf_value");
     if (leaf_itr != node.MemberEnd()) {
       // leaf node: leaf value
@@ -165,8 +182,8 @@ void ParseTree(const rapidjson::Value::ConstObject& object, treelite::Tree<float
       // internal (test) node
       tree.AddChilds(new_node_id);
       ParseInternalNode(node, new_node_id, tree);
-      const std::int32_t left_child_id = ExpectInt(node, "left_child");
-      const std::int32_t right_child_id = ExpectInt(node, "right_child");
+      const int left_child_id = ExpectInt(node, "left_child");
+      const int right_child_id = ExpectInt(node, "right_child");
       Q.emplace(left_child_id, tree.LeftChild(new_node_id));
       Q.emplace(right_child_id, tree.RightChild(new_node_id));
     }

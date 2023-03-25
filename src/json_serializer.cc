@@ -70,7 +70,7 @@ void WriteNode(WriterType& writer,
     } else if (split_type == treelite::SplitFeatureType::kCategorical) {
       writer.Key("categories_list_right_child");
       writer.Bool(tree.CategoriesListRightChild(node_id));
-      writer.Key("matching_categories");
+      writer.Key("categories_list");
       writer.StartArray();
       for (uint32_t e : tree.MatchingCategories(node_id)) {
         writer.Uint(e);

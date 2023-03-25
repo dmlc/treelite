@@ -102,7 +102,7 @@ class ContiguousArray {
 /*!
  * \brief Enum type representing the task type.
  *
- * The task type places constraints on the parameters of TaskParameter. See the docstring for each
+ * The task type places constraints on the parameters of TaskParam. See the docstring for each
  * enum constants for more details.
  */
 enum class TaskType : uint8_t {
@@ -142,8 +142,8 @@ enum class TaskType : uint8_t {
    * are combined via summing or averaging, depending on the value of the [average_tree_output]
    * field. In effect, each tree is casting a set of weighted (fractional) votes for the classes.
    *
-   * An example of kMultiClfProbDistLeaf task type is found in RandomForestClassifier of
-   * scikit-learn.
+   * Examples of kMultiClfProbDistLeaf task type are found in RandomForestClassifier of
+   * scikit-learn and RandomForestClassifier of cuML.
    *
    * The kMultiClfProbDistLeaf task type implies the following constraints on the task parameters:
    * output_type=float, grove_per_class=false, num_class>1, leaf_vector_size=num_class.
@@ -160,8 +160,6 @@ enum class TaskType : uint8_t {
    * Models of type kMultiClfCategLeaf can be converted into the kMultiClfProbDistLeaf type, by
    * converting the output of every leaf node into the equivalent one-hot-encoded vector.
    *
-   * An example of kMultiClfCategLeaf task type is found in RandomForestClassifier of cuML.
-   *
    * The kMultiClfCategLeaf task type implies the following constraints on the task parameters:
    * output_type=int, grove_per_class=false, num_class>1, leaf_vector_size=1.
    */
@@ -170,22 +168,22 @@ enum class TaskType : uint8_t {
 
 inline std::string TaskTypeToString(TaskType type) {
   switch (type) {
-    case TaskType::kBinaryClfRegr: return "BinaryClfRegr";
-    case TaskType::kMultiClfGrovePerClass: return "MultiClfGrovePerClass";
-    case TaskType::kMultiClfProbDistLeaf: return "MultiClfProbDistLeaf";
-    case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
+    case TaskType::kBinaryClfRegr: return "kBinaryClfRegr";
+    case TaskType::kMultiClfGrovePerClass: return "kMultiClfGrovePerClass";
+    case TaskType::kMultiClfProbDistLeaf: return "kMultiClfProbDistLeaf";
+    case TaskType::kMultiClfCategLeaf: return "kMultiClfCategLeaf";
     default: return "";
   }
 }
 
 inline TaskType StringToTaskType(const std::string& str) {
-  if (str == "BinaryClfRegr") {
+  if (str == "kBinaryClfRegr") {
     return TaskType::kBinaryClfRegr;
-  } else if (str == "MultiClfGrovePerClass") {
+  } else if (str == "kMultiClfGrovePerClass") {
     return TaskType::kMultiClfGrovePerClass;
-  } else if (str == "MultiClfProbDistLeaf") {
+  } else if (str == "kMultiClfProbDistLeaf") {
     return TaskType::kMultiClfProbDistLeaf;
-  } else if (str == "MultiClfCategLeaf") {
+  } else if (str == "kMultiClfCategLeaf") {
     return TaskType::kMultiClfCategLeaf;
   } else {
     TREELITE_LOG(FATAL) << "Unknown task type: " << str;

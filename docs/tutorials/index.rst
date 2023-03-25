@@ -14,3 +14,4 @@ This page lists tutorials about Treelite.
  deploy
  deploy_java
  builder
+ json_import

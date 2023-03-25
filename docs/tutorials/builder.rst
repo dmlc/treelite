@@ -1,13 +1,11 @@
 Specifying models using model builder
 =====================================
 
-Since the scope of Treelite is limited to **prediction** only, one must use
-other machine learning packages to **train** decision tree ensemble models. In
-this document, we will show how to import an ensemble model that had been
-trained elsewhere.
-
-**Using XGBoost or LightGBM for training?** Read :doc:`this document <import>`
-instead.
+Treelite supports loading models from major tree libraries, such as XGBoost and
+scikit-learn. However, you may want to use models trained by other tree
+libraries that are not directly supported by Treelite. The model builder is
+useful in this use case. (Alternatively, consider
+:doc:`importing from JSON <json_import>` instead.)
 
 .. contents:: Contents
   :local:
@@ -24,7 +22,7 @@ tree ensembles programmatically. Each tree ensemble is represented as follows:
 * Each :py:class:`~treelite.ModelBuilder` object is a **list** of
   :py:class:`~treelite.ModelBuilder.Tree` objects.
 
-A toy example
+Toy example
 -------------
 Consider the following tree ensemble, consisting of two regression trees:
 
@@ -85,7 +83,7 @@ Consider the following tree ensemble, consisting of two regression trees:
 
 .. note:: Provision for missing data: default directions
 
-  Decision trees in treelite accomodate `missing data
+  Decision trees in Treelite accomodate `missing data
   <https://en.wikipedia.org/wiki/Missing_data>`_ by indicating the
   **default direction** for every test node. In the diagram above, the
   default direction is indicated by label "Missing." For instance, the root node

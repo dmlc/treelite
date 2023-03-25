@@ -558,7 +558,7 @@ class Model:
         """
         Import a tree ensemble model from a JSON string.
 
-        TODO(hcho3): Add link to JSON spec of a valid Treelite model
+        See :doc:`tutorials/json_import` for details.
 
         Parameters
         ----------

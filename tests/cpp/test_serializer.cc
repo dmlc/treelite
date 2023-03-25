@@ -263,7 +263,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   TestRoundTrip(model.get());
 
   /* Test correctness of JSON dump */
-  std::string matching_categories_str;
+  std::string categories_list_str;
   {
     std::ostringstream oss;
     rapidjson::OStreamWrapper os_wrapper(oss);
@@ -273,7 +273,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
       writer.Uint(static_cast<unsigned int>(e));
     }
     writer.EndArray();
-    matching_categories_str = oss.str();
+    categories_list_str = oss.str();
   }
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
@@ -301,7 +301,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
                     "default_left": false,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": {matching_categories},
+                    "categories_list": {categories_list},
                     "left_child": 1,
                     "right_child": 2
                 }}, {{
@@ -316,7 +316,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   )JSON",
     "leaf_value0"_a = static_cast<LeafOutputType>(2),
     "leaf_value1"_a = static_cast<LeafOutputType>(3),
-    "matching_categories"_a = matching_categories_str
+    "categories_list"_a = categories_list_str
   );
 
   rapidjson::Document json_dump;
@@ -416,7 +416,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0, 1],
+                    "categories_list": [0, 1],
                     "left_child": 3,
                     "right_child": 4
                 }}, {{
@@ -425,7 +425,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0],
+                    "categories_list": [0],
                     "left_child": 5,
                     "right_child": 6
                 }}, {{
@@ -459,7 +459,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0, 1],
+                    "categories_list": [0, 1],
                     "left_child": 3,
                     "right_child": 4
                 }}, {{
@@ -468,7 +468,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0],
+                    "categories_list": [0],
                     "left_child": 5,
                     "right_child": 6
                 }}, {{
@@ -502,7 +502,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0, 1],
+                    "categories_list": [0, 1],
                     "left_child": 3,
                     "right_child": 4
                 }}, {{
@@ -511,7 +511,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
                     "default_left": true,
                     "split_type": "categorical",
                     "categories_list_right_child": false,
-                    "matching_categories": [0],
+                    "categories_list": [0],
                     "left_child": 5,
                     "right_child": 6
                 }}, {{

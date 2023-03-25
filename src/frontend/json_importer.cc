@@ -126,8 +126,8 @@ void ParseInternalNode(
   } else if (split_type == treelite::SplitFeatureType::kCategorical) {  // categorical split
     const bool categories_list_right_child = ExpectBool(node, "categories_list_right_child");
     std::vector<std::uint32_t> categories_list;
-    for (const auto& e : ExpectArray(node, "matching_categories")) {
-      TREELITE_CHECK(e.IsUint()) << "Expected an unsigned in matching_categories field";
+    for (const auto& e : ExpectArray(node, "categories_list")) {
+      TREELITE_CHECK(e.IsUint()) << "Expected an unsigned integer in categories_list field";
       categories_list.push_back(e.GetUint());
     }
     tree.SetCategoricalSplit(new_node_id, split_index, default_left, categories_list,

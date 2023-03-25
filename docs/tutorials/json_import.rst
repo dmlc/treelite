@@ -75,19 +75,16 @@ Consider the following tree ensemble, consisting of two regression trees:
 where each node is assign a **unique integer key**, indicated in :red:`red`.
 Note that integer keys need to be unique only within the same tree.
 
-.. note:: Provision for missing data: default directions
-
-  Decision trees in Treelite accomodate `missing data
-  <https://en.wikipedia.org/wiki/Missing_data>`_ by indicating the
-  **default direction** for every test node. In the diagram above, the
-  default direction is indicated by label "Missing." For instance, the root node
-  of the first tree shown above will send to the left all data points that lack
-  values for feature 0.
-
 You can construct this tree ensemble by calling
 :py:meth:`~treelite.Model.import_from_json` with an appropriately formatted
 JSON string. We will give you the example code first; in the following section,
 we will explain the meaining of each field in the JSON string.
+
+.. note:: :py:meth:`~treelite.Model.dump_as_json` will NOT preserve the JSON string that's passed into :py:meth:`~treelite.Model.import_from_json`
+
+  The operation performed in :py:meth:`~treelite.Model.import_from_json` is strictly one-way.
+  So the output of :py:meth:`~treelite.Model.dump_as_json` will differ from the JSON string
+  you used in calling :py:meth:`~treelite.Model.import_from_json`.
 
 .. code-block:: python
   :linenos:

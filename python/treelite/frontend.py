@@ -80,6 +80,13 @@ class Model:
         Dump the model as a JSON string. This is useful for inspecting details of the tree ensemble
         model.
 
+        .. note::
+
+            The operation performed in :py:meth:`~treelite.Model.dump_as_json`
+            is strictly one-way. So the output of
+            :py:meth:`~treelite.Model.dump_as_json` will differ from the JSON
+            string you used in calling :py:meth:`~treelite.Model.import_from_json`.
+
         Parameters
         ----------
         pretty_print : :py:class:`bool <python:bool>`, optional
@@ -559,6 +566,13 @@ class Model:
         Import a tree ensemble model from a JSON string.
 
         See :doc:`tutorials/json_import` for details.
+
+        .. note::
+
+            The operation performed in :py:meth:`~treelite.Model.import_from_json`
+            is strictly one-way. So the output of
+            :py:meth:`~treelite.Model.dump_as_json` will differ from the JSON
+            string you used in calling :py:meth:`~treelite.Model.import_from_json`.
 
         Parameters
         ----------

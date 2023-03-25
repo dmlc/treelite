@@ -98,7 +98,7 @@ we will explain the meaining of each field in the JSON string.
   json_str = """
   {
       "num_feature": 3,
-      "task_type": "BinaryClfRegr",
+      "task_type": "kBinaryClfRegr",
       "average_tree_output": false,
       "task_param": {
           "output_type": "float",

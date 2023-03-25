@@ -10,12 +10,12 @@ import treelite
 def test_json_import(use_vector_leaf):
     """Test JSON import feature"""
     if use_vector_leaf:
-        task_type = "MultiClfProbDistLeaf"
+        task_type = "kMultiClfProbDistLeaf"
         num_class = 3
         leaf_vector_size = 3
         pred_transform = "softmax"
     else:
-        task_type = "BinaryClfRegr"
+        task_type = "kBinaryClfRegr"
         num_class = 1
         leaf_vector_size = 1
         pred_transform = "sigmoid"

@@ -267,5 +267,5 @@ For the categorical test, the test criterion is in the form of
 
 where the ``categories_list`` defines a (mathematical) set.
 When the test criteron is evaluated to be true, the prediction function
-traverses to the left child (if ``categories_list_right_child=false``)
-or to the right child (if ``categories_list_right_child=true``).
+traverses to the left child node (if ``categories_list_right_child=false``)
+or to the right child node (if ``categories_list_right_child=true``).

@@ -102,7 +102,7 @@ class ContiguousArray {
 /*!
  * \brief Enum type representing the task type.
  *
- * The task type places constraints on the parameters of TaskParameter. See the docstring for each
+ * The task type places constraints on the parameters of TaskParam. See the docstring for each
  * enum constants for more details.
  */
 enum class TaskType : uint8_t {

@@ -170,22 +170,22 @@ enum class TaskType : uint8_t {
 
 inline std::string TaskTypeToString(TaskType type) {
   switch (type) {
-    case TaskType::kBinaryClfRegr: return "BinaryClfRegr";
-    case TaskType::kMultiClfGrovePerClass: return "MultiClfGrovePerClass";
-    case TaskType::kMultiClfProbDistLeaf: return "MultiClfProbDistLeaf";
-    case TaskType::kMultiClfCategLeaf: return "MultiClfCategLeaf";
+    case TaskType::kBinaryClfRegr: return "kBinaryClfRegr";
+    case TaskType::kMultiClfGrovePerClass: return "kMultiClfGrovePerClass";
+    case TaskType::kMultiClfProbDistLeaf: return "kMultiClfProbDistLeaf";
+    case TaskType::kMultiClfCategLeaf: return "kMultiClfCategLeaf";
     default: return "";
   }
 }
 
 inline TaskType StringToTaskType(const std::string& str) {
-  if (str == "BinaryClfRegr") {
+  if (str == "kBinaryClfRegr") {
     return TaskType::kBinaryClfRegr;
-  } else if (str == "MultiClfGrovePerClass") {
+  } else if (str == "kMultiClfGrovePerClass") {
     return TaskType::kMultiClfGrovePerClass;
-  } else if (str == "MultiClfProbDistLeaf") {
+  } else if (str == "kMultiClfProbDistLeaf") {
     return TaskType::kMultiClfProbDistLeaf;
-  } else if (str == "MultiClfCategLeaf") {
+  } else if (str == "kMultiClfCategLeaf") {
     return TaskType::kMultiClfCategLeaf;
   } else {
     TREELITE_LOG(FATAL) << "Unknown task type: " << str;

@@ -82,7 +82,7 @@ void PyBufferInterfaceRoundTrip_TreeStump() {
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
     "num_feature": 2,
-    "task_type": "BinaryClfRegr",
+    "task_type": "kBinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
         "output_type": "float",
@@ -171,7 +171,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpLeafVec() {
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
     "num_feature": 2,
-    "task_type": "MultiClfProbDistLeaf",
+    "task_type": "kMultiClfProbDistLeaf",
     "average_tree_output": true,
     "task_param": {{
         "output_type": "float",
@@ -278,7 +278,7 @@ void PyBufferInterfaceRoundTrip_TreeStumpCategoricalSplit(
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
     "num_feature": 2,
-    "task_type": "BinaryClfRegr",
+    "task_type": "kBinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
         "output_type": "float",
@@ -384,7 +384,7 @@ void PyBufferInterfaceRoundTrip_TreeDepth2() {
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
     "num_feature": 2,
-    "task_type": "BinaryClfRegr",
+    "task_type": "kBinaryClfRegr",
     "average_tree_output": false,
     "task_param": {{
         "output_type": "float",

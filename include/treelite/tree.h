@@ -142,8 +142,8 @@ enum class TaskType : uint8_t {
    * are combined via summing or averaging, depending on the value of the [average_tree_output]
    * field. In effect, each tree is casting a set of weighted (fractional) votes for the classes.
    *
-   * An example of kMultiClfProbDistLeaf task type is found in RandomForestClassifier of
-   * scikit-learn.
+   * Examples of kMultiClfProbDistLeaf task type are found in RandomForestClassifier of
+   * scikit-learn and RandomForestClassifier of cuML.
    *
    * The kMultiClfProbDistLeaf task type implies the following constraints on the task parameters:
    * output_type=float, grove_per_class=false, num_class>1, leaf_vector_size=num_class.
@@ -159,8 +159,6 @@ enum class TaskType : uint8_t {
    * with 1 in index [x] and 0 everywhere else, and tree(i) is the output from the i-th tree.
    * Models of type kMultiClfCategLeaf can be converted into the kMultiClfProbDistLeaf type, by
    * converting the output of every leaf node into the equivalent one-hot-encoded vector.
-   *
-   * An example of kMultiClfCategLeaf task type is found in RandomForestClassifier of cuML.
    *
    * The kMultiClfCategLeaf task type implies the following constraints on the task parameters:
    * output_type=int, grove_per_class=false, num_class>1, leaf_vector_size=1.

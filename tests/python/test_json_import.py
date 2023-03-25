@@ -1,3 +1,4 @@
+"""Test importing from JSON"""
 import json
 
 import numpy as np

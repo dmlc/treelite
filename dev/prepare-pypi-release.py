@@ -113,7 +113,9 @@ def download_py_packages(branch: str, version_str: str, commit_hash: str) -> Non
     print(
         """
 Following steps should be done manually:
-- Upload pypi package by `python3 -m twine upload dist/<Package Name>` for all wheels.
+- Upload pypi package by `python -m twine upload dist/<Package Name>` for all wheels.
+- Create sdist package: `make pippack`.
+- Upload sdist package to PyPI
 - Check the uploaded files on `https://pypi.org/project/treelite/<VERSION>/#files` and `pip
   install treelite==<VERSION>` """
     )

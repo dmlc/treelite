@@ -7,6 +7,27 @@ libraries that are not directly supported by Treelite. The JSON importer is
 useful in this use case. (Alternatively, consider
 :doc:`using the model builder <builder>` instead.)
 
+.. note:: :py:meth:`~treelite.Model.import_from_json` is strict about which JSON strings to accept
+
+  Some tree libraries such as XGBoost, Catboost, and cuML RandomForest let users to dump tree
+  models as JSON strings. However, :py:meth:`~treelite.Model.import_from_json` will not accept
+  these strings. It requires a particular set of fields, as outlined in the tutorial below.
+  Here are the suggested methods for converting your tree model into Treelite format:
+  
+  1. If you are using XGBoost, LightGBM, or scikit-learn, use methods
+     :py:meth:`~treelite.Model.load` and :py:meth:`~treelite.sklearn.import_model`.
+  2. If you are using cuML RandomForest, convert the model directly to Treelite objects as follows:
+  
+  .. code:: python
+  
+    cuml_rf_model.convert_to_treelite_model().to_treelite_checkpoint("checkpoint.bin")
+    tl_model = treelite.Model.deserialize("checkpoint.bin")
+  
+  3. If you are using Catboost or other tree libraries that Treelite do not support directly,
+     write a custom program to format your tree models to produce the correctly formatted JSON
+     string. Make sure that all fields are put in place, such as ``task_param``, ``model_param``
+     and others.
+
 .. contents:: Contents
   :local:
 

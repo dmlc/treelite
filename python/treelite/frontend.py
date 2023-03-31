@@ -509,6 +509,10 @@ class Model:
         """
         Load a tree ensemble model from a file
 
+        .. note::
+
+            To load scikit-learn models, use :py:meth:`~treelite.sklearn.import_model` instead.
+
         Parameters
         ----------
         filename : str
@@ -566,6 +570,12 @@ class Model:
         Import a tree ensemble model from a JSON string.
 
         See :doc:`tutorials/json_import` for details.
+
+        .. note:: ``import_from_json()`` is strict about which JSON strings to accept
+
+            Some tree libraries let users to export models as JSON strings, but in
+            general :py:meth:`~treelite.Model.import_from_json` will not accept them.
+            See the warning at the top of :doc:`tutorials/json_import`.
 
         .. note::
 

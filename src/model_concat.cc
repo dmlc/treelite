@@ -17,14 +17,17 @@ std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& 
   if (objs.empty()) {
     return std::unique_ptr<Model>();
   }
-  return objs[0]->Dispatch([&objs](const auto& first_model_obj) {
+  const TypeInfo threshold_type = objs[0]->GetThresholdType();
+  const TypeInfo leaf_output_type = objs[0]->GetLeafOutputType();
+  return objs[0]->Dispatch([&objs, threshold_type, leaf_output_type](const auto& first_model_obj) {
     using ModelType = std::remove_const_t<std::remove_reference_t<decltype(first_model_obj)>>;
-    std::unique_ptr<ModelType> concatenated_model = std::make_unique<ModelType>();
+    std::unique_ptr<Model> concatenated_model = Model::Create(threshold_type, leaf_output_type);
+    auto* concatenated_model_concrete = dynamic_cast<ModelType*>(concatenated_model.get());
     for (std::size_t i = 0; i < objs.size(); ++i) {
       auto* casted = dynamic_cast<const ModelType*>(objs[i]);
       if (casted) {
         std::transform(casted->trees.begin(), casted->trees.end(),
-                       std::back_inserter(concatenated_model->trees),
+                       std::back_inserter(concatenated_model_concrete->trees),
                        [](const auto& tree) { return tree.Clone(); });
       } else {
         TREELITE_LOG(FATAL) << "Model object at index " << i
@@ -37,7 +40,7 @@ std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& 
     concatenated_model->average_tree_output = first_model_obj.average_tree_output;
     concatenated_model->task_param = first_model_obj.task_param;
     concatenated_model->param = first_model_obj.param;
-    return std::unique_ptr<Model>(concatenated_model.release());
+    return concatenated_model;
   });
 }
 

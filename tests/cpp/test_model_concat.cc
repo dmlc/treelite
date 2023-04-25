@@ -11,6 +11,20 @@
 #include <memory>
 #include <vector>
 
+namespace {
+
+inline void TestRoundTrip(treelite::Model* model) {
+  // Test round trip with in-memory serialization
+  auto buffer = model->GetPyBuffer();
+  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
+
+  // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
+  // causing an OOM error
+  ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
+}
+
+}  // anonymous namespace
+
 namespace treelite {
 
 TEST(ModelConcatenation, TreeStump) {
@@ -42,6 +56,7 @@ TEST(ModelConcatenation, TreeStump) {
 
   std::unique_ptr<Model> concatenated_model = ConcatenateModelObjects(model_obj_refs);
   ASSERT_EQ(concatenated_model->GetNumTree(), kNumModelObjs);
+  TestRoundTrip(concatenated_model.get());
   const auto* concatenated_model_casted = dynamic_cast<const ModelImpl<float, float>*>(concatenated_model.get());
   for (int i = 0; i < kNumModelObjs; ++i) {
     const auto& tree = concatenated_model_casted->trees[i];

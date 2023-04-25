@@ -21,7 +21,7 @@ ENV CPP=/opt/rh/devtoolset-8/root/usr/bin/cpp
 
 # Install Python packages
 RUN \
-    conda install -y -c conda-forge python=3.7 numpy pytest scipy scikit-learn wheel pandas pip
+    conda install -y -c conda-forge python=3.8 numpy pytest scipy scikit-learn wheel pandas pip
 
 ENV GOSU_VERSION 1.10
 

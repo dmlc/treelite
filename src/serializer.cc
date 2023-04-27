@@ -7,6 +7,7 @@
 
 #include <treelite/tree.h>
 #include <treelite/error.h>
+#include <iostream>
 
 namespace treelite {
 
@@ -44,24 +45,24 @@ Model::CreateFromPyBuffer(std::vector<PyBufferFrame> frames) {
 }
 
 void
-Model::SerializeToFile(FILE* dest_fp) {
-  auto header_primitive_field_handler = [dest_fp](auto* field) {
-    WriteScalarToFile(field, dest_fp);
+Model::SerializeToStream(std::ostream& os) {
+  auto header_primitive_field_handler = [&os](auto* field) {
+    WriteScalarToStream(field, os);
   };
   SerializeTemplate(header_primitive_field_handler);
-  this->SerializeToFileImpl(dest_fp);
+  this->SerializeToStreamImpl(os);
 }
 
 std::unique_ptr<Model>
-Model::DeserializeFromFile(FILE* src_fp) {
+Model::DeserializeFromStream(std::istream& is) {
   TypeInfo threshold_type, leaf_output_type;
   int idx = 0;
-  auto header_primitive_field_handler = [src_fp](auto* field) {
-    ReadScalarFromFile(field, src_fp);
+  auto header_primitive_field_handler = [&is](auto* field) {
+    ReadScalarFromStream(field, is);
   };
-  int32_t major_ver;
-  int32_t minor_ver;
-  int32_t patch_ver;
+  std::int32_t major_ver;
+  std::int32_t minor_ver;
+  std::int32_t patch_ver;
   DeserializeTemplate(header_primitive_field_handler, major_ver, minor_ver, patch_ver,
     threshold_type, leaf_output_type);
 
@@ -69,7 +70,7 @@ Model::DeserializeFromFile(FILE* src_fp) {
   model->major_ver_ = major_ver;
   model->minor_ver_ = minor_ver;
   model->patch_ver_ = patch_ver;
-  model->DeserializeFromFileImpl(src_fp);
+  model->DeserializeFromStreamImpl(is);
   return model;
 }
 

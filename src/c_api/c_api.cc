@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
-#include <cstdio>
 #include <cstddef>
 
 using namespace treelite;
@@ -311,20 +310,20 @@ int TreeliteLoadSKLearnHistGradientBoostingClassifier(
 
 int TreeliteSerializeModel(const char* filename, ModelHandle handle) {
   API_BEGIN();
-  FILE* fp = std::fopen(filename, "wb");
-  TREELITE_CHECK(fp) << "Failed to open file '" << filename << "'";
+  std::ofstream ofs(filename, std::ios::out | std::ios::binary);
+  TREELITE_CHECK(ofs) << "Failed to open file '" << filename << "'";
+  ofs.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
   auto* model_ = static_cast<Model*>(handle);
-  model_->SerializeToFile(fp);
-  std::fclose(fp);
+  model_->SerializeToStream(ofs);
   API_END();
 }
 
 int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  FILE* fp = std::fopen(filename, "rb");
-  TREELITE_CHECK(fp) << "Failed to open file '" << filename << "'";
-  std::unique_ptr<Model> model = Model::DeserializeFromFile(fp);
-  std::fclose(fp);
+  std::ifstream ifs(filename, std::ios::in | std::ios::binary);
+  TREELITE_CHECK(ifs) << "Failed to open file '" << filename << "'";
+  ifs.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
+  std::unique_ptr<Model> model = Model::DeserializeFromStream(ifs);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

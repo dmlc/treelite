@@ -11,12 +11,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
-#include <cstdio>
 #include <cstdint>
 #include <string>
 #include <map>
 #include <vector>
 #include <memory>
+#include <fstream>
 #include <stdexcept>
 
 using namespace fmt::literals;
@@ -35,16 +35,21 @@ inline void TestRoundTrip(treelite::Model* model) {
   }
 
   for (int i = 0; i < 2; ++i) {
-    // Test round trip with serialization to a FILE stream
+    // Test round trip with serialization to a file stream
     const char* filename = std::tmpnam(nullptr);
-    FILE* fp = std::fopen(filename, "wb");
-    ASSERT_TRUE(fp);
-    model->SerializeToFile(fp);
-    std::fclose(fp);
-    fp = std::fopen(filename, "rb");
-    ASSERT_TRUE(fp);
-    std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromFile(fp);
-    std::fclose(fp);
+    std::unique_ptr<treelite::Model> received_model;
+    {
+      std::ofstream ofs(filename, std::ios::out | std::ios::binary);
+      ASSERT_TRUE(ofs);
+      ofs.exceptions(std::ios::failbit | std::ios::badbit);
+      model->SerializeToStream(ofs);
+    }
+    {
+      std::ifstream ifs(filename, std::ios::in | std::ios::binary);
+      ASSERT_TRUE(ifs);
+      ifs.exceptions(std::ios::failbit | std::ios::badbit);
+      received_model = treelite::Model::DeserializeFromStream(ifs);
+    }
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error

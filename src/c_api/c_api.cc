@@ -21,8 +21,8 @@
 #include <memory>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <string>
-#include <cstdio>
 #include <cstddef>
 
 using namespace treelite;
@@ -311,20 +311,61 @@ int TreeliteLoadSKLearnHistGradientBoostingClassifier(
 
 int TreeliteSerializeModel(const char* filename, ModelHandle handle) {
   API_BEGIN();
-  FILE* fp = std::fopen(filename, "wb");
-  TREELITE_CHECK(fp) << "Failed to open file '" << filename << "'";
-  auto* model_ = static_cast<Model*>(handle);
-  model_->SerializeToFile(fp);
-  std::fclose(fp);
+  TREELITE_LOG(WARNING)
+      << "TreeliteSerializeModel() is deprecated; "
+      << "please use TreeliteSerializeModelToFile() instead";
+  return TreeliteSerializeModelToFile(handle, filename);
   API_END();
 }
 
 int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
   API_BEGIN();
-  FILE* fp = std::fopen(filename, "rb");
-  TREELITE_CHECK(fp) << "Failed to open file '" << filename << "'";
-  std::unique_ptr<Model> model = Model::DeserializeFromFile(fp);
-  std::fclose(fp);
+  TREELITE_LOG(WARNING)
+      << "TreeliteDeserializeModel() is deprecated; "
+      << "please use TreeliteDeserializeModelFromFile() instead";
+  return TreeliteDeserializeModelFromFile(filename, out);
+  API_END();
+}
+
+int TreeliteSerializeModelToFile(ModelHandle handle, const char* filename) {
+  API_BEGIN();
+  std::ofstream ofs(filename, std::ios::out | std::ios::binary);
+  TREELITE_CHECK(ofs) << "Failed to open file '" << filename << "'";
+  ofs.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
+  auto* model_ = static_cast<Model*>(handle);
+  model_->SerializeToStream(ofs);
+  API_END();
+}
+
+int TreeliteDeserializeModelFromFile(const char* filename, ModelHandle* out) {
+  API_BEGIN();
+  std::ifstream ifs(filename, std::ios::in | std::ios::binary);
+  TREELITE_CHECK(ifs) << "Failed to open file '" << filename << "'";
+  ifs.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
+  std::unique_ptr<Model> model = Model::DeserializeFromStream(ifs);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteSerializeModelToString(ModelHandle handle, const char** out_str, size_t* out_str_len) {
+  API_BEGIN();
+  std::ostringstream oss;
+  oss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
+  auto* model_ = static_cast<Model*>(handle);
+  model_->SerializeToStream(oss);
+
+  std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
+  ret_str = oss.str();
+  *out_str = ret_str.data();
+  *out_str_len = ret_str.length();
+  API_END();
+}
+
+int TreeliteDeserializeModelFromString(const char* str, size_t str_len, ModelHandle* out) {
+  API_BEGIN();
+  std::istringstream iss(std::string(str, str_len));
+  iss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
+  std::unique_ptr<Model> model = Model::DeserializeFromStream(iss);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }

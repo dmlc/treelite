@@ -505,22 +505,53 @@ TREELITE_DLL int TreeliteQueryNumClass(ModelHandle handle, size_t* out);
 TREELITE_DLL int TreeliteSetTreeLimit(ModelHandle handle, size_t limit);
 
 /*!
- * \brief Serialize (persist) a model object to disk
- * \param filename name of the file to which to serialize the model. The file will be using a
- *                 binary format that's optimized to store the Treelite model object efficiently.
- * \param handle handle to the model object
- * \return 0 for success, -1 for failure
+ * \brief Deprecated. Please use \ref TreeliteSerializeModelToFile instead.
  */
 TREELITE_DLL int TreeliteSerializeModel(const char* filename, ModelHandle handle);
 
 /*!
+ * \brief Deprecated. Please use \ref TreeliteDeserializeModelFromFile instead.
+ */
+TREELITE_DLL int TreeliteDeserializeModel(const char* filename, ModelHandle* out);
+
+/*!
+ * \brief Serialize (persist) a model object to disk
+ * \param handle Handle to the model object
+ * \param filename Name of the file to which to serialize the model. The file will be using a
+ *                 binary format that's optimized to store the Treelite model object efficiently.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSerializeModelToFile(ModelHandle handle, const char* filename);
+
+/*!
  * \brief Deserialize (load) a model object from disk
- * \param filename name of the file from which to deserialize the model. The file should be created
- *                 by a call to TreeliteSerializeModel().
+ * \param filename Name of the file from which to deserialize the model. The file should be created
+ *                 by a call to \ref TreeliteSerializeModelToFile.
  * \param out Handle to the model object
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteDeserializeModel(const char* filename, ModelHandle* out);
+TREELITE_DLL int TreeliteDeserializeModelFromFile(const char* filename, ModelHandle* out);
+
+/*!
+ * \brief Serialize (persist) a model object to a (binary) string.
+ * \param handle Handle to the model object
+ * \param out_str String containing serialized model
+ * \param out_str_len Length of out_str
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSerializeModelToString(
+    ModelHandle handle, const char** out_str, size_t* out_str_len);
+
+/*!
+ * \brief Deserialize (load) a model object from disk
+ * \param str String containing serialized model. The string should be created by a call to
+ *            \ref TreeliteSerializeModelToString.
+ * \param str_len Length of str
+ * \param out Handle to the model object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeserializeModelFromString(
+    const char* str, size_t str_len, ModelHandle* out);
 
 /*!
  * \brief Concatenate multiple model objects into a single model object by copying

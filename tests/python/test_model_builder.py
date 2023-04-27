@@ -12,7 +12,7 @@ from .metadata import dataset_db
 from .util import os_compatible_toolchains, check_predictor
 
 
-@pytest.mark.parametrize('test_round_trip', [True, False])
+@pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 @pytest.mark.parametrize('quantize', [True, False])
 @pytest.mark.parametrize('use_annotation', [True, False])
@@ -80,10 +80,13 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_t
     builder.append(tree)
 
     model = builder.commit()
-    if test_round_trip:
-        checkpoint_path = os.path.join(tmpdir, 'checkpoint.bin')
+    if test_round_trip == "file":
+        checkpoint_path = os.path.join(tmpdir, "checkpoint.bin")
         model.serialize(checkpoint_path)
         model = treelite.Model.deserialize(checkpoint_path)
+    elif test_round_trip == "bytes":
+        model_bytes = model.serialize_bytes()
+        model = treelite.Model.deserialize_bytes(model_bytes)
     assert model.num_feature == num_feature
     assert model.num_class == 1
     assert model.num_tree == 2
@@ -108,7 +111,7 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_t
     check_predictor(predictor, 'mushroom')
 
 
-@pytest.mark.parametrize('test_round_trip', [True, False])
+@pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
 @pytest.mark.parametrize('toolchain', os_compatible_toolchains())
 def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
     # pylint: disable=R0914
@@ -135,10 +138,13 @@ def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
     builder[0][5].set_root()
 
     model = builder.commit()
-    if test_round_trip:
-        checkpoint_path = os.path.join(tmpdir, 'checkpoint.bin')
+    if test_round_trip == "file":
+        checkpoint_path = os.path.join(tmpdir, "checkpoint.bin")
         model.serialize(checkpoint_path)
         model = treelite.Model.deserialize(checkpoint_path)
+    elif test_round_trip == "bytes":
+        model_bytes = model.serialize_bytes()
+        model = treelite.Model.deserialize_bytes(model_bytes)
     assert model.num_feature == num_feature
     assert model.num_class == 1
     assert model.num_tree == 1

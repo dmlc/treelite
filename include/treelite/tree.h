@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
-#include <ostream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -382,12 +382,12 @@ class Tree {
 
   inline const char* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
-  inline void SerializeToFile(FILE* dest_fp);
+  inline void SerializeToStream(std::ostream& os);
   // Load a Tree object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
   inline std::vector<PyBufferFrame>::iterator
     InitFromPyBuffer(std::vector<PyBufferFrame>::iterator it);
-  inline void DeserializeFromFile(FILE* src_fp);
+  inline void DeserializeFromStream(std::istream& is);
 
  private:
   // vector of nodes
@@ -807,8 +807,8 @@ class Model {
     CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
 
   /* Serialization to a file stream */
-  void SerializeToFile(FILE* dest_fp);
-  static std::unique_ptr<Model> DeserializeFromFile(FILE* src_fp);
+  void SerializeToStream(std::ostream& os);
+  static std::unique_ptr<Model> DeserializeFromStream(std::istream& is);
 
   /*!
    * \brief number of features used for the model.
@@ -840,12 +840,12 @@ class Model {
   TypeInfo leaf_output_type_{TypeInfo::kInvalid};
   // Internal functions for serialization
   virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
-  virtual void SerializeToFileImpl(FILE* dest_fp) = 0;
+  virtual void SerializeToStreamImpl(std::ostream& os) = 0;
   // Load a Model object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
   virtual std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
     std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) = 0;
-  virtual void DeserializeFromFileImpl(FILE* src_fp) = 0;
+  virtual void DeserializeFromStreamImpl(std::istream& is) = 0;
   template <typename HeaderPrimitiveFieldHandlerFunc>
   inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
   template <typename HeaderPrimitiveFieldHandlerFunc>
@@ -878,12 +878,12 @@ class ModelImpl : public Model {
   }
 
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
-  inline void SerializeToFileImpl(FILE* dest_fp) override;
+  inline void SerializeToStreamImpl(std::ostream& os) override;
   // Load a ModelImpl object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
   inline std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
     std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) override;
-  inline void DeserializeFromFileImpl(FILE* src_fp) override;
+  inline void DeserializeFromStreamImpl(std::istream& is) override;
 
  private:
   template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,

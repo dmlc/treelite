@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstddef>
+#include <cstdint>
 
 namespace {
 
@@ -457,65 +458,49 @@ inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
 }
 
 template <typename T>
-inline void ReadScalarFromFile(T* scalar, FILE* fp) {
+inline void ReadScalarFromStream(T* scalar, std::istream& is) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
-  if (std::fread(scalar, sizeof(T), 1, fp) < 1) {
-    throw Error("Could not read a scalar");
-  }
+  is.read(reinterpret_cast<char*>(scalar), sizeof(T));
 }
 
 template <typename T>
-inline void WriteScalarToFile(T* scalar, FILE* fp) {
+inline void WriteScalarToStream(T* scalar, std::ostream& os) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
-  if (std::fwrite(scalar, sizeof(T), 1, fp) < 1) {
-    throw Error("Could not write a scalar");
-  }
+  os.write(reinterpret_cast<const char*>(scalar), sizeof(T));
 }
 
 template <typename T>
-inline void ReadArrayFromFile(ContiguousArray<T>* vec, FILE* fp) {
-  uint64_t nelem;
-  if (std::fread(&nelem, sizeof(nelem), 1, fp) < 1) {
-    throw Error("Could not read the number of elements");
-  }
+inline void ReadArrayFromStream(ContiguousArray<T>* vec, std::istream& is) {
+  std::uint64_t nelem;
+  is.read(reinterpret_cast<char*>(&nelem), sizeof(nelem));
   vec->Clear();
   vec->Resize(nelem);
   if (nelem == 0) {
     return;  // handle empty arrays
   }
-  const auto nelem_size_t = static_cast<std::size_t>(nelem);
-  if (std::fread(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
-    throw Error("Could not read an array");
-  }
+  is.read(reinterpret_cast<char*>(vec->Data()), sizeof(T) * nelem);
 }
 
 template <typename T>
-inline void WriteArrayToFile(ContiguousArray<T>* vec, FILE* fp) {
-  static_assert(sizeof(uint64_t) >= sizeof(size_t), "size_t too large");
-  const auto nelem = static_cast<uint64_t>(vec->Size());
-  if (std::fwrite(&nelem, sizeof(nelem), 1, fp) < 1) {
-    throw Error("Could not write the number of elements");
-  }
+inline void WriteArrayToStream(ContiguousArray<T>* vec, std::ostream& os) {
+  static_assert(sizeof(std::uint64_t) >= sizeof(std::size_t), "size_t too large");
+  const auto nelem = static_cast<std::uint64_t>(vec->Size());
+  os.write(reinterpret_cast<const char*>(&nelem), sizeof(nelem));
   if (nelem == 0) {
     return;  // handle empty arrays
   }
-  const auto nelem_size_t = vec->Size();
-  if (std::fwrite(vec->Data(), sizeof(T), nelem_size_t, fp) < nelem_size_t) {
-    throw Error("Could not write an array");
-  }
+  os.write(reinterpret_cast<const char*>(vec->Data()), sizeof(T) * vec->Size());
 }
 
-inline void SkipOptFieldInFile(FILE* fp) {
-  uint16_t elem_size;
-  uint64_t nelem;
-  ReadScalarFromFile(&elem_size, fp);
-  ReadScalarFromFile(&nelem, fp);
+inline void SkipOptFieldInStream(std::istream& is) {
+  std::uint16_t elem_size;
+  std::uint64_t nelem;
+  ReadScalarFromStream(&elem_size, is);
+  ReadScalarFromStream(&nelem, is);
 
-  const uint64_t nbytes = elem_size * nelem;
-  TREELITE_CHECK_LE(nbytes, std::numeric_limits<long>::max());  // NOLINT
-  if (std::fseek(fp, static_cast<long>(nbytes), SEEK_CUR) != 0) {  // NOLINT
-    throw Error("Reached end of file");
-  }
+  const std::uint64_t nbytes = elem_size * nelem;
+  TREELITE_CHECK_LE(nbytes, std::numeric_limits<std::streamoff>::max());  // NOLINT
+  is.seekg(static_cast<std::streamoff>(nbytes), std::ios::cur);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -628,15 +613,15 @@ Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* des
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree<ThresholdType, LeafOutputType>::SerializeToFile(FILE* dest_fp) {
-  auto scalar_handler = [dest_fp](auto* field) {
-    WriteScalarToFile(field, dest_fp);
+Tree<ThresholdType, LeafOutputType>::SerializeToStream(std::ostream& os) {
+  auto scalar_handler = [&os](auto* field) {
+    WriteScalarToStream(field, os);
   };
-  auto primitive_array_handler = [dest_fp](auto* field) {
-    WriteArrayToFile(field, dest_fp);
+  auto primitive_array_handler = [&os](auto* field) {
+    WriteArrayToStream(field, os);
   };
-  auto composite_array_handler = [dest_fp](auto* field, const char* format) {
-    WriteArrayToFile(field, dest_fp);
+  auto composite_array_handler = [&os](auto* field, const char* format) {
+    WriteArrayToStream(field, os);
   };
   SerializeTemplate(scalar_handler, primitive_array_handler, composite_array_handler);
 }
@@ -660,15 +645,15 @@ Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-Tree<ThresholdType, LeafOutputType>::DeserializeFromFile(FILE* src_fp) {
-  auto scalar_handler = [src_fp](auto* field) {
-    ReadScalarFromFile(field, src_fp);
+Tree<ThresholdType, LeafOutputType>::DeserializeFromStream(std::istream& is) {
+  auto scalar_handler = [&is](auto* field) {
+    ReadScalarFromStream(field, is);
   };
-  auto array_handler = [src_fp](auto* field) {
-    ReadArrayFromFile(field, src_fp);
+  auto array_handler = [&is](auto* field) {
+    ReadArrayFromStream(field, is);
   };
-  auto skip_opt_field_handler = [src_fp]() {
-    SkipOptFieldInFile(src_fp);
+  auto skip_opt_field_handler = [&is]() {
+    SkipOptFieldInStream(is);
   };
   DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
 }
@@ -980,16 +965,16 @@ ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-ModelImpl<ThresholdType, LeafOutputType>::SerializeToFileImpl(FILE* dest_fp) {
-  num_tree_ = static_cast<uint64_t>(this->trees.size());
-  auto header_primitive_field_handler = [dest_fp](auto* field) {
-    WriteScalarToFile(field, dest_fp);
+ModelImpl<ThresholdType, LeafOutputType>::SerializeToStreamImpl(std::ostream& os) {
+  num_tree_ = static_cast<std::uint64_t>(this->trees.size());
+  auto header_primitive_field_handler = [&os](auto* field) {
+    WriteScalarToStream(field, os);
   };
-  auto header_composite_field_handler = [dest_fp](auto* field, const char* format) {
-    WriteScalarToFile(field, dest_fp);
+  auto header_composite_field_handler = [&os](auto* field, const char* format) {
+    WriteScalarToStream(field, os);
   };
-  auto tree_handler = [dest_fp](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.SerializeToFile(dest_fp);
+  auto tree_handler = [&os](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.SerializeToStream(os);
   };
   header_primitive_field_handler(&num_tree_);
   SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
@@ -1032,19 +1017,19 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void
-ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromFileImpl(FILE* src_fp) {
-  ReadScalarFromFile(&num_tree_, src_fp);
+ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromStreamImpl(std::istream& is) {
+  ReadScalarFromStream(&num_tree_, is);
 
-  auto header_field_handler = [src_fp](auto* field) {
-    ReadScalarFromFile(field, src_fp);
+  auto header_field_handler = [&is](auto* field) {
+    ReadScalarFromStream(field, is);
   };
 
-  auto skip_opt_field_handler = [src_fp]() {
-    SkipOptFieldInFile(src_fp);
+  auto skip_opt_field_handler = [&is]() {
+    SkipOptFieldInStream(is);
   };
 
-  auto tree_handler = [src_fp](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.DeserializeFromFile(src_fp);
+  auto tree_handler = [&is](Tree<ThresholdType, LeafOutputType>& tree) {
+    tree.DeserializeFromStream(is);
   };
 
   DeserializeTemplate(num_tree_, header_field_handler, tree_handler, skip_opt_field_handler);

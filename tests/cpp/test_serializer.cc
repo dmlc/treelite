@@ -16,6 +16,7 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <sstream>
 #include <fstream>
 #include <stdexcept>
 
@@ -28,6 +29,21 @@ inline void TestRoundTrip(treelite::Model* model) {
     // Test round trip with in-memory serialization
     auto buffer = model->GetPyBuffer();
     std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
+
+    // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
+    // causing an OOM error
+    ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    // Test round trip with in-memory serialization (via string)
+    std::ostringstream oss;
+    oss.exceptions(std::ios::failbit | std::ios::badbit);
+    model->SerializeToStream(oss);
+
+    std::istringstream iss(oss.str());
+    iss.exceptions(std::ios::failbit | std::ios::badbit);
+    std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromStream(iss);
 
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error

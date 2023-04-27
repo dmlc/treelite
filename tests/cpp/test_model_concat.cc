@@ -8,6 +8,7 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
 #include <algorithm>
+#include <sstream>
 #include <memory>
 #include <vector>
 
@@ -15,8 +16,13 @@ namespace {
 
 inline void TestRoundTrip(treelite::Model* model) {
   // Test round trip with in-memory serialization
-  auto buffer = model->GetPyBuffer();
-  std::unique_ptr<treelite::Model> received_model = treelite::Model::CreateFromPyBuffer(buffer);
+  std::ostringstream oss;
+  oss.exceptions(std::ios::failbit | std::ios::badbit);
+  model->SerializeToStream(oss);
+
+  std::istringstream iss(oss.str());
+  iss.exceptions(std::ios::failbit | std::ios::badbit);
+  std::unique_ptr<treelite::Model> received_model = treelite::Model::DeserializeFromStream(iss);
 
   // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
   // causing an OOM error

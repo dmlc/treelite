@@ -347,7 +347,8 @@ int TreeliteDeserializeModelFromFile(const char* filename, ModelHandle* out) {
   API_END();
 }
 
-int TreeliteSerializeModelToString(ModelHandle handle, const char** out_str, size_t* out_str_len) {
+int TreeliteSerializeModelToBytes(ModelHandle handle, const char** out_bytes,
+                                  size_t* out_bytes_len) {
   API_BEGIN();
   std::ostringstream oss;
   oss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
@@ -356,14 +357,14 @@ int TreeliteSerializeModelToString(ModelHandle handle, const char** out_str, siz
 
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
   ret_str = oss.str();
-  *out_str = ret_str.data();
-  *out_str_len = ret_str.length();
+  *out_bytes = ret_str.data();
+  *out_bytes_len = ret_str.length();
   API_END();
 }
 
-int TreeliteDeserializeModelFromString(const char* str, size_t str_len, ModelHandle* out) {
+int TreeliteDeserializeModelFromBytes(const char* bytes, size_t bytes_len, ModelHandle* out) {
   API_BEGIN();
-  std::istringstream iss(std::string(str, str_len));
+  std::istringstream iss(std::string(bytes, bytes_len));
   iss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
   std::unique_ptr<Model> model = Model::DeserializeFromStream(iss);
   *out = static_cast<ModelHandle>(model.release());

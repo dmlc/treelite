@@ -85,11 +85,11 @@ class Model:
             Please see :doc:`/notes-on-serialization`.
         """
         char_ptr_t = ctypes.POINTER(ctypes.c_char)
-        out_str = char_ptr_t()
-        out_str_len = ctypes.c_size_t()
-        _check_call(_LIB.TreeliteSerializeModelToString(
-            self.handle, ctypes.byref(out_str), ctypes.byref(out_str_len)))
-        return ctypes.string_at(out_str, out_str_len.value)
+        out_bytes = char_ptr_t()
+        out_bytes_len = ctypes.c_size_t()
+        _check_call(_LIB.TreeliteSerializeModelToBytes(
+            self.handle, ctypes.byref(out_bytes), ctypes.byref(out_bytes_len)))
+        return ctypes.string_at(out_bytes, out_bytes_len.value)
 
     def dump_as_json(self, *, pretty_print=True):
         """
@@ -168,7 +168,7 @@ class Model:
         handle = ctypes.c_void_p()
         model_bytes_len = len(model_bytes)
         buffer = ctypes.create_string_buffer(model_bytes, model_bytes_len)
-        _check_call(_LIB.TreeliteDeserializeModelFromString(
+        _check_call(_LIB.TreeliteDeserializeModelFromBytes(
             ctypes.POINTER(ctypes.c_char)(buffer),
             ctypes.c_size_t(model_bytes_len),
             ctypes.byref(handle)))

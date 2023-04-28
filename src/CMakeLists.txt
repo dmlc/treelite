@@ -76,6 +76,13 @@ set_target_properties(objtreelite objtreelite_runtime objtreelite_common
   CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON)
 
+if(HIDE_CXX_SYMBOLS)
+  set_target_properties(objtreelite objtreelite_runtime objtreelite_common
+    PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden)
+endif(HIDE_CXX_SYMBOLS)
+
 target_sources(objtreelite
     PRIVATE
     c_api/c_api.cc

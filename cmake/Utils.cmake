@@ -13,24 +13,6 @@ function(auto_source_group SOURCES)
   endforeach()
 endfunction(auto_source_group)
 
-# Force static runtime for MSVC
-function(msvc_use_static_runtime)
-  if(MSVC)
-    set(variables
-        CMAKE_CXX_FLAGS_DEBUG
-        CMAKE_CXX_FLAGS_MINSIZEREL
-        CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_CXX_FLAGS_RELWITHDEBINFO
-    )
-    foreach(variable ${variables})
-      if(${variable} MATCHES "/MD")
-        string(REGEX REPLACE "/MD" "/MT" ${variable} "${${variable}}")
-        set(${variable} "${${variable}}"  PARENT_SCOPE)
-      endif()
-    endforeach()
-  endif()
-endfunction(msvc_use_static_runtime)
-
 # Set output directory of target, ignoring debug or release
 function(set_output_directory target dir)
   set_target_properties(${target} PROPERTIES

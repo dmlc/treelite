@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import collections
 import logging
+import sys
 from platform import system
 from setuptools import setup, find_packages, Extension
 from setuptools.command import build_ext, sdist, install_lib, install
@@ -15,7 +16,9 @@ UserOption = collections.namedtuple('UserOption', 'description is_boolean value'
 
 USER_OPTIONS = {
     'cmake-build-dir': UserOption(description='Build directory used for CMake build',
-                                  value='build', is_boolean=False)
+                                  value='build', is_boolean=False),
+    'use-system-libtreelite': UserOption(description='Use libtreelite.so from system path',
+                                         value=False, is_boolean=True)
 }
 
 NEED_CLEAN_TREE = set()
@@ -117,6 +120,9 @@ class BuildExt(build_ext.build_ext):  # pylint: disable=too-many-ancestors
 
     def build_cmake_extension(self):
         """Configure and build using CMake"""
+        if USER_OPTIONS['use-system-libtreelite'].value:
+            self.logger.info('Using system libtreelite.')
+            return
         src_dir = 'treelite'
         try:
             copy_tree(os.path.join(CURRENT_DIR, os.path.pardir),
@@ -178,8 +184,15 @@ class InstallLib(install_lib.install_lib):
     logger = logging.getLogger('Treelite install_lib')
 
     def install(self):
-
         outfiles = super().install()
+
+        if USER_OPTIONS['use-system-libtreelite'].value:
+            self.logger.info('Using system libtreelite.')
+            lib_path = os.path.join(sys.prefix, 'lib')
+            msg = 'use-system-libtreelite is specified, but ' + lib_name() + \
+                  ' is not found in: ' + lib_path
+            assert os.path.exists(os.path.join(lib_path, lib_name())), msg
+            return []
 
         # Copy shared library
         libtreelite_name = lib_name()

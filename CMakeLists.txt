@@ -1,25 +1,43 @@
-set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
-cmake_minimum_required (VERSION 3.13)
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
+cmake_minimum_required (VERSION 3.16)
 project(treelite LANGUAGES CXX C VERSION 3.3.0)
 
 # check MSVC version
 if(MSVC)
-  if(MSVC_VERSION LESS 1910)
-    message(FATAL_ERROR "Need Visual Studio 2017 or newer to compile Treelite")
+  if(MSVC_VERSION LESS 1920)
+    message(FATAL_ERROR "Need Visual Studio 2019 or newer to compile Treelite")
   endif()
 endif()
 
+# Options useful for downstream projects
+option(Treelite_BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
+option(Treelite_USE_DYNAMIC_MSVC_RUNTIME
+    "Whether to dynamically link MSVC runtime. ON: Use dynamic link (-MD), OFF: Use static link (-MT)"
+    OFF)
+
+# Developer options
 option(TEST_COVERAGE "C++ test coverage" OFF)
 option(USE_OPENMP "Use OpenMP" ON)
 option(BUILD_DOXYGEN "Build documentation for C/C++ functions using Doxygen." OFF)
 option(BUILD_CPP_TEST "Build C++ tests" OFF)
-option(BUILD_STATIC_LIBS "Build static libs, in addition to dynamic libs" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
+option(HIDE_CXX_SYMBOLS "Hide all C++ symbols. Useful when building Pip package" OFF)
 option(BUILD_JVM_RUNTIME "Build Treelite runtime for JVM" OFF)
 option(ENABLE_ALL_WARNINGS "Enable all compiler warnings. Only effective for GCC/Clang" OFF)
 option(USE_SANITIZER "Use sanitizer flags" OFF)
 SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
         "Semicolon separated list of sanitizer names. E.g 'address;leak'.")
+
+if(MSVC)
+  if(Treelite_USE_DYNAMIC_MSVC_RUNTIME)
+    message(STATUS "Using dynamically linked MSVC runtime...")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  else()
+    message(STATUS "Using statically linked MSVC runtime...")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+endif()
 
 if(USE_SANITIZER)
   include(cmake/Sanitizer.cmake)
@@ -70,7 +88,7 @@ target_link_libraries(treelite_runtime PRIVATE objtreelite_runtime objtreelite_c
 
 set(TREELITE_TARGETS treelite treelite_runtime)
 
-if(BUILD_STATIC_LIBS)
+if(Treelite_BUILD_STATIC_LIBS)
   add_library(treelite_static STATIC)
   add_library(treelite_runtime_static STATIC)
   target_link_libraries(treelite_static PRIVATE objtreelite objtreelite_common)
@@ -118,4 +136,3 @@ install(FILES
 write_version()
 
 set_default_configuration_release()
-msvc_use_static_runtime()

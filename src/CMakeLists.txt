@@ -166,8 +166,6 @@ target_sources(objtreelite_common
     ${PROJECT_SOURCE_DIR}/include/treelite/data.h
 )
 
-msvc_use_static_runtime()
-
 # In MSVC solution, group sources according to directories
 file(GLOB_RECURSE ALL_SOURCES *.cc *.h)
 auto_source_group("${ALL_SOURCES}")

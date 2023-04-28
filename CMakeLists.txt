@@ -1,11 +1,12 @@
+cmake_policy(SET CMP0091 NEW)
 set (CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
-cmake_minimum_required (VERSION 3.13)
+cmake_minimum_required (VERSION 3.16)
 project(treelite LANGUAGES CXX C VERSION 3.3.0)
 
 # check MSVC version
 if(MSVC)
-  if(MSVC_VERSION LESS 1910)
-    message(FATAL_ERROR "Need Visual Studio 2017 or newer to compile Treelite")
+  if(MSVC_VERSION LESS 1920)
+    message(FATAL_ERROR "Need Visual Studio 2019 or newer to compile Treelite")
   endif()
 endif()
 
@@ -71,11 +72,14 @@ target_link_libraries(treelite_runtime PRIVATE objtreelite_runtime objtreelite_c
 set(TREELITE_TARGETS treelite treelite_runtime)
 
 if(BUILD_STATIC_LIBS)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   add_library(treelite_static STATIC)
   add_library(treelite_runtime_static STATIC)
   target_link_libraries(treelite_static PRIVATE objtreelite objtreelite_common)
   target_link_libraries(treelite_runtime_static PRIVATE objtreelite_runtime objtreelite_common)
   list(APPEND TREELITE_TARGETS treelite_static treelite_runtime_static)
+else()
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
 endif()
 
 foreach(lib ${TREELITE_TARGETS})
@@ -118,4 +122,3 @@ install(FILES
 write_version()
 
 set_default_configuration_release()
-msvc_use_static_runtime()

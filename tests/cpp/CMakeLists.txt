@@ -34,8 +34,6 @@ target_include_directories(treelite_cpp_test
   PRIVATE  ../../src/frontend ../../src/
 )
 
-msvc_use_static_runtime()
-
 # In MSVC solution, group sources according to directories
 file(GLOB_RECURSE TEST_SOURCES *.cc *.h)
 auto_source_group("${TEST_SOURCES}")

@@ -539,8 +539,9 @@ class Model:
         if not isinstance(booster, lightgbm.Booster):
             raise ValueError('booster must be of type `lightgbm.Booster`')
         model_str = booster.model_to_string()
-        _check_call(_LIB.TreeliteLoadLightGBMModelFromString(
+        _check_call(_LIB.TreeliteLoadLightGBMModelFromStringEx(
             c_str(model_str),
+            c_str("{}"),
             ctypes.byref(handle)))
         return Model(handle)
 

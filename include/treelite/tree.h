@@ -44,6 +44,13 @@ class GTILBridge;
 template <typename ThresholdType, typename LeafOutputType>
 class ModelImpl;
 
+// Used for returning version triple from a Model object
+struct Version {
+  std::int32_t major_ver;
+  std::int32_t minor_ver;
+  std::int32_t patch_ver;
+};
+
 // Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
 // to hold only 1-D arrays with stride 1.
 struct PyBufferFrame {
@@ -809,6 +816,10 @@ class Model {
   /* Serialization to a file stream */
   void SerializeToStream(std::ostream& os);
   static std::unique_ptr<Model> DeserializeFromStream(std::istream& is);
+  /*! \brief Return the Treelite version that produced this Model object. */
+  inline Version GetVersion() const {
+    return {major_ver_, minor_ver_, patch_ver_};
+  }
 
   /*!
    * \brief number of features used for the model.

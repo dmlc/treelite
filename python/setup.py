@@ -268,7 +268,7 @@ if __name__ == '__main__':
     setup(name='treelite',
           version=version,
           description='Treelite: model compiler for decision trees',
-          install_requires=['numpy', 'scipy'],
+          install_requires=['numpy', 'scipy', 'packaging'],
           ext_modules=[CMakeExtension('libtreelite')],
           cmdclass={
               'build_ext': BuildExt,

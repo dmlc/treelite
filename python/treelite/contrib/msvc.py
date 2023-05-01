@@ -7,7 +7,7 @@ from __future__ import absolute_import as _abs
 import os
 import glob
 import re
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 from .util import _create_shared_base, _libext
 
 LIBEXT = _libext()

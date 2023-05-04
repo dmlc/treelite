@@ -101,6 +101,10 @@ foreach(lib ${TREELITE_TARGETS})
 endforeach()
 
 # Export install targets
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # Include CPack only if the current project is top level.
+  include(CPack)
+endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 set(INSTALL_TARGETS ${TREELITE_TARGETS}

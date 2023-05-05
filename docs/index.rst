@@ -1,9 +1,11 @@
-#####################################################
+=====================================================
 Treelite : model compiler for decision tree ensembles
-#####################################################
+=====================================================
 
-**Treelite** is a model compiler for decision tree ensembles, aimed at
-efficient deployment.
+**Treelite** is a universal model exchange and serialization format for
+decision tree forests. Treelite aims to be a small library that enables
+other C++ applications to exchange and store decision trees on the disk
+as well as the network.
 
 .. raw:: html
 
@@ -14,98 +16,37 @@ efficient deployment.
      data-size="large" data-show-count="true"
      aria-label="Watch dmlc/treelite on GitHub">Watch</a>
 
-*************
+.. warning:: Tree compiler was migrated to TL2cgen
+
+  If you are looking for a compiler to translate tree models into C code,
+  use :doc:`TL2cgen <tl2cgen:index>`.
+  To migrate existing code using Treelite 3.x, consult the page
+  :doc:`tl2cgen:treelite-migration`.
+  
+
 Why Treelite?
-*************
-
-
-Use machine learning package of your choice
-===========================================
-Treelite accommodates a wide range of decision tree ensemble models. In
-particular, it handles both
-`random forests <https://en.wikipedia.org/wiki/Random_forest>`_ and
-`gradient boosted trees <https://en.wikipedia.org/wiki/Gradient_boosting>`_.
-
-Treelite can read models produced by
-`XGBoost <https://github.com/dmlc/xgboost/>`_,
-`LightGBM <https://github.com/Microsoft/LightGBM>`_, and
-`scikit-learn <https://github.com/scikit-learn/scikit-learn>`_. In cases where
-you are using another package to train your model, you may use the
-:doc:`flexible builder class <tutorials/builder>`.
-
-Deploy with minimal dependencies
-================================
-It is a great hassle to install machine learning packages (e.g. XGBoost,
-LightGBM, scikit-learn, etc.) on every machine your tree model will run. This is
-the case no longer: Treelite will export your model as a stand-alone
-prediction library so that predictions will be made without any machine
-learning package installed.
+=============
 
 Universal, lightweight specification for all tree models
-========================================================
-Are you designing an optimized prediction runtime software for tree models?
+--------------------------------------------------------
+Are you designing a C++ application that needs to read and write tree models,
+e.g. a prediction server?
 Do not be overwhelmed by the variety of tree models in the wild. Treelite
-lets you convert many kinds of tree models into a **single, lightweight
-exchange format**. You can serialize (save) any tree model into a byte
-sequence or a file. Plus, Treelite is designed to be used as a component in
-prediction runtimes. Currently, Treelite is used by
-`Amazon SageMaker Neo <https://github.com/neo-ai/neo-ai-dlr>`_ and
-and `RAPIDS cuML <https://github.com/rapidsai/cuml>`_.
+lets you convert many kinds of tree models into a **common specification**.
+By using Treelite as a library, your application now only needs to deal
+with one model specification instead of many. Treelite currently
+supports:
 
-***********
-Quick start
-***********
-Install Treelite from PyPI:
+* `XGBoost <https://github.com/dmlc/xgboost/>`_
+* `LightGBM <https://github.com/Microsoft/LightGBM>`_
+* `scikit-learn <https://github.com/scikit-learn/scikit-learn>`_
+* :doc:`flexible builder class <tutorials/builder>` for users of other
+  tree libraries
 
-.. code-block:: console
-
-  python3 -m pip install --user treelite treelite_runtime
-
-Import your tree ensemble model into Treelite:
-
-.. code-block:: python
-
-  import treelite
-  model = treelite.Model.load('my_model.model', model_format='xgboost')
-
-Deploy a source archive:
-
-.. code-block:: python
-
-  # Produce a zipped source directory, containing all model information
-  # Run `make` on the target machine
-  model.export_srcpkg(platform='unix', toolchain='gcc',
-                      pkgpath='./mymodel.zip', libname='mymodel.so',
-                      verbose=True)
-
-Deploy a shared library:
-
-.. code-block:: python
-
-  # Like export_srcpkg, but generates a shared library immediately
-  # Use this only when the host and target machines are compatible
-  model.export_lib(toolchain='gcc', libpath='./mymodel.so', verbose=True)
-
-Make predictions on the target machine:
-
-.. code-block:: python
-
-  import treelite_runtime
-  predictor = treelite_runtime.Predictor('./mymodel.so', verbose=True)
-  dmat = treelite_runtime.DMatrix(X)
-  out_pred = predictor.predict(dmat)
-
-Read :doc:`tutorials/first` for a more detailed example. See
-:doc:`tutorials/deploy` for additional instructions on deployment.
-
-.. note:: A note on API compatibility
-
-  Since Treelite is in early development, its API may change substantially
-  in the future.
-
-******************
-How Treelite works
-******************
+In addition, tree libraries can directly output trained trees using the
+Treelite specification. For example, the random forest algoritm in
+`RAPIDS cuML <https://github.com/rapidsai/cuml>`_ stores the random forest
+object using Treelite.
 
 .. raw:: html
 
@@ -118,11 +59,41 @@ How Treelite works
   </a>
   </p>
 
-The workflow involves two distinct machines: **the host machine** that generates
-prediction subroutine from a given tree model, and **the target machine** that
-runs the subroutine. The two machines exchange a single C file that contains
-all relevant information about the tree model. Only the host machine needs to
-have Treelite installed; the target machine requires only a working C compiler.
+A small library that's easy to embed in another C++ application
+---------------------------------------------------------------
+Treelite has an up-to-date CMake build script. If your C++
+application uses CMake, it is easy to embed Treelite.
+Treelite is currently used by the following applications:
+
+* :doc:`tl2cgen:index`
+* Forest Inference Library (FIL) in `RAPIDS cuML <https://github.com/rapidsai/cuml>`_
+* `Triton Inference Server FIL Backend <https://github.com/triton-inference-server/fil_backend>`_,
+  an optimized prediction runtime for CPUs and GPUs.
+
+Quick start
+===========
+Install Treelite:
+
+.. code-block:: console
+
+  # From PyPI
+  pip install treelite
+  # From Conda
+  conda install -c conda-forge treelite
+
+Import your tree ensemble model into Treelite:
+
+.. code-block:: python
+
+  import treelite
+  model = treelite.Model.load("my_model.model", model_format="xgboost")
+
+Compute predictions using :doc:`treelite-gtil-api`:
+
+.. code-block:: python
+
+  X = ... # numpy array
+  treelite.gtil.predict(model, data=X)
 
 ********
 Contents
@@ -135,10 +106,8 @@ Contents
   install
   tutorials/index
   treelite-api
-  treelite-runtime-api
   treelite-gtil-api
   treelite-c-api
-  Treelite runtime Rust API <http://dovahcrow.github.io/treerite/treerite/>
   knobs/index
   notes-on-serialization
   treelite-doxygen

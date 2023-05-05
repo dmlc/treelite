@@ -12,6 +12,7 @@ from .util import c_str, py_str, _log_callback, TreeliteRuntimeError, lineno, lo
     lib_extension_current_platform, type_info_to_ctypes_type, type_info_to_numpy_type, \
     numpy_type_to_type_info
 from .libpath import TreeliteRuntimeLibraryNotFound, find_lib_path
+from .warn import deprecate
 
 
 def _load_runtime_lib():
@@ -78,6 +79,7 @@ class Predictor:
     # pylint: disable=R0903
 
     def __init__(self, libpath, nthread=None, verbose=False):
+        deprecate("class treelite_runtime.Predictor")
         if os.path.isdir(libpath):  # libpath is a directory
             # directory is given; locate shared library inside it
             lib_found = False
@@ -280,6 +282,7 @@ class DMatrix:
     def __init__(self, data, data_format=None, dtype=None, missing=None,
                  feature_names=None, feature_types=None,
                  verbose=False, nthread=None):
+        deprecate("class treelite_runtime.DMatrix")
         if data is None:
             raise TreeliteRuntimeError("'data' argument cannot be None")
 

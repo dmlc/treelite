@@ -10,6 +10,7 @@ import json
 import time
 import ctypes
 from ..util import TreeliteError, lineno, log_info
+from ..warn import deprecate
 from .util import _libext, _toolchain_exist_check
 
 
@@ -60,6 +61,7 @@ def generate_makefile(dirpath, platform, toolchain, options=None):  # pylint: di
               optional
         Additional options to pass to toolchain
     """
+    deprecate("Function treelite.generate_makefile()")
     if not os.path.isdir(dirpath):
         raise TreeliteError('Directory {} does not exist'.format(dirpath))
     try:
@@ -132,6 +134,7 @@ def generate_cmakelists(dirpath, options=None):
               optional
         Additional options to pass to toolchain
     """
+    deprecate("Function treelite.generate_cmakelists()")
     if not os.path.isdir(dirpath):
         raise TreeliteError(f'Directory {dirpath} does not exist')
     try:
@@ -231,8 +234,9 @@ def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=No
 
        predictor = Predictor(libpath='./my/model/model.dll', verbose=True)
     """
-
     # pylint: disable=R0912
+
+    deprecate("Function treelite.create_shared()")
 
     if nthread is not None and nthread <= 0:
         raise TreeliteError('nthread must be positive integer')

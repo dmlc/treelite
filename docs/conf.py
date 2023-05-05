@@ -235,6 +235,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
+    "tl2cgen": ("https://tl2cgen.readthedocs.io/en/latest/", None),
 }
 
 

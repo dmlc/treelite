@@ -17,6 +17,7 @@ import numpy as np
 from .util import c_str, py_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
 from .core import _LIB, c_array, _check_call
 from .contrib import create_shared, generate_makefile, generate_cmakelists, _toolchain_exist_check
+from .warn import deprecate
 
 
 def _isascii(string):
@@ -250,6 +251,7 @@ class Model:
            # move the library out of the temporary directory
            shutil.move('/temporary/directory/mymodel.dll', './mymodel.dll')
         """
+        deprecate("Method treelite.Model.export_lib()")
         _toolchain_exist_check(toolchain)
 
         _params = dict(params) if isinstance(params, list) else params
@@ -321,6 +323,7 @@ class Model:
                                root_dir='/temporary/directory',
                                base_dir='mymodel/')
         """
+        deprecate("Method treelite.Model.export_srcpkg()")
         # check for file extension
         fileext = os.path.splitext(pkgpath)[1]
         if fileext != '.zip':
@@ -382,6 +385,7 @@ class Model:
         the value of ``parallel_comp``. Otherwise, there will be exactly two files:
         ``./model/header.h``, ``./my/model/main.c``
         """
+        deprecate("Method treelite.Model.compile()")
         compiler_handle = ctypes.c_void_p()
         _params = dict(params) if isinstance(params, list) else params
         if verbose and _params:

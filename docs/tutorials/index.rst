@@ -8,10 +8,6 @@ This page lists tutorials about Treelite.
  :maxdepth: 1
  :caption: Contents:
  
- first
  import
- optimize
- deploy
- deploy_java
  builder
  json_import

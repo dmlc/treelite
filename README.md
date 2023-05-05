@@ -12,9 +12,7 @@
 [Release Notes](NEWS.md) |
 [Acknowledgements](ACKNOWLEDGMENTS.md) |
 
-**Treelite** is a model compiler for efficient deployment of decision tree
-ensembles.
-
-**NEW: Treelite is now used in the [Amazon Neo AI open source project](https://github.com/neo-ai/neo-ai-dlr).** See [here](https://aws.amazon.com/blogs/machine-learning/aws-launches-open-source-neo-ai-project-to-accelerate-ml-deployments-on-edge-devices/) for more information.
-
-**NEW: Treelite is now used in the [RAPIDS cuML project](https://github.com/rapidsai/cuml).**
+**Treelite** is a universal model exchange and serialization format for
+decision tree forests. Treelite aims to be a small library that enables
+other C++ applications to exchange and store decision trees on the disk
+as well as the network.

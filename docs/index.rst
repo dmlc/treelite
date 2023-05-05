@@ -1,6 +1,6 @@
-=====================================================
-Treelite : model compiler for decision tree ensembles
-=====================================================
+========
+Treelite
+========
 
 **Treelite** is a universal model exchange and serialization format for
 decision tree forests. Treelite aims to be a small library that enables

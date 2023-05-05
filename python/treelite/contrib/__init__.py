@@ -234,9 +234,9 @@ def create_shared(toolchain, dirpath, *, nthread=None, verbose=False, options=No
 
        predictor = Predictor(libpath='./my/model/model.dll', verbose=True)
     """
+    # pylint: disable=R0912
 
     deprecate("Function treelite.create_shared()")
-    # pylint: disable=R0912
 
     if nthread is not None and nthread <= 0:
         raise TreeliteError('nthread must be positive integer')

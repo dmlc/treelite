@@ -46,3 +46,19 @@ jobs:
     - name: Test wheel
       run: |
         bash ops/test-linux-python-wheel.sh
+  cpack-builder:
+    name: Build CPack
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Build CPack
+      run: |
+        bash ops/build-cpack.sh

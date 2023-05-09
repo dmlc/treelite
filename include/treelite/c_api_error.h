@@ -7,7 +7,6 @@
 #ifndef TREELITE_C_API_ERROR_H_
 #define TREELITE_C_API_ERROR_H_
 
-#include <treelite/c_api_common.h>
 #include <stdexcept>
 
 /*! \brief macro to guard beginning and end section of all functions */

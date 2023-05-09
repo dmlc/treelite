@@ -1,22 +1,19 @@
 /*!
- * Copyright (c) 2017-2021 by Contributors
+ * Copyright (c) 2017-2023 by Contributors
  * \file c_api.cc
  * \author Hyunsu Cho
- * \brief C API of treelite, used for interfacing with other languages
+ * \brief C API of Treelite, used for interfacing with other languages
  */
 
-#include <treelite/annotator.h>
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
-#include <treelite/compiler.h>
-#include <treelite/compiler_param.h>
 #include <treelite/data.h>
-#include <treelite/filesystem.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
 #include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
+#include <treelite/thread_local.h>
 #include <numeric>
 #include <memory>
 #include <algorithm>
@@ -41,81 +38,6 @@ struct TreeliteAPIThreadLocalEntry {
 using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry>;
 
 }  // anonymous namespace
-
-int TreeliteAnnotateBranch(
-    ModelHandle model, DMatrixHandle dmat, int nthread, int verbose, AnnotationHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<BranchAnnotator> annotator{new BranchAnnotator()};
-  const Model* model_ = static_cast<Model*>(model);
-  const auto* dmat_ = static_cast<const DMatrix*>(dmat);
-  TREELITE_CHECK(dmat_) << "Found a dangling reference to DMatrix";
-  annotator->Annotate(*model_, dmat_, nthread, verbose);
-  *out = static_cast<AnnotationHandle>(annotator.release());
-  API_END();
-}
-
-int TreeliteAnnotationSave(AnnotationHandle handle,
-                           const char* path) {
-  API_BEGIN();
-  const BranchAnnotator* annotator = static_cast<BranchAnnotator*>(handle);
-  std::ofstream fo(path);
-  annotator->Save(fo);
-  API_END();
-}
-
-int TreeliteAnnotationFree(AnnotationHandle handle) {
-  API_BEGIN();
-  delete static_cast<BranchAnnotator*>(handle);
-  API_END();
-}
-
-int TreeliteCompilerCreateV2(const char* name, const char* params_json_str, CompilerHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Compiler> compiler{Compiler::Create(name, params_json_str)};
-  *out = static_cast<CompilerHandle>(compiler.release());
-  API_END();
-}
-
-int TreeliteCompilerGenerateCodeV2(CompilerHandle compiler,
-                                   ModelHandle model,
-                                   const char* dirpath) {
-  API_BEGIN();
-  const Model* model_ = static_cast<Model*>(model);
-  Compiler* compiler_ = static_cast<Compiler*>(compiler);
-  TREELITE_CHECK(model_);
-  TREELITE_CHECK(compiler_);
-  compiler::CompilerParam param = compiler_->QueryParam();
-
-  // create directory named dirpath
-  const std::string& dirpath_(dirpath);
-  filesystem::CreateDirectoryIfNotExist(dirpath);
-
-  /* compile model */
-  auto compiled_model = compiler_->Compile(*model_);
-  if (param.verbose > 0) {
-    TREELITE_LOG(INFO) << "Code generation finished. Writing code to files...";
-  }
-
-  for (const auto& it : compiled_model.files) {
-    if (param.verbose > 0) {
-      TREELITE_LOG(INFO) << "Writing file " << it.first << "...";
-    }
-    const std::string filename_full = dirpath_ + "/" + it.first;
-    if (it.second.is_binary) {
-      filesystem::WriteToFile(filename_full, it.second.content_binary);
-    } else {
-      filesystem::WriteToFile(filename_full, it.second.content);
-    }
-  }
-
-  API_END();
-}
-
-int TreeliteCompilerFree(CompilerHandle handle) {
-  API_BEGIN();
-  delete static_cast<Compiler*>(handle);
-  API_END();
-}
 
 int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
   TREELITE_LOG(WARNING)
@@ -661,5 +583,19 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle, ModelHandle* out)
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
   std::unique_ptr<Model> model = builder->CommitModel();
   *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
+  API_BEGIN();
+  LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
+  registry->RegisterCallBackLogInfo(callback);
+  API_END();
+}
+
+int TreeliteRegisterWarningCallback(void (*callback)(const char*)) {
+  API_BEGIN();
+    LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
+    registry->RegisterCallBackLogWarning(callback);
   API_END();
 }

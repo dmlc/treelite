@@ -26,7 +26,6 @@ _model_facts = {
 def test_model_query(tmpdir, dataset):
     """Test all query functions for every example model"""
 
-    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)
     assert model.num_feature == _model_facts[dataset].num_feature
     assert model.num_class == _model_facts[dataset].num_class

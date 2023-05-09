@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for rich model query functions"""
-
 import collections
-import os
 
 import pytest
 import treelite
@@ -23,7 +21,7 @@ _model_facts = {
 
 @pytest.mark.parametrize(
     'dataset', ['mushroom', 'dermatology', 'letor', 'toy_categorical', 'sparse_categorical'])
-def test_model_query(tmpdir, dataset):
+def test_model_query(dataset):
     """Test all query functions for every example model"""
 
     model = treelite.Model.load(dataset_db[dataset].model, model_format=dataset_db[dataset].format)

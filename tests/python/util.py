@@ -3,6 +3,7 @@
 import os
 import tempfile
 from contextlib import contextmanager
+from sys import platform as _platform
 
 import treelite
 

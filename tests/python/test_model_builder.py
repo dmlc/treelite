@@ -6,7 +6,6 @@ import pytest
 import numpy as np
 import treelite
 
-from .metadata import dataset_db
 from .util import check_gtil_output
 
 

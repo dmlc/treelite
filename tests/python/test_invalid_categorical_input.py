@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=missing-function-docstring
 """Test whether Treelite handles invalid category values correctly"""
-import os
-
 import treelite
 import numpy as np
 import pytest

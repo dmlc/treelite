@@ -28,13 +28,5 @@ int main(void) {
 
   auto model = builder->CommitModel();
   std::cout << model->GetNumTree() << std::endl;
-
-  std::unique_ptr<treelite::Compiler> compiler{treelite::Compiler::Create("ast_native", "{}")};
-  treelite::compiler::CompiledModel cm = compiler->Compile(*model.get());
-  for (const auto& kv : cm.files) {
-    std::cout << "=================" << kv.first << "=================" << std::endl;
-    std::cout << kv.second.content << std::endl;
-  }
-
   return 0;
 }

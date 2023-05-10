@@ -1,7 +1,6 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
-#include <treelite/compiler.h>
-#include <treelite/c_api_common.h>
+#include <treelite/c_api.h>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -28,13 +27,5 @@ int main(void) {
 
   auto model = builder->CommitModel();
   std::cout << model->GetNumTree() << std::endl;
-
-  std::unique_ptr<treelite::Compiler> compiler{treelite::Compiler::Create("ast_native", "{}")};
-  treelite::compiler::CompiledModel cm = compiler->Compile(*model.get());
-  for (const auto& kv : cm.files) {
-    std::cout << "=================" << kv.first << "=================" << std::endl;
-    std::cout << kv.second.content << std::endl;
-  }
-
   return 0;
 }

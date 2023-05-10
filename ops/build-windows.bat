@@ -20,8 +20,3 @@ echo ##[section]Packaging Python wheel for Treelite...
 cd python
 python setup.py bdist_wheel --universal
 if %errorlevel% neq 0 exit /b %errorlevel%
-
-echo ##[section]Packaging Python wheel for Treelite runtime...
-cd ..\runtime\python
-python setup.py bdist_wheel --universal
-if %errorlevel% neq 0 exit /b %errorlevel%

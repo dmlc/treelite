@@ -5,11 +5,10 @@ import tempfile
 from contextlib import contextmanager
 from sys import platform as _platform
 
+import treelite
+
 import numpy as np
 from sklearn.datasets import load_svmlight_file
-
-import treelite_runtime
-from treelite.contrib import _libext
 
 from .metadata import dataset_db
 
@@ -23,32 +22,6 @@ def load_txt(filename):
         for line in f:
             content.append(float(line))
     return np.array(content, dtype=np.float32)
-
-
-def os_compatible_toolchains():
-    """Get the list of C compilers to test with the current OS"""
-    if _platform == "darwin":
-        gcc = os.environ.get("GCC_PATH", "gcc")
-        toolchains = [gcc]
-    elif _platform == "win32":
-        toolchains = ["msvc"]
-    else:
-        toolchains = ["gcc", "clang"]
-    return toolchains
-
-
-def os_platform():
-    """Detect OS that's running this program"""
-    if _platform == "darwin":
-        return "osx"
-    if _platform in ["win32", "cygwin"]:
-        return "windows"
-    return "unix"
-
-
-def libname(fmt):
-    """Format name for a shared library, using appropriate file extension"""
-    return fmt.format(_libext())
 
 
 def has_pandas():
@@ -67,15 +40,14 @@ def does_not_raise():
     yield
 
 
-def check_predictor(predictor, dataset):
+def check_gtil_output(model, dataset):
     """Check whether a predictor produces correct predictions for a given dataset"""
-    dmat = treelite_runtime.DMatrix(
-        load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)[0],
-        dtype=dataset_db[dataset].dtype,
-    )
-    out_margin = predictor.predict(dmat, pred_margin=True)
-    out_prob = predictor.predict(dmat)
-    check_predictor_output(dataset, dmat.shape, out_margin, out_prob)
+    X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
+    X = X.toarray()
+    X[X == 0] = np.nan
+    out_margin = treelite.gtil.predict(model, X, pred_margin=True)
+    out_prob = treelite.gtil.predict(model, X, pred_margin=False)
+    check_predictor_output(dataset, X.shape, out_margin, out_prob)
 
 
 def check_predictor_output(dataset, shape, out_margin, out_prob):

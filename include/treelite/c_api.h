@@ -12,7 +12,22 @@
 #ifndef TREELITE_C_API_H_
 #define TREELITE_C_API_H_
 
-#include "c_api_common.h"
+#ifdef __cplusplus
+#define TREELITE_EXTERN_C extern "C"
+#include <cstdio>
+#include <cstdint>
+#else
+#define TREELITE_EXTERN_C
+#include <stdio.h>
+#include <stdint.h>
+#endif
+
+/* special symbols for DLL library on Windows */
+#if defined(_MSC_VER) || defined(_WIN32)
+#define TREELITE_DLL TREELITE_EXTERN_C __declspec(dllexport)
+#else
+#define TREELITE_DLL TREELITE_EXTERN_C
+#endif
 
 /*!
  * \addtogroup opaque_handles
@@ -25,88 +40,10 @@ typedef void* ModelHandle;
 typedef void* TreeBuilderHandle;
 /*! \brief handle to ensemble builder class */
 typedef void* ModelBuilderHandle;
-/*! \brief handle to branch annotation data */
-typedef void* AnnotationHandle;
-/*! \brief handle to compiler class */
-typedef void* CompilerHandle;
 /*! \brief handle to a polymorphic value type, used in the model builder API */
 typedef void* ValueHandle;
 /*! \brief handle to a configuration of GTIL predictor */
 typedef void* GTILConfigHandle;
-/*! \} */
-
-/*!
- * \defgroup annotator Branch annotator interface
- * \{
- */
-/*!
- * \brief annotate branches in a given model using frequency patterns in the
- *        training data.
- * \param model model to annotate
- * \param dmat training data matrix
- * \param nthread number of threads to use
- * \param verbose whether to produce extra messages
- * \param out used to save handle for the created annotation
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteAnnotateBranch(
-    ModelHandle model, DMatrixHandle dmat, int nthread, int verbose, AnnotationHandle* out);
-/*!
- * \brief save branch annotation to a JSON file
- * \param handle annotation to save
- * \param path path to JSON file
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteAnnotationSave(AnnotationHandle handle,
-                                        const char* path);
-/*!
- * \brief delete branch annotation from memory
- * \param handle annotation to remove
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteAnnotationFree(AnnotationHandle handle);
-/*! \} */
-
-/*!
- * \defgroup compiler Compiler interface
- * \{
- */
-/*!
- * \brief Create a compiler with a given name
- * \param name name of compiler
- * \param params_json_str JSON string representing the parameters for the compiler
- * \param out created compiler
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteCompilerCreateV2(const char* name, const char* params_json_str,
-                                          CompilerHandle* out);
-/*!
- * \brief Generate prediction code from a tree ensemble model. The code will
- *        be C99 compliant. One header file (.h) will be generated, along with
- *        one or more source files (.c).
- *
- * Usage example:
- * \code
- *   TreeliteCompilerGenerateCodeV2(compiler, model, "./my/model");
- *   // files to generate: ./my/model/header.h, ./my/model/main.c
- *   // if parallel compilation is enabled:
- *   // ./my/model/header.h, ./my/model/main.c, ./my/model/tu0.c,
- *   // ./my/model/tu1.c, and so forth
- * \endcode
- * \param compiler handle for compiler
- * \param model handle for tree ensemble model
- * \param dirpath directory to store header and source files
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteCompilerGenerateCodeV2(CompilerHandle compiler,
-                                                ModelHandle model,
-                                                const char* dirpath);
-/*!
- * \brief delete compiler from memory
- * \param handle compiler to remove
- * \return 0 for success, -1 for failure
- */
-TREELITE_DLL int TreeliteCompilerFree(CompilerHandle handle);
 /*! \} */
 
 /*!
@@ -856,5 +793,43 @@ TREELITE_DLL int TreeliteModelBuilderDeleteTree(ModelBuilderHandle handle,
 TREELITE_DLL int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle,
                                                  ModelHandle* out);
 /*! \} */
+
+/*!
+ * \brief display last error; can be called by multiple threads
+ * Note. Each thread will get the last error occured in its own context.
+ * \return error string
+ */
+TREELITE_DLL const char* TreeliteGetLastError(void);
+
+/*!
+ * \brief Register callback function for LOG(INFO) messages -- helpful messages
+ *        that are not errors.
+ * Note: This function can be called by multiple threads. The callback function
+ *       will run on the thread that registered it
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(const char*));
+
+/*!
+ * \brief Register callback function for LOG(WARNING) messages
+ * Note: This function can be called by multiple threads. The callback function
+ *       will run on the thread that registered it
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteRegisterWarningCallback(void (*callback)(const char*));
+
+/*!
+ * \brief Get the version string for the Treelite library.
+ * \return version string, of form MAJOR.MINOR.PATCH
+ */
+TREELITE_DLL const char* TreeliteQueryTreeliteVersion(void);
+
+#ifdef __cplusplus
+extern "C" {
+  extern const char* TREELITE_VERSION;
+}
+#else
+extern const char* TREELITE_VERSION;
+#endif
 
 #endif  /* TREELITE_C_API_H_ */

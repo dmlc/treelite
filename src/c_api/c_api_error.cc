@@ -5,6 +5,7 @@
  * \brief C error handling
  */
 #include <treelite/thread_local.h>
+#include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
 #include <treelite/version.h>
 #include <string>

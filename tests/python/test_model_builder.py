@@ -5,18 +5,12 @@ import os
 import pytest
 import numpy as np
 import treelite
-import treelite_runtime
-from treelite.contrib import _libext
-from sklearn.datasets import load_svmlight_file
-from .metadata import dataset_db
-from .util import os_compatible_toolchains, check_predictor
+
+from .util import check_gtil_output
 
 
 @pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('quantize', [True, False])
-@pytest.mark.parametrize('use_annotation', [True, False])
-def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_trip):
+def test_model_builder(tmpdir, test_round_trip):
     # pylint: disable=R0914,R0915
     """A simple model"""
     num_feature = 127
@@ -90,30 +84,11 @@ def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_t
     assert model.num_feature == num_feature
     assert model.num_class == 1
     assert model.num_tree == 2
-
-    annotation_path = os.path.join(tmpdir, 'annotation.json')
-    if use_annotation:
-        dtrain = treelite_runtime.DMatrix(
-            load_svmlight_file(dataset_db['mushroom'].dtrain, zero_based=True)[0],
-            dtype='float32')
-        annotator = treelite.Annotator()
-        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-        annotator.save(path=annotation_path)
-
-    params = {
-        'annotate_in': (annotation_path if use_annotation else 'NULL'),
-        'quantize': (1 if quantize else 0),
-        'parallel_comp': model.num_tree
-    }
-    libpath = os.path.join(tmpdir, 'mushroom' + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
-    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    check_predictor(predictor, 'mushroom')
+    check_gtil_output(model, "mushroom")
 
 
 @pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
+def test_node_insert_delete(tmpdir, test_round_trip):
     # pylint: disable=R0914
     """Test ability to add and remove nodes"""
     num_feature = 3
@@ -149,21 +124,11 @@ def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
     assert model.num_class == 1
     assert model.num_tree == 1
 
-    libpath = os.path.join(tmpdir, 'libtest' + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
-    predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == num_feature
-    assert predictor.num_class == 1
-    assert predictor.pred_transform == 'identity'
-    assert predictor.global_bias == 0.0
-    assert predictor.sigmoid_alpha == 1.0
-    assert predictor.ratio_c == 1.0
     for f0 in [-0.5, 0.5, 1.5, np.nan]:
         for f1 in [0, 1, 2, 3, 4, np.nan]:
             for f2 in [-1.0, -0.5, 1.0, np.nan]:
-                x = np.array([[f0, f1, f2]])
-                dmat = treelite_runtime.DMatrix(x, dtype='float32')
-                pred = predictor.predict(dmat)
+                x = np.array([[f0, f1, f2]]).astype("float32")
+                pred = treelite.gtil.predict(model, x)
                 if f1 in [1, 2, 4] or np.isnan(f1):
                     expected_pred = 2.0
                 elif f0 <= 0.5 and not np.isnan(f0):

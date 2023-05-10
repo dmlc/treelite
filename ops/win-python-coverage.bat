@@ -14,8 +14,8 @@ mkdir temp
 call micromamba activate dev
 if %errorlevel% neq 0 exit /b %errorlevel%
 set "PYTHONPATH=./python"
-set "PYTEST_TMPDIR=%WORKING_DIR%\temp"
-python -m pytest --basetemp="%WORKING_DIR%\temp" --cov=treelite --cov-report xml -v -rxXs --fulltrace --durations=0 tests\python
+set "PYTEST_TMPDIR=%USERPROFILE%\AppData\Local\Temp\pytest_temp"
+python -m pytest --basetemp="%USERPROFILE%\AppData\Local\Temp\pytest_temp" --cov=treelite --cov-report xml -v -rxXs --fulltrace --durations=0 tests\python
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo ##[section]Submitting code coverage data to CodeCov...

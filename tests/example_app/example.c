@@ -1,5 +1,4 @@
 #include <treelite/c_api.h>
-#include <treelite/c_api_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>

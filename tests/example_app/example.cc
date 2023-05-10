@@ -1,7 +1,6 @@
 #include <treelite/tree.h>
 #include <treelite/frontend.h>
-#include <treelite/compiler.h>
-#include <treelite/c_api_common.h>
+#include <treelite/c_api.h>
 #include <iostream>
 #include <map>
 #include <memory>

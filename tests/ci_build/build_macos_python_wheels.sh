@@ -67,8 +67,4 @@ else
 fi
 
 python -m cibuildwheel python --output-dir wheelhouse
-python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse ${commit_id} ${wheel_tag}
-python tests/ci_build/rename_whl.py wheelhouse-runtime ${commit_id} ${wheel_tag}
-mv -v wheelhouse-runtime/*.whl wheelhouse/
-rmdir wheelhouse-runtime/

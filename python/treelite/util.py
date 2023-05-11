@@ -3,7 +3,7 @@
 Miscellaneous utilities
 """
 import ctypes
-import time
+import warnings
 
 import numpy as np
 

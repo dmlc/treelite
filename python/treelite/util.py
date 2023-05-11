@@ -2,10 +2,8 @@
 """
 Miscellaneous utilities
 """
-import inspect
 import ctypes
 import time
-import warnings
 
 import numpy as np
 

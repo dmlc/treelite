@@ -490,12 +490,10 @@ Let's test it out:
 .. code-block:: python
 
   from treelite.sklearn import SKLRFRegressorConverter
+  # Convert to Treelite model
   model = SKLRFRegressorConverter.process_model(clf)
-  model.export_lib(libpath='./libtest.dylib', toolchain='gcc', verbose=True)
-
-  import treelite_runtime
-  predictor = treelite_runtime.Predictor(libpath='./libtest.dylib')
-  predictor.predict(treelite_runtime.DMatrix(X))
+  # Make prediction with GTIL
+  treelite.gtil.predict(model, X)
 
 Regression with GradientBoostingRegressor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -551,11 +549,8 @@ Let's test it:
   from treelite.sklearn import SKLGBMRegressorConverter
   # Convert to Treelite model
   model = SKLGBMRegressorConverter.process_model(clf)
-  # Generate shared library
-  model.export_lib(libpath='./libtest2.dylib', toolchain='gcc', verbose=True)
-  # Make prediction with predictor
-  predictor = treelite_runtime.Predictor(libpath='./libtest2.dylib')
-  predictor.predict(treelite_runtime.DMatrix(X))
+  # Make prediction with GTIL
+  treelite.gtil.predict(model, X)
 
 Binary Classification with RandomForestClassifier
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

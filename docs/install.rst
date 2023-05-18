@@ -36,7 +36,7 @@ For other operating systems, see the next section.
   Redistributable.
 
 .. note:: Installing OpenMP runtime on MacOS
-  
+
   Treelite requires the presence of OpenMP runtime. To install OpenMP runtime on a MacOS system,
   run the following command:
 
@@ -67,17 +67,13 @@ Installation consists of two steps:
 
 .. note:: List of libraries created
 
-   There will be two libraries created: the main library, for producing optimized prediction
-   subroutines; and the runtime library, for deploying these subroutines in the wild for actual
-   prediction tasks.
-
-   ================== ===================== =============================
-   Operating System   Main library          Runtime library
-   ================== ===================== =============================
-   Windows            ``treelite.dll``      ``treelite_runtime.dll``
-   MacOS              ``libtreelite.dylib`` ``libtreelite_runtime.dylib``
-   Linux / other UNIX ``libtreelite.so``    ``libtreelite_runtime.so``
-   ================== ===================== =============================
+   ================== =====================
+   Operating System   Main library
+   ================== =====================
+   Windows            ``treelite.dll``
+   MacOS              ``libtreelite.dylib``
+   Linux / other UNIX ``libtreelite.so``
+   ================== =====================
 
 To get started, clone Treelite repo from GitHub.
 

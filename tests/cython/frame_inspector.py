@@ -1,7 +1,9 @@
 import textwrap
-import treelite
-from compatibility_tester import _train_model, _fetch_data
+
+from compatibility_tester import _fetch_data, _train_model
 from serializer import treelite_serialize
+
+import treelite
 
 
 def inspect_frames():

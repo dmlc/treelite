@@ -80,4 +80,3 @@ If you used other packages to train your ensemble model, you'd need to specify
 the model programmatically:
 
 * :doc:`builder`
-

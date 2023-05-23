@@ -7,19 +7,20 @@
 #ifndef TREELITE_LOGGING_H_
 #define TREELITE_LOGGING_H_
 
-#include <treelite/thread_local.h>
 #include <treelite/error.h>
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <memory>
+#include <treelite/thread_local.h>
+
 #include <cstdio>
 #include <ctime>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <string>
 
 namespace treelite {
 
 template <typename X, typename Y>
-std::unique_ptr<std::string> LogCheckFormat(const X& x, const Y& y) {
+std::unique_ptr<std::string> LogCheckFormat(X const& x, Y const& y) {
   std::ostringstream os;
   os << " (" << x << " vs. " << y << ") ";
   /* CHECK_XX(x, y) requires x and y can be serialized to string. Use CHECK(x OP y) otherwise. */
@@ -34,14 +35,15 @@ std::unique_ptr<std::string> LogCheckFormat(const X& x, const Y& y) {
 #define TREELITE_ALWAYS_INLINE inline
 #endif
 
-#define DEFINE_CHECK_FUNC(name, op)                                                        \
-  template <typename X, typename Y>                                                        \
+#define DEFINE_CHECK_FUNC(name, op)                                                            \
+  template <typename X, typename Y>                                                            \
   TREELITE_ALWAYS_INLINE std::unique_ptr<std::string> LogCheck##name(const X& x, const Y& y) { \
-    if (x op y) return nullptr;                                                            \
-    return LogCheckFormat(x, y);                                                           \
-  }                                                                                        \
+    if (x op y)                                                                                \
+      return nullptr;                                                                          \
+    return LogCheckFormat(x, y);                                                               \
+  }                                                                                            \
   TREELITE_ALWAYS_INLINE std::unique_ptr<std::string> LogCheck##name(int x, int y) {           \
-    return LogCheck##name<int, int>(x, y);                                                 \
+    return LogCheck##name<int, int>(x, y);                                                     \
   }
 
 #pragma GCC diagnostic push
@@ -54,15 +56,13 @@ DEFINE_CHECK_FUNC(_EQ, ==)
 DEFINE_CHECK_FUNC(_NE, !=)
 #pragma GCC diagnostic pop
 
-
-#define TREELITE_CHECK_BINARY_OP(name, op, x, y)                     \
-  if (auto __treelite__log__err = ::treelite::LogCheck##name(x, y))  \
-      ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()       \
-        << "Check failed: " << #x " " #op " " #y << *__treelite__log__err << ": "
-#define TREELITE_CHECK(x)                                      \
-  if (!(x))                                                    \
-    ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()   \
-      << "Check failed: " #x << ": "
+#define TREELITE_CHECK_BINARY_OP(name, op, x, y)                    \
+  if (auto __treelite__log__err = ::treelite::LogCheck##name(x, y)) \
+  ::treelite::LogMessageFatal(__FILE__, __LINE__).stream()          \
+      << "Check failed: " << #x " " #op " " #y << *__treelite__log__err << ": "
+#define TREELITE_CHECK(x) \
+  if (!(x))               \
+  ::treelite::LogMessageFatal(__FILE__, __LINE__).stream() << "Check failed: " #x << ": "
 #define TREELITE_CHECK_LT(x, y) TREELITE_CHECK_BINARY_OP(_LT, <, x, y)
 #define TREELITE_CHECK_GT(x, y) TREELITE_CHECK_BINARY_OP(_GT, >, x, y)
 #define TREELITE_CHECK_LE(x, y) TREELITE_CHECK_BINARY_OP(_LE, <=, x, y)
@@ -83,7 +83,7 @@ class DateLogger {
     _tzset();
 #endif  // defined(_MSC_VER)
   }
-  const char* HumanDate() {
+  char const* HumanDate() {
 #if defined(_MSC_VER)
     _strtime_s(buffer_, sizeof(buffer_));
 #else  // defined(_MSC_VER)
@@ -95,8 +95,8 @@ class DateLogger {
 #else  // !defined(_WIN32)
     pnow = std::localtime(&time_value);  // NOLINT(*)
 #endif  // !defined(_WIN32)
-    std::snprintf(buffer_, sizeof(buffer_), "%02d:%02d:%02d",
-                  pnow->tm_hour, pnow->tm_min, pnow->tm_sec);
+    std::snprintf(
+        buffer_, sizeof(buffer_), "%02d:%02d:%02d", pnow->tm_hour, pnow->tm_min, pnow->tm_sec);
 #endif  // defined(_MSC_VER)
     return buffer_;
   }
@@ -107,11 +107,11 @@ class DateLogger {
 
 class LogMessageFatal {
  public:
-  LogMessageFatal(const char* file, int line) {
+  LogMessageFatal(char const* file, int line) {
     log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":" << line << ": ";
   }
-  LogMessageFatal(const LogMessageFatal&) = delete;
-  void operator=(const LogMessageFatal&) = delete;
+  LogMessageFatal(LogMessageFatal const&) = delete;
+  void operator=(LogMessageFatal const&) = delete;
 
   std::ostringstream& stream() {
     return log_stream_;
@@ -127,15 +127,16 @@ class LogMessageFatal {
 
 class LogMessage {
  public:
-  LogMessage(const char* file, int line) {
-    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
-                << line << ": ";
+  LogMessage(char const* file, int line) {
+    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":" << line << ": ";
   }
   ~LogMessage() {
     Log(log_stream_.str());
   }
-  std::ostream& stream() { return log_stream_; }
-  static void Log(const std::string& msg);
+  std::ostream& stream() {
+    return log_stream_;
+  }
+  static void Log(std::string const& msg);
 
  private:
   std::ostringstream log_stream_;
@@ -143,15 +144,16 @@ class LogMessage {
 
 class LogMessageWarning {
  public:
-  LogMessageWarning(const char* file, int line) {
-    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
-                << line << ": ";
+  LogMessageWarning(char const* file, int line) {
+    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":" << line << ": ";
   }
   ~LogMessageWarning() {
     Log(log_stream_.str());
   }
-  std::ostream& stream() { return log_stream_; }
-  static void Log(const std::string& msg);
+  std::ostream& stream() {
+    return log_stream_;
+  }
+  static void Log(std::string const& msg);
 
  private:
   std::ostringstream log_stream_;
@@ -159,10 +161,10 @@ class LogMessageWarning {
 
 class LogCallbackRegistry {
  public:
-  using Callback = void (*)(const char*);
+  using Callback = void (*)(char const*);
   LogCallbackRegistry()
-    : log_callback_info_([] (const char* msg) { std::cerr << msg << std::endl; }),
-      log_callback_warn_([] (const char* msg) { std::cerr << msg << std::endl; }) {}
+      : log_callback_info_([](char const* msg) { std::cerr << msg << std::endl; }),
+        log_callback_warn_([](char const* msg) { std::cerr << msg << std::endl; }) {}
   inline void RegisterCallBackLogInfo(Callback log_callback) {
     this->log_callback_info_ = log_callback;
   }
@@ -175,6 +177,7 @@ class LogCallbackRegistry {
   inline Callback GetCallbackLogWarning() const {
     return log_callback_warn_;
   }
+
  private:
   Callback log_callback_info_;
   Callback log_callback_warn_;

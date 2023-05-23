@@ -8,25 +8,26 @@
 #define TREELITE_TREE_IMPL_H_
 
 #include <treelite/error.h>
-#include <treelite/version.h>
 #include <treelite/logging.h>
+#include <treelite/version.h>
+
 #include <algorithm>
-#include <limits>
-#include <memory>
-#include <map>
-#include <string>
-#include <utility>
-#include <vector>
-#include <unordered_map>
-#include <sstream>
-#include <iomanip>
-#include <typeinfo>
-#include <stdexcept>
-#include <iostream>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-namespace {
+namespace detail {
 
 template <typename T>
 inline std::string GetString(T x) {
@@ -47,7 +48,7 @@ inline std::string GetString<double>(double x) {
   return oss.str();
 }
 
-}  // anonymous namespace
+}  // namespace detail
 
 namespace treelite {
 
@@ -64,15 +65,16 @@ ContiguousArray<T>::~ContiguousArray() {
 
 template <typename T>
 ContiguousArray<T>::ContiguousArray(ContiguousArray&& other) noexcept
-    : buffer_(other.buffer_), size_(other.size_), capacity_(other.capacity_),
+    : buffer_(other.buffer_),
+      size_(other.size_),
+      capacity_(other.capacity_),
       owned_buffer_(other.owned_buffer_) {
   other.buffer_ = nullptr;
   other.size_ = other.capacity_ = 0;
 }
 
 template <typename T>
-ContiguousArray<T>&
-ContiguousArray<T>::operator=(ContiguousArray&& other) noexcept {
+ContiguousArray<T>& ContiguousArray<T>::operator=(ContiguousArray&& other) noexcept {
   if (buffer_ && owned_buffer_) {
     std::free(buffer_);
   }
@@ -86,8 +88,7 @@ ContiguousArray<T>::operator=(ContiguousArray&& other) noexcept {
 }
 
 template <typename T>
-inline ContiguousArray<T>
-ContiguousArray<T>::Clone() const {
+inline ContiguousArray<T> ContiguousArray<T>::Clone() const {
   ContiguousArray clone;
   if (buffer_) {
     clone.buffer_ = static_cast<T*>(std::malloc(sizeof(T) * capacity_));
@@ -107,8 +108,7 @@ ContiguousArray<T>::Clone() const {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size) {
+inline void ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size) {
   if (buffer_ && owned_buffer_) {
     std::free(buffer_);
   }
@@ -119,56 +119,47 @@ ContiguousArray<T>::UseForeignBuffer(void* prealloc_buf, std::size_t size) {
 }
 
 template <typename T>
-inline T*
-ContiguousArray<T>::Data() {
+inline T* ContiguousArray<T>::Data() {
   return buffer_;
 }
 
 template <typename T>
-inline const T*
-ContiguousArray<T>::Data() const {
+inline T const* ContiguousArray<T>::Data() const {
   return buffer_;
 }
 
 template <typename T>
-inline T*
-ContiguousArray<T>::End() {
+inline T* ContiguousArray<T>::End() {
   return &buffer_[Size()];
 }
 
 template <typename T>
-inline const T*
-ContiguousArray<T>::End() const {
+inline T const* ContiguousArray<T>::End() const {
   return &buffer_[Size()];
 }
 
 template <typename T>
-inline T&
-ContiguousArray<T>::Back() {
+inline T& ContiguousArray<T>::Back() {
   return buffer_[Size() - 1];
 }
 
 template <typename T>
-inline const T&
-ContiguousArray<T>::Back() const {
+inline T const& ContiguousArray<T>::Back() const {
   return buffer_[Size() - 1];
 }
 
 template <typename T>
-inline std::size_t
-ContiguousArray<T>::Size() const {
+inline std::size_t ContiguousArray<T>::Size() const {
   return size_;
 }
 
 template <typename T>
-inline bool
-ContiguousArray<T>::Empty() const {
+inline bool ContiguousArray<T>::Empty() const {
   return (Size() == 0);
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::Reserve(std::size_t newsize) {
+inline void ContiguousArray<T>::Reserve(std::size_t newsize) {
   if (!owned_buffer_) {
     throw Error("Cannot resize when using a foreign buffer; clone first");
   }
@@ -181,8 +172,7 @@ ContiguousArray<T>::Reserve(std::size_t newsize) {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::Resize(std::size_t newsize) {
+inline void ContiguousArray<T>::Resize(std::size_t newsize) {
   if (!owned_buffer_) {
     throw Error("Cannot resize when using a foreign buffer; clone first");
   }
@@ -200,8 +190,7 @@ ContiguousArray<T>::Resize(std::size_t newsize) {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::Resize(std::size_t newsize, T t) {
+inline void ContiguousArray<T>::Resize(std::size_t newsize, T t) {
   if (!owned_buffer_) {
     throw Error("Cannot resize when using a foreign buffer; clone first");
   }
@@ -213,8 +202,7 @@ ContiguousArray<T>::Resize(std::size_t newsize, T t) {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::Clear() {
+inline void ContiguousArray<T>::Clear() {
   if (!owned_buffer_) {
     throw Error("Cannot clear when using a foreign buffer; clone first");
   }
@@ -222,8 +210,7 @@ ContiguousArray<T>::Clear() {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::PushBack(T t) {
+inline void ContiguousArray<T>::PushBack(T t) {
   if (!owned_buffer_) {
     throw Error("Cannot add element when using a foreign buffer; clone first");
   }
@@ -234,8 +221,7 @@ ContiguousArray<T>::PushBack(T t) {
 }
 
 template <typename T>
-inline void
-ContiguousArray<T>::Extend(const std::vector<T>& other) {
+inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
   if (!owned_buffer_) {
     throw Error("Cannot add elements when using a foreign buffer; clone first");
   }
@@ -253,25 +239,22 @@ ContiguousArray<T>::Extend(const std::vector<T>& other) {
     }
     Reserve(newcapacity);
   }
-  std::memcpy(&buffer_[size_], static_cast<const void*>(other.data()), sizeof(T) * other.size());
+  std::memcpy(&buffer_[size_], static_cast<void const*>(other.data()), sizeof(T) * other.size());
   size_ = newsize;
 }
 
 template <typename T>
-inline T&
-ContiguousArray<T>::operator[](std::size_t idx) {
+inline T& ContiguousArray<T>::operator[](std::size_t idx) {
   return buffer_[idx];
 }
 
 template <typename T>
-inline const T&
-ContiguousArray<T>::operator[](std::size_t idx) const {
+inline T const& ContiguousArray<T>::operator[](std::size_t idx) const {
   return buffer_[idx];
 }
 
 template <typename T>
-inline T&
-ContiguousArray<T>::at(std::size_t idx) {
+inline T& ContiguousArray<T>::at(std::size_t idx) {
   if (idx >= Size()) {
     throw Error("nid out of range");
   }
@@ -279,8 +262,7 @@ ContiguousArray<T>::at(std::size_t idx) {
 }
 
 template <typename T>
-inline const T&
-ContiguousArray<T>::at(std::size_t idx) const {
+inline T const& ContiguousArray<T>::at(std::size_t idx) const {
   if (idx >= Size()) {
     throw Error("nid out of range");
   }
@@ -288,8 +270,7 @@ ContiguousArray<T>::at(std::size_t idx) const {
 }
 
 template <typename T>
-inline T&
-ContiguousArray<T>::at(int idx) {
+inline T& ContiguousArray<T>::at(int idx) {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
     throw Error("nid out of range");
   }
@@ -297,22 +278,20 @@ ContiguousArray<T>::at(int idx) {
 }
 
 template <typename T>
-inline const T&
-ContiguousArray<T>::at(int idx) const {
+inline T const& ContiguousArray<T>::at(int idx) const {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
     throw Error("nid out of range");
   }
   return buffer_[static_cast<std::size_t>(idx)];
 }
 
-template<typename Container>
-inline std::vector<std::pair<std::string, std::string> >
-ModelParam::InitAllowUnknown(const Container& kwargs) {
+template <typename Container>
+inline std::vector<std::pair<std::string, std::string>> ModelParam::InitAllowUnknown(
+    Container const& kwargs) {
   std::vector<std::pair<std::string, std::string>> unknowns;
-  for (const auto& e : kwargs) {
+  for (auto const& e : kwargs) {
     if (e.first == "pred_transform") {
-      std::strncpy(this->pred_transform, e.second.c_str(),
-                   TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1);
+      std::strncpy(this->pred_transform, e.second.c_str(), TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1);
       this->pred_transform[TREELITE_MAX_PRED_TRANSFORM_LENGTH - 1] = '\0';
     } else if (e.first == "sigmoid_alpha") {
       this->sigmoid_alpha = std::stof(e.second, nullptr);
@@ -325,24 +304,23 @@ ModelParam::InitAllowUnknown(const Container& kwargs) {
   return unknowns;
 }
 
-inline std::map<std::string, std::string>
-ModelParam::__DICT__() const {
+inline std::map<std::string, std::string> ModelParam::__DICT__() const {
   std::map<std::string, std::string> ret;
   ret.emplace("pred_transform", std::string(this->pred_transform));
-  ret.emplace("sigmoid_alpha", GetString(this->sigmoid_alpha));
-  ret.emplace("ratio_c", GetString(this->ratio_c));
-  ret.emplace("global_bias", GetString(this->global_bias));
+  ret.emplace("sigmoid_alpha", detail::GetString(this->sigmoid_alpha));
+  ret.emplace("ratio_c", detail::GetString(this->ratio_c));
+  ret.emplace("global_bias", detail::GetString(this->global_bias));
   return ret;
 }
 
-inline PyBufferFrame GetPyBufferFromArray(void* data, const char* format,
-                                          std::size_t itemsize, std::size_t nitem) {
+inline PyBufferFrame GetPyBufferFromArray(
+    void* data, char const* format, std::size_t itemsize, std::size_t nitem) {
   return PyBufferFrame{data, const_cast<char*>(format), itemsize, nitem};
 }
 
 // Infer format string from data type
 template <typename T>
-inline const char* InferFormatString() {
+inline char const* InferFormatString() {
   switch (sizeof(T)) {
   case 1:
     return (std::is_unsigned<T>::value ? "=B" : "=b");
@@ -373,7 +351,7 @@ inline const char* InferFormatString() {
 }
 
 template <typename T>
-inline PyBufferFrame GetPyBufferFromArray(ContiguousArray<T>* vec, const char* format) {
+inline PyBufferFrame GetPyBufferFromArray(ContiguousArray<T>* vec, char const* format) {
   return GetPyBufferFromArray(static_cast<void*>(vec->Data()), format, sizeof(T), vec->Size());
 }
 
@@ -384,12 +362,12 @@ inline PyBufferFrame GetPyBufferFromArray(ContiguousArray<T>* vec) {
   return GetPyBufferFromArray(vec, InferFormatString<T>());
 }
 
-inline PyBufferFrame GetPyBufferFromScalar(void* data, const char* format, std::size_t itemsize) {
+inline PyBufferFrame GetPyBufferFromScalar(void* data, char const* format, std::size_t itemsize) {
   return GetPyBufferFromArray(data, format, itemsize, 1);
 }
 
 template <typename T>
-inline PyBufferFrame GetPyBufferFromScalar(T* scalar, const char* format) {
+inline PyBufferFrame GetPyBufferFromScalar(T* scalar, char const* format) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
   return GetPyBufferFromScalar(static_cast<void*>(scalar), format, sizeof(T));
 }
@@ -407,8 +385,8 @@ inline PyBufferFrame GetPyBufferFromScalar(TaskType* scalar) {
 template <typename T>
 inline PyBufferFrame GetPyBufferFromScalar(T* scalar) {
   static_assert(std::is_arithmetic<T>::value,
-                "Use GetPyBufferFromScalar(scalar, format) for composite types; "
-                "specify format string manually");
+      "Use GetPyBufferFromScalar(scalar, format) for composite types; "
+      "specify format string manually");
   return GetPyBufferFromScalar(scalar, InferFormatString<T>());
 }
 
@@ -466,7 +444,7 @@ inline void ReadScalarFromStream(T* scalar, std::istream& is) {
 template <typename T>
 inline void WriteScalarToStream(T* scalar, std::ostream& os) {
   static_assert(std::is_standard_layout<T>::value, "T must be in the standard layout");
-  os.write(reinterpret_cast<const char*>(scalar), sizeof(T));
+  os.write(reinterpret_cast<char const*>(scalar), sizeof(T));
 }
 
 template <typename T>
@@ -484,12 +462,12 @@ inline void ReadArrayFromStream(ContiguousArray<T>* vec, std::istream& is) {
 template <typename T>
 inline void WriteArrayToStream(ContiguousArray<T>* vec, std::ostream& os) {
   static_assert(sizeof(std::uint64_t) >= sizeof(std::size_t), "size_t too large");
-  const auto nelem = static_cast<std::uint64_t>(vec->Size());
-  os.write(reinterpret_cast<const char*>(&nelem), sizeof(nelem));
+  auto const nelem = static_cast<std::uint64_t>(vec->Size());
+  os.write(reinterpret_cast<char const*>(&nelem), sizeof(nelem));
   if (nelem == 0) {
     return;  // handle empty arrays
   }
-  os.write(reinterpret_cast<const char*>(vec->Data()), sizeof(T) * vec->Size());
+  os.write(reinterpret_cast<char const*>(vec->Data()), sizeof(T) * vec->Size());
 }
 
 inline void SkipOptFieldInStream(std::istream& is) {
@@ -504,13 +482,10 @@ inline void SkipOptFieldInStream(std::istream& is) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-Tree<ThresholdType, LeafOutputType>::Tree(bool use_opt_field)
-  : use_opt_field_(use_opt_field)
-{}
+Tree<ThresholdType, LeafOutputType>::Tree(bool use_opt_field) : use_opt_field_(use_opt_field) {}
 
 template <typename ThresholdType, typename LeafOutputType>
-inline Tree<ThresholdType, LeafOutputType>
-Tree<ThresholdType, LeafOutputType>::Clone() const {
+inline Tree<ThresholdType, LeafOutputType> Tree<ThresholdType, LeafOutputType>::Clone() const {
   Tree<ThresholdType, LeafOutputType> tree;
   tree.num_nodes = num_nodes;
   tree.nodes_ = nodes_.Clone();
@@ -523,8 +498,7 @@ Tree<ThresholdType, LeafOutputType>::Clone() const {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline const char*
-Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
+inline char const* Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
   if (std::is_same<ThresholdType, float>::value) {
     return "T{=l=l=L=f=Q=d=d=b=b=?=?=?=?xx}";
   } else {
@@ -534,10 +508,8 @@ Tree<ThresholdType, LeafOutputType>::GetFormatStringForNode() {
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
-inline void
-Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
-    ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
-    CompositeArrayHandler composite_array_handler) {
+inline void Tree<ThresholdType, LeafOutputType>::SerializeTemplate(ScalarHandler scalar_handler,
+    PrimitiveArrayHandler primitive_array_handler, CompositeArrayHandler composite_array_handler) {
   scalar_handler(&num_nodes);
   scalar_handler(&has_categorical_split_);
   composite_array_handler(&nodes_, GetFormatStringForNode());
@@ -558,11 +530,8 @@ Tree<ThresholdType, LeafOutputType>::SerializeTemplate(
 
 template <typename ThresholdType, typename LeafOutputType>
 template <typename ScalarHandler, typename ArrayHandler, typename SkipOptFieldHandlerFunc>
-inline void
-Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
-    ScalarHandler scalar_handler,
-    ArrayHandler array_handler,
-    SkipOptFieldHandlerFunc skip_opt_field_handler) {
+inline void Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(ScalarHandler scalar_handler,
+    ArrayHandler array_handler, SkipOptFieldHandlerFunc skip_opt_field_handler) {
   scalar_handler(&num_nodes);
   scalar_handler(&has_categorical_split_);
   array_handler(&nodes_);
@@ -597,64 +566,41 @@ Tree<ThresholdType, LeafOutputType>::DeserializeTemplate(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
-  auto scalar_handler = [dest](auto* field) {
-    dest->push_back(GetPyBufferFromScalar(field));
-  };
-  auto primitive_array_handler = [dest](auto* field) {
-    dest->push_back(GetPyBufferFromArray(field));
-  };
-  auto composite_array_handler = [dest](auto* field, const char* format) {
+inline void Tree<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+  auto scalar_handler = [dest](auto* field) { dest->push_back(GetPyBufferFromScalar(field)); };
+  auto primitive_array_handler
+      = [dest](auto* field) { dest->push_back(GetPyBufferFromArray(field)); };
+  auto composite_array_handler = [dest](auto* field, char const* format) {
     dest->push_back(GetPyBufferFromArray(field, format));
   };
   SerializeTemplate(scalar_handler, primitive_array_handler, composite_array_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::SerializeToStream(std::ostream& os) {
-  auto scalar_handler = [&os](auto* field) {
-    WriteScalarToStream(field, os);
-  };
-  auto primitive_array_handler = [&os](auto* field) {
-    WriteArrayToStream(field, os);
-  };
-  auto composite_array_handler = [&os](auto* field, const char* format) {
-    WriteArrayToStream(field, os);
-  };
+inline void Tree<ThresholdType, LeafOutputType>::SerializeToStream(std::ostream& os) {
+  auto scalar_handler = [&os](auto* field) { WriteScalarToStream(field, os); };
+  auto primitive_array_handler = [&os](auto* field) { WriteArrayToStream(field, os); };
+  auto composite_array_handler
+      = [&os](auto* field, char const* format) { WriteArrayToStream(field, os); };
   SerializeTemplate(scalar_handler, primitive_array_handler, composite_array_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline std::vector<PyBufferFrame>::iterator
-Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(std::vector<PyBufferFrame>::iterator it) {
+inline std::vector<PyBufferFrame>::iterator Tree<ThresholdType, LeafOutputType>::InitFromPyBuffer(
+    std::vector<PyBufferFrame>::iterator it) {
   std::vector<PyBufferFrame>::iterator new_it = it;
-  auto scalar_handler = [&new_it](auto* field) {
-    InitScalarFromPyBuffer(field, *(new_it++));
-  };
-  auto array_handler = [&new_it](auto* field) {
-    InitArrayFromPyBuffer(field, *(new_it++));
-  };
-  auto skip_opt_field_handler = [&new_it]() {
-    ++new_it;
-  };
+  auto scalar_handler = [&new_it](auto* field) { InitScalarFromPyBuffer(field, *(new_it++)); };
+  auto array_handler = [&new_it](auto* field) { InitArrayFromPyBuffer(field, *(new_it++)); };
+  auto skip_opt_field_handler = [&new_it]() { ++new_it; };
   DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
   return new_it;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::DeserializeFromStream(std::istream& is) {
-  auto scalar_handler = [&is](auto* field) {
-    ReadScalarFromStream(field, is);
-  };
-  auto array_handler = [&is](auto* field) {
-    ReadArrayFromStream(field, is);
-  };
-  auto skip_opt_field_handler = [&is]() {
-    SkipOptFieldInStream(is);
-  };
+inline void Tree<ThresholdType, LeafOutputType>::DeserializeFromStream(std::istream& is) {
+  auto scalar_handler = [&is](auto* field) { ReadScalarFromStream(field, is); };
+  auto array_handler = [&is](auto* field) { ReadArrayFromStream(field, is); };
+  auto skip_opt_field_handler = [&is]() { SkipOptFieldInStream(is); };
   DeserializeTemplate(scalar_handler, array_handler, skip_opt_field_handler);
 }
 
@@ -674,8 +620,7 @@ inline void Tree<ThresholdType, LeafOutputType>::Node::Init() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline int
-Tree<ThresholdType, LeafOutputType>::AllocNode() {
+inline int Tree<ThresholdType, LeafOutputType>::AllocNode() {
   int nd = num_nodes++;
   if (nodes_.Size() != static_cast<std::size_t>(nd)) {
     throw Error("Invariant violated: nodes_ contains incorrect number of nodes");
@@ -691,8 +636,7 @@ Tree<ThresholdType, LeafOutputType>::AllocNode() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::Init() {
+inline void Tree<ThresholdType, LeafOutputType>::Init() {
   num_nodes = 1;
   has_categorical_split_ = false;
   leaf_vector_.Clear();
@@ -706,23 +650,23 @@ Tree<ThresholdType, LeafOutputType>::Init() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
-  const int cleft = this->AllocNode();
-  const int cright = this->AllocNode();
+inline void Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
+  int const cleft = this->AllocNode();
+  int const cright = this->AllocNode();
   nodes_.at(nid).cleft_ = cleft;
   nodes_.at(nid).cright_ = cright;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
+inline void Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
     int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   Node& node = nodes_.at(nid);
   if (split_index >= ((1U << 31U) - 1)) {
     throw Error("split_index too big");
   }
-  if (default_left) split_index |= (1U << 31U);
+  if (default_left) {
+    split_index |= (1U << 31U);
+  }
   node.sindex_ = split_index;
   (node.info_).threshold = threshold;
   node.cmp_ = cmp;
@@ -731,10 +675,9 @@ Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
-    int nid, unsigned split_index, bool default_left,
-    const std::vector<uint32_t>& categories_list, bool categories_list_right_child) {
+inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(int nid, unsigned split_index,
+    bool default_left, std::vector<uint32_t> const& categories_list,
+    bool categories_list_right_child) {
   if (split_index >= ((1U << 31U) - 1)) {
     throw Error("split_index too big");
   }
@@ -745,7 +688,7 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     throw Error("Invariant violated");
   }
   if (!std::all_of(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-                   [end_oft](std::size_t x) { return (x == end_oft); })) {
+          [end_oft](std::size_t x) { return (x == end_oft); })) {
     throw Error("Invariant violated");
   }
   // Hopefully we won't have to move any element as we add node_matching_categories for node nid
@@ -754,13 +697,15 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
     throw Error("Invariant violated");
   }
   std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-                [new_end_oft](std::size_t& x) { x = new_end_oft; });
+      [new_end_oft](std::size_t& x) { x = new_end_oft; });
   if (!matching_categories_.Empty()) {
     std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
   }
 
   Node& node = nodes_.at(nid);
-  if (default_left) split_index |= (1U << 31U);
+  if (default_left) {
+    split_index |= (1U << 31U);
+  }
   node.sindex_ = split_index;
   node.split_type_ = SplitFeatureType::kCategorical;
   node.categories_list_right_child_ = categories_list_right_child;
@@ -769,8 +714,7 @@ Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
+inline void Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
   Node& node = nodes_.at(nid);
   (node.info_).leaf_value = value;
   node.cleft_ = -1;
@@ -779,23 +723,21 @@ Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType value) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-Tree<ThresholdType, LeafOutputType>::SetLeafVector(
-    int nid, const std::vector<LeafOutputType>& node_leaf_vector) {
+inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
+    int nid, std::vector<LeafOutputType> const& node_leaf_vector) {
   std::size_t begin = leaf_vector_.Size();
   std::size_t end = begin + node_leaf_vector.size();
   leaf_vector_.Extend(node_leaf_vector);
   leaf_vector_begin_[nid] = begin;
   leaf_vector_end_[nid] = end;
-  Node &node = nodes_.at(nid);
+  Node& node = nodes_.at(nid);
   node.cleft_ = -1;
   node.cright_ = -1;
   node.split_type_ = SplitFeatureType::kNone;
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline std::unique_ptr<Model>
-Model::Create() {
+inline std::unique_ptr<Model> Model::Create() {
   std::unique_ptr<Model> model = std::make_unique<ModelImpl<ThresholdType, LeafOutputType>>();
   model->threshold_type_ = TypeToInfo<ThresholdType>();
   model->leaf_output_type_ = TypeToInfo<LeafOutputType>();
@@ -810,8 +752,7 @@ class ModelCreateImpl {
   }
 };
 
-inline std::unique_ptr<Model>
-Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
+inline std::unique_ptr<Model> Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
   return DispatchWithModelTypes<ModelCreateImpl>(threshold_type, leaf_output_type);
 }
 
@@ -824,26 +765,24 @@ class ModelDispatchImpl {
   }
 
   template <typename Func>
-  inline static auto Dispatch(const Model* model, Func func) {
-    return func(*dynamic_cast<const ModelImpl<ThresholdType, LeafOutputType>*>(model));
+  inline static auto Dispatch(Model const* model, Func func) {
+    return func(*dynamic_cast<ModelImpl<ThresholdType, LeafOutputType> const*>(model));
   }
 };
 
 template <typename Func>
-inline auto
-Model::Dispatch(Func func) {
+inline auto Model::Dispatch(Func func) {
   return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
 }
 
 template <typename Func>
-inline auto
-Model::Dispatch(Func func) const {
+inline auto Model::Dispatch(Func func) const {
   return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
 }
 
 template <typename HeaderPrimitiveFieldHandlerFunc>
-inline void
-Model::SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler) {
+inline void Model::SerializeTemplate(
+    HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler) {
   major_ver_ = TREELITE_VER_MAJOR;
   minor_ver_ = TREELITE_VER_MINOR;
   patch_ver_ = TREELITE_VER_PATCH;
@@ -855,27 +794,25 @@ Model::SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_
 }
 
 template <typename HeaderPrimitiveFieldHandlerFunc>
-inline void
-Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
-                           int32_t& major_ver, int32_t& minor_ver, int32_t& patch_ver,
-                           TypeInfo& threshold_type, TypeInfo& leaf_output_type) {
+inline void Model::DeserializeTemplate(
+    HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler, int32_t& major_ver,
+    int32_t& minor_ver, int32_t& patch_ver, TypeInfo& threshold_type, TypeInfo& leaf_output_type) {
   header_primitive_field_handler(&major_ver);
   header_primitive_field_handler(&minor_ver);
   header_primitive_field_handler(&patch_ver);
   if (major_ver != TREELITE_VER_MAJOR && !(major_ver == 2 && minor_ver == 4)) {
-    TREELITE_LOG(FATAL)
-        << "Cannot load model from a different major Treelite version or "
-        << "a version before 2.4.0." << std::endl
-        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
-        << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
-        << "The model checkpoint was generated from Treelite version " << major_ver << "."
-        << minor_ver << "." << patch_ver;
+    TREELITE_LOG(FATAL) << "Cannot load model from a different major Treelite version or "
+                        << "a version before 2.4.0." << std::endl
+                        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
+                        << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
+                        << "The model checkpoint was generated from Treelite version " << major_ver
+                        << "." << minor_ver << "." << patch_ver;
   } else if (major_ver == TREELITE_VER_MAJOR && minor_ver > TREELITE_VER_MINOR) {
     TREELITE_LOG(WARNING)
         << "The model you are loading originated from a newer Treelite version; some "
         << "functionalities may be unavailable." << std::endl
-        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
-        << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
+        << "Currently running Treelite version " << TREELITE_VER_MAJOR << "." << TREELITE_VER_MINOR
+        << "." << TREELITE_VER_PATCH << std::endl
         << "The model checkpoint was generated from Treelite version " << major_ver << "."
         << minor_ver << "." << patch_ver;
   }
@@ -886,11 +823,9 @@ Model::DeserializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_fiel
 template <typename ThresholdType, typename LeafOutputType>
 template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
     typename TreeHandlerFunc>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
+inline void ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
     HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
-    HeaderCompositeFieldHandlerFunc header_composite_field_handler,
-    TreeHandlerFunc tree_handler) {
+    HeaderCompositeFieldHandlerFunc header_composite_field_handler, TreeHandlerFunc tree_handler) {
   /* Header */
   header_primitive_field_handler(&num_feature);
   header_primitive_field_handler(&task_type);
@@ -912,11 +847,8 @@ ModelImpl<ThresholdType, LeafOutputType>::SerializeTemplate(
 template <typename ThresholdType, typename LeafOutputType>
 template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc,
     typename SkipOptFieldHandlerFunc>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
-    std::size_t num_tree,
-    HeaderFieldHandlerFunc header_field_handler,
-    TreeHandlerFunc tree_handler,
+inline void ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(std::size_t num_tree,
+    HeaderFieldHandlerFunc header_field_handler, TreeHandlerFunc tree_handler,
     SkipOptFieldHandlerFunc skip_opt_field_handler) {
   /* Header */
   header_field_handler(&num_feature);
@@ -926,7 +858,7 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
   header_field_handler(&param);
 
   /* Extension Slot 1: Per-model optional fields -- to be added later */
-  const bool use_opt_field = (major_ver_ >= 3);
+  bool const use_opt_field = (major_ver_ >= 3);
   if (use_opt_field) {
     header_field_handler(&num_opt_field_per_model_);
     // Ignore extra fields; the input is likely from a later version of Treelite
@@ -947,35 +879,27 @@ ModelImpl<ThresholdType, LeafOutputType>::DeserializeTemplate(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(std::vector<PyBufferFrame>* dest) {
+inline void ModelImpl<ThresholdType, LeafOutputType>::GetPyBuffer(
+    std::vector<PyBufferFrame>* dest) {
   num_tree_ = static_cast<uint64_t>(this->trees.size());
-  auto header_primitive_field_handler = [dest](auto* field) {
-    dest->push_back(GetPyBufferFromScalar(field));
-  };
-  auto header_composite_field_handler = [dest](auto* field, const char* format) {
+  auto header_primitive_field_handler
+      = [dest](auto* field) { dest->push_back(GetPyBufferFromScalar(field)); };
+  auto header_composite_field_handler = [dest](auto* field, char const* format) {
     dest->push_back(GetPyBufferFromScalar(field, format));
   };
-  auto tree_handler = [dest](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.GetPyBuffer(dest);
-  };
+  auto tree_handler = [dest](Tree<ThresholdType, LeafOutputType>& tree) { tree.GetPyBuffer(dest); };
   header_primitive_field_handler(&num_tree_);
   SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::SerializeToStreamImpl(std::ostream& os) {
+inline void ModelImpl<ThresholdType, LeafOutputType>::SerializeToStreamImpl(std::ostream& os) {
   num_tree_ = static_cast<std::uint64_t>(this->trees.size());
-  auto header_primitive_field_handler = [&os](auto* field) {
-    WriteScalarToStream(field, os);
-  };
-  auto header_composite_field_handler = [&os](auto* field, const char* format) {
-    WriteScalarToStream(field, os);
-  };
-  auto tree_handler = [&os](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.SerializeToStream(os);
-  };
+  auto header_primitive_field_handler = [&os](auto* field) { WriteScalarToStream(field, os); };
+  auto header_composite_field_handler
+      = [&os](auto* field, char const* format) { WriteScalarToStream(field, os); };
+  auto tree_handler
+      = [&os](Tree<ThresholdType, LeafOutputType>& tree) { tree.SerializeToStream(os); };
   header_primitive_field_handler(&num_tree_);
   SerializeTemplate(header_primitive_field_handler, header_composite_field_handler, tree_handler);
 }
@@ -985,13 +909,10 @@ inline std::vector<PyBufferFrame>::iterator
 ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
     std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) {
   std::vector<PyBufferFrame>::iterator new_it = it;
-  auto header_field_handler = [&new_it](auto* field) {
-    InitScalarFromPyBuffer(field, *(new_it++));
-  };
+  auto header_field_handler
+      = [&new_it](auto* field) { InitScalarFromPyBuffer(field, *(new_it++)); };
 
-  auto skip_opt_field_handler = [&new_it]() {
-    ++new_it;
-  };
+  auto skip_opt_field_handler = [&new_it]() { ++new_it; };
 
   auto tree_handler = [&new_it](Tree<ThresholdType, LeafOutputType>& tree) {
     new_it = tree.InitFromPyBuffer(new_it);
@@ -1016,32 +937,26 @@ ModelImpl<ThresholdType, LeafOutputType>::InitFromPyBuffer(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void
-ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromStreamImpl(std::istream& is) {
+inline void ModelImpl<ThresholdType, LeafOutputType>::DeserializeFromStreamImpl(std::istream& is) {
   ReadScalarFromStream(&num_tree_, is);
 
-  auto header_field_handler = [&is](auto* field) {
-    ReadScalarFromStream(field, is);
-  };
+  auto header_field_handler = [&is](auto* field) { ReadScalarFromStream(field, is); };
 
-  auto skip_opt_field_handler = [&is]() {
-    SkipOptFieldInStream(is);
-  };
+  auto skip_opt_field_handler = [&is]() { SkipOptFieldInStream(is); };
 
-  auto tree_handler = [&is](Tree<ThresholdType, LeafOutputType>& tree) {
-    tree.DeserializeFromStream(is);
-  };
+  auto tree_handler
+      = [&is](Tree<ThresholdType, LeafOutputType>& tree) { tree.DeserializeFromStream(is); };
 
   DeserializeTemplate(num_tree_, header_field_handler, tree_handler, skip_opt_field_handler);
   TREELITE_CHECK_EQ(num_tree_, this->trees.size());
 }
 
-inline void InitParamAndCheck(ModelParam* param,
-                              const std::vector<std::pair<std::string, std::string>>& cfg) {
+inline void InitParamAndCheck(
+    ModelParam* param, std::vector<std::pair<std::string, std::string>> const& cfg) {
   auto unknown = param->InitAllowUnknown(cfg);
   if (!unknown.empty()) {
     std::ostringstream oss;
-    for (const auto& kv : unknown) {
+    for (auto const& kv : unknown) {
       oss << kv.first << ", ";
     }
     std::cerr << "\033[1;31mWarning: Unknown parameters found; "

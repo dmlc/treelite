@@ -9,7 +9,7 @@ Treelite model objects can be serialized into two ways:
   a byte sequence without physically making copies in memory.
 * Files. Tree models can be converted into Treelite checkpoint files that can be later
   read back.
-  
+
 We make certain guarantees about compatiblity of serialization. It is possible to
 exchange serialized tree models between two different Treelite versions, as follows:
 

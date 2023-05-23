@@ -5,7 +5,7 @@ import ctypes
 import json
 import warnings
 from dataclasses import asdict, dataclass
-from typing import Literal, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from ..util import c_str
 class GTILConfig:
     """Object holding configuration data"""
 
-    predict_type: Literal["default", "raw", "leaf_id", "score_per_tree"]
+    predict_type: str
     # Prediction type is one of the following:
     # * "default": Usual prediction method. Sum over trees and apply post-processing.
     # * "raw": Sum over trees, but don't apply post-processing; get raw margin scores

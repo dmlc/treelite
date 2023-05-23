@@ -1,12 +1,13 @@
+"""Rename a Python wheel"""
 import argparse
 import glob
 import os
-import sys
 from contextlib import contextmanager
 
 
 @contextmanager
-def cd(path):
+def cd(path):  # pylint: disable=C0103
+    """Temporarily change working directory"""
     path = os.path.normpath(path)
     cwd = os.getcwd()
     os.chdir(path)
@@ -18,6 +19,7 @@ def cd(path):
 
 
 def main(args):
+    """Main function"""
     if not os.path.isdir(args.wheel_dir):
         raise ValueError("wheel_dir argument must be a directory")
 
@@ -43,15 +45,15 @@ def main(args):
 
 
 if __name__ == "__main__":
-    description = (
+    DESCRIPTION = (
         "Script to rename wheel(s) using a commit ID and platform tag."
         "Note: This script will not recurse into subdirectories."
     )
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
     parser.add_argument("wheel_dir", type=str, help="Directory containing wheels")
     parser.add_argument("commit_id", type=str, help="Hash of current git commit")
     parser.add_argument(
         "platform_tag", type=str, help="Platform tag, PEP 425 compliant"
     )
-    args = parser.parse_args()
-    main(args)
+    parsed_args = parser.parse_args()
+    main(parsed_args)

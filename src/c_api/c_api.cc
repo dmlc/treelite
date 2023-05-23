@@ -9,20 +9,21 @@
 #include <treelite/c_api_error.h>
 #include <treelite/data.h>
 #include <treelite/frontend.h>
-#include <treelite/tree.h>
-#include <treelite/math.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
+#include <treelite/math.h>
 #include <treelite/thread_local.h>
-#include <numeric>
-#include <memory>
+#include <treelite/tree.h>
+
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
-#include <cstddef>
 
-using namespace treelite;
+using namespace treelite;  // NOLINT(build/namespaces)
 
 namespace {
 
@@ -39,14 +40,13 @@ using TreeliteAPIThreadLocalStore = ThreadLocalStore<TreeliteAPIThreadLocalEntry
 
 }  // anonymous namespace
 
-int TreeliteLoadLightGBMModel(const char* filename, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-      << "TreeliteLoadLightGBMModel() is deprecated. Please use "
-      << "TreeliteLoadLightGBMModelEx() instead.";
+int TreeliteLoadLightGBMModel(char const* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadLightGBMModel() is deprecated. Please use "
+                        << "TreeliteLoadLightGBMModelEx() instead.";
   return TreeliteLoadLightGBMModelEx(filename, "{}", out);
 }
 
-int TreeliteLoadLightGBMModelEx(const char* filename, const char* config_json, ModelHandle* out) {
+int TreeliteLoadLightGBMModelEx(char const* filename, char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModel(filename);
@@ -54,14 +54,13 @@ int TreeliteLoadLightGBMModelEx(const char* filename, const char* config_json, M
   API_END();
 }
 
-int TreeliteLoadXGBoostModel(const char* filename, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-      << "TreeliteLoadXGBoostModel() is deprecated. Please use "
-      << "TreeliteLoadXGBoostModelEx() instead.";
+int TreeliteLoadXGBoostModel(char const* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadXGBoostModel() is deprecated. Please use "
+                        << "TreeliteLoadXGBoostModelEx() instead.";
   return TreeliteLoadXGBoostModelEx(filename, "{}", out);
 }
 
-int TreeliteLoadXGBoostModelEx(const char* filename, const char* config_json, ModelHandle* out) {
+int TreeliteLoadXGBoostModelEx(char const* filename, char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(filename);
@@ -69,45 +68,42 @@ int TreeliteLoadXGBoostModelEx(const char* filename, const char* config_json, Mo
   API_END();
 }
 
-int TreeliteLoadXGBoostJSON(const char* filename, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-      << "TreeliteLoadXGBoostJSON() is deprecated. Please use "
-      << "TreeliteLoadXGBoostJSONEx() instead.";
+int TreeliteLoadXGBoostJSON(char const* filename, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadXGBoostJSON() is deprecated. Please use "
+                        << "TreeliteLoadXGBoostJSONEx() instead.";
   return TreeliteLoadXGBoostJSONEx(filename, "{}", out);
 }
 
-int TreeliteLoadXGBoostJSONEx(const char* filename, const char* config_json, ModelHandle* out) {
+int TreeliteLoadXGBoostJSONEx(char const* filename, char const* config_json, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostJSONModel(filename, config_json);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostJSONString(const char* json_str, size_t length, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-    << "TreeliteLoadXGBoostJSONString() is deprecated. Please use "
-    << "TreeliteLoadXGBoostJSONStringEx() instead.";
+int TreeliteLoadXGBoostJSONString(char const* json_str, size_t length, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadXGBoostJSONString() is deprecated. Please use "
+                        << "TreeliteLoadXGBoostJSONStringEx() instead.";
   return TreeliteLoadXGBoostJSONStringEx(json_str, length, "{}", out);
 }
 
 int TreeliteLoadXGBoostJSONStringEx(
-    const char* json_str, size_t length, const char* config_json, ModelHandle* out) {
+    char const* json_str, size_t length, char const* config_json, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model =
-      frontend::LoadXGBoostJSONModelString(json_str, length, config_json);
+  std::unique_ptr<Model> model
+      = frontend::LoadXGBoostJSONModelString(json_str, length, config_json);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadXGBoostModelFromMemoryBuffer(const void* buf, size_t len, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-      << "TreeliteLoadXGBoostModelFromMemoryBuffer() is deprecated. Please use "
-      << "TreeliteLoadXGBoostModelFromMemoryBufferEx() instead.";
+int TreeliteLoadXGBoostModelFromMemoryBuffer(void const* buf, size_t len, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadXGBoostModelFromMemoryBuffer() is deprecated. Please use "
+                        << "TreeliteLoadXGBoostModelFromMemoryBufferEx() instead.";
   return TreeliteLoadXGBoostModelFromMemoryBufferEx(buf, len, "{}", out);
 }
 
 int TreeliteLoadXGBoostModelFromMemoryBufferEx(
-    const void* buf, size_t len, const char* config_json, ModelHandle* out) {
+    void const* buf, size_t len, char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(buf, len);
@@ -115,15 +111,14 @@ int TreeliteLoadXGBoostModelFromMemoryBufferEx(
   API_END();
 }
 
-int TreeliteLoadLightGBMModelFromString(const char* model_str, ModelHandle* out) {
-  TREELITE_LOG(WARNING)
-      << "TreeliteLoadLightGBMModelFromString() is deprecated. Please use "
-      << "TreeliteLoadLightGBMModelFromStringEx() instead.";
+int TreeliteLoadLightGBMModelFromString(char const* model_str, ModelHandle* out) {
+  TREELITE_LOG(WARNING) << "TreeliteLoadLightGBMModelFromString() is deprecated. Please use "
+                        << "TreeliteLoadLightGBMModelFromStringEx() instead.";
   return TreeliteLoadLightGBMModelFromStringEx(model_str, "{}", out);
 }
 
 int TreeliteLoadLightGBMModelFromStringEx(
-    const char* model_str, const char* config_json, ModelHandle* out) {
+    char const* model_str, char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModelFromString(model_str);
@@ -132,124 +127,121 @@ int TreeliteLoadLightGBMModelFromStringEx(
 }
 
 int TreeliteBuildModelFromJSONString(
-    const char* json_str, const char* config_json, ModelHandle* out) {
+    char const* json_str, char const* config_json, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::BuildModelFromJSONString(json_str, config_json);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteLoadSKLearnRandomForestRegressor(
-    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
-    const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
-    const double** impurity, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestRegressor(
-      n_estimators, n_features, node_count, children_left, children_right, feature, threshold,
-      value, n_node_samples, weighted_n_node_samples, impurity);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnIsolationForest(
-    int n_estimators, int n_features, const int64_t* node_count, const int64_t** children_left,
-    const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
-    const double** impurity, const double ratio_c, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnIsolationForest(
-      n_estimators, n_features, node_count, children_left, children_right, feature, threshold,
-      value, n_node_samples, weighted_n_node_samples, impurity, ratio_c);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnRandomForestClassifier(
-    int n_estimators, int n_features, int n_classes, const int64_t* node_count,
-    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
-    const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestClassifier(
-      n_estimators, n_features, n_classes, node_count, children_left, children_right, feature,
-      threshold, value, n_node_samples, weighted_n_node_samples, impurity);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnGradientBoostingRegressor(
-    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
-    const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const double** value, const int64_t** n_node_samples, const double** weighted_n_node_samples,
-    const double** impurity, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingRegressor(
-      n_iter, n_features, node_count, children_left, children_right, feature, threshold,
-      value, n_node_samples, weighted_n_node_samples, impurity);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnGradientBoostingClassifier(
-    int n_iter, int n_features, int n_classes, const int64_t* node_count,
-    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
-    const double** threshold, const double** value, const int64_t** n_node_samples,
-    const double** weighted_n_node_samples, const double** impurity, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingClassifier(
-      n_iter, n_features, n_classes, node_count, children_left, children_right, feature,
-      threshold, value, n_node_samples, weighted_n_node_samples, impurity);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnHistGradientBoostingRegressor(
-    int n_iter, int n_features, const int64_t* node_count, const int64_t** children_left,
-    const int64_t** children_right, const int64_t** feature, const double** threshold,
-    const int8_t** default_left, const double** value, const int64_t** n_node_samples,
-    const double** gain, const double* baseline_prediction, ModelHandle* out) {
-  API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingRegressor(
-      n_iter, n_features, node_count, children_left, children_right, feature,
-      threshold, default_left, value, n_node_samples, gain, baseline_prediction);
-  *out = static_cast<ModelHandle>(model.release());
-  API_END();
-}
-
-int TreeliteLoadSKLearnHistGradientBoostingClassifier(
-    int n_iter, int n_features, int n_classes, const int64_t* node_count,
-    const int64_t** children_left, const int64_t** children_right, const int64_t** feature,
-    const double** threshold, const int8_t** default_left, const double** value,
-    const int64_t** n_node_samples, const double** gain, const double* baseline_prediction,
+int TreeliteLoadSKLearnRandomForestRegressor(int n_estimators, int n_features,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, double const** value,
+    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingClassifier(
-      n_iter, n_features, n_classes, node_count, children_left, children_right, feature,
-      threshold, default_left, value, n_node_samples, gain, baseline_prediction);
+  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestRegressor(n_estimators,
+      n_features, node_count, children_left, children_right, feature, threshold, value,
+      n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
 
-int TreeliteSerializeModel(const char* filename, ModelHandle handle) {
+int TreeliteLoadSKLearnIsolationForest(int n_estimators, int n_features, int64_t const* node_count,
+    int64_t const** children_left, int64_t const** children_right, int64_t const** feature,
+    double const** threshold, double const** value, int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, double const ratio_c,
+    ModelHandle* out) {
   API_BEGIN();
-  TREELITE_LOG(WARNING)
-      << "TreeliteSerializeModel() is deprecated; "
-      << "please use TreeliteSerializeModelToFile() instead";
+  std::unique_ptr<Model> model = frontend::LoadSKLearnIsolationForest(n_estimators, n_features,
+      node_count, children_left, children_right, feature, threshold, value, n_node_samples,
+      weighted_n_node_samples, impurity, ratio_c);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnRandomForestClassifier(int n_estimators, int n_features, int n_classes,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, double const** value,
+    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
+    ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestClassifier(n_estimators,
+      n_features, n_classes, node_count, children_left, children_right, feature, threshold, value,
+      n_node_samples, weighted_n_node_samples, impurity);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnGradientBoostingRegressor(int n_iter, int n_features,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, double const** value,
+    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
+    ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingRegressor(n_iter, n_features,
+      node_count, children_left, children_right, feature, threshold, value, n_node_samples,
+      weighted_n_node_samples, impurity);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n_features, int n_classes,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, double const** value,
+    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
+    ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingClassifier(n_iter, n_features,
+      n_classes, node_count, children_left, children_right, feature, threshold, value,
+      n_node_samples, weighted_n_node_samples, impurity);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, int8_t const** default_left,
+    double const** value, int64_t const** n_node_samples, double const** gain,
+    double const* baseline_prediction, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingRegressor(n_iter,
+      n_features, node_count, children_left, children_right, feature, threshold, default_left,
+      value, n_node_samples, gain, baseline_prediction);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features, int n_classes,
+    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
+    int64_t const** feature, double const** threshold, int8_t const** default_left,
+    double const** value, int64_t const** n_node_samples, double const** gain,
+    double const* baseline_prediction, ModelHandle* out) {
+  API_BEGIN();
+  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingClassifier(n_iter,
+      n_features, n_classes, node_count, children_left, children_right, feature, threshold,
+      default_left, value, n_node_samples, gain, baseline_prediction);
+  *out = static_cast<ModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteSerializeModel(char const* filename, ModelHandle handle) {
+  API_BEGIN();
+  TREELITE_LOG(WARNING) << "TreeliteSerializeModel() is deprecated; "
+                        << "please use TreeliteSerializeModelToFile() instead";
   return TreeliteSerializeModelToFile(handle, filename);
   API_END();
 }
 
-int TreeliteDeserializeModel(const char* filename, ModelHandle* out) {
+int TreeliteDeserializeModel(char const* filename, ModelHandle* out) {
   API_BEGIN();
-  TREELITE_LOG(WARNING)
-      << "TreeliteDeserializeModel() is deprecated; "
-      << "please use TreeliteDeserializeModelFromFile() instead";
+  TREELITE_LOG(WARNING) << "TreeliteDeserializeModel() is deprecated; "
+                        << "please use TreeliteDeserializeModelFromFile() instead";
   return TreeliteDeserializeModelFromFile(filename, out);
   API_END();
 }
 
-int TreeliteSerializeModelToFile(ModelHandle handle, const char* filename) {
+int TreeliteSerializeModelToFile(ModelHandle handle, char const* filename) {
   API_BEGIN();
   std::ofstream ofs(filename, std::ios::out | std::ios::binary);
   TREELITE_CHECK(ofs) << "Failed to open file '" << filename << "'";
@@ -259,7 +251,7 @@ int TreeliteSerializeModelToFile(ModelHandle handle, const char* filename) {
   API_END();
 }
 
-int TreeliteDeserializeModelFromFile(const char* filename, ModelHandle* out) {
+int TreeliteDeserializeModelFromFile(char const* filename, ModelHandle* out) {
   API_BEGIN();
   std::ifstream ifs(filename, std::ios::in | std::ios::binary);
   TREELITE_CHECK(ifs) << "Failed to open file '" << filename << "'";
@@ -269,8 +261,8 @@ int TreeliteDeserializeModelFromFile(const char* filename, ModelHandle* out) {
   API_END();
 }
 
-int TreeliteSerializeModelToBytes(ModelHandle handle, const char** out_bytes,
-                                  size_t* out_bytes_len) {
+int TreeliteSerializeModelToBytes(
+    ModelHandle handle, char const** out_bytes, size_t* out_bytes_len) {
   API_BEGIN();
   std::ostringstream oss;
   oss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
@@ -284,7 +276,7 @@ int TreeliteSerializeModelToBytes(ModelHandle handle, const char** out_bytes,
   API_END();
 }
 
-int TreeliteDeserializeModelFromBytes(const char* bytes, size_t bytes_len, ModelHandle* out) {
+int TreeliteDeserializeModelFromBytes(char const* bytes, size_t bytes_len, ModelHandle* out) {
   API_BEGIN();
   std::istringstream iss(std::string(bytes, bytes_len));
   iss.exceptions(std::ios::failbit | std::ios::badbit);  // throw exception on failure
@@ -293,18 +285,17 @@ int TreeliteDeserializeModelFromBytes(const char* bytes, size_t bytes_len, Model
   API_END();
 }
 
-int TreeliteConcatenateModelObjects(const ModelHandle* objs, size_t len,
-                                    ModelHandle* out) {
+int TreeliteConcatenateModelObjects(ModelHandle const* objs, size_t len, ModelHandle* out) {
   API_BEGIN();
-  std::vector<const Model*> model_objs(len, nullptr);
+  std::vector<Model const*> model_objs(len, nullptr);
   std::transform(objs, objs + len, model_objs.begin(),
-                 [](const ModelHandle e) { return static_cast<const Model*>(e); });
+      [](const ModelHandle e) { return static_cast<const Model*>(e); });
   auto concatenated_model = ConcatenateModelObjects(model_objs);
   *out = static_cast<ModelHandle>(concatenated_model.release());
   API_END();
 }
 
-int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, const char** out_json_str) {
+int TreeliteDumpAsJSON(ModelHandle handle, int pretty_print, char const** out_json_str) {
   API_BEGIN();
   auto* model_ = static_cast<Model*>(handle);
   std::string& ret_str = TreeliteAPIThreadLocalStore::Get()->ret_str;
@@ -319,7 +310,7 @@ int TreeliteFreeModel(ModelHandle handle) {
   API_END();
 }
 
-int TreeliteGTILParseConfig(const char* config_json, GTILConfigHandle* out) {
+int TreeliteGTILParseConfig(char const* config_json, GTILConfigHandle* out) {
   API_BEGIN();
   auto parsed_config = std::make_unique<gtil::Configuration>(config_json);
   *out = static_cast<GTILConfigHandle>(parsed_config.release());
@@ -334,50 +325,47 @@ int TreeliteGTILDeleteConfig(GTILConfigHandle handle) {
 
 int TreeliteGTILGetPredictOutputSize(ModelHandle model, size_t num_row, size_t* out) {
   API_BEGIN();
-  TREELITE_LOG(WARNING)
-    << "TreeliteGTILGetPredictOutputSize() is deprecated; "
-    << "please use TreeliteGTILGetPredictOutputSizeEx() instead";
-  const auto* model_ = static_cast<const Model*>(model);
+  TREELITE_LOG(WARNING) << "TreeliteGTILGetPredictOutputSize() is deprecated; "
+                        << "please use TreeliteGTILGetPredictOutputSizeEx() instead";
+  auto const* model_ = static_cast<Model const*>(model);
   *out = gtil::GetPredictOutputSize(model_, num_row, gtil::Configuration{});
   API_END();
 }
 
-int TreeliteGTILGetPredictOutputSizeEx(ModelHandle model, size_t num_row, GTILConfigHandle config,
-                                       size_t* out) {
+int TreeliteGTILGetPredictOutputSizeEx(
+    ModelHandle model, size_t num_row, GTILConfigHandle config, size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(model);
-  const auto* config_ = static_cast<const gtil::Configuration*>(config);
+  auto const* model_ = static_cast<Model const*>(model);
+  auto const* config_ = static_cast<gtil::Configuration const*>(config);
   *out = gtil::GetPredictOutputSize(model_, num_row, *config_);
   API_END();
 }
 
-int TreeliteGTILPredict(ModelHandle model, const float* input, size_t num_row, float* output,
-                        int nthread, int pred_transform, size_t* out_result_size) {
+int TreeliteGTILPredict(ModelHandle model, float const* input, size_t num_row, float* output,
+    int nthread, int pred_transform, size_t* out_result_size) {
   API_BEGIN();
   TREELITE_LOG(WARNING)
-    << "TreeliteGTILPredict() is deprecated; please use TreeliteGTILPredictEx() instead.";
-  const auto* model_ = static_cast<const Model*>(model);
+      << "TreeliteGTILPredict() is deprecated; please use TreeliteGTILPredictEx() instead.";
+  auto const* model_ = static_cast<Model const*>(model);
   gtil::Configuration config;
   config.pred_type = (pred_transform == 1 ? treelite::gtil::PredictType::kPredictDefault
                                           : treelite::gtil::PredictType::kPredictRaw);
   config.nthread = nthread;
   auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
-  *out_result_size = gtil::Predict(model_, input, num_row, output, config,
-                                   pred_shape);
+  *out_result_size = gtil::Predict(model_, input, num_row, output, config, pred_shape);
   API_END();
 }
 
-int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row, float* output,
-                          GTILConfigHandle config, size_t* out_result_size,
-                          size_t* out_result_ndim, size_t** out_result_shape) {
+int TreeliteGTILPredictEx(ModelHandle model, float const* input, size_t num_row, float* output,
+    GTILConfigHandle config, size_t* out_result_size, size_t* out_result_ndim,
+    size_t** out_result_shape) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(model);
-  const auto* config_ = static_cast<const gtil::Configuration*>(config);
+  auto const* model_ = static_cast<Model const*>(model);
+  auto const* config_ = static_cast<gtil::Configuration const*>(config);
   auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
-  *out_result_size = gtil::Predict(model_, input, num_row, output, *config_,
-                                   pred_shape);
-  auto prod = std::accumulate<>(std::begin(pred_shape), std::end(pred_shape), 1,
-                                std::multiplies<>{});
+  *out_result_size = gtil::Predict(model_, input, num_row, output, *config_, pred_shape);
+  auto prod
+      = std::accumulate<>(std::begin(pred_shape), std::end(pred_shape), 1, std::multiplies<>{});
   TREELITE_CHECK_EQ(prod, *out_result_size);
   *out_result_ndim = pred_shape.size();
   *out_result_shape = pred_shape.data();
@@ -386,21 +374,21 @@ int TreeliteGTILPredictEx(ModelHandle model, const float* input, size_t num_row,
 
 int TreeliteQueryNumTree(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  auto const* model_ = static_cast<Model const*>(handle);
   *out = model_->GetNumTree();
   API_END();
 }
 
 int TreeliteQueryNumFeature(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  auto const* model_ = static_cast<Model const*>(handle);
   *out = static_cast<size_t>(model_->num_feature);
   API_END();
 }
 
 int TreeliteQueryNumClass(ModelHandle handle, size_t* out) {
   API_BEGIN();
-  const auto* model_ = static_cast<const Model*>(handle);
+  auto const* model_ = static_cast<Model const*>(handle);
   *out = static_cast<size_t>(model_->task_param.num_class);
   API_END();
 }
@@ -415,7 +403,7 @@ int TreeliteSetTreeLimit(ModelHandle handle, size_t limit) {
   API_END();
 }
 
-int TreeliteTreeBuilderCreateValue(const void* init_value, const char* type, ValueHandle* out) {
+int TreeliteTreeBuilderCreateValue(void const* init_value, char const* type, ValueHandle* out) {
   API_BEGIN();
   std::unique_ptr<frontend::Value> value = std::make_unique<frontend::Value>();
   *value = frontend::Value::Create(init_value, GetTypeInfoByName(type));
@@ -429,13 +417,11 @@ int TreeliteTreeBuilderDeleteValue(ValueHandle handle) {
   API_END();
 }
 
-int TreeliteCreateTreeBuilder(const char* threshold_type, const char* leaf_output_type,
-                              TreeBuilderHandle* out) {
+int TreeliteCreateTreeBuilder(
+    char const* threshold_type, char const* leaf_output_type, TreeBuilderHandle* out) {
   API_BEGIN();
-  std::unique_ptr<frontend::TreeBuilder> builder{
-    new frontend::TreeBuilder(GetTypeInfoByName(threshold_type),
-                              GetTypeInfoByName(leaf_output_type))
-  };
+  std::unique_ptr<frontend::TreeBuilder> builder{new frontend::TreeBuilder(
+      GetTypeInfoByName(threshold_type), GetTypeInfoByName(leaf_output_type))};
   *out = static_cast<TreeBuilderHandle>(builder.release());
   API_END();
 }
@@ -470,22 +456,21 @@ int TreeliteTreeBuilderSetRootNode(TreeBuilderHandle handle, int node_key) {
   API_END();
 }
 
-int TreeliteTreeBuilderSetNumericalTestNode(
-    TreeBuilderHandle handle, int node_key, unsigned feature_id, const char* opname,
-    ValueHandle threshold, int default_left, int left_child_key, int right_child_key) {
+int TreeliteTreeBuilderSetNumericalTestNode(TreeBuilderHandle handle, int node_key,
+    unsigned feature_id, char const* opname, ValueHandle threshold, int default_left,
+    int left_child_key, int right_child_key) {
   API_BEGIN();
   auto* builder = static_cast<frontend::TreeBuilder*>(handle);
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
   builder->SetNumericalTestNode(node_key, feature_id, opname,
-                                *static_cast<const frontend::Value*>(threshold),
-                                (default_left != 0), left_child_key, right_child_key);
+      *static_cast<frontend::Value const*>(threshold), (default_left != 0), left_child_key,
+      right_child_key);
   API_END();
 }
 
-int TreeliteTreeBuilderSetCategoricalTestNode(
-    TreeBuilderHandle handle, int node_key, unsigned feature_id,
-    const unsigned int* left_categories, size_t left_categories_len, int default_left,
-    int left_child_key, int right_child_key) {
+int TreeliteTreeBuilderSetCategoricalTestNode(TreeBuilderHandle handle, int node_key,
+    unsigned feature_id, unsigned int const* left_categories, size_t left_categories_len,
+    int default_left, int left_child_key, int right_child_key) {
   API_BEGIN();
   auto* builder = static_cast<frontend::TreeBuilder*>(handle);
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
@@ -494,8 +479,8 @@ int TreeliteTreeBuilderSetCategoricalTestNode(
     TREELITE_CHECK(left_categories[i] <= std::numeric_limits<uint32_t>::max());
     vec[i] = static_cast<uint32_t>(left_categories[i]);
   }
-  builder->SetCategoricalTestNode(node_key, feature_id, vec, (default_left != 0),
-                                  left_child_key, right_child_key);
+  builder->SetCategoricalTestNode(
+      node_key, feature_id, vec, (default_left != 0), left_child_key, right_child_key);
   API_END();
 }
 
@@ -503,12 +488,12 @@ int TreeliteTreeBuilderSetLeafNode(TreeBuilderHandle handle, int node_key, Value
   API_BEGIN();
   auto* builder = static_cast<frontend::TreeBuilder*>(handle);
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
-  builder->SetLeafNode(node_key, *static_cast<const frontend::Value*>(leaf_value));
+  builder->SetLeafNode(node_key, *static_cast<frontend::Value const*>(leaf_value));
   API_END();
 }
 
 int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle, int node_key,
-                                         const ValueHandle* leaf_vector, size_t leaf_vector_len) {
+    ValueHandle const* leaf_vector, size_t leaf_vector_len) {
   API_BEGIN();
   auto* builder = static_cast<frontend::TreeBuilder*>(handle);
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted TreeBuilder object";
@@ -516,25 +501,24 @@ int TreeliteTreeBuilderSetLeafVectorNode(TreeBuilderHandle handle, int node_key,
   TREELITE_CHECK(leaf_vector) << "leaf_vector argument must not be null";
   for (size_t i = 0; i < leaf_vector_len; ++i) {
     TREELITE_CHECK(leaf_vector[i]) << "leaf_vector[" << i << "] contains an empty Value handle";
-    vec[i] = *static_cast<const frontend::Value*>(leaf_vector[i]);
+    vec[i] = *static_cast<frontend::Value const*>(leaf_vector[i]);
   }
   builder->SetLeafVectorNode(node_key, vec);
   API_END();
 }
 
-int TreeliteCreateModelBuilder(
-    int num_feature, int num_class, int average_tree_output, const char* threshold_type,
-    const char* leaf_output_type, ModelBuilderHandle* out) {
+int TreeliteCreateModelBuilder(int num_feature, int num_class, int average_tree_output,
+    char const* threshold_type, char const* leaf_output_type, ModelBuilderHandle* out) {
   API_BEGIN();
-  std::unique_ptr<frontend::ModelBuilder> builder{new frontend::ModelBuilder(
-      num_feature, num_class, (average_tree_output != 0), GetTypeInfoByName(threshold_type),
-      GetTypeInfoByName(leaf_output_type))};
+  std::unique_ptr<frontend::ModelBuilder> builder{
+      new frontend::ModelBuilder(num_feature, num_class, (average_tree_output != 0),
+          GetTypeInfoByName(threshold_type), GetTypeInfoByName(leaf_output_type))};
   *out = static_cast<ModelBuilderHandle>(builder.release());
   API_END();
 }
 
-int TreeliteModelBuilderSetModelParam(ModelBuilderHandle handle, const char* name,
-                                      const char* value) {
+int TreeliteModelBuilderSetModelParam(
+    ModelBuilderHandle handle, char const* name, char const* value) {
   API_BEGIN();
   auto* builder = static_cast<frontend::ModelBuilder*>(handle);
   TREELITE_CHECK(builder) << "Detected dangling reference to deleted ModelBuilder object";
@@ -548,8 +532,8 @@ int TreeliteDeleteModelBuilder(ModelBuilderHandle handle) {
   API_END();
 }
 
-int TreeliteModelBuilderInsertTree(ModelBuilderHandle handle, TreeBuilderHandle tree_builder_handle,
-                                   int index) {
+int TreeliteModelBuilderInsertTree(
+    ModelBuilderHandle handle, TreeBuilderHandle tree_builder_handle, int index) {
   API_BEGIN();
   auto* model_builder = static_cast<frontend::ModelBuilder*>(handle);
   TREELITE_CHECK(model_builder) << "Detected dangling reference to deleted ModelBuilder object";
@@ -559,7 +543,7 @@ int TreeliteModelBuilderInsertTree(ModelBuilderHandle handle, TreeBuilderHandle 
   API_END();
 }
 
-int TreeliteModelBuilderGetTree(ModelBuilderHandle handle, int index, TreeBuilderHandle *out) {
+int TreeliteModelBuilderGetTree(ModelBuilderHandle handle, int index, TreeBuilderHandle* out) {
   API_BEGIN();
   auto* model_builder = static_cast<frontend::ModelBuilder*>(handle);
   TREELITE_CHECK(model_builder) << "Detected dangling reference to deleted ModelBuilder object";
@@ -586,16 +570,16 @@ int TreeliteModelBuilderCommitModel(ModelBuilderHandle handle, ModelHandle* out)
   API_END();
 }
 
-int TreeliteRegisterLogCallback(void (*callback)(const char*)) {
+int TreeliteRegisterLogCallback(void (*callback)(char const*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
   registry->RegisterCallBackLogInfo(callback);
   API_END();
 }
 
-int TreeliteRegisterWarningCallback(void (*callback)(const char*)) {
+int TreeliteRegisterWarningCallback(void (*callback)(char const*)) {
   API_BEGIN();
-    LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
-    registry->RegisterCallBackLogWarning(callback);
+  LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
+  registry->RegisterCallBackLogWarning(callback);
   API_END();
 }

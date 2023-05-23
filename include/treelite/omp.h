@@ -9,6 +9,7 @@
 
 #ifdef TREELITE_OPENMP_SUPPORT
 #include <omp.h>
+
 #include <limits>
 
 // MSVC doesn't implement the thread limit.

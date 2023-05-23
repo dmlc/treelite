@@ -162,10 +162,10 @@ def import_model(sklearn_model):
         ),
     ):
         # pylint: disable=C3001
-        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)
+        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)  # noqa: E731
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         # pylint: disable=C3001
-        leaf_value_expected_shape = lambda node_count: (
+        leaf_value_expected_shape = lambda node_count: (  # noqa: E731
             node_count,
             1,
             sklearn_model.n_classes_,

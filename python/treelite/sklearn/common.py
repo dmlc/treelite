@@ -10,7 +10,8 @@ class SKLConverterBase:
     def process_tree(cls, sklearn_tree, sklearn_model):
         """Process a scikit-learn Tree object"""
         treelite_tree = treelite.ModelBuilder.Tree(
-            threshold_type='float64', leaf_output_type='float64')
+            threshold_type="float64", leaf_output_type="float64"
+        )
 
         # Iterate over each node: node ID ranges from 0 to [node_count]-1
         for node_id in range(sklearn_tree.node_count):
@@ -24,7 +25,7 @@ class SKLConverterBase:
     @classmethod
     def process_node(cls, treelite_tree, sklearn_tree, node_id, sklearn_model):
         """Process a tree node in a scikit-learn Tree object. Decide whether the node is
-           a leaf node or a test node."""
+        a leaf node or a test node."""
         if sklearn_tree.children_left[node_id] == -1:  # leaf node
             cls.process_leaf_node(treelite_tree, sklearn_tree, node_id, sklearn_model)
         else:  # test node
@@ -34,18 +35,19 @@ class SKLConverterBase:
     def process_test_node(cls, treelite_tree, sklearn_tree, node_id, sklearn_model):
         # pylint: disable=W0613
         """Process a test node with a given node ID. We shall assume that all tree ensembles in
-           scikit-learn use only numerical splits."""
+        scikit-learn use only numerical splits."""
         treelite_tree[node_id].set_numerical_test_node(
             feature_id=sklearn_tree.feature[node_id],
-            opname='<=',
+            opname="<=",
             threshold=sklearn_tree.threshold[node_id],
-            threshold_type='float64',
+            threshold_type="float64",
             default_left=True,
             left_child_key=sklearn_tree.children_left[node_id],
-            right_child_key=sklearn_tree.children_right[node_id],)
+            right_child_key=sklearn_tree.children_right[node_id],
+        )
 
     @classmethod
     def process_leaf_node(cls, treelite_tree, sklearn_tree, node_id, sklearn_model):
         """Process a test node with a given node ID. This method shall be implemented by the
-           mixin class that represents the converter for a particular model type."""
+        mixin class that represents the converter for a particular model type."""
         raise NotImplementedError()

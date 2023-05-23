@@ -8,22 +8,23 @@
 #define TREELITE_TREE_H_
 
 #include <treelite/base.h>
-#include <treelite/version.h>
 #include <treelite/logging.h>
+#include <treelite/version.h>
+
 #include <algorithm>
-#include <map>
-#include <memory>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <utility>
-#include <type_traits>
-#include <limits>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #define __TREELITE_STR(x) #x
 #define _TREELITE_STR(x) __TREELITE_STR(x)
@@ -68,18 +69,18 @@ class ContiguousArray {
   ContiguousArray();
   ~ContiguousArray();
   // NOTE: use Clone to make deep copy; copy constructors disabled
-  ContiguousArray(const ContiguousArray&) = delete;
-  ContiguousArray& operator=(const ContiguousArray&) = delete;
+  ContiguousArray(ContiguousArray const&) = delete;
+  ContiguousArray& operator=(ContiguousArray const&) = delete;
   ContiguousArray(ContiguousArray&& other) noexcept;
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;
   inline void UseForeignBuffer(void* prealloc_buf, std::size_t size);
   inline T* Data();
-  inline const T* Data() const;
+  inline T const* Data() const;
   inline T* End();
-  inline const T* End() const;
+  inline T const* End() const;
   inline T& Back();
-  inline const T& Back() const;
+  inline T const& Back() const;
   inline std::size_t Size() const;
   inline bool Empty() const;
   inline void Reserve(std::size_t newsize);
@@ -87,16 +88,16 @@ class ContiguousArray {
   inline void Resize(std::size_t newsize, T t);
   inline void Clear();
   inline void PushBack(T t);
-  inline void Extend(const std::vector<T>& other);
+  inline void Extend(std::vector<T> const& other);
   /* Unsafe access, no bounds checking */
   inline T& operator[](std::size_t idx);
-  inline const T& operator[](std::size_t idx) const;
+  inline T const& operator[](std::size_t idx) const;
   /* Safe access, with bounds checking */
   inline T& at(std::size_t idx);
-  inline const T& at(std::size_t idx) const;
+  inline T const& at(std::size_t idx) const;
   /* Safe access, with bounds checking + check against non-existent node (<0) */
   inline T& at(int idx);
-  inline const T& at(int idx) const;
+  inline T const& at(int idx) const;
   static_assert(std::is_pod<T>::value, "T must be POD");
 
  private:
@@ -175,15 +176,20 @@ enum class TaskType : uint8_t {
 
 inline std::string TaskTypeToString(TaskType type) {
   switch (type) {
-    case TaskType::kBinaryClfRegr: return "kBinaryClfRegr";
-    case TaskType::kMultiClfGrovePerClass: return "kMultiClfGrovePerClass";
-    case TaskType::kMultiClfProbDistLeaf: return "kMultiClfProbDistLeaf";
-    case TaskType::kMultiClfCategLeaf: return "kMultiClfCategLeaf";
-    default: return "";
+  case TaskType::kBinaryClfRegr:
+    return "kBinaryClfRegr";
+  case TaskType::kMultiClfGrovePerClass:
+    return "kMultiClfGrovePerClass";
+  case TaskType::kMultiClfProbDistLeaf:
+    return "kMultiClfProbDistLeaf";
+  case TaskType::kMultiClfCategLeaf:
+    return "kMultiClfCategLeaf";
+  default:
+    return "";
   }
 }
 
-inline TaskType StringToTaskType(const std::string& str) {
+inline TaskType StringToTaskType(std::string const& str) {
   if (str == "kBinaryClfRegr") {
     return TaskType::kBinaryClfRegr;
   } else if (str == "kMultiClfGrovePerClass") {
@@ -230,13 +236,16 @@ struct TaskParam {
 
 inline std::string OutputTypeToString(TaskParam::OutputType type) {
   switch (type) {
-    case TaskParam::OutputType::kFloat: return "float";
-    case TaskParam::OutputType::kInt: return "int";
-    default: return "";
+  case TaskParam::OutputType::kFloat:
+    return "float";
+  case TaskParam::OutputType::kInt:
+    return "int";
+  default:
+    return "";
   }
 }
 
-inline TaskParam::OutputType StringToOutputType(const std::string& str) {
+inline TaskParam::OutputType StringToOutputType(std::string const& str) {
   if (str == "float") {
     return TaskParam::OutputType::kFloat;
   } else if (str == "int") {
@@ -261,7 +270,7 @@ class Tree {
     /*! \brief store either leaf value or decision threshold */
     union Info {
       LeafOutputType leaf_value;  // for leaf nodes
-      ThresholdType threshold;   // for non-leaf nodes
+      ThresholdType threshold;  // for non-leaf nodes
     };
     /*! \brief pointer to left and right children */
     std::int32_t cleft_, cright_;
@@ -364,36 +373,36 @@ class Tree {
   };
 
   static_assert(std::is_pod<Node>::value, "Node must be a POD type");
-  static_assert(std::is_same<ThresholdType, float>::value
-                || std::is_same<ThresholdType, double>::value,
-                "ThresholdType must be either float32 or float64");
+  static_assert(
+      std::is_same<ThresholdType, float>::value || std::is_same<ThresholdType, double>::value,
+      "ThresholdType must be either float32 or float64");
   static_assert(std::is_same<LeafOutputType, uint32_t>::value
-                || std::is_same<LeafOutputType, float>::value
-                || std::is_same<LeafOutputType, double>::value,
-                "LeafOutputType must be one of uint32_t, float32 or float64");
+                    || std::is_same<LeafOutputType, float>::value
+                    || std::is_same<LeafOutputType, double>::value,
+      "LeafOutputType must be one of uint32_t, float32 or float64");
   static_assert(std::is_same<ThresholdType, LeafOutputType>::value
-                || std::is_same<LeafOutputType, uint32_t>::value,
-                "Unsupported combination of ThresholdType and LeafOutputType");
+                    || std::is_same<LeafOutputType, uint32_t>::value,
+      "Unsupported combination of ThresholdType and LeafOutputType");
   static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
-                || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
-                "Node size incorrect");
+                    || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
+      "Node size incorrect");
 
   explicit Tree(bool use_opt_field = true);
   ~Tree() = default;
-  Tree(const Tree&) = delete;
-  Tree& operator=(const Tree&) = delete;
+  Tree(Tree const&) = delete;
+  Tree& operator=(Tree const&) = delete;
   Tree(Tree&&) noexcept = default;
   Tree& operator=(Tree&&) noexcept = default;
 
   inline Tree<ThresholdType, LeafOutputType> Clone() const;
 
-  inline const char* GetFormatStringForNode();
+  inline char const* GetFormatStringForNode();
   inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
   inline void SerializeToStream(std::ostream& os);
   // Load a Tree object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
-  inline std::vector<PyBufferFrame>::iterator
-    InitFromPyBuffer(std::vector<PyBufferFrame>::iterator it);
+  inline std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
+      std::vector<PyBufferFrame>::iterator it);
   inline void DeserializeFromStream(std::istream& is);
 
  private:
@@ -417,21 +426,19 @@ class Tree {
   int32_t num_opt_field_per_node_{0};
 
   template <typename WriterType, typename X, typename Y>
-  friend void DumpModelAsJSON(WriterType& writer, const ModelImpl<X, Y>& model);
+  friend void DumpModelAsJSON(WriterType& writer, ModelImpl<X, Y> const& model);
   template <typename WriterType, typename X, typename Y>
-  friend void DumpTreeAsJSON(WriterType& writer, const Tree<X, Y>& tree);
+  friend void DumpTreeAsJSON(WriterType& writer, Tree<X, Y> const& tree);
 
   // allocate a new node
   inline int AllocNode();
 
   // utility functions used for serialization, internal use only
   template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
-  inline void
-  SerializeTemplate(ScalarHandler scalar_handler, PrimitiveArrayHandler primitive_array_handler,
-      CompositeArrayHandler composite_array_handler);
+  inline void SerializeTemplate(ScalarHandler scalar_handler,
+      PrimitiveArrayHandler primitive_array_handler, CompositeArrayHandler composite_array_handler);
   template <typename ScalarHandler, typename ArrayHandler, typename SkipOptFieldHandlerFunc>
-  inline void
-  DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler,
+  inline void DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler,
       SkipOptFieldHandlerFunc skip_opt_field_handler);
 
   friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
@@ -508,10 +515,9 @@ class Tree {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
     }
-    return std::vector<LeafOutputType>(&leaf_vector_[offset_begin],
-                                       &leaf_vector_[offset_end]);
-      // Use unsafe access here, since we may need to take the address of one past the last
-      // element, to follow with the range semantic of std::vector<>.
+    return std::vector<LeafOutputType>(&leaf_vector_[offset_begin], &leaf_vector_[offset_end]);
+    // Use unsafe access here, since we may need to take the address of one past the last
+    // element, to follow with the range semantic of std::vector<>.
   }
   /*!
    * \brief tests whether the leaf node has a non-empty leaf vector
@@ -536,11 +542,10 @@ class Tree {
   }
   /*!
    * \brief Get list of all categories belonging to the left/right child node. See the
-   *        categories_list_right_child_ field of each split to determine whether this list represents
-   *        the right child node or the left child node. Categories are integers ranging from 0 to
-   *        (n-1), where n is the number of categories in that particular feature. This list is
-   *        assumed to be in ascending order.
-   * \param nid ID of node being queried
+   *        categories_list_right_child_ field of each split to determine whether this list
+   * represents the right child node or the left child node. Categories are integers ranging from 0
+   * to (n-1), where n is the number of categories in that particular feature. This list is assumed
+   * to be in ascending order. \param nid ID of node being queried
    */
   inline std::vector<std::uint32_t> MatchingCategories(int nid) const {
     const std::size_t offset_begin = matching_categories_offset_[nid];
@@ -550,10 +555,10 @@ class Tree {
       // The node might be a numerical split
       return std::vector<std::uint32_t>();
     }
-    return std::vector<std::uint32_t>(&matching_categories_[offset_begin],
-                                      &matching_categories_[offset_end]);
-      // Use unsafe access here, since we may need to take the address of one past the last
-      // element, to follow with the range semantic of std::vector<>.
+    return std::vector<std::uint32_t>(
+        &matching_categories_[offset_begin], &matching_categories_[offset_end]);
+    // Use unsafe access here, since we may need to take the address of one past the last
+    // element, to follow with the range semantic of std::vector<>.
   }
   /*!
    * \brief get feature split type
@@ -631,8 +636,8 @@ class Tree {
    * \param cmp comparison operator to compare between feature value and
    *            threshold
    */
-  inline void SetNumericalSplit(int nid, unsigned split_index, ThresholdType threshold,
-                                bool default_left, Operator cmp);
+  inline void SetNumericalSplit(
+      int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp);
   /*!
    * \brief create a categorical split
    * \param nid ID of node being updated
@@ -646,8 +651,7 @@ class Tree {
    *                                    (false)
    */
   inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                                  const std::vector<uint32_t>& categories_list,
-                                  bool categories_list_right_child);
+      std::vector<uint32_t> const& categories_list, bool categories_list_right_child);
   /*!
    * \brief set the leaf value of the node
    * \param nid ID of node being updated
@@ -659,7 +663,7 @@ class Tree {
    * \param nid ID of node being updated
    * \param leaf_vector leaf vector
    */
-  inline void SetLeafVector(int nid, const std::vector<LeafOutputType>& leaf_vector);
+  inline void SetLeafVector(int nid, std::vector<LeafOutputType> const& leaf_vector);
   /*!
    * \brief set the hessian sum of the node
    * \param nid ID of node being updated
@@ -694,9 +698,9 @@ class Tree {
 
 struct ModelParam {
   /*!
-  * \defgroup model_param Extra parameters for tree ensemble models
-  * \{
-  */
+   * \defgroup model_param Extra parameters for tree ensemble models
+   * \{
+   */
   /*!
    * \brief name of prediction transform function
    *
@@ -744,32 +748,33 @@ struct ModelParam {
     std::strncpy(pred_transform, "identity", sizeof(pred_transform));
   }
   ~ModelParam() = default;
-  ModelParam(const ModelParam&) = default;
-  ModelParam& operator=(const ModelParam&) = default;
+  ModelParam(ModelParam const&) = default;
+  ModelParam& operator=(ModelParam const&) = default;
   ModelParam(ModelParam&&) = default;
   ModelParam& operator=(ModelParam&&) = default;
 
-  template<typename Container>
-  inline std::vector<std::pair<std::string, std::string>>
-  InitAllowUnknown(const Container &kwargs);
+  template <typename Container>
+  inline std::vector<std::pair<std::string, std::string>> InitAllowUnknown(Container const& kwargs);
   inline std::map<std::string, std::string> __DICT__() const;
 };
 
-static_assert(std::is_standard_layout<ModelParam>::value,
-              "ModelParam must be in the standard layout");
+static_assert(
+    std::is_standard_layout<ModelParam>::value, "ModelParam must be in the standard layout");
 
-inline void InitParamAndCheck(ModelParam* param,
-                              const std::vector<std::pair<std::string, std::string>>& cfg);
+inline void InitParamAndCheck(
+    ModelParam* param, std::vector<std::pair<std::string, std::string>> const& cfg);
 
 /*! \brief thin wrapper for tree ensemble model */
 class Model {
  public:
   /*! \brief disable copy; use default move */
-  Model() : major_ver_(TREELITE_VER_MAJOR), minor_ver_(TREELITE_VER_MINOR),
-    patch_ver_(TREELITE_VER_PATCH) {}
+  Model()
+      : major_ver_(TREELITE_VER_MAJOR),
+        minor_ver_(TREELITE_VER_MINOR),
+        patch_ver_(TREELITE_VER_PATCH) {}
   virtual ~Model() = default;
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
+  Model(Model const&) = delete;
+  Model& operator=(Model const&) = delete;
   Model(Model&&) = default;
   Model& operator=(Model&&) = default;
 
@@ -810,8 +815,8 @@ class Model {
 
   /* In-memory serialization, zero-copy */
   TREELITE_DLL_EXPORT std::vector<PyBufferFrame> GetPyBuffer();
-  TREELITE_DLL_EXPORT static std::unique_ptr<Model>
-    CreateFromPyBuffer(std::vector<PyBufferFrame> frames);
+  TREELITE_DLL_EXPORT static std::unique_ptr<Model> CreateFromPyBuffer(
+      std::vector<PyBufferFrame> frames);
 
   /* Serialization to a file stream */
   void SerializeToStream(std::ostream& os);
@@ -855,15 +860,15 @@ class Model {
   // Load a Model object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
   virtual std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) = 0;
+      std::vector<PyBufferFrame>::iterator it, std::size_t num_frame)
+      = 0;
   virtual void DeserializeFromStreamImpl(std::istream& is) = 0;
   template <typename HeaderPrimitiveFieldHandlerFunc>
   inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
   template <typename HeaderPrimitiveFieldHandlerFunc>
   inline static void DeserializeTemplate(
-      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
-      int32_t& major_ver, int32_t& minor_ver, int32_t& patch_ver,
-      TypeInfo& threshold_type, TypeInfo& leaf_output_type);
+      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler, int32_t& major_ver,
+      int32_t& minor_ver, int32_t& patch_ver, TypeInfo& threshold_type, TypeInfo& leaf_output_type);
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -875,8 +880,8 @@ class ModelImpl : public Model {
   /*! \brief disable copy; use default move */
   ModelImpl() = default;
   ~ModelImpl() override = default;
-  ModelImpl(const ModelImpl&) = delete;
-  ModelImpl& operator=(const ModelImpl&) = delete;
+  ModelImpl(ModelImpl const&) = delete;
+  ModelImpl& operator=(ModelImpl const&) = delete;
   ModelImpl(ModelImpl&&) noexcept = default;
   ModelImpl& operator=(ModelImpl&&) noexcept = default;
 
@@ -893,23 +898,18 @@ class ModelImpl : public Model {
   // Load a ModelImpl object from a sequence of PyBuffer frames
   // Returns the updated position of the cursor in the sequence
   inline std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
-    std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) override;
+      std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) override;
   inline void DeserializeFromStreamImpl(std::istream& is) override;
 
  private:
   template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
       typename TreeHandlerFunc>
-  inline void SerializeTemplate(
-      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
-      HeaderCompositeFieldHandlerFunc header_composite_field_handler,
-      TreeHandlerFunc tree_handler);
+  inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
+      HeaderCompositeFieldHandlerFunc header_composite_field_handler, TreeHandlerFunc tree_handler);
   template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc,
       typename SkipOptFieldHandlerFunc>
-  inline void DeserializeTemplate(
-      size_t num_tree,
-      HeaderFieldHandlerFunc header_field_handler,
-      TreeHandlerFunc tree_handler,
-      SkipOptFieldHandlerFunc skip_opt_field_handler);
+  inline void DeserializeTemplate(size_t num_tree, HeaderFieldHandlerFunc header_field_handler,
+      TreeHandlerFunc tree_handler, SkipOptFieldHandlerFunc skip_opt_field_handler);
 };
 
 /*!
@@ -918,7 +918,7 @@ class ModelImpl : public Model {
  * \param objs List of model objects
  * \return Concatenated model
  */
-std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& objs);
+std::unique_ptr<Model> ConcatenateModelObjects(std::vector<Model const*> const& objs);
 
 }  // namespace treelite
 

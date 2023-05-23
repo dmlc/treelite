@@ -1,14 +1,20 @@
-#include <treelite/tree.h>
-#include <treelite/frontend.h>
+/*!
+ * Copyright (c) 2023 by Contributors
+ * \file example.cc
+ * \brief Test using Treelite as a C++ library
+ */
 #include <treelite/c_api.h>
+#include <treelite/frontend.h>
+#include <treelite/tree.h>
+
 #include <iostream>
 #include <map>
 #include <memory>
 
-using treelite::frontend::TreeBuilder;
-using treelite::frontend::ModelBuilder;
-using treelite::frontend::Value;
 using treelite::TypeInfo;
+using treelite::frontend::ModelBuilder;
+using treelite::frontend::TreeBuilder;
+using treelite::frontend::Value;
 
 int main(void) {
   std::cout << "TREELITE_VERSION = " << TREELITE_VERSION << std::endl;

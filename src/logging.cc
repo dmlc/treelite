@@ -9,14 +9,14 @@
 
 namespace treelite {
 
-void LogMessage::Log(const std::string& msg) {
-  const LogCallbackRegistry *registry = LogCallbackRegistryStore::Get();
+void LogMessage::Log(std::string const& msg) {
+  LogCallbackRegistry const* registry = LogCallbackRegistryStore::Get();
   auto callback = registry->GetCallbackLogInfo();
   callback(msg.c_str());
 }
 
-void LogMessageWarning::Log(const std::string& msg) {
-  const LogCallbackRegistry *registry = LogCallbackRegistryStore::Get();
+void LogMessageWarning::Log(std::string const& msg) {
+  LogCallbackRegistry const* registry = LogCallbackRegistryStore::Get();
   auto callback = registry->GetCallbackLogWarning();
   callback(msg.c_str());
 }

@@ -8,16 +8,14 @@
 #define TREELITE_DATA_H_
 
 #include <treelite/typeinfo.h>
-#include <vector>
-#include <type_traits>
+
 #include <memory>
+#include <type_traits>
+#include <vector>
 
 namespace treelite {
 
-enum class DMatrixType : uint8_t {
-  kDense = 0,
-  kSparseCSR = 1
-};
+enum class DMatrixType : uint8_t { kDense = 0, kSparseCSR = 1 };
 
 class DMatrix {
  public:
@@ -33,15 +31,16 @@ class DMatrix {
 class DenseDMatrix : public DMatrix {
  private:
   TypeInfo element_type_;
+
  public:
-  template<typename ElementType>
+  template <typename ElementType>
   static std::unique_ptr<DenseDMatrix> Create(
       std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col);
-  template<typename ElementType>
+  template <typename ElementType>
   static std::unique_ptr<DenseDMatrix> Create(
-      const void* data, const void* missing_value, size_t num_row, size_t num_col);
+      void const* data, void const* missing_value, size_t num_row, size_t num_col);
   static std::unique_ptr<DenseDMatrix> Create(
-      TypeInfo type, const void* data, const void* missing_value, size_t num_row, size_t num_col);
+      TypeInfo type, void const* data, void const* missing_value, size_t num_row, size_t num_col);
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;
@@ -49,7 +48,7 @@ class DenseDMatrix : public DMatrix {
   TypeInfo GetElementType() const override;
 };
 
-template<typename ElementType>
+template <typename ElementType>
 class DenseDMatrixImpl : public DenseDMatrix {
  public:
   /*! \brief feature values */
@@ -62,12 +61,12 @@ class DenseDMatrixImpl : public DenseDMatrix {
   size_t num_col;
 
   DenseDMatrixImpl() = delete;
-  DenseDMatrixImpl(std::vector<ElementType> data, ElementType missing_value, size_t num_row,
-                   size_t num_col);
+  DenseDMatrixImpl(
+      std::vector<ElementType> data, ElementType missing_value, size_t num_row, size_t num_col);
   ~DenseDMatrixImpl() = default;
-  DenseDMatrixImpl(const DenseDMatrixImpl&) = default;
+  DenseDMatrixImpl(DenseDMatrixImpl const&) = default;
   DenseDMatrixImpl(DenseDMatrixImpl&&) noexcept = default;
-  DenseDMatrixImpl& operator=(const DenseDMatrixImpl&) = default;
+  DenseDMatrixImpl& operator=(DenseDMatrixImpl const&) = default;
   DenseDMatrixImpl& operator=(DenseDMatrixImpl&&) noexcept = default;
 
   size_t GetNumRow() const override;
@@ -86,18 +85,16 @@ class DenseDMatrixImpl : public DenseDMatrix {
 class CSRDMatrix : public DMatrix {
  private:
   TypeInfo element_type_;
+
  public:
-  template<typename ElementType>
-  static std::unique_ptr<CSRDMatrix> Create(
-      std::vector<ElementType> data, std::vector<uint32_t> col_ind, std::vector<size_t> row_ptr,
-      size_t num_row, size_t num_col);
-  template<typename ElementType>
-  static std::unique_ptr<CSRDMatrix> Create(
-      const void* data, const uint32_t* col_ind, const size_t* row_ptr, size_t num_row,
-      size_t num_col);
-  static std::unique_ptr<CSRDMatrix> Create(
-      TypeInfo type, const void* data, const uint32_t* col_ind, const size_t* row_ptr,
-      size_t num_row, size_t num_col);
+  template <typename ElementType>
+  static std::unique_ptr<CSRDMatrix> Create(std::vector<ElementType> data,
+      std::vector<uint32_t> col_ind, std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
+  template <typename ElementType>
+  static std::unique_ptr<CSRDMatrix> Create(void const* data, uint32_t const* col_ind,
+      size_t const* row_ptr, size_t num_row, size_t num_col);
+  static std::unique_ptr<CSRDMatrix> Create(TypeInfo type, void const* data,
+      uint32_t const* col_ind, size_t const* row_ptr, size_t num_row, size_t num_col);
   size_t GetNumRow() const override = 0;
   size_t GetNumCol() const override = 0;
   size_t GetNumElem() const override = 0;
@@ -105,7 +102,7 @@ class CSRDMatrix : public DMatrix {
   TypeInfo GetElementType() const override;
 };
 
-template<typename ElementType>
+template <typename ElementType>
 class CSRDMatrixImpl : public CSRDMatrix {
  public:
   /*! \brief feature values */
@@ -121,10 +118,10 @@ class CSRDMatrixImpl : public CSRDMatrix {
 
   CSRDMatrixImpl() = delete;
   CSRDMatrixImpl(std::vector<ElementType> data, std::vector<uint32_t> col_ind,
-                 std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
-  CSRDMatrixImpl(const CSRDMatrixImpl&) = default;
+      std::vector<size_t> row_ptr, size_t num_row, size_t num_col);
+  CSRDMatrixImpl(CSRDMatrixImpl const&) = default;
   CSRDMatrixImpl(CSRDMatrixImpl&&) noexcept = default;
-  CSRDMatrixImpl& operator=(const CSRDMatrixImpl&) = default;
+  CSRDMatrixImpl& operator=(CSRDMatrixImpl const&) = default;
   CSRDMatrixImpl& operator=(CSRDMatrixImpl&&) noexcept = default;
 
   size_t GetNumRow() const override;

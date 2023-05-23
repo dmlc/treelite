@@ -5,11 +5,11 @@
  * \brief Functions to post-process prediction results
  */
 
-#ifndef TREELITE_GTIL_PRED_TRANSFORM_H_
-#define TREELITE_GTIL_PRED_TRANSFORM_H_
+#ifndef SRC_GTIL_PRED_TRANSFORM_H_
+#define SRC_GTIL_PRED_TRANSFORM_H_
 
-#include <string>
 #include <cstddef>
+#include <string>
 
 namespace treelite {
 
@@ -17,11 +17,11 @@ class Model;
 
 namespace gtil {
 
-using PredTransformFuncType = std::size_t (*) (const treelite::Model&, const float*, float*);
+using PredTransformFuncType = std::size_t (*)(treelite::Model const&, float const*, float*);
 
-PredTransformFuncType LookupPredTransform(const std::string& name);
+PredTransformFuncType LookupPredTransform(std::string const& name);
 
 }  // namespace gtil
 }  // namespace treelite
 
-#endif  // TREELITE_GTIL_PRED_TRANSFORM_H_
+#endif  // SRC_GTIL_PRED_TRANSFORM_H_

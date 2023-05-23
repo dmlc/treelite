@@ -1,21 +1,22 @@
 /*!
-* Copyright (c) 2021 by Contributors
-* \file parallel_for.h
-* \brief Implemenation of parallel for loop
-* \author Hyunsu Cho
-*/
-#ifndef TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
-#define TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
+ * Copyright (c) 2021 by Contributors
+ * \file parallel_for.h
+ * \brief Implemenation of parallel for loop
+ * \author Hyunsu Cho
+ */
+#ifndef SRC_THREADING_UTILS_PARALLEL_FOR_H_
+#define SRC_THREADING_UTILS_PARALLEL_FOR_H_
 
-#include <treelite/omp.h>
 #include <treelite/logging.h>
+#include <treelite/omp.h>
 #include <treelite/omp_exception.h>
-#include <type_traits>
+
 #include <algorithm>
-#include <exception>
-#include <mutex>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <mutex>
+#include <type_traits>
 
 namespace treelite {
 namespace threading_utils {
@@ -49,7 +50,7 @@ inline ThreadConfig ConfigureThreadConfig(int nthread) {
     TREELITE_CHECK_GE(nthread, 1) << "Invalid number of threads configured in OpenMP";
   } else {
     TREELITE_CHECK_LE(nthread, MaxNumThread())
-      << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
+        << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
   }
   return ThreadConfig{static_cast<std::uint32_t>(nthread)};
 }
@@ -64,15 +65,23 @@ struct ParallelSchedule {
   } sched;
   std::size_t chunk{0};
 
-  ParallelSchedule static Auto() { return ParallelSchedule{kAuto}; }
-  ParallelSchedule static Dynamic(std::size_t n = 0) { return ParallelSchedule{kDynamic, n}; }
-  ParallelSchedule static Static(std::size_t n = 0) { return ParallelSchedule{kStatic, n}; }
-  ParallelSchedule static Guided() { return ParallelSchedule{kGuided}; }
+  ParallelSchedule static Auto() {
+    return ParallelSchedule{kAuto};
+  }
+  ParallelSchedule static Dynamic(std::size_t n = 0) {
+    return ParallelSchedule{kDynamic, n};
+  }
+  ParallelSchedule static Static(std::size_t n = 0) {
+    return ParallelSchedule{kStatic, n};
+  }
+  ParallelSchedule static Guided() {
+    return ParallelSchedule{kGuided};
+  }
 };
 
 template <typename IndexType, typename FuncType>
-inline void ParallelFor(IndexType begin, IndexType end, const ThreadConfig& thread_config,
-                        ParallelSchedule sched, FuncType func) {
+inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig const& thread_config,
+    ParallelSchedule sched, FuncType func) {
   if (begin == end) {
     return;
   }
@@ -135,4 +144,4 @@ inline void ParallelFor(IndexType begin, IndexType end, const ThreadConfig& thre
 }  // namespace threading_utils
 }  // namespace treelite
 
-#endif  // TREELITE_THREADING_UTILS_PARALLEL_FOR_H_
+#endif  // SRC_THREADING_UTILS_PARALLEL_FOR_H_

@@ -23,14 +23,10 @@ except ImportError:
 @given(
     lists(integers(min_value=0, max_value=20), min_size=1, max_size=10),
     sampled_from(["string", "object", "list"]),
-    sampled_from([True, False])
+    sampled_from([True, False]),
 )
 @settings(print_blob=True, deadline=None)
-def test_extra_field_in_xgb_json(
-    random_integer_seq,
-    extra_field_type,
-    use_tempfile
-):
+def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempfile):
     # pylint: disable=too-many-locals,too-many-arguments
     """
     Test if we can handle extra fields in XGBoost JSON model file
@@ -101,7 +97,8 @@ def test_extra_field_in_xgb_json(
             new_model_path = os.path.join(tmpdir, "new_model.json")
             with open(new_model_path, "w", encoding="utf-8") as f:
                 f.write(new_model_str)
-            treelite.Model.load(new_model_path, model_format="xgboost_json",
-                                allow_unknown_field=True)
+            treelite.Model.load(
+                new_model_path, model_format="xgboost_json", allow_unknown_field=True
+            )
     else:
         treelite.Model.from_xgboost_json(new_model_str, allow_unknown_field=True)

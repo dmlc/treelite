@@ -8,6 +8,7 @@
 #define TREELITE_OMP_EXCEPTION_H_
 
 #include <treelite/error.h>
+
 #include <exception>
 #include <mutex>
 
@@ -31,12 +32,12 @@ class OMPException {
   void Run(Function f, Parameters... params) {
     try {
       f(params...);
-    } catch (treelite::Error &ex) {
+    } catch (treelite::Error& ex) {
       std::lock_guard<std::mutex> lock(mutex_);
       if (!omp_exception_) {
         omp_exception_ = std::current_exception();
       }
-    } catch (std::exception &ex) {
+    } catch (std::exception& ex) {
       std::lock_guard<std::mutex> lock(mutex_);
       if (!omp_exception_) {
         omp_exception_ = std::current_exception();

@@ -3,15 +3,19 @@
 # cython: language_level = 3
 """Utilities to (de)serialize Treelite objects via Python protocol"""
 
-from libcpp.vector cimport vector
-from cython.operator cimport dereference as deref, preincrement as inc
 from cpython.object cimport PyObject
-from libcpp.memory cimport unique_ptr
+from cython.operator cimport dereference as deref
+from cython.operator cimport preincrement as inc
 from libc.stdint cimport uintptr_t
-from typing import Tuple, Dict, List, Union
+from libcpp.memory cimport unique_ptr
+from libcpp.vector cimport vector
+
 import ctypes
-import treelite
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
+
+import treelite
 
 
 cdef extern from "treelite/c_api.h":

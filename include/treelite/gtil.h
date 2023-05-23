@@ -10,9 +10,9 @@
 #ifndef TREELITE_GTIL_H_
 #define TREELITE_GTIL_H_
 
-#include <vector>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <vector>
 
 namespace treelite {
 
@@ -63,7 +63,7 @@ struct Configuration {
   int nthread{0};  // use all threads by default
   PredictType pred_type{PredictType::kPredictDefault};
   Configuration() = default;
-  explicit Configuration(const char* config_json);
+  explicit Configuration(char const* config_json);
 };
 
 /*!
@@ -78,8 +78,8 @@ struct Configuration {
  * \return Size of output. This could be smaller than \ref GetPredictOutputSize but could never be
  *         larger than \ref GetPredictOutputSize.
  */
-std::size_t Predict(const Model* model, const DMatrix* input, float* output,
-                    const Configuration& config, std::vector<std::size_t>& output_shape);
+std::size_t Predict(Model const* model, DMatrix const* input, float* output,
+    Configuration const& config, std::vector<std::size_t>& output_shape);
 /*!
  * \brief Predict with a 2D dense array
  * \param model The model object
@@ -93,8 +93,8 @@ std::size_t Predict(const Model* model, const DMatrix* input, float* output,
  * \return Size of output. This could be smaller than \ref GetPredictOutputSize but could never be
  *         larger than \ref GetPredictOutputSize.
  */
-std::size_t Predict(const Model* model, const float* input, std::size_t num_row, float* output,
-                    const Configuration& config, std::vector<std::size_t>& output_shape);
+std::size_t Predict(Model const* model, float const* input, std::size_t num_row, float* output,
+    Configuration const& config, std::vector<std::size_t>& output_shape);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
@@ -103,8 +103,8 @@ std::size_t Predict(const Model* model, const float* input, std::size_t num_row,
  * \param config Configuration for GTIL Predictor
  * \return Size of output buffer that should be allocated
  */
-std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
-                                 const Configuration& config);
+std::size_t GetPredictOutputSize(
+    Model const* model, std::size_t num_row, Configuration const& config);
 /*!
  * \brief Given a batch of data rows, query the necessary size of array to hold predictions for all
  *        data points.
@@ -113,8 +113,8 @@ std::size_t GetPredictOutputSize(const Model* model, std::size_t num_row,
  * \param config Configuration for GTIL Predictor
  * \return Size of output buffer that should be allocated
  */
-std::size_t GetPredictOutputSize(const Model* model, const DMatrix* input,
-                                 const Configuration& config);
+std::size_t GetPredictOutputSize(
+    Model const* model, DMatrix const* input, Configuration const& config);
 
 }  // namespace gtil
 }  // namespace treelite

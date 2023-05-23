@@ -8,16 +8,12 @@ import warnings
 import numpy as np
 
 _CTYPES_TYPE_TABLE = {
-    'uint32': ctypes.c_uint32,
-    'float32': ctypes.c_float,
-    'float64': ctypes.c_double
+    "uint32": ctypes.c_uint32,
+    "float32": ctypes.c_float,
+    "float64": ctypes.c_double,
 }
 
-_NUMPY_TYPE_TABLE = {
-    'uint32': np.uint32,
-    'float32': np.float32,
-    'float64': np.float64
-}
+_NUMPY_TYPE_TABLE = {"uint32": np.uint32, "float32": np.float32, "float64": np.float64}
 
 
 class TreeliteError(Exception):
@@ -26,12 +22,12 @@ class TreeliteError(Exception):
 
 def c_str(string):
     """Convert a Python string to C string"""
-    return ctypes.c_char_p(string.encode('utf-8'))
+    return ctypes.c_char_p(string.encode("utf-8"))
 
 
 def py_str(string):
     """Convert C string back to Python string"""
-    return string.decode('utf-8')
+    return string.decode("utf-8")
 
 
 @ctypes.CFUNCTYPE(None, ctypes.c_char_p)

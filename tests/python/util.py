@@ -5,10 +5,10 @@ import tempfile
 from contextlib import contextmanager
 from sys import platform as _platform
 
-import treelite
-
 import numpy as np
 from sklearn.datasets import load_svmlight_file
+
+import treelite
 
 from .metadata import dataset_db
 

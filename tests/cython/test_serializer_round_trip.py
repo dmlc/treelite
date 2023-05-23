@@ -1,15 +1,17 @@
 """Test for serialization, via buffer protocol"""
 import os
-import pytest
-import treelite
+
 import numpy as np
+import pytest
+from serializer import treelite_deserialize, treelite_serialize
 from sklearn.datasets import load_iris
 from sklearn.ensemble import (
-    RandomForestClassifier,
     ExtraTreesClassifier,
     GradientBoostingClassifier,
+    RandomForestClassifier,
 )
-from serializer import treelite_serialize, treelite_deserialize
+
+import treelite
 
 
 @pytest.mark.parametrize(

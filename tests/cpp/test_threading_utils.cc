@@ -4,13 +4,15 @@
  * \author Hyunsu Cho
  * \brief C++ tests for threading utilities
  */
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <vector>
+#include <gtest/gtest.h>
+
 #include <algorithm>
-#include <random>
 #include <cstddef>
 #include <cstdint>
+#include <random>
+#include <vector>
+
 #include "threading_utils/parallel_for.h"
 
 namespace {
@@ -18,9 +20,9 @@ namespace {
 class RandomGenerator {
  public:
   RandomGenerator()
-    : rng_(std::random_device()()),
-      int_dist_(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max()),
-      real_dist_(0.0, 1.0) {}
+      : rng_(std::random_device()()),
+        int_dist_(std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max()),
+        real_dist_(0.0, 1.0) {}
 
   int64_t DrawInteger(int64_t low, int64_t high) {
     TREELITE_CHECK_LT(low, high);
@@ -48,13 +50,13 @@ class RandomGenerator {
   std::uniform_real_distribution<double> real_dist_;
 };
 
-}  // namespace anonymous
+}  // namespace
 
 namespace treelite {
 namespace threading_utils {
 TEST(ThreadingUtils, ParallelFor) {
   /* Test error handling */
-  const int max_thread = treelite::threading_utils::MaxNumThread();
+  int const max_thread = treelite::threading_utils::MaxNumThread();
 
   auto sched = treelite::threading_utils::ParallelSchedule::Guided();
 
@@ -80,9 +82,8 @@ TEST(ThreadingUtils, ParallelFor) {
         static_cast<int>(rng.DrawInteger(1, max_thread + 1)));
     int64_t end = rng.DrawInteger(begin, kVectorLength);
 
-    ParallelFor(begin, end, thread_config, sched, [&a, &b, &c](int64_t i, int) {
-      c[i] = a[i] + b[i];
-    });
+    ParallelFor(
+        begin, end, thread_config, sched, [&a, &b, &c](int64_t i, int) { c[i] = a[i] + b[i]; });
 
     for (int64_t i = begin; i < end; ++i) {
       EXPECT_FLOAT_EQ(c[i], a[i] + b[i]) << ", at index " << i;

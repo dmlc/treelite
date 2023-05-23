@@ -7,31 +7,30 @@
 #ifndef TREELITE_BASE_H_
 #define TREELITE_BASE_H_
 
-#include <treelite/logging.h>
 #include <treelite/error.h>
+#include <treelite/logging.h>
 #include <treelite/typeinfo.h>
+
 #include <cstdint>
-#include <typeinfo>
-#include <string>
-#include <unordered_map>
 #include <stdexcept>
+#include <string>
+#include <typeinfo>
+#include <unordered_map>
 
 namespace treelite {
 
 /*! \brief float type to be used internally */
 typedef float tl_float;
 /*! \brief feature split type */
-enum class SplitFeatureType : int8_t {
-  kNone, kNumerical, kCategorical
-};
+enum class SplitFeatureType : int8_t { kNone, kNumerical, kCategorical };
 /*! \brief comparison operators */
 enum class Operator : int8_t {
   kNone,
-  kEQ,  /*!< operator == */
-  kLT,  /*!< operator <  */
-  kLE,  /*!< operator <= */
-  kGT,  /*!< operator >  */
-  kGE,  /*!< operator >= */
+  kEQ, /*!< operator == */
+  kLT, /*!< operator <  */
+  kLE, /*!< operator <= */
+  kGT, /*!< operator >  */
+  kGE, /*!< operator >= */
 };
 
 /*!
@@ -41,12 +40,18 @@ enum class Operator : int8_t {
  */
 inline std::string OpName(Operator op) {
   switch (op) {
-    case Operator::kEQ: return "==";
-    case Operator::kLT: return "<";
-    case Operator::kLE: return "<=";
-    case Operator::kGT: return ">";
-    case Operator::kGE: return ">=";
-    default: return "";
+  case Operator::kEQ:
+    return "==";
+  case Operator::kLT:
+    return "<";
+  case Operator::kLE:
+    return "<=";
+  case Operator::kGT:
+    return ">";
+  case Operator::kGE:
+    return ">=";
+  default:
+    return "";
   }
 }
 
@@ -55,7 +60,7 @@ inline std::string OpName(Operator op) {
  * \param name Name of operator
  * \return Operator enum
  */
-inline Operator LookupOperatorByName(const std::string& name) {
+inline Operator LookupOperatorByName(std::string const& name) {
   if (name == "==") {
     return Operator::kEQ;
   } else if (name == "<") {
@@ -79,10 +84,14 @@ inline Operator LookupOperatorByName(const std::string& name) {
  */
 inline std::string SplitFeatureTypeName(SplitFeatureType type) {
   switch (type) {
-    case SplitFeatureType::kNone: return "none";
-    case SplitFeatureType::kNumerical: return "numerical";
-    case SplitFeatureType::kCategorical: return "categorical";
-    default: return "";
+  case SplitFeatureType::kNone:
+    return "none";
+  case SplitFeatureType::kNumerical:
+    return "numerical";
+  case SplitFeatureType::kCategorical:
+    return "categorical";
+  default:
+    return "";
   }
 }
 
@@ -91,7 +100,7 @@ inline std::string SplitFeatureTypeName(SplitFeatureType type) {
  * \param name Name of split type
  * \return Split type enum
  */
-inline SplitFeatureType LookupSplitFeatureTypeByName(const std::string& name) {
+inline SplitFeatureType LookupSplitFeatureTypeByName(std::string const& name) {
   if (name == "none") {
     return SplitFeatureType::kNone;
   } else if (name == "numerical") {
@@ -115,14 +124,19 @@ inline SplitFeatureType LookupSplitFeatureTypeByName(const std::string& name) {
 template <typename ElementType, typename ThresholdType>
 inline bool CompareWithOp(ElementType lhs, Operator op, ThresholdType rhs) {
   switch (op) {
-    case Operator::kEQ: return lhs == rhs;
-    case Operator::kLT: return lhs <  rhs;
-    case Operator::kLE: return lhs <= rhs;
-    case Operator::kGT: return lhs >  rhs;
-    case Operator::kGE: return lhs >= rhs;
-    default:
-      TREELITE_LOG(FATAL) << "operator undefined: " << static_cast<int>(op);
-      return false;
+  case Operator::kEQ:
+    return lhs == rhs;
+  case Operator::kLT:
+    return lhs < rhs;
+  case Operator::kLE:
+    return lhs <= rhs;
+  case Operator::kGT:
+    return lhs > rhs;
+  case Operator::kGE:
+    return lhs >= rhs;
+  default:
+    TREELITE_LOG(FATAL) << "operator undefined: " << static_cast<int>(op);
+    return false;
   }
 }
 

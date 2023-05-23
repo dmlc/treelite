@@ -4,15 +4,16 @@
  * \author Hyunsu Cho
  * \brief Configuration handling logic for General Tree Inference Library (GTIL)
  */
+#include <rapidjson/document.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
-#include <rapidjson/document.h>
+
 #include <string>
 
 namespace treelite {
 namespace gtil {
 
-Configuration::Configuration(const char* config_json) {
+Configuration::Configuration(char const* config_json) {
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
 

@@ -2,12 +2,12 @@
 """Core Treelite library."""
 from __future__ import absolute_import as _abs
 
-import sys
-import os
 import ctypes
+import os
+import sys
 
-from .util import py_str, _log_callback, _warn_callback, TreeliteError
-from .libpath import find_lib_path, TreeliteLibraryNotFound
+from .libpath import TreeliteLibraryNotFound, find_lib_path
+from .util import TreeliteError, _log_callback, _warn_callback, py_str
 
 
 def _load_lib():
@@ -16,9 +16,11 @@ def _load_lib():
     if not lib_path:
         # Building docs
         return None  # type: ignore
-    if sys.version_info >= (3, 8) and sys.platform == 'win32':
+    if sys.version_info >= (3, 8) and sys.platform == "win32":
         # pylint: disable=no-member
-        os.add_dll_directory(os.path.join(os.path.normpath(sys.prefix), 'Library', 'bin'))
+        os.add_dll_directory(
+            os.path.join(os.path.normpath(sys.prefix), "Library", "bin")
+        )
     lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
     lib.log_callback = _log_callback
@@ -32,7 +34,7 @@ def _load_lib():
 
 # load the Treelite library globally
 # (do not load if called by sphinx)
-if 'sphinx' in sys.modules:
+if "sphinx" in sys.modules:
     try:
         _LIB = _load_lib()
     except TreeliteLibraryNotFound:
@@ -53,7 +55,7 @@ def _check_call(ret):
         return value from API calls
     """
     if ret != 0:
-        raise TreeliteError(_LIB.TreeliteGetLastError().decode('utf-8'))
+        raise TreeliteError(_LIB.TreeliteGetLastError().decode("utf-8"))
 
 
 def c_array(ctype, values):

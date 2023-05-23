@@ -2,27 +2,26 @@
 It fetches Python wheels from the CI pipelines.
 tqdm, sh are required to run this script.
 """
+# pylint: disable=W0603,C0103,too-many-arguments
 
 import argparse
 import os
 import subprocess
-from typing import List, Optional
+from typing import List
 from urllib.request import urlretrieve
 
 import tqdm
 from packaging import version
-from sh.contrib import git
 
 PREFIX = "https://treelite-wheels.s3.amazonaws.com/"
 DIST = os.path.join(os.path.curdir, "python", "dist")
-RT_DIST = os.path.join(os.path.curdir, "runtime", "python", "dist")
 
 
 pbar = None
 
 
 def show_progress(block_num, block_size, total_size):
-    "Show file download progress."
+    """Show file download progress."""
     global pbar
     if pbar is None:
         pbar = tqdm.tqdm(total=total_size / 1024, unit="kB")
@@ -37,13 +36,14 @@ def show_progress(block_num, block_size, total_size):
 
 
 def retrieve(url, filename=None):
+    """Download URL"""
     print(f"{url} -> {filename}")
     return urlretrieve(url, filename, reporthook=show_progress)
 
 
 def latest_hash() -> str:
-    "Get latest commit hash."
-    ret = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True)
+    """Get latest commit hash."""
+    ret = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, check=True)
     assert ret.returncode == 0, "Failed to get latest commit hash."
     commit_hash = ret.stdout.decode("utf-8").strip()
     return commit_hash
@@ -55,7 +55,7 @@ def download_wheels(
     dest_dir: str,
     src_filename_prefix: str,
     target_filename_prefix: str,
-    ext: Optional[str] = "whl",
+    ext: str = "whl",
 ) -> List[str]:
     """Download all binary wheels. url_prefix is the URL for remote directory storing
     the release wheels
@@ -74,7 +74,8 @@ def download_wheels(
     return filenames
 
 
-def download_py_packages(branch: str, version_str: str, commit_hash: str) -> None:
+def download_py_packages(version_str: str, commit_hash: str) -> None:
+    """Download Python package files"""
     platforms = [
         "win_amd64",
         "manylinux2014_x86_64",
@@ -85,11 +86,8 @@ def download_py_packages(branch: str, version_str: str, commit_hash: str) -> Non
     if not os.path.exists(DIST):
         os.mkdir(DIST)
 
-    if not os.path.exists(RT_DIST):
-        os.mkdir(RT_DIST)
-
     # Binary wheels (*.whl)
-    for pkg, dest_dir in [("treelite", DIST), ("treelite_runtime", RT_DIST)]:
+    for pkg, dest_dir in [("treelite", DIST)]:
         src_filename_prefix = f"{pkg}-{version_str}%2B{commit_hash}-py3-none-"
         target_filename_prefix = f"{pkg}-{version_str}-py3-none-"
         filenames = download_wheels(
@@ -98,7 +96,7 @@ def download_py_packages(branch: str, version_str: str, commit_hash: str) -> Non
         print(f"List of downloaded wheels: {filenames}\n")
 
     # Source distribution (*.tar.gz)
-    for pkg, dest_dir in [("treelite", DIST), ("treelite_runtime", RT_DIST)]:
+    for pkg, dest_dir in [("treelite", DIST)]:
         src_filename_prefix = f"{pkg}-{version_str}%2B{commit_hash}"
         target_filename_prefix = f"{pkg}-{version_str}"
         filenames = download_wheels(
@@ -113,53 +111,34 @@ def download_py_packages(branch: str, version_str: str, commit_hash: str) -> Non
     print(
         """
 Following steps should be done manually:
-- Upload pypi package by `python -m twine upload python/dist/* runtime/python/dist/*` for all wheels.
+- Upload pypi package by `python -m twine upload python/dist/* for all wheels.
 - Check the uploaded files on `https://pypi.org/project/treelite/<VERSION>/#files` and `pip
   install treelite==<VERSION>` """
     )
 
 
 def check_path():
+    """Ensure that this script is run from the root directory"""
     root = os.path.abspath(os.path.curdir)
     assert os.path.basename(root) == "treelite", "Must be run on project root."
 
 
 def main(args: argparse.Namespace) -> None:
+    """Main function"""
     check_path()
 
     rel = version.parse(args.release)
     assert isinstance(rel, version.Version)
 
-    major = rel.major
-    minor = rel.minor
-    patch = rel.micro
-
     print(f"Release: {rel}")
-    if not rel.is_prerelease:
-        # Major release
-        rc: Optional[str] = None
-        rc_ver: Optional[int] = None
-    else:
+    if rel.is_prerelease:
         # RC release
-        major = rel.major
-        minor = rel.minor
-        patch = rel.micro
         assert rel.pre is not None
-        rc, rc_ver = rel.pre
+        rc, _ = rel.pre
         assert rc == "rc"
-
-    release = str(major) + "." + str(minor) + "." + str(patch)
-    if args.branch is not None:
-        branch = args.branch
-    else:
-        branch = "release_" + str(major) + "." + str(minor)
-
-    # git.clean("-xdf")
-    git.checkout(branch)
-    git.pull("origin", branch)
     commit_hash = latest_hash()
 
-    download_py_packages(branch, args.release, commit_hash)
+    download_py_packages(args.release, commit_hash)
 
 
 if __name__ == "__main__":
@@ -170,14 +149,5 @@ if __name__ == "__main__":
         required=True,
         help="Version tag, e.g. '1.3.2', or '1.5.0rc1'",
     )
-    parser.add_argument(
-        "--branch",
-        type=str,
-        default=None,
-        help=(
-            "Optional branch. Usually patch releases reuse the same branch of the"
-            " major release, but there can be exception."
-        ),
-    )
-    args = parser.parse_args()
-    main(args)
+    parsed_args = parser.parse_args()
+    main(parsed_args)

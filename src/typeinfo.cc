@@ -5,14 +5,15 @@
  * \brief Conversion tables to obtain TypeInfo from string
  */
 
-#include <treelite/typeinfo.h>
 #include <treelite/error.h>
+#include <treelite/typeinfo.h>
+
 #include <string>
 #include <unordered_map>
 
 namespace treelite {
 
-TypeInfo GetTypeInfoByName(const std::string& str) {
+TypeInfo GetTypeInfoByName(std::string const& str) {
   if (str == "uint32") {
     return TypeInfo::kUInt32;
   } else if (str == "float32") {

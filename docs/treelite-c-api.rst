@@ -58,4 +58,3 @@ are ``void*`` pointers that store raw memory addresses.
 .. doxygengroup:: opaque_handles
    :project: treelite
    :content-only:
-

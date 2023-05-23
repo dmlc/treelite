@@ -1,16 +1,22 @@
-#include <treelite/c_api.h>
+/*!
+ * Copyright (c) 2023 by Contributors
+ * \file example.c
+ * \brief Test using Treelite as a C++ library
+ */
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
+#include <treelite/c_api.h>
 
-#define safe_treelite(call) {  \
-  int err = (call);  \
-  if (err == -1) {  \
-    fprintf(stderr, "%s:%d: error in %s: %s\n", __FILE__, __LINE__, #call,  \
-            TreeliteGetLastError());  \
-    exit(1);  \
-  }  \
-}
+#define safe_treelite(call)                                                                       \
+  {                                                                                               \
+    int err = (call);                                                                             \
+    if (err == -1) {                                                                              \
+      fprintf(                                                                                    \
+          stderr, "%s:%d: error in %s: %s\n", __FILE__, __LINE__, #call, TreeliteGetLastError()); \
+      exit(1);                                                                                    \
+    }                                                                                             \
+  }
 
 ModelHandle BuildModel() {
   ModelHandle model;
@@ -52,11 +58,7 @@ int main() {
   size_t num_row = 5;
   size_t num_col = 2;
   size_t output_alloc_size;
-  float input[10] = {-2.0f, 0.0f,
-                     -1.0f, 0.0f,
-                      0.0f, 0.0f,
-                      1.0f, 0.0f,
-                      2.0f, 0.0f};
+  float input[10] = {-2.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 2.0f, 0.0f};
   float* output;
   size_t out_result_size;
   int nthread = 2;

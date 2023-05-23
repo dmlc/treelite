@@ -5,14 +5,16 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/tree.h>
 #include <treelite/logging.h>
+#include <treelite/tree.h>
+
 #include <cstring>
+
 #include "xgboost/xgboost.h"
 
 namespace {
 
-inline void SetPredTransformString(const char* value, treelite::ModelParam* param) {
+inline void SetPredTransformString(char const* value, treelite::ModelParam* param) {
   std::strncpy(param->pred_transform, value, sizeof(param->pred_transform));
 }
 
@@ -23,11 +25,10 @@ namespace details {
 namespace xgboost {
 
 const std::vector<std::string> exponential_objectives{
-    "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"
-};
+    "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"};
 
 // set correct prediction transform function, depending on objective function
-void SetPredTransform(const std::string& objective_name, ModelParam* param) {
+void SetPredTransform(std::string const& objective_name, ModelParam* param) {
   if (objective_name == "multi:softmax") {
     SetPredTransformString("max_index", param);
   } else if (objective_name == "multi:softprob") {
@@ -35,18 +36,16 @@ void SetPredTransform(const std::string& objective_name, ModelParam* param) {
   } else if (objective_name == "reg:logistic" || objective_name == "binary:logistic") {
     SetPredTransformString("sigmoid", param);
     param->sigmoid_alpha = 1.0f;
-  } else if (std::find(exponential_objectives.cbegin(), exponential_objectives.cend(),
-                       objective_name) != exponential_objectives.cend()) {
+  } else if (std::find(
+                 exponential_objectives.cbegin(), exponential_objectives.cend(), objective_name)
+             != exponential_objectives.cend()) {
     SetPredTransformString("exponential", param);
   } else if (objective_name == "binary:hinge") {
     SetPredTransformString("hinge", param);
   } else if (objective_name == "reg:squarederror" || objective_name == "reg:linear"
-             || objective_name == "reg:squaredlogerror"
-             || objective_name == "reg:pseudohubererror"
-             || objective_name == "binary:logitraw"
-             || objective_name == "rank:pairwise"
-             || objective_name == "rank:ndcg"
-             || objective_name == "rank:map") {
+             || objective_name == "reg:squaredlogerror" || objective_name == "reg:pseudohubererror"
+             || objective_name == "binary:logitraw" || objective_name == "rank:pairwise"
+             || objective_name == "rank:ndcg" || objective_name == "rank:map") {
     SetPredTransformString("identity", param);
   } else {
     TREELITE_LOG(FATAL) << "Unrecognized XGBoost objective: " << objective_name;

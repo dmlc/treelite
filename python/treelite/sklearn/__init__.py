@@ -3,16 +3,16 @@
 
 import ctypes
 
-from ..util import TreeliteError
 from ..frontend import Model
-from .importer import import_model
+from ..util import TreeliteError
 from .common import SKLConverterBase
-from .gbm_regressor import SKLGBMRegressorMixin
 from .gbm_classifier import SKLGBMClassifierMixin
 from .gbm_multi_classifier import SKLGBMMultiClassifierMixin
-from .rf_regressor import SKLRFRegressorMixin
+from .gbm_regressor import SKLGBMRegressorMixin
+from .importer import import_model
 from .rf_classifier import SKLRFClassifierMixin
 from .rf_multi_classifier import SKLRFMultiClassifierMixin
+from .rf_regressor import SKLRFRegressorMixin
 
 
 def import_model_with_model_builder(sklearn_model):
@@ -57,14 +57,14 @@ def import_model_with_model_builder(sklearn_model):
       model = treelite.sklearn.import_model_with_model_builder(clf)
     """
     try:
-        from sklearn.ensemble import RandomForestRegressor as RandomForestR
-        from sklearn.ensemble import RandomForestClassifier as RandomForestC
-        from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
-        from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
+        from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC
+        from sklearn.ensemble import GradientBoostingRegressor as GradientBoostingR
+        from sklearn.ensemble import RandomForestClassifier as RandomForestC
+        from sklearn.ensemble import RandomForestRegressor as RandomForestR
     except ImportError as e:
-        raise TreeliteError('This function requires scikit-learn package') from e
+        raise TreeliteError("This function requires scikit-learn package") from e
 
     if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
         return SKLRFRegressorConverter.process_model(sklearn_model)
@@ -73,7 +73,7 @@ def import_model_with_model_builder(sklearn_model):
             return SKLRFClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:
             return SKLRFMultiClassifierConverter.process_model(sklearn_model)
-        raise TreeliteError('n_classes_ must be at least 2')
+        raise TreeliteError("n_classes_ must be at least 2")
     if isinstance(sklearn_model, GradientBoostingR):
         return SKLGBMRegressorConverter.process_model(sklearn_model)
     if isinstance(sklearn_model, GradientBoostingC):
@@ -81,17 +81,23 @@ def import_model_with_model_builder(sklearn_model):
             return SKLGBMClassifierConverter.process_model(sklearn_model)
         if sklearn_model.n_classes_ > 2:
             return SKLGBMMultiClassifierConverter.process_model(sklearn_model)
-        raise TreeliteError('n_classes_ must be at least 2')
-    raise TreeliteError(f'Unsupported model type {sklearn_model.__class__.__name__}: currently ' +
-                        'random forests, extremely randomized trees, and gradient boosted trees ' +
-                        'are supported')
+        raise TreeliteError("n_classes_ must be at least 2")
+    raise TreeliteError(
+        f"Unsupported model type {sklearn_model.__class__.__name__}: currently "
+        + "random forests, extremely randomized trees, and gradient boosted trees "
+        + "are supported"
+    )
 
 
-class SKLGBMRegressorConverter(SKLGBMRegressorMixin, SKLConverterBase):  # pylint: disable=C0111
+class SKLGBMRegressorConverter(
+    SKLGBMRegressorMixin, SKLConverterBase
+):  # pylint: disable=C0111
     pass
 
 
-class SKLGBMClassifierConverter(SKLGBMClassifierMixin, SKLConverterBase):  # pylint: disable=C0111
+class SKLGBMClassifierConverter(
+    SKLGBMClassifierMixin, SKLConverterBase
+):  # pylint: disable=C0111
     pass
 
 
@@ -100,11 +106,15 @@ class SKLGBMMultiClassifierConverter(SKLGBMMultiClassifierMixin, SKLConverterBas
     pass
 
 
-class SKLRFRegressorConverter(SKLRFRegressorMixin, SKLConverterBase):  # pylint: disable=C0111
+class SKLRFRegressorConverter(
+    SKLRFRegressorMixin, SKLConverterBase
+):  # pylint: disable=C0111
     pass
 
 
-class SKLRFClassifierConverter(SKLRFClassifierMixin, SKLConverterBase):  # pylint: disable=C0111
+class SKLRFClassifierConverter(
+    SKLRFClassifierMixin, SKLConverterBase
+):  # pylint: disable=C0111
     pass
 
 
@@ -113,4 +123,4 @@ class SKLRFMultiClassifierConverter(SKLRFMultiClassifierMixin, SKLConverterBase)
     pass
 
 
-__all__ = ['import_model_with_model_builder', 'import_model']
+__all__ = ["import_model_with_model_builder", "import_model"]

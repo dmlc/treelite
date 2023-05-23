@@ -59,17 +59,17 @@ if is_readthedocs_build():
     run_doxygen()
 
 
-git_branch = os.getenv("SPHINX_GIT_BRANCH", default=None)
-if not git_branch:
+git_branch_var = os.getenv("SPHINX_GIT_BRANCH", default=None)
+if not git_branch_var:
     # If SPHINX_GIT_BRANCH environment variable is not given, run git
     # to determine branch name
-    git_branch = [
+    git_branch_ = [
         re.sub(r"origin/", "", x.lstrip(" "))
         for x in str(git.branch("-r", "--contains", "HEAD")).rstrip("\n").split("\n")
     ]
-    git_branch = [x for x in git_branch if "HEAD" not in x]
+    git_branch = [x for x in git_branch_ if "HEAD" not in x]
 else:
-    git_branch = [git_branch]
+    git_branch = [git_branch_var]
 print(f"git_branch = {git_branch[0]}")
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -220,7 +220,7 @@ html_static_path = ["_static"]
 htmlhelp_basename = project + "doc"
 
 # -- Options for LaTeX output ---------------------------------------------
-latex_elements = {}
+latex_elements = {}  # type: ignore
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,

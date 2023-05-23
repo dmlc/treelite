@@ -84,7 +84,7 @@ DOCKER_IMG_NAME="treelite-build.${CONTAINER_TYPE}"
 
 # Append cuda version if available
 CUDA_VERSION=$(echo "${CI_DOCKER_BUILD_ARG}" | grep CUDA_VERSION | egrep -o '[0-9]*\.[0-9]*')
-DOCKER_IMG_NAME=$DOCKER_IMG_NAME$CUDA_VERSION 
+DOCKER_IMG_NAME=$DOCKER_IMG_NAME$CUDA_VERSION
 
 # Under Jenkins matrix build, the build tag may contain characters such as
 # commas (,) and equal signs (=), which are not valid inside docker image names.
@@ -148,4 +148,3 @@ ${DOCKER_BINARY} run --rm --pid=host \
     "${CI_DOCKER_EXTRA_PARAMS[@]}" \
     "${DOCKER_IMG_NAME}" \
     "${COMMAND[@]}"
-

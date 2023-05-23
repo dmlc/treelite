@@ -9,14 +9,14 @@
 #define TREELITE_FRONTEND_IMPL_H_
 
 #include <treelite/error.h>
+
 #include <string>
 
 namespace treelite {
 namespace frontend {
 
-template<typename Func>
-inline auto
-Value::Dispatch(Func func) {
+template <typename Func>
+inline auto Value::Dispatch(Func func) {
   switch (type_) {
   case TypeInfo::kUInt32:
     return func(Get<uint32_t>());
@@ -25,15 +25,14 @@ Value::Dispatch(Func func) {
   case TypeInfo::kFloat64:
     return func(Get<double>());
   default:
-    throw Error(std::string("Unknown value type detected: ")
-                + std::to_string(static_cast<int>(type_)));
+    throw Error(
+        std::string("Unknown value type detected: ") + std::to_string(static_cast<int>(type_)));
     return func(Get<double>());  // avoid "missing return" warning
   }
 }
 
-template<typename Func>
-inline auto
-Value::Dispatch(Func func) const {
+template <typename Func>
+inline auto Value::Dispatch(Func func) const {
   switch (type_) {
   case TypeInfo::kUInt32:
     return func(Get<uint32_t>());
@@ -42,8 +41,8 @@ Value::Dispatch(Func func) const {
   case TypeInfo::kFloat64:
     return func(Get<double>());
   default:
-    throw Error(std::string("Unknown value type detected: ")
-                + std::to_string(static_cast<int>(type_)));
+    throw Error(
+        std::string("Unknown value type detected: ") + std::to_string(static_cast<int>(type_)));
     return func(Get<double>());  // avoid "missing return" warning
   }
 }

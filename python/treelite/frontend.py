@@ -2,17 +2,23 @@
 """Frontend collection for Treelite"""
 from __future__ import absolute_import as _abs
 from __future__ import annotations
-import ctypes
-import collections
-import json
-from typing import Union, List, Optional
 
-from packaging.version import parse as parse_version
+import collections
+import ctypes
+import json
+from typing import List, Optional, Union
 
 import numpy as np
+from packaging.version import parse as parse_version
 
-from .util import c_str, py_str, TreeliteError, type_info_to_ctypes_type, type_info_to_numpy_type
-from .core import _LIB, c_array, _check_call
+from .core import _LIB, _check_call, c_array
+from .util import (
+    TreeliteError,
+    c_str,
+    py_str,
+    type_info_to_ctypes_type,
+    type_info_to_numpy_type,
+)
 
 
 def _isascii(string):
@@ -40,7 +46,7 @@ class Model:
             self.handle = None
         else:
             if not isinstance(handle, ctypes.c_void_p):
-                raise ValueError('Model handle must be of type ctypes.c_void_p')
+                raise ValueError("Model handle must be of type ctypes.c_void_p")
             self.handle = handle
 
     def __del__(self):
@@ -51,7 +57,7 @@ class Model:
     def set_tree_limit(self, tree_limit):
         """Set first n trees to be kept, the remaining ones will be dropped"""
         if self.handle is None:
-            raise AttributeError('Model not loaded yet')
+            raise AttributeError("Model not loaded yet")
         _check_call(_LIB.TreeliteSetTreeLimit(self.handle, ctypes.c_size_t(tree_limit)))
 
     def serialize(self, filename):
@@ -83,8 +89,11 @@ class Model:
         char_ptr_t = ctypes.POINTER(ctypes.c_char)
         out_bytes = char_ptr_t()
         out_bytes_len = ctypes.c_size_t()
-        _check_call(_LIB.TreeliteSerializeModelToBytes(
-            self.handle, ctypes.byref(out_bytes), ctypes.byref(out_bytes_len)))
+        _check_call(
+            _LIB.TreeliteSerializeModelToBytes(
+                self.handle, ctypes.byref(out_bytes), ctypes.byref(out_bytes_len)
+            )
+        )
         return ctypes.string_at(out_bytes, out_bytes_len.value)
 
     def dump_as_json(self, *, pretty_print=True):
@@ -110,11 +119,13 @@ class Model:
             JSON string representing the model
         """
         json_str = ctypes.c_char_p()
-        _check_call(_LIB.TreeliteDumpAsJSON(
-            self.handle,
-            ctypes.c_int(1 if pretty_print else 0),
-            ctypes.byref(json_str)
-        ))
+        _check_call(
+            _LIB.TreeliteDumpAsJSON(
+                self.handle,
+                ctypes.c_int(1 if pretty_print else 0),
+                ctypes.byref(json_str),
+            )
+        )
         return py_str(json_str.value)
 
     @classmethod
@@ -138,7 +149,9 @@ class Model:
             Recovered model
         """
         handle = ctypes.c_void_p()
-        _check_call(_LIB.TreeliteDeserializeModelFromFile(c_str(filename), ctypes.byref(handle)))
+        _check_call(
+            _LIB.TreeliteDeserializeModelFromFile(c_str(filename), ctypes.byref(handle))
+        )
         return Model(handle)
 
     @classmethod
@@ -164,17 +177,20 @@ class Model:
         handle = ctypes.c_void_p()
         model_bytes_len = len(model_bytes)
         buffer = ctypes.create_string_buffer(model_bytes, model_bytes_len)
-        _check_call(_LIB.TreeliteDeserializeModelFromBytes(
-            ctypes.POINTER(ctypes.c_char)(buffer),
-            ctypes.c_size_t(model_bytes_len),
-            ctypes.byref(handle)))
+        _check_call(
+            _LIB.TreeliteDeserializeModelFromBytes(
+                ctypes.pointer(buffer),
+                ctypes.c_size_t(model_bytes_len),
+                ctypes.byref(handle),
+            )
+        )
         return Model(handle)
 
     @property
     def num_tree(self):
         """Number of decision trees in the model"""
         if self.handle is None:
-            raise AttributeError('Model not loaded yet')
+            raise AttributeError("Model not loaded yet")
         out = ctypes.c_size_t()
         _check_call(_LIB.TreeliteQueryNumTree(self.handle, ctypes.byref(out)))
         return out.value
@@ -183,7 +199,7 @@ class Model:
     def num_feature(self):
         """Number of features used in the model"""
         if self.handle is None:
-            raise AttributeError('Model not loaded yet')
+            raise AttributeError("Model not loaded yet")
         out = ctypes.c_size_t()
         _check_call(_LIB.TreeliteQueryNumFeature(self.handle, ctypes.byref(out)))
         return out.value
@@ -192,7 +208,7 @@ class Model:
     def num_class(self):
         """Number of classes of the model (1 if the model is not a multi-class classifier"""
         if self.handle is None:
-            raise AttributeError('Model not loaded yet')
+            raise AttributeError("Model not loaded yet")
         out = ctypes.c_size_t()
         _check_call(_LIB.TreeliteQueryNumClass(self.handle, ctypes.byref(out)))
         return out.value
@@ -225,10 +241,12 @@ class Model:
         try:
             import xgboost
         except ImportError as e:
-            raise TreeliteError('xgboost module must be installed to read from ' +
-                                '`xgboost.Booster` object') from e
+            raise TreeliteError(
+                "xgboost module must be installed to read from "
+                + "`xgboost.Booster` object"
+            ) from e
         if not isinstance(booster, xgboost.Booster):
-            raise ValueError('booster must be of type `xgboost.Booster`')
+            raise ValueError("booster must be of type `xgboost.Booster`")
         xgb_version = parse_version(xgboost.__version__)
         if xgb_version > parse_version("1.5.2"):
             # For XGBoost version 1.6.0 and later, use save_raw() to export models as JSON string
@@ -244,17 +262,18 @@ class Model:
         buffer = booster.save_raw()
         ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
         length = ctypes.c_size_t(len(buffer))
-        _check_call(_LIB.TreeliteLoadXGBoostModelFromMemoryBuffer(
-            ptr,
-            length,
-            ctypes.byref(handle)))
+        _check_call(
+            _LIB.TreeliteLoadXGBoostModelFromMemoryBuffer(
+                ptr, length, ctypes.byref(handle)
+            )
+        )
         return Model(handle)
 
     @classmethod
     def from_xgboost_json(
         cls,
         json_str: Union[bytearray, str],
-        allow_unknown_field: Optional[bool] = False
+        allow_unknown_field: Optional[bool] = False,
     ):
         """
         Load a tree ensemble model from a string containing XGBoost JSON
@@ -283,26 +302,30 @@ class Model:
                json_str = file_.read()
            tl_model = Model.from_xgboost_json(json_str)
         """
-        parser_config = {
-            "allow_unknown_field": allow_unknown_field
-        }
-        parser_config = json.dumps(parser_config)
+        parser_config = {"allow_unknown_field": allow_unknown_field}
+        parser_config_str = json.dumps(parser_config)
 
         handle = ctypes.c_void_p()
         length = len(json_str)
         if isinstance(json_str, bytearray):
             json_buffer = ctypes.create_string_buffer(bytes(json_str), length)
-            _check_call(_LIB.TreeliteLoadXGBoostJSONStringEx(
-                json_buffer,
-                ctypes.c_size_t(length),
-                c_str(parser_config),
-                ctypes.byref(handle)))
+            _check_call(
+                _LIB.TreeliteLoadXGBoostJSONStringEx(
+                    json_buffer,
+                    ctypes.c_size_t(length),
+                    c_str(parser_config_str),
+                    ctypes.byref(handle),
+                )
+            )
         else:
-            _check_call(_LIB.TreeliteLoadXGBoostJSONStringEx(
-                c_str(json_str),
-                ctypes.c_size_t(length),
-                c_str(parser_config),
-                ctypes.byref(handle)))
+            _check_call(
+                _LIB.TreeliteLoadXGBoostJSONStringEx(
+                    c_str(json_str),
+                    ctypes.c_size_t(length),
+                    c_str(parser_config),
+                    ctypes.byref(handle),
+                )
+            )
         return Model(handle)
 
     @classmethod
@@ -335,15 +358,18 @@ class Model:
         try:
             import lightgbm
         except ImportError as e:
-            raise TreeliteError('lightgbm module must be installed to read from ' +
-                                '`lightgbm.Booster` object') from e
+            raise TreeliteError(
+                "lightgbm module must be installed to read from "
+                + "`lightgbm.Booster` object"
+            ) from e
         if not isinstance(booster, lightgbm.Booster):
-            raise ValueError('booster must be of type `lightgbm.Booster`')
+            raise ValueError("booster must be of type `lightgbm.Booster`")
         model_str = booster.model_to_string()
-        _check_call(_LIB.TreeliteLoadLightGBMModelFromStringEx(
-            c_str(model_str),
-            c_str("{}"),
-            ctypes.byref(handle)))
+        _check_call(
+            _LIB.TreeliteLoadLightGBMModelFromStringEx(
+                c_str(model_str), c_str("{}"), ctypes.byref(handle)
+            )
+        )
         return Model(handle)
 
     @classmethod
@@ -351,7 +377,7 @@ class Model:
         cls,
         filename: str,
         model_format: str,
-        allow_unknown_field: Optional[bool] = False
+        allow_unknown_field: Optional[bool] = False,
     ):
         """
         Load a tree ensemble model from a file
@@ -382,37 +408,40 @@ class Model:
 
            xgb_model = Model.load('xgboost_model.model', 'xgboost')
         """
-        parser_config = {
-            "allow_unknown_field": allow_unknown_field
-        }
-        parser_config = json.dumps(parser_config)
+        parser_config = {"allow_unknown_field": allow_unknown_field}
+        parser_config_str = json.dumps(parser_config)
 
         handle = ctypes.c_void_p()
         if not _isascii(model_format):
-            raise ValueError('model_format parameter must be an ASCII string')
+            raise ValueError("model_format parameter must be an ASCII string")
         model_format = model_format.lower()
-        if model_format == 'lightgbm':
-            _check_call(_LIB.TreeliteLoadLightGBMModelEx(c_str(filename),
-                                                         c_str(parser_config),
-                                                         ctypes.byref(handle)))
-        elif model_format == 'xgboost':
-            _check_call(_LIB.TreeliteLoadXGBoostModelEx(c_str(filename),
-                                                        c_str(parser_config),
-                                                        ctypes.byref(handle)))
-        elif model_format == 'xgboost_json':
-            _check_call(_LIB.TreeliteLoadXGBoostJSONEx(c_str(filename),
-                                                       c_str(parser_config),
-                                                       ctypes.byref(handle)))
+        if model_format == "lightgbm":
+            _check_call(
+                _LIB.TreeliteLoadLightGBMModelEx(
+                    c_str(filename), c_str(parser_config_str), ctypes.byref(handle)
+                )
+            )
+        elif model_format == "xgboost":
+            _check_call(
+                _LIB.TreeliteLoadXGBoostModelEx(
+                    c_str(filename), c_str(parser_config_str), ctypes.byref(handle)
+                )
+            )
+        elif model_format == "xgboost_json":
+            _check_call(
+                _LIB.TreeliteLoadXGBoostJSONEx(
+                    c_str(filename), c_str(parser_config_str), ctypes.byref(handle)
+                )
+            )
         else:
-            raise ValueError("Unknown model_format: must be one of "
-                             "{lightgbm, xgboost, xgboost_json}")
+            raise ValueError(
+                "Unknown model_format: must be one of "
+                "{lightgbm, xgboost, xgboost_json}"
+            )
         return Model(handle)
 
     @classmethod
-    def import_from_json(
-        cls,
-        json_str: str
-    ) -> Model:
+    def import_from_json(cls, json_str: str) -> Model:
         """
         Import a tree ensemble model from a JSON string.
 
@@ -443,17 +472,15 @@ class Model:
         """
         parser_config = json.dumps({})
         handle = ctypes.c_void_p()
-        _check_call(_LIB.TreeliteBuildModelFromJSONString(
-            c_str(json_str),
-            c_str(parser_config),
-            ctypes.byref(handle)))
+        _check_call(
+            _LIB.TreeliteBuildModelFromJSONString(
+                c_str(json_str), c_str(parser_config), ctypes.byref(handle)
+            )
+        )
         return Model(handle)
 
     @classmethod
-    def concatenate(
-        cls,
-        model_objs: List[Model]
-    ) -> Model:
+    def concatenate(cls, model_objs: List[Model]) -> Model:
         """
         Concatenate multiple model objects into a single model object by copying
         all member trees into the destination model object.
@@ -481,11 +508,13 @@ class Model:
             if obj.handle is None:
                 raise RuntimeError(f"Model at index {i} not loaded yet")
             model_obj_handles.append(obj.handle)
-        _check_call(_LIB.TreeliteConcatenateModelObjects(
-            c_array(ctypes.c_void_p, model_obj_handles),
-            len(model_obj_handles),
-            ctypes.byref(concatenated_model_handle)
-        ))
+        _check_call(
+            _LIB.TreeliteConcatenateModelObjects(
+                c_array(ctypes.c_void_p, model_obj_handles),
+                len(model_obj_handles),
+                ctypes.byref(concatenated_model_handle),
+            )
+        )
         return Model(handle=concatenated_model_handle)
 
 
@@ -519,18 +548,23 @@ class ModelBuilder:
         dtype : str
             Initial value of model handle
         """
+
         def __init__(self, init_value, dtype):
             self.type = dtype
             self.handle = ctypes.c_void_p()
-            val = np.array([init_value], dtype=type_info_to_numpy_type(dtype), order='C')
-            _check_call(_LIB.TreeliteTreeBuilderCreateValue(
-                val.ctypes.data_as(ctypes.POINTER(type_info_to_ctypes_type(dtype))),
-                c_str(dtype),
-                ctypes.byref(self.handle)
-            ))
+            val = np.array(
+                [init_value], dtype=type_info_to_numpy_type(dtype), order="C"
+            )
+            _check_call(
+                _LIB.TreeliteTreeBuilderCreateValue(
+                    val.ctypes.data_as(ctypes.POINTER(type_info_to_ctypes_type(dtype))),
+                    c_str(dtype),
+                    ctypes.byref(self.handle),
+                )
+            )
 
         def __repr__(self):
-            return '<treelite.ModelBuilder.Value object>'
+            return "<treelite.ModelBuilder.Value object>"
 
         def __del__(self):
             if self.handle is not None:
@@ -543,21 +577,25 @@ class ModelBuilder:
             self.empty = True
 
         def __repr__(self):
-            return '<treelite.ModelBuilder.Node object>'
+            return "<treelite.ModelBuilder.Node object>"
 
         def set_root(self):
             """
             Set the node as the root
             """
             try:
-                _check_call(_LIB.TreeliteTreeBuilderSetRootNode(
-                    self.tree.handle,
-                    ctypes.c_int(self.node_key)))
+                _check_call(
+                    _LIB.TreeliteTreeBuilderSetRootNode(
+                        self.tree.handle, ctypes.c_int(self.node_key)
+                    )
+                )
             except AttributeError as e:
-                raise TreeliteError('This node has never been inserted into a tree; ' +
-                                    'a node must be inserted before it can be a root') from e
+                raise TreeliteError(
+                    "This node has never been inserted into a tree; "
+                    + "a node must be inserted before it can be a root"
+                ) from e
 
-        def set_leaf_node(self, leaf_value, leaf_value_type='float32'):
+        def set_leaf_node(self, leaf_value, leaf_value_type="float32"):
             """
             Set the node as a leaf node
 
@@ -576,12 +614,13 @@ class ModelBuilder:
                 try:
                     node_key = self.node_key
                 except AttributeError:
-                    node_key = '_'
+                    node_key = "_"
                 raise ValueError(
-                    'Cannot modify a non-empty node. ' + \
-                    'If you meant to change type of node {}, '.format(node_key) + \
-                    'delete it first and then add an empty node with ' + \
-                    'the same key.')
+                    "Cannot modify a non-empty node. "
+                    + "If you meant to change type of node {}, ".format(node_key)
+                    + "delete it first and then add an empty node with "
+                    + "the same key."
+                )
 
             # check if leaf_value is a list-like object
             try:
@@ -592,36 +631,57 @@ class ModelBuilder:
 
             try:
                 if is_list:
-                    leaf_value = [ModelBuilder.Value(i, leaf_value_type) for i in leaf_value]
-                    leaf_value_handle = c_array(ctypes.c_void_p, [x.handle for x in leaf_value])
+                    leaf_value = [
+                        ModelBuilder.Value(i, leaf_value_type) for i in leaf_value
+                    ]
+                    leaf_value_handle = c_array(
+                        ctypes.c_void_p, [x.handle for x in leaf_value]
+                    )
                 else:
                     leaf_value = ModelBuilder.Value(leaf_value, leaf_value_type)
                     leaf_value_handle = leaf_value.handle
             except TypeError as e:
-                raise TreeliteError('leaf_value parameter should be either a ' +
-                                    'single float or a list of floats') from e
+                raise TreeliteError(
+                    "leaf_value parameter should be either a "
+                    + "single float or a list of floats"
+                ) from e
 
             try:
                 if is_list:
-                    _check_call(_LIB.TreeliteTreeBuilderSetLeafVectorNode(
-                        self.tree.handle,
-                        ctypes.c_int(self.node_key),
-                        leaf_value_handle,
-                        ctypes.c_size_t(len(leaf_value))))
+                    _check_call(
+                        _LIB.TreeliteTreeBuilderSetLeafVectorNode(
+                            self.tree.handle,
+                            ctypes.c_int(self.node_key),
+                            leaf_value_handle,
+                            ctypes.c_size_t(len(leaf_value)),
+                        )
+                    )
                 else:
-                    _check_call(_LIB.TreeliteTreeBuilderSetLeafNode(
-                        self.tree.handle,
-                        ctypes.c_int(self.node_key),
-                        leaf_value_handle))
+                    _check_call(
+                        _LIB.TreeliteTreeBuilderSetLeafNode(
+                            self.tree.handle,
+                            ctypes.c_int(self.node_key),
+                            leaf_value_handle,
+                        )
+                    )
                 self.empty = False
             except AttributeError as e:
-                raise TreeliteError('This node has never been inserted into a tree; ' +
-                                    'a node must be inserted before it can be a leaf node') from e
+                raise TreeliteError(
+                    "This node has never been inserted into a tree; "
+                    + "a node must be inserted before it can be a leaf node"
+                ) from e
 
         # pylint: disable=R0913
-        def set_numerical_test_node(self, feature_id, opname, threshold,
-                                    default_left, left_child_key, right_child_key,
-                                    threshold_type='float32'):
+        def set_numerical_test_node(
+            self,
+            feature_id,
+            opname,
+            threshold,
+            default_left,
+            left_child_key,
+            right_child_key,
+            threshold_type="float32",
+        ):
             """
             Set the node as a test node with numerical split. The test is in the form
             ``[feature value] OP [threshold]``. Depending on the result of the test,
@@ -649,12 +709,13 @@ class ModelBuilder:
                 try:
                     node_key = self.node_key
                 except AttributeError:
-                    node_key = '_'
+                    node_key = "_"
                 raise ValueError(
-                    'Cannot modify a non-empty node. ' + \
-                    'If you meant to change type of node {}, '.format(node_key) + \
-                    'delete it first and then add an empty node with ' + \
-                    'the same key.')
+                    "Cannot modify a non-empty node. "
+                    + "If you meant to change type of node {}, ".format(node_key)
+                    + "delete it first and then add an empty node with "
+                    + "the same key."
+                )
             try:
                 threshold_obj = ModelBuilder.Value(threshold, threshold_type)
                 # automatically create child nodes that don't exist yet
@@ -662,24 +723,34 @@ class ModelBuilder:
                     self.tree[left_child_key] = ModelBuilder.Node()
                 if right_child_key not in self.tree:
                     self.tree[right_child_key] = ModelBuilder.Node()
-                _check_call(_LIB.TreeliteTreeBuilderSetNumericalTestNode(
-                    self.tree.handle,
-                    ctypes.c_int(self.node_key),
-                    ctypes.c_uint(feature_id),
-                    c_str(opname),
-                    threshold_obj.handle,
-                    ctypes.c_int(1 if default_left else 0),
-                    ctypes.c_int(left_child_key),
-                    ctypes.c_int(right_child_key)))
+                _check_call(
+                    _LIB.TreeliteTreeBuilderSetNumericalTestNode(
+                        self.tree.handle,
+                        ctypes.c_int(self.node_key),
+                        ctypes.c_uint(feature_id),
+                        c_str(opname),
+                        threshold_obj.handle,
+                        ctypes.c_int(1 if default_left else 0),
+                        ctypes.c_int(left_child_key),
+                        ctypes.c_int(right_child_key),
+                    )
+                )
                 self.empty = False
             except AttributeError as e:
-                raise TreeliteError('This node has never been inserted into a tree; ' +
-                                    'a node must be inserted before it can be a test node') from e
+                raise TreeliteError(
+                    "This node has never been inserted into a tree; "
+                    + "a node must be inserted before it can be a test node"
+                ) from e
 
         # pylint: disable=R0913
-        def set_categorical_test_node(self, feature_id, left_categories,
-                                      default_left, left_child_key,
-                                      right_child_key):
+        def set_categorical_test_node(
+            self,
+            feature_id,
+            left_categories,
+            default_left,
+            left_child_key,
+            right_child_key,
+        ):
             """
             Set the node as a test node with categorical split. A list defines all
             categories that would be classified as the left side. Categories are
@@ -705,52 +776,60 @@ class ModelBuilder:
                 try:
                     node_key = self.node_key
                 except AttributeError:
-                    node_key = '_'
+                    node_key = "_"
                 raise ValueError(
-                    'Cannot modify a non-empty node. ' + \
-                    'If you meant to change type of node {}, '.format(node_key) + \
-                    'delete it first and then add an empty node with ' + \
-                    'the same key.')
+                    "Cannot modify a non-empty node. "
+                    + "If you meant to change type of node {}, ".format(node_key)
+                    + "delete it first and then add an empty node with "
+                    + "the same key."
+                )
             try:
                 # automatically create child nodes that don't exist yet
                 if left_child_key not in self.tree:
                     self.tree[left_child_key] = ModelBuilder.Node()
                 if right_child_key not in self.tree:
                     self.tree[right_child_key] = ModelBuilder.Node()
-                _check_call(_LIB.TreeliteTreeBuilderSetCategoricalTestNode(
-                    self.tree.handle,
-                    ctypes.c_int(self.node_key),
-                    ctypes.c_uint(feature_id),
-                    c_array(ctypes.c_uint, left_categories),
-                    ctypes.c_size_t(len(left_categories)),
-                    ctypes.c_int(1 if default_left else 0),
-                    ctypes.c_int(left_child_key),
-                    ctypes.c_int(right_child_key)))
+                _check_call(
+                    _LIB.TreeliteTreeBuilderSetCategoricalTestNode(
+                        self.tree.handle,
+                        ctypes.c_int(self.node_key),
+                        ctypes.c_uint(feature_id),
+                        c_array(ctypes.c_uint, left_categories),
+                        ctypes.c_size_t(len(left_categories)),
+                        ctypes.c_int(1 if default_left else 0),
+                        ctypes.c_int(left_child_key),
+                        ctypes.c_int(right_child_key),
+                    )
+                )
                 self.empty = False
             except AttributeError as e:
-                raise TreeliteError('This node has never been inserted into a tree; ' +
-                                    'a node must be inserted before it can be a test node') from e
+                raise TreeliteError(
+                    "This node has never been inserted into a tree; "
+                    + "a node must be inserted before it can be a test node"
+                ) from e
 
     class Tree:
         """Handle to a decision tree in a tree ensemble Builder"""
 
-        def __init__(self, threshold_type='float32', leaf_output_type='float32'):
+        def __init__(self, threshold_type="float32", leaf_output_type="float32"):
             self.handle = ctypes.c_void_p()
-            _check_call(_LIB.TreeliteCreateTreeBuilder(
-                c_str(threshold_type),
-                c_str(leaf_output_type),
-                ctypes.byref(self.handle)
-            ))
+            _check_call(
+                _LIB.TreeliteCreateTreeBuilder(
+                    c_str(threshold_type),
+                    c_str(leaf_output_type),
+                    ctypes.byref(self.handle),
+                )
+            )
             self.nodes = {}
 
         def __del__(self):
             if self.handle is not None:
-                if not hasattr(self, 'ensemble'):
+                if not hasattr(self, "ensemble"):
                     # need a separate deletion if tree is not part of an ensemble
                     _check_call(_LIB.TreeliteDeleteTreeBuilder(self.handle))
                 self.handle = None
 
-        ### Implement dict semantics whenever applicable
+        # Implement dict semantics whenever applicable
         def items(self):  # pylint: disable=C0111
             return self.nodes.items()
 
@@ -771,51 +850,66 @@ class ModelBuilder:
 
         def __setitem__(self, key, value):
             if not isinstance(value, ModelBuilder.Node):
-                raise ValueError('Value must be of type ModelBuidler.Node')
+                raise ValueError("Value must be of type ModelBuidler.Node")
             if key in self.nodes:
-                raise KeyError('Nodes with duplicate keys are not allowed. ' + \
-                               'If you meant to replace node {}, '.format(key) + \
-                               'delete it first and then add an empty node with ' + \
-                               'the same key.')
+                raise KeyError(
+                    "Nodes with duplicate keys are not allowed. "
+                    + "If you meant to replace node {}, ".format(key)
+                    + "delete it first and then add an empty node with "
+                    + "the same key."
+                )
             if not value.empty:
-                raise ValueError('Can only insert an empty node')
-            _check_call(_LIB.TreeliteTreeBuilderCreateNode(self.handle,
-                                                           ctypes.c_int(key)))
+                raise ValueError("Can only insert an empty node")
+            _check_call(
+                _LIB.TreeliteTreeBuilderCreateNode(self.handle, ctypes.c_int(key))
+            )
             self.nodes.__setitem__(key, value)
             value.node_key = key  # save node id for later
             value.tree = self
 
         def __delitem__(self, key):
-            _check_call(_LIB.TreeliteTreeBuilderDeleteNode(
-                self.handle, ctypes.c_int(key)))
+            _check_call(
+                _LIB.TreeliteTreeBuilderDeleteNode(self.handle, ctypes.c_int(key))
+            )
             self.nodes.__delitem__(key)
 
         def __iter__(self):
             return self.nodes.__iter__()
 
         def __repr__(self):
-            return '<treelite.ModelBuilder.Tree object containing {} nodes>\n' \
-                .format(len(self.nodes))
+            return "<treelite.ModelBuilder.Tree object containing {} nodes>\n".format(
+                len(self.nodes)
+            )
 
     # pylint: disable=R0913
-    def __init__(self, num_feature, num_class=1, average_tree_output=False,
-                 threshold_type='float32', leaf_output_type='float32', **kwargs):
+    def __init__(
+        self,
+        num_feature,
+        num_class=1,
+        average_tree_output=False,
+        threshold_type="float32",
+        leaf_output_type="float32",
+        **kwargs,
+    ):
         if not isinstance(num_feature, int):
-            raise ValueError('num_feature must be of int type')
+            raise ValueError("num_feature must be of int type")
         if num_feature <= 0:
-            raise ValueError('num_feature must be strictly positive')
+            raise ValueError("num_feature must be strictly positive")
         if not isinstance(num_class, int):
-            raise ValueError('num_class must be of int type')
+            raise ValueError("num_class must be of int type")
         if num_class <= 0:
-            raise ValueError('num_class must be strictly positive')
+            raise ValueError("num_class must be strictly positive")
         self.handle = ctypes.c_void_p()
-        _check_call(_LIB.TreeliteCreateModelBuilder(
-            ctypes.c_int(num_feature),
-            ctypes.c_int(num_class),
-            ctypes.c_int(1 if average_tree_output else 0),
-            c_str(threshold_type),
-            c_str(leaf_output_type),
-            ctypes.byref(self.handle)))
+        _check_call(
+            _LIB.TreeliteCreateModelBuilder(
+                ctypes.c_int(num_feature),
+                ctypes.c_int(num_class),
+                ctypes.c_int(1 if average_tree_output else 0),
+                c_str(threshold_type),
+                c_str(leaf_output_type),
+                ctypes.byref(self.handle),
+            )
+        )
         self._set_param(kwargs)
         self.trees = []
 
@@ -842,22 +936,24 @@ class ModelBuilder:
 
         """
         if not isinstance(index, int):
-            raise ValueError('index must be of int type')
+            raise ValueError("index must be of int type")
         if index < 0 or index > len(self):
-            raise ValueError('index out of bounds')
+            raise ValueError("index out of bounds")
         if not isinstance(tree, ModelBuilder.Tree):
-            raise ValueError('tree must be of type ModelBuilder.Tree')
-        ret = _LIB.TreeliteModelBuilderInsertTree(self.handle,
-                                                  tree.handle,
-                                                  ctypes.c_int(index))
+            raise ValueError("tree must be of type ModelBuilder.Tree")
+        ret = _LIB.TreeliteModelBuilderInsertTree(
+            self.handle, tree.handle, ctypes.c_int(index)
+        )
         _check_call(0 if ret == index else -1)
         if ret != index:
-            raise ValueError('Somehow tree got inserted at wrong location')
+            raise ValueError("Somehow tree got inserted at wrong location")
         # delete the stale handle to the inserted tree and get a new one
         _check_call(_LIB.TreeliteDeleteTreeBuilder(tree.handle))
-        _check_call(_LIB.TreeliteModelBuilderGetTree(self.handle,
-                                                     ctypes.c_int(index),
-                                                     ctypes.byref(tree.handle)))
+        _check_call(
+            _LIB.TreeliteModelBuilderGetTree(
+                self.handle, ctypes.c_int(index), ctypes.byref(tree.handle)
+            )
+        )
         tree.ensemble = self
         self.trees.insert(index, tree)
 
@@ -904,9 +1000,11 @@ class ModelBuilder:
            model.compile(dirpath='test')   # compile model into C code
         """
         model_handle = ctypes.c_void_p()
-        _check_call(_LIB.TreeliteModelBuilderCommitModel(
-            self.handle,
-            ctypes.byref(model_handle)))
+        _check_call(
+            _LIB.TreeliteModelBuilderCommitModel(
+                self.handle, ctypes.byref(model_handle)
+            )
+        )
         return Model(model_handle)
 
     def __del__(self):
@@ -914,7 +1012,7 @@ class ModelBuilder:
             _check_call(_LIB.TreeliteDeleteModelBuilder(self.handle))
             self.handle = None
 
-    ### Implement list semantics whenever applicable
+    # Implement list semantics whenever applicable
     def __len__(self):
         return len(self.trees)
 
@@ -922,8 +1020,9 @@ class ModelBuilder:
         return self.trees.__getitem__(index)
 
     def __delitem__(self, index):
-        _check_call(_LIB.TreeliteModelBuilderDeleteTree(self.handle,
-                                                        ctypes.c_int(index)))
+        _check_call(
+            _LIB.TreeliteModelBuilderDeleteTree(self.handle, ctypes.c_int(index))
+        )
         self.trees[index].handle = None  # handle is already invalid
         self.trees.__delitem__(index)
 
@@ -934,8 +1033,9 @@ class ModelBuilder:
         return self.trees.__reversed__()
 
     def __repr__(self):
-        return '<treelite.ModelBuilder object storing {} decision trees>\n' \
-            .format(len(self.trees))
+        return "<treelite.ModelBuilder object storing {} decision trees>\n".format(
+            len(self.trees)
+        )
 
     def _set_param(self, params, value=None):
         """
@@ -955,9 +1055,11 @@ class ModelBuilder:
         for key, val in params:
             if not isinstance(val, (str,)):
                 val = str(val)
-            _check_call(_LIB.TreeliteModelBuilderSetModelParam(self.handle,
-                                                               c_str(key),
-                                                               c_str(val)))
+            _check_call(
+                _LIB.TreeliteModelBuilderSetModelParam(
+                    self.handle, c_str(key), c_str(val)
+                )
+            )
 
 
-__all__ = ['Model', 'ModelBuilder']
+__all__ = ["Model", "ModelBuilder"]

@@ -7,8 +7,8 @@
 #ifndef TREELITE_ERROR_H_
 #define TREELITE_ERROR_H_
 
-#include <string>
 #include <stdexcept>
+#include <string>
 
 namespace treelite {
 
@@ -16,7 +16,7 @@ namespace treelite {
  * \brief Exception class that will be thrown by Treelite
  */
 struct Error : public std::runtime_error {
-  explicit Error(const std::string& s) : std::runtime_error(s) {}
+  explicit Error(std::string const& s) : std::runtime_error(s) {}
 };
 
 }  // namespace treelite

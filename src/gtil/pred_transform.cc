@@ -6,57 +6,59 @@
  */
 
 #include "./pred_transform.h"
-#include <treelite/tree.h>
+
 #include <treelite/logging.h>
-#include <string>
-#include <unordered_map>
+#include <treelite/tree.h>
+
 #include <cmath>
 #include <cstddef>
+#include <string>
+#include <unordered_map>
 
 namespace treelite {
 namespace gtil {
 namespace pred_transform {
 
-std::size_t identity(const treelite::Model&, const float* in, float* out) {
+std::size_t identity(treelite::Model const&, float const* in, float* out) {
   *out = *in;
   return 1;
 }
 
-std::size_t signed_square(const treelite::Model&, const float* in, float* out) {
-  const float margin = *in;
+std::size_t signed_square(treelite::Model const&, float const* in, float* out) {
+  float const margin = *in;
   *out = std::copysign(margin * margin, margin);
   return 1;
 }
 
-std::size_t hinge(const treelite::Model&, const float* in, float* out) {
+std::size_t hinge(treelite::Model const&, float const* in, float* out) {
   *out = (*in > 0 ? 1.0f : 0.0f);
   return 1;
 }
 
-std::size_t sigmoid(const treelite::Model& model, const float* in, float* out) {
-  const float alpha = model.param.sigmoid_alpha;
+std::size_t sigmoid(treelite::Model const& model, float const* in, float* out) {
+  float const alpha = model.param.sigmoid_alpha;
   TREELITE_CHECK(alpha > 0.0f) << "sigmoid: alpha must be strictly positive";
   *out = 1.0f / (1.0f + std::exp(-alpha * *in));
   return 1;
 }
 
-std::size_t exponential(const treelite::Model&, const float* in, float* out) {
+std::size_t exponential(treelite::Model const&, float const* in, float* out) {
   *out = std::exp(*in);
   return 1;
 }
 
-std::size_t exponential_standard_ratio(const treelite::Model& model, const float* in, float* out) {
-  const float ratio_c = model.param.ratio_c;
-  *out = std::exp2(- *in / ratio_c);
+std::size_t exponential_standard_ratio(treelite::Model const& model, float const* in, float* out) {
+  float const ratio_c = model.param.ratio_c;
+  *out = std::exp2(-*in / ratio_c);
   return 1;
 }
 
-std::size_t logarithm_one_plus_exp(const treelite::Model&, const float* in, float* out) {
+std::size_t logarithm_one_plus_exp(treelite::Model const&, float const* in, float* out) {
   *out = std::log1p(std::exp(*in));
   return 1;
 }
 
-std::size_t identity_multiclass(const treelite::Model& model, const float* in, float* out) {
+std::size_t identity_multiclass(treelite::Model const& model, float const* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
   TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   for (std::size_t i = 0; i < num_class; ++i) {
@@ -65,7 +67,7 @@ std::size_t identity_multiclass(const treelite::Model& model, const float* in, f
   return num_class;
 }
 
-std::size_t max_index(const treelite::Model& model, const float* in, float* out) {
+std::size_t max_index(treelite::Model const& model, float const* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
   TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   std::size_t max_index = 0;
@@ -80,7 +82,7 @@ std::size_t max_index(const treelite::Model& model, const float* in, float* out)
   return 1;
 }
 
-std::size_t softmax(const treelite::Model& model, const float* in, float* out) {
+std::size_t softmax(treelite::Model const& model, float const* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
   TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
   float max_margin = in[0];
@@ -102,10 +104,10 @@ std::size_t softmax(const treelite::Model& model, const float* in, float* out) {
   return num_class;
 }
 
-std::size_t multiclass_ova(const treelite::Model& model, const float* in, float* out) {
+std::size_t multiclass_ova(treelite::Model const& model, float const* in, float* out) {
   auto num_class = static_cast<std::size_t>(model.task_param.num_class);
   TREELITE_CHECK(num_class > 1) << "model must be a multi-class classifier";
-  const float alpha = model.param.sigmoid_alpha;
+  float const alpha = model.param.sigmoid_alpha;
   TREELITE_CHECK(alpha > 0.0f) << "multiclass_ova: alpha must be strictly positive";
   for (std::size_t i = 0; i < num_class; ++i) {
     out[i] = 1.0f / (1.0f + std::exp(-alpha * in[i]));
@@ -116,20 +118,16 @@ std::size_t multiclass_ova(const treelite::Model& model, const float* in, float*
 }  // namespace pred_transform
 
 const std::unordered_map<std::string, PredTransformFuncType> pred_transform_func{
-    {"identity", pred_transform::identity},
-    {"signed_square", pred_transform::signed_square},
-    {"hinge", pred_transform::hinge},
-    {"sigmoid", pred_transform::sigmoid},
+    {"identity", pred_transform::identity}, {"signed_square", pred_transform::signed_square},
+    {"hinge", pred_transform::hinge}, {"sigmoid", pred_transform::sigmoid},
     {"exponential", pred_transform::exponential},
     {"exponential_standard_ratio", pred_transform::exponential_standard_ratio},
     {"logarithm_one_plus_exp", pred_transform::logarithm_one_plus_exp},
     {"identity_multiclass", pred_transform::identity_multiclass},
-    {"max_index", pred_transform::max_index},
-    {"softmax", pred_transform::softmax},
-    {"multiclass_ova", pred_transform::multiclass_ova}
-};
+    {"max_index", pred_transform::max_index}, {"softmax", pred_transform::softmax},
+    {"multiclass_ova", pred_transform::multiclass_ova}};
 
-PredTransformFuncType LookupPredTransform(const std::string& name) {
+PredTransformFuncType LookupPredTransform(std::string const& name) {
   return pred_transform_func.at(name);
 }
 

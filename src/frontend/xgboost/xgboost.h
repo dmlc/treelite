@@ -4,12 +4,12 @@
  * \brief Helper functions for loading XGBoost models
  * \author William Hicks
  */
-#ifndef TREELITE_FRONTEND_XGBOOST_XGBOOST_H_
-#define TREELITE_FRONTEND_XGBOOST_XGBOOST_H_
+#ifndef SRC_FRONTEND_XGBOOST_XGBOOST_H_
+#define SRC_FRONTEND_XGBOOST_XGBOOST_H_
 
+#include <cmath>
 #include <string>
 #include <vector>
-#include <cmath>
 
 namespace treelite {
 
@@ -30,17 +30,14 @@ struct ProbToMargin {
 extern const std::vector<std::string> exponential_objectives;
 
 // set correct prediction transform function, depending on objective function
-void SetPredTransform(const std::string& objective_name, ModelParam* param);
+void SetPredTransform(std::string const& objective_name, ModelParam* param);
 
 // Transform the global bias parameter from probability into margin score
 void TransformGlobalBiasToMargin(ModelParam* param);
 
-enum FeatureType {
-  kNumerical = 0,
-  kCategorical = 1
-};
+enum FeatureType { kNumerical = 0, kCategorical = 1 };
 
 }  // namespace xgboost
 }  // namespace details
 }  // namespace treelite
-#endif  // TREELITE_FRONTEND_XGBOOST_XGBOOST_H_
+#endif  // SRC_FRONTEND_XGBOOST_XGBOOST_H_

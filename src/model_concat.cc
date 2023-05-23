@@ -5,21 +5,22 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/tree.h>
 #include <treelite/logging.h>
+#include <treelite/tree.h>
+
 #include <algorithm>
 #include <memory>
 #include <type_traits>
 
 namespace treelite {
 
-std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& objs) {
+std::unique_ptr<Model> ConcatenateModelObjects(std::vector<Model const*> const& objs) {
   if (objs.empty()) {
     return std::unique_ptr<Model>();
   }
   const TypeInfo threshold_type = objs[0]->GetThresholdType();
   const TypeInfo leaf_output_type = objs[0]->GetLeafOutputType();
-  return objs[0]->Dispatch([&objs, threshold_type, leaf_output_type](const auto& first_model_obj) {
+  return objs[0]->Dispatch([&objs, threshold_type, leaf_output_type](auto const& first_model_obj) {
     using ModelType = std::remove_const_t<std::remove_reference_t<decltype(first_model_obj)>>;
     std::unique_ptr<Model> concatenated_model = Model::Create(threshold_type, leaf_output_type);
     auto* concatenated_model_concrete = dynamic_cast<ModelType*>(concatenated_model.get());
@@ -27,11 +28,11 @@ std::unique_ptr<Model> ConcatenateModelObjects(const std::vector<const Model*>& 
       auto* casted = dynamic_cast<const ModelType*>(objs[i]);
       if (casted) {
         std::transform(casted->trees.begin(), casted->trees.end(),
-                       std::back_inserter(concatenated_model_concrete->trees),
-                       [](const auto& tree) { return tree.Clone(); });
+            std::back_inserter(concatenated_model_concrete->trees),
+            [](const auto& tree) { return tree.Clone(); });
       } else {
         TREELITE_LOG(FATAL) << "Model object at index " << i
-          << " has a different type than the first model object (at index 0)";
+                            << " has a different type than the first model object (at index 0)";
       }
     }
     /* Copy model metadata */

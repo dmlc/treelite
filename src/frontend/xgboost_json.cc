@@ -8,13 +8,13 @@
 
 #include "xgboost/xgboost_json.h"
 
-#include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
-#include <treelite/tree.h>
 #include <treelite/frontend.h>
-#include <treelite/math.h>
 #include <treelite/logging.h>
+#include <treelite/math.h>
+#include <treelite/tree.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -31,8 +31,7 @@ namespace {
 
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
-                                             ErrorHandlerFunc error_handler,
-                                             const rapidjson::Document& config);
+    ErrorHandlerFunc error_handler, rapidjson::Document const& config);
 
 }  // anonymous namespace
 
@@ -40,7 +39,7 @@ namespace treelite {
 namespace frontend {
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
-    const char* filename, const char* config_json) {
+    char const* filename, char const* config_json) {
   char read_buffer[65536];
 
 #ifdef _WIN32
@@ -52,8 +51,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
     TREELITE_LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
   }
 
-  auto input_stream = std::make_unique<rapidjson::FileReadStream>(
-      fp, read_buffer, sizeof(read_buffer));
+  auto input_stream
+      = std::make_unique<rapidjson::FileReadStream>(fp, read_buffer, sizeof(read_buffer));
   auto error_handler = [fp](size_t offset) -> std::string {
     size_t cur = (offset >= 50 ? (offset - 50) : 0);
     std::fseek(fp, cur, SEEK_SET);
@@ -78,15 +77,15 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModel(
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
   TREELITE_CHECK(!parsed_config.HasParseError())
-    << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset()
-    << ", " << rapidjson::GetParseError_En(parsed_config.GetParseError());
+      << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset() << ", "
+      << rapidjson::GetParseError_En(parsed_config.GetParseError());
   auto parsed_model = ParseStream(std::move(input_stream), error_handler, parsed_config);
   std::fclose(fp);
   return parsed_model;
 }
 
 std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
-    const char* json_str, std::size_t length, const char* config_json) {
+    char const* json_str, std::size_t length, char const* config_json) {
   auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
   auto error_handler = [json_str](size_t offset) -> std::string {
     size_t cur = (offset >= 50 ? (offset - 50) : 0);
@@ -108,8 +107,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostJSONModelString(
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
   TREELITE_CHECK(!parsed_config.HasParseError())
-    << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset()
-    << ", " << rapidjson::GetParseError_En(parsed_config.GetParseError());
+      << "Error when parsing JSON config: offset " << parsed_config.GetErrorOffset() << ", "
+      << rapidjson::GetParseError_En(parsed_config.GetParseError());
   return ParseStream(std::move(input_stream), error_handler, parsed_config);
 }
 
@@ -130,7 +129,7 @@ bool BaseHandler::pop_handler() {
   }
 }
 
-bool BaseHandler::set_cur_key(const char *str, std::size_t length) {
+bool BaseHandler::set_cur_key(char const* str, std::size_t length) {
   if (is_recognized_key(str)) {
     cur_key = std::string{str, length};
   } else if (allow_unknown_field_) {
@@ -145,16 +144,16 @@ bool BaseHandler::set_cur_key(const char *str, std::size_t length) {
   return true;
 }
 
-const std::string &BaseHandler::get_cur_key() { return cur_key; }
+std::string const& BaseHandler::get_cur_key() {
+  return cur_key;
+}
 
-bool BaseHandler::check_cur_key(const std::string &query_key) {
+bool BaseHandler::check_cur_key(std::string const& query_key) {
   return cur_key == query_key;
 }
 
 template <typename ValueType>
-bool BaseHandler::assign_value(const std::string &key,
-                               ValueType &&value,
-                               ValueType &output) {
+bool BaseHandler::assign_value(std::string const& key, ValueType&& value, ValueType& output) {
   if (check_cur_key(key)) {
     output = value;
     return true;
@@ -164,9 +163,7 @@ bool BaseHandler::assign_value(const std::string &key,
 }
 
 template <typename ValueType>
-bool BaseHandler::assign_value(const std::string &key,
-                  const ValueType &value,
-                  ValueType &output) {
+bool BaseHandler::assign_value(std::string const& key, ValueType const& value, ValueType& output) {
   if (check_cur_key(key)) {
     output = value;
     return true;
@@ -178,34 +175,53 @@ bool BaseHandler::assign_value(const std::string &key,
 /******************************************************************************
  * IgnoreHandler
  * ***************************************************************************/
-bool IgnoreHandler::Null() { return true; }
-bool IgnoreHandler::Bool(bool) { return true; }
-bool IgnoreHandler::Int(int) { return true; }
-bool IgnoreHandler::Uint(unsigned) { return true; }
-bool IgnoreHandler::Int64(int64_t) { return true; }
-bool IgnoreHandler::Uint64(uint64_t) { return true; }
-bool IgnoreHandler::Double(double) { return true; }
-bool IgnoreHandler::String(const char *, std::size_t, bool) {
-  return true; }
-bool IgnoreHandler::StartObject() { return push_handler<IgnoreHandler>(); }
-bool IgnoreHandler::Key(const char *, std::size_t, bool) {
-  return true; }
-bool IgnoreHandler::StartArray() { return push_handler<IgnoreHandler>(); }
+bool IgnoreHandler::Null() {
+  return true;
+}
+bool IgnoreHandler::Bool(bool) {
+  return true;
+}
+bool IgnoreHandler::Int(int) {
+  return true;
+}
+bool IgnoreHandler::Uint(unsigned) {
+  return true;
+}
+bool IgnoreHandler::Int64(int64_t) {
+  return true;
+}
+bool IgnoreHandler::Uint64(uint64_t) {
+  return true;
+}
+bool IgnoreHandler::Double(double) {
+  return true;
+}
+bool IgnoreHandler::String(char const*, std::size_t, bool) {
+  return true;
+}
+bool IgnoreHandler::StartObject() {
+  return push_handler<IgnoreHandler>();
+}
+bool IgnoreHandler::Key(char const*, std::size_t, bool) {
+  return true;
+}
+bool IgnoreHandler::StartArray() {
+  return push_handler<IgnoreHandler>();
+}
 
 /******************************************************************************
  * TreeParamHandler
  * ***************************************************************************/
-bool TreeParamHandler::String(const char *str, std::size_t, bool) {
+bool TreeParamHandler::String(char const* str, std::size_t, bool) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
   // Key "num_deleted" deprecated but still present in some xgboost output
-  return (check_cur_key("num_feature") ||
-          assign_value("num_nodes", std::stoi(str), output) ||
-          check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
+  return (check_cur_key("num_feature") || assign_value("num_nodes", std::stoi(str), output)
+          || check_cur_key("size_leaf_vector") || check_cur_key("num_deleted"));
 }
 
-bool TreeParamHandler::is_recognized_key(const std::string& key) {
+bool TreeParamHandler::is_recognized_key(std::string const& key) {
   return (key == "num_feature" || key == "num_nodes" || key == "size_leaf_vector"
           || key == "num_deleted");
 }
@@ -217,22 +233,21 @@ bool RegTreeHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return (
-      push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes) ||
-      push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian) ||
-      push_key_handler<ArrayHandler<double>>("base_weights", base_weights) ||
-      push_key_handler<ArrayHandler<int>>("categories_segments", categories_segments) ||
-      push_key_handler<ArrayHandler<int>>("categories_sizes", categories_sizes) ||
-      push_key_handler<ArrayHandler<int>>("categories_nodes", categories_nodes) ||
-      push_key_handler<ArrayHandler<int>>("categories", categories) ||
-      push_key_handler<IgnoreHandler>("leaf_child_counts") ||
-      push_key_handler<ArrayHandler<int>>("left_children", left_children) ||
-      push_key_handler<ArrayHandler<int>>("right_children", right_children) ||
-      push_key_handler<ArrayHandler<int>>("parents", parents) ||
-      push_key_handler<ArrayHandler<int>>("split_indices", split_indices) ||
-      push_key_handler<ArrayHandler<int>>("split_type", split_type) ||
-      push_key_handler<ArrayHandler<double>>("split_conditions", split_conditions) ||
-      push_key_handler<ArrayHandler<bool>>("default_left", default_left));
+  return (push_key_handler<ArrayHandler<double>>("loss_changes", loss_changes)
+          || push_key_handler<ArrayHandler<double>>("sum_hessian", sum_hessian)
+          || push_key_handler<ArrayHandler<double>>("base_weights", base_weights)
+          || push_key_handler<ArrayHandler<int>>("categories_segments", categories_segments)
+          || push_key_handler<ArrayHandler<int>>("categories_sizes", categories_sizes)
+          || push_key_handler<ArrayHandler<int>>("categories_nodes", categories_nodes)
+          || push_key_handler<ArrayHandler<int>>("categories", categories)
+          || push_key_handler<IgnoreHandler>("leaf_child_counts")
+          || push_key_handler<ArrayHandler<int>>("left_children", left_children)
+          || push_key_handler<ArrayHandler<int>>("right_children", right_children)
+          || push_key_handler<ArrayHandler<int>>("parents", parents)
+          || push_key_handler<ArrayHandler<int>>("split_indices", split_indices)
+          || push_key_handler<ArrayHandler<int>>("split_type", split_type)
+          || push_key_handler<ArrayHandler<double>>("split_conditions", split_conditions)
+          || push_key_handler<ArrayHandler<bool>>("default_left", default_left));
 }
 
 bool RegTreeHandler::StartObject() {
@@ -320,9 +335,9 @@ bool RegTreeHandler::EndObject(std::size_t) {
       output.AddChilds(new_id);
       if (split_type[old_id] == details::xgboost::FeatureType::kCategorical) {
         auto categorical_split_loc
-          = math::binary_search(categories_nodes.begin(), categories_nodes.end(), old_id);
+            = math::binary_search(categories_nodes.begin(), categories_nodes.end(), old_id);
         TREELITE_CHECK(categorical_split_loc != categories_nodes.end())
-          << "Could not find record for the categorical split in node " << old_id;
+            << "Could not find record for the categorical split in node " << old_id;
         auto categorical_split_id = std::distance(categories_nodes.begin(), categorical_split_loc);
         int offset = categories_segments[categorical_split_id];
         int num_categories = categories_sizes[categorical_split_id];
@@ -334,8 +349,7 @@ bool RegTreeHandler::EndObject(std::size_t) {
         output.SetCategoricalSplit(
             new_id, split_indices[old_id], default_left[old_id], right_categories, true);
       } else {
-        output.SetNumericalSplit(
-            new_id, split_indices[old_id], split_conditions[old_id],
+        output.SetNumericalSplit(new_id, split_indices[old_id], split_conditions[old_id],
             default_left[old_id], treelite::Operator::kLT);
       }
       output.SetGain(new_id, loss_changes[old_id]);
@@ -347,13 +361,13 @@ bool RegTreeHandler::EndObject(std::size_t) {
   return pop_handler();
 }
 
-bool RegTreeHandler::is_recognized_key(const std::string& key) {
+bool RegTreeHandler::is_recognized_key(std::string const& key) {
   return (key == "loss_changes" || key == "sum_hessian" || key == "base_weights"
-          || key == "categories_segments" || key == "categories_sizes"
-          || key == "categories_nodes" || key == "categories" || key == "leaf_child_counts"
-          || key == "left_children" || key == "right_children" || key == "parents"
-          || key == "split_indices" || key == "split_type" || key == "split_conditions"
-          || key == "default_left" || key == "tree_param" || key == "id");
+          || key == "categories_segments" || key == "categories_sizes" || key == "categories_nodes"
+          || key == "categories" || key == "leaf_child_counts" || key == "left_children"
+          || key == "right_children" || key == "parents" || key == "split_indices"
+          || key == "split_type" || key == "split_conditions" || key == "default_left"
+          || key == "tree_param" || key == "id");
 }
 
 /******************************************************************************
@@ -364,9 +378,8 @@ bool GBTreeModelHandler::StartArray() {
     return push_handler<IgnoreHandler>();
   }
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
-                           std::vector<treelite::Tree<float, float>>>(
-                               "trees", output.model->trees) ||
-          push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
+              std::vector<treelite::Tree<float, float>>>("trees", output.model->trees)
+          || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
 }
 
 bool GBTreeModelHandler::StartObject() {
@@ -376,16 +389,14 @@ bool GBTreeModelHandler::StartObject() {
   return push_key_handler<IgnoreHandler>("gbtree_model_param");
 }
 
-bool GBTreeModelHandler::is_recognized_key(const std::string& key) {
+bool GBTreeModelHandler::is_recognized_key(std::string const& key) {
   return (key == "trees" || key == "tree_info" || key == "gbtree_model_param");
 }
 
 /******************************************************************************
  * GradientBoosterHandler
  * ***************************************************************************/
-bool GradientBoosterHandler::String(const char *str,
-                                    std::size_t length,
-                                    bool) {
+bool GradientBoosterHandler::String(char const* str, std::size_t length, bool) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
@@ -440,7 +451,7 @@ bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   return pop_handler();
 }
 
-bool GradientBoosterHandler::is_recognized_key(const std::string& key) {
+bool GradientBoosterHandler::is_recognized_key(std::string const& key) {
   return (key == "name" || key == "model" || key == "gbtree" || key == "weight_drop");
 }
 
@@ -453,36 +464,34 @@ bool ObjectiveHandler::StartObject() {
   }
   // pseduo_huber_param is a mispelled variant of pseudo_huber_param; it's used in a past version
   // of XGBoost
-  return (push_key_handler<IgnoreHandler>("reg_loss_param") ||
-          push_key_handler<IgnoreHandler>("poisson_regression_param") ||
-          push_key_handler<IgnoreHandler>("tweedie_regression_param") ||
-          push_key_handler<IgnoreHandler>("softmax_multiclass_param") ||
-          push_key_handler<IgnoreHandler>("lambda_rank_param") ||
-          push_key_handler<IgnoreHandler>("aft_loss_param") ||
-          push_key_handler<IgnoreHandler>("pseduo_huber_param") ||
-          push_key_handler<IgnoreHandler>("pseudo_huber_param"));
+  return (push_key_handler<IgnoreHandler>("reg_loss_param")
+          || push_key_handler<IgnoreHandler>("poisson_regression_param")
+          || push_key_handler<IgnoreHandler>("tweedie_regression_param")
+          || push_key_handler<IgnoreHandler>("softmax_multiclass_param")
+          || push_key_handler<IgnoreHandler>("lambda_rank_param")
+          || push_key_handler<IgnoreHandler>("aft_loss_param")
+          || push_key_handler<IgnoreHandler>("pseduo_huber_param")
+          || push_key_handler<IgnoreHandler>("pseudo_huber_param"));
 }
 
-bool ObjectiveHandler::String(const char *str, std::size_t length, bool) {
+bool ObjectiveHandler::String(char const* str, std::size_t length, bool) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
   return assign_value("name", std::string{str, length}, output);
 }
 
-bool ObjectiveHandler::is_recognized_key(const std::string& key) {
+bool ObjectiveHandler::is_recognized_key(std::string const& key) {
   return (key == "reg_loss_param" || key == "poisson_regression_param"
           || key == "tweedie_regression_param" || key == "softmax_multiclass_param"
-          || key == "lambda_rank_param" || key == "aft_loss_param"
-          || key == "pseduo_huber_param" || key == "pseudo_huber_param" || key == "name");
+          || key == "lambda_rank_param" || key == "aft_loss_param" || key == "pseduo_huber_param"
+          || key == "pseudo_huber_param" || key == "name");
 }
 
 /******************************************************************************
  * LearnerParamHandler
  * ***************************************************************************/
-bool LearnerParamHandler::String(const char *str,
-                                 std::size_t,
-                                 bool) {
+bool LearnerParamHandler::String(char const* str, std::size_t, bool) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
@@ -490,22 +499,21 @@ bool LearnerParamHandler::String(const char *str,
   if (assign_value("num_target", std::stoi(str), num_target)) {
     if (num_target != 1) {
       TREELITE_LOG(ERROR)
-        << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
+          << "num_target must be 1; Treelite doesn't support multi-target regressor yet";
       return false;
     }
     return true;
   }
-  return (assign_value("base_score", strtof(str, nullptr),
-                       output.param.global_bias) ||
-          assign_value("num_class", static_cast<unsigned int>(std::max(std::stoi(str), 1)),
-                       output.task_param.num_class) ||
-          assign_value("num_feature", std::stoi(str), output.num_feature) ||
-          check_cur_key("boost_from_average"));
+  return (assign_value("base_score", strtof(str, nullptr), output.param.global_bias)
+          || assign_value("num_class", static_cast<unsigned int>(std::max(std::stoi(str), 1)),
+              output.task_param.num_class)
+          || assign_value("num_feature", std::stoi(str), output.num_feature)
+          || check_cur_key("boost_from_average"));
 }
 
-bool LearnerParamHandler::is_recognized_key(const std::string& key) {
-  return (key == "num_target" || key == "base_score" || key == "num_class"
-          || key == "num_feature" || key == "boost_from_average");
+bool LearnerParamHandler::is_recognized_key(std::string const& key) {
+  return (key == "num_target" || key == "base_score" || key == "num_class" || key == "num_feature"
+          || key == "boost_from_average");
 }
 
 /******************************************************************************
@@ -516,12 +524,12 @@ bool LearnerHandler::StartObject() {
     return push_handler<IgnoreHandler>();
   }
   // "attributes" key is not documented in schema
-  return (push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
-              "learner_model_param", *output.model) ||
-          push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>(
-              "gradient_booster", output) ||
-          push_key_handler<ObjectiveHandler, std::string>("objective", objective) ||
-          push_key_handler<IgnoreHandler>("attributes"));
+  return (
+      push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
+          "learner_model_param", *output.model)
+      || push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>("gradient_booster", output)
+      || push_key_handler<ObjectiveHandler, std::string>("objective", objective)
+      || push_key_handler<IgnoreHandler>("attributes"));
 }
 
 bool LearnerHandler::EndObject(std::size_t) {
@@ -534,11 +542,11 @@ bool LearnerHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return (push_key_handler<IgnoreHandler>("feature_names") ||
-          push_key_handler<IgnoreHandler>("feature_types"));
+  return (push_key_handler<IgnoreHandler>("feature_names")
+          || push_key_handler<IgnoreHandler>("feature_types"));
 }
 
-bool LearnerHandler::is_recognized_key(const std::string& key) {
+bool LearnerHandler::is_recognized_key(std::string const& key) {
   return (key == "learner_model_param" || key == "gradient_booster" || key == "objective"
           || key == "attributes" || key == "feature_names" || key == "feature_types");
 }
@@ -551,8 +559,7 @@ bool XGBoostCheckpointHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
-      "version", output.version);
+  return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>("version", output.version);
 }
 
 bool XGBoostCheckpointHandler::StartObject() {
@@ -562,7 +569,7 @@ bool XGBoostCheckpointHandler::StartObject() {
   return push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output);
 }
 
-bool XGBoostCheckpointHandler::is_recognized_key(const std::string &key) {
+bool XGBoostCheckpointHandler::is_recognized_key(std::string const& key) {
   return (key == "version" || key == "learner");
 }
 
@@ -573,17 +580,16 @@ bool XGBoostModelHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>(
-      "version", output.version);
+  return push_key_handler<ArrayHandler<unsigned>, std::vector<unsigned>>("version", output.version);
 }
 
 bool XGBoostModelHandler::StartObject() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return (push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output) ||
-          push_key_handler<IgnoreHandler>("Config") ||
-          push_key_handler<XGBoostCheckpointHandler, ParsedXGBoostModel>("Model", output));
+  return (push_key_handler<LearnerHandler, ParsedXGBoostModel>("learner", output)
+          || push_key_handler<IgnoreHandler>("Config")
+          || push_key_handler<XGBoostCheckpointHandler, ParsedXGBoostModel>("Model", output));
 }
 
 bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
@@ -601,14 +607,14 @@ bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
   }
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
-  const bool need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
+  bool const need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
     treelite::details::xgboost::TransformGlobalBiasToMargin(&output.model->param);
   }
   return pop_handler();
 }
 
-bool XGBoostModelHandler::is_recognized_key(const std::string &key) {
+bool XGBoostModelHandler::is_recognized_key(std::string const& key) {
   return (key == "version" || key == "learner" || key == "Config" || key == "Model");
 }
 
@@ -625,29 +631,48 @@ bool RootHandler::StartObject() {
 /******************************************************************************
  * DelegatedHandler
  * ***************************************************************************/
-ParsedXGBoostModel DelegatedHandler::get_result() { return std::move(result); }
-bool DelegatedHandler::Null() { return delegates.top()->Null(); }
-bool DelegatedHandler::Bool(bool b) { return delegates.top()->Bool(b); }
-bool DelegatedHandler::Int(int i) { return delegates.top()->Int(i); }
-bool DelegatedHandler::Uint(unsigned u) { return delegates.top()->Uint(u); }
-bool DelegatedHandler::Int64(int64_t i) { return delegates.top()->Int64(i); }
-bool DelegatedHandler::Uint64(uint64_t u) { return delegates.top()->Uint64(u); }
-bool DelegatedHandler::Double(double d) { return delegates.top()->Double(d); }
-bool DelegatedHandler::String(const char *str, std::size_t length, bool copy) {
+ParsedXGBoostModel DelegatedHandler::get_result() {
+  return std::move(result);
+}
+bool DelegatedHandler::Null() {
+  return delegates.top()->Null();
+}
+bool DelegatedHandler::Bool(bool b) {
+  return delegates.top()->Bool(b);
+}
+bool DelegatedHandler::Int(int i) {
+  return delegates.top()->Int(i);
+}
+bool DelegatedHandler::Uint(unsigned u) {
+  return delegates.top()->Uint(u);
+}
+bool DelegatedHandler::Int64(int64_t i) {
+  return delegates.top()->Int64(i);
+}
+bool DelegatedHandler::Uint64(uint64_t u) {
+  return delegates.top()->Uint64(u);
+}
+bool DelegatedHandler::Double(double d) {
+  return delegates.top()->Double(d);
+}
+bool DelegatedHandler::String(char const* str, std::size_t length, bool copy) {
   return delegates.top()->String(str, length, copy);
 }
-bool DelegatedHandler::StartObject() { return delegates.top()->StartObject(); }
-bool DelegatedHandler::Key(const char *str, std::size_t length, bool copy) {
+bool DelegatedHandler::StartObject() {
+  return delegates.top()->StartObject();
+}
+bool DelegatedHandler::Key(char const* str, std::size_t length, bool copy) {
   return delegates.top()->Key(str, length, copy);
 }
 bool DelegatedHandler::EndObject(std::size_t memberCount) {
   return delegates.top()->EndObject(memberCount);
 }
-bool DelegatedHandler::StartArray() { return delegates.top()->StartArray(); }
+bool DelegatedHandler::StartArray() {
+  return delegates.top()->StartArray();
+}
 bool DelegatedHandler::EndArray(std::size_t elementCount) {
   return delegates.top()->EndArray(elementCount);
 }
-
 
 }  // namespace details
 }  // namespace treelite
@@ -655,21 +680,21 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 namespace {
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
-                                             ErrorHandlerFunc error_handler,
-                                             const rapidjson::Document& config) {
-  std::shared_ptr<treelite::details::DelegatedHandler> handler =
-    treelite::details::DelegatedHandler::create(config);
+    ErrorHandlerFunc error_handler, rapidjson::Document const& config) {
+  std::shared_ptr<treelite::details::DelegatedHandler> handler
+      = treelite::details::DelegatedHandler::create(config);
   rapidjson::Reader reader;
 
   rapidjson::ParseResult result
-    = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
+      = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
   if (!result) {
-    const auto error_code = result.Code();
+    auto const error_code = result.Code();
     const size_t offset = result.Offset();
     std::string diagnostic = error_handler(offset);
     TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. "
                         << "Parsing error at offset " << offset << ": "
-                        << rapidjson::GetParseError_En(error_code) << "\n" << diagnostic;
+                        << rapidjson::GetParseError_En(error_code) << "\n"
+                        << diagnostic;
   }
   treelite::details::ParsedXGBoostModel parsed = handler->get_result();
 

@@ -6,15 +6,16 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/tree.h>
-#include <treelite/logging.h>
 #include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
+#include <treelite/logging.h>
+#include <treelite/tree.h>
+
+#include <cstddef>
+#include <cstdint>
 #include <ostream>
 #include <type_traits>
-#include <cstdint>
-#include <cstddef>
 
 namespace {
 
@@ -31,14 +32,13 @@ void WriteElement(WriterType& writer, T e) {
 }
 
 template <typename WriterType>
-void WriteString(WriterType& writer, const std::string& str) {
+void WriteString(WriterType& writer, std::string const& str) {
   writer.String(str.data(), str.size());
 }
 
 template <typename WriterType, typename ThresholdType, typename LeafOutputType>
-void WriteNode(WriterType& writer,
-               const treelite::Tree<ThresholdType, LeafOutputType>& tree,
-               int node_id) {
+void WriteNode(
+    WriterType& writer, treelite::Tree<ThresholdType, LeafOutputType> const& tree, int node_id) {
   writer.StartObject();
 
   writer.Key("node_id");
@@ -135,7 +135,7 @@ void SerializeModelParamToJSON(WriterType& writer, treelite::ModelParam model_pa
 namespace treelite {
 
 template <typename WriterType, typename ThresholdType, typename LeafOutputType>
-void DumpTreeAsJSON(WriterType& writer, const Tree<ThresholdType, LeafOutputType>& tree) {
+void DumpTreeAsJSON(WriterType& writer, Tree<ThresholdType, LeafOutputType> const& tree) {
   writer.StartObject();
 
   writer.Key("num_nodes");
@@ -158,8 +158,7 @@ void DumpTreeAsJSON(WriterType& writer, const Tree<ThresholdType, LeafOutputType
 }
 
 template <typename WriterType, typename ThresholdType, typename LeafOutputType>
-void DumpModelAsJSON(WriterType& writer,
-                     const ModelImpl<ThresholdType, LeafOutputType>& model) {
+void DumpModelAsJSON(WriterType& writer, ModelImpl<ThresholdType, LeafOutputType> const& model) {
   writer.StartObject();
 
   writer.Key("num_feature");
@@ -174,7 +173,7 @@ void DumpModelAsJSON(WriterType& writer,
   SerializeModelParamToJSON(writer, model.param);
   writer.Key("trees");
   writer.StartArray();
-  for (const Tree<ThresholdType, LeafOutputType>& tree : model.trees) {
+  for (Tree<ThresholdType, LeafOutputType> const& tree : model.trees) {
     DumpTreeAsJSON(writer, tree);
   }
   writer.EndArray();
@@ -183,8 +182,8 @@ void DumpModelAsJSON(WriterType& writer,
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-void
-ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(std::ostream& fo, bool pretty_print) const {
+void ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(
+    std::ostream& fo, bool pretty_print) const {
   rapidjson::OStreamWrapper os(fo);
   if (pretty_print) {
     rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(os);

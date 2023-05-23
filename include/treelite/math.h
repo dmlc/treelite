@@ -24,7 +24,7 @@ namespace math {
  * \tparam T type of elements
  */
 template <class Iter, class T>
-Iter binary_search(Iter begin, Iter end, const T& val) {
+Iter binary_search(Iter begin, Iter end, T const& val) {
   Iter i = std::lower_bound(begin, end, val);
   if (i != end && val == *i) {
     return i;  // found

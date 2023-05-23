@@ -9,28 +9,24 @@
 #define TREELITE_TYPEINFO_H_
 
 #include <treelite/error.h>
+
 #include <cstdint>
-#include <typeinfo>
-#include <string>
-#include <unordered_map>
 #include <sstream>
-#include <utility>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
+#include <unordered_map>
+#include <utility>
 
 namespace treelite {
 
 /*! \brief Types used by thresholds and leaf outputs */
-enum class TypeInfo : uint8_t {
-  kInvalid = 0,
-  kUInt32 = 1,
-  kFloat32 = 2,
-  kFloat64 = 3
-};
+enum class TypeInfo : uint8_t { kInvalid = 0, kUInt32 = 1, kFloat32 = 2, kFloat64 = 3 };
 static_assert(std::is_same<std::underlying_type<TypeInfo>::type, uint8_t>::value,
-              "TypeInfo must use uint8_t as underlying type");
+    "TypeInfo must use uint8_t as underlying type");
 
 /*! \brief conversion table from string to TypeInfo, defined in tables.cc */
-TypeInfo GetTypeInfoByName(const std::string& str);
+TypeInfo GetTypeInfoByName(std::string const& str);
 
 /*!
  * \brief Get string representation of type info
@@ -84,8 +80,8 @@ inline TypeInfo TypeToInfo() {
  * \param args Other extra parameters to pass to Dispatcher::Dispatch()
  * \return Whatever that's returned by the dispatcher
  */
-template <template<class> class Dispatcher, typename ...Args>
-inline auto DispatchWithTypeInfo(TypeInfo type, Args&& ...args) {
+template <template <class> class Dispatcher, typename... Args>
+inline auto DispatchWithTypeInfo(TypeInfo type, Args&&... args) {
   switch (type) {
   case TypeInfo::kUInt32:
     return Dispatcher<uint32_t>::Dispatch(std::forward<Args>(args)...);
@@ -114,9 +110,9 @@ inline auto DispatchWithTypeInfo(TypeInfo type, Args&& ...args) {
  * \param args Other extra parameters to pass to Dispatcher::Dispatch()
  * \return Whatever that's returned by the dispatcher
  */
-template <template<class, class> class Dispatcher, typename ...Args>
+template <template <class, class> class Dispatcher, typename... Args>
 inline auto DispatchWithModelTypes(
-    TypeInfo threshold_type, TypeInfo leaf_output_type, Args&& ...args) {
+    TypeInfo threshold_type, TypeInfo leaf_output_type, Args&&... args) {
   auto error_threshold_type = [threshold_type]() {
     std::ostringstream oss;
     oss << "Invalid threshold type: " << treelite::TypeInfoToString(threshold_type);
@@ -156,7 +152,7 @@ inline auto DispatchWithModelTypes(
     break;
   }
   return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);
-    // avoid missing return value warning
+  // avoid missing return value warning
 }
 
 }  // namespace treelite

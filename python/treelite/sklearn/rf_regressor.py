@@ -12,15 +12,19 @@ class SKLRFRegressorMixin:
         # Initialize Treelite model builder
         # Set average_tree_output=True for random forests
         builder = treelite.ModelBuilder(
-            num_feature=sklearn_model.n_features_in_, average_tree_output=True,
-            threshold_type='float64', leaf_output_type='float64')
+            num_feature=sklearn_model.n_features_in_,
+            average_tree_output=True,
+            threshold_type="float64",
+            leaf_output_type="float64",
+        )
 
         # Iterate over individual trees
         for i in range(sklearn_model.n_estimators):
             # Process the i-th tree and add to the builder
             # process_tree() to be defined later
-            builder.append(cls.process_tree(sklearn_model.estimators_[i].tree_,
-                                            sklearn_model))
+            builder.append(
+                cls.process_tree(sklearn_model.estimators_[i].tree_, sklearn_model)
+            )
 
         return builder.commit()
 
@@ -31,4 +35,4 @@ class SKLRFRegressorMixin:
         # The `value` attribute stores the output for every leaf node.
         leaf_value = sklearn_tree.value[node_id].squeeze()
         # Initialize the leaf node with given node ID
-        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type='float64')
+        treelite_tree[node_id].set_leaf_node(leaf_value, leaf_value_type="float64")

@@ -617,9 +617,9 @@ class ModelBuilder:
                     node_key = "_"
                 raise ValueError(
                     "Cannot modify a non-empty node. "
-                    + "If you meant to change type of node {}, ".format(node_key)
-                    + "delete it first and then add an empty node with "
-                    + "the same key."
+                    f"If you meant to change type of node {node_key}, "
+                    "delete it first and then add an empty node with "
+                    "the same key."
                 )
 
             # check if leaf_value is a list-like object
@@ -712,9 +712,9 @@ class ModelBuilder:
                     node_key = "_"
                 raise ValueError(
                     "Cannot modify a non-empty node. "
-                    + "If you meant to change type of node {}, ".format(node_key)
-                    + "delete it first and then add an empty node with "
-                    + "the same key."
+                    f"If you meant to change type of node {node_key}, "
+                    "delete it first and then add an empty node with "
+                    "the same key."
                 )
             try:
                 threshold_obj = ModelBuilder.Value(threshold, threshold_type)
@@ -779,9 +779,9 @@ class ModelBuilder:
                     node_key = "_"
                 raise ValueError(
                     "Cannot modify a non-empty node. "
-                    + "If you meant to change type of node {}, ".format(node_key)
-                    + "delete it first and then add an empty node with "
-                    + "the same key."
+                    f"If you meant to change type of node {node_key}, "
+                    "delete it first and then add an empty node with "
+                    "the same key."
                 )
             try:
                 # automatically create child nodes that don't exist yet
@@ -805,7 +805,7 @@ class ModelBuilder:
             except AttributeError as e:
                 raise TreeliteError(
                     "This node has never been inserted into a tree; "
-                    + "a node must be inserted before it can be a test node"
+                    "a node must be inserted before it can be a test node"
                 ) from e
 
     class Tree:
@@ -854,9 +854,9 @@ class ModelBuilder:
             if key in self.nodes:
                 raise KeyError(
                     "Nodes with duplicate keys are not allowed. "
-                    + "If you meant to replace node {}, ".format(key)
-                    + "delete it first and then add an empty node with "
-                    + "the same key."
+                    f"If you meant to replace node {key}, "
+                    "delete it first and then add an empty node with "
+                    "the same key."
                 )
             if not value.empty:
                 raise ValueError("Can only insert an empty node")
@@ -877,8 +877,9 @@ class ModelBuilder:
             return self.nodes.__iter__()
 
         def __repr__(self):
-            return "<treelite.ModelBuilder.Tree object containing {} nodes>\n".format(
-                len(self.nodes)
+            return (
+                "<treelite.ModelBuilder.Tree object containing"
+                f"{len(self.nodes)} nodes>\n"
             )
 
     # pylint: disable=R0913
@@ -1033,8 +1034,9 @@ class ModelBuilder:
         return self.trees.__reversed__()
 
     def __repr__(self):
-        return "<treelite.ModelBuilder object storing {} decision trees>\n".format(
-            len(self.trees)
+        return (
+            "<treelite.ModelBuilder object storing "
+            f"{len(self.trees)} decision trees>\n"
         )
 
     def _set_param(self, params, value=None):

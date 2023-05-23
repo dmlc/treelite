@@ -322,7 +322,7 @@ class Model:
                 _LIB.TreeliteLoadXGBoostJSONStringEx(
                     c_str(json_str),
                     ctypes.c_size_t(length),
-                    c_str(parser_config),
+                    c_str(parser_config_str),
                     ctypes.byref(handle),
                 )
             )

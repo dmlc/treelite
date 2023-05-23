@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "##[section]Building a source distribution..."
-make pippack
+python -m build --sdist python/ --outdir .
 
 echo "##[section]Testing the source distribution..."
 python -m pip install -v treelite-*.tar.gz

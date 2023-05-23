@@ -35,7 +35,7 @@ if [[ "$platform_id" == macosx_* ]]; then
     elif [[ "$platform_id" == macosx_x86_64 ]]; then
         # MacOS, Intel
         wheel_tag=macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64
-        cpython_ver=37
+        cpython_ver=38
         export MACOSX_DEPLOYMENT_TARGET=10.13
         OPENMP_URL="https://anaconda.org/conda-forge/llvm-openmp/11.1.0/download/osx-64/llvm-openmp-11.1.0-hda6cdc1_1.tar.bz2"
     else

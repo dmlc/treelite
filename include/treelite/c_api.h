@@ -26,7 +26,7 @@
 #if defined(_MSC_VER) || defined(_WIN32)
 #define TREELITE_DLL TREELITE_EXTERN_C __declspec(dllexport)
 #else
-#define TREELITE_DLL TREELITE_EXTERN_C
+#define TREELITE_DLL TREELITE_EXTERN_C __attribute__((visibility("default")))
 #endif
 
 /*!

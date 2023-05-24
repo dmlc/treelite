@@ -12,7 +12,7 @@ from .util import TreeliteError, _log_callback, _warn_callback, py_str
 
 def _load_lib():
     """Load Treelite Library."""
-    lib_path = find_lib_path()
+    lib_path = [str(x) for x in find_lib_path()]
     if not lib_path:
         # Building docs
         return None  # type: ignore

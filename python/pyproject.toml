@@ -1,0 +1,45 @@
+[build-system]
+requires = [
+    "hatchling>=1.12.1"
+]
+backend-path = ["."]
+build-backend = "packager.pep517"
+
+[project]
+name = "treelite"
+version = "4.0.0-dev"
+authors = [
+    {name = "Hyunsu Cho", email = "chohyu01@cs.washington.edu"}
+]
+description = "Treelite: Universal model exchange format for decision tree forests"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "packaging"
+]
+
+[project.urls]
+documentation = "https://treelite.readthedocs.io/en/latest/"
+repository = "https://github.com/dmlc/treelite"
+
+[project.optional-dependencies]
+scikit-learn = ["scikit-learn"]
+testing = ["scikit-learn", "pytest", "hypothesis", "pandas"]
+
+[tool.mypy]
+plugins = "numpy.typing.mypy_plugin"
+
+[tool.hatch.build.targets.wheel.hooks.custom]

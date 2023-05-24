@@ -14,6 +14,3 @@ cpp-coverage:
 
 all:
 	rm -rf build; mkdir build; cd build; cmake .. && make -j$(NPROC)
-
-pippack:
-	cd python && python setup.py sdist && mv dist/*.tar.gz ..

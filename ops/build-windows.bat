@@ -18,5 +18,5 @@ call micromamba activate dev
 
 echo ##[section]Packaging Python wheel for Treelite...
 cd python
-python setup.py bdist_wheel --universal
+pip wheel --no-deps -v . --wheel-dir dist/
 if %errorlevel% neq 0 exit /b %errorlevel%

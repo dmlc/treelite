@@ -7,6 +7,7 @@
 #ifndef TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 #define TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 
+#include <cstring>
 #include <vector>
 
 namespace treelite {

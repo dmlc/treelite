@@ -96,7 +96,7 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``cright_``: single ``int32_t`` scalar. Indicates the ID of the right child node. Set to ``-1`` to indicate the lack of the right child.
      - ``sindex_``: single ``uint32_t`` scalar. This field gives both the feature ID used in the current test node (``split_index``), as well as the default direction for the missing value (``default_left``). Set this value by computing ``split_index | (default_left ? (1U << 31U) : 0)``.
      - ``info_``: a union type containing ``leaf_value`` (of type ``LeafOutputType``) and ``threshold`` (of type ``ThresholdType``). To set this field, determine whether the node is a leaf node or an internal test node. Use ``leaf_value`` for leaf nodes; use ``threshold`` for internal test nodes.
-     - ``comp_``: single ``int8_t`` salar representing enum ``Operator``.
+     - ``comp_``: single ``int8_t`` scalar representing enum ``Operator``.
      - ``categories_list_right_child_``: single ``bool`` scalar.
 
    * Leaf vectors

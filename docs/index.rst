@@ -109,7 +109,7 @@ Contents
   treelite-gtil-api
   treelite-c-api
   knobs/index
-  notes-on-serialization
+  serialization/index
   treelite-doxygen
 
 

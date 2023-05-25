@@ -68,7 +68,7 @@ class Model:
 
         .. note:: Notes on forward and backward compatibility
 
-            Please see :doc:`/notes-on-serialization`.
+            Please see :doc:`/serialization/index`.
 
         Parameters
         ----------
@@ -84,7 +84,7 @@ class Model:
 
         .. note:: Notes on forward and backward compatibility
 
-            Please see :doc:`/notes-on-serialization`.
+            Please see :doc:`/serialization/index`.
         """
         char_ptr_t = ctypes.POINTER(ctypes.c_char)
         out_bytes = char_ptr_t()
@@ -136,7 +136,7 @@ class Model:
 
         .. note:: Notes on forward and backward compatibility
 
-            Please see :doc:`/notes-on-serialization`.
+            Please see :doc:`/serialization/index`.
 
         Parameters
         ----------
@@ -162,7 +162,7 @@ class Model:
 
         .. note:: Notes on forward and backward compatibility
 
-            Please see :doc:`/notes-on-serialization`.
+            Please see :doc:`/serialization/index`.
 
         Parameters
         ----------

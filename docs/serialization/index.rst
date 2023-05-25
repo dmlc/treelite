@@ -33,4 +33,5 @@ exchange serialized tree models between two different Treelite versions, as foll
 .. toctree::
  :maxdepth: 1
 
+ v4
  v3

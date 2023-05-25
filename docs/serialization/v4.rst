@@ -1,0 +1,161 @@
+================================
+Treelite Serialization Format v4
+================================
+
+The v4 serialization format was designed with the following goals in mind:
+
+* First-class support for multi-target models
+* Support "boosting from the average" in scikit-learn, where a simple base estimator is fitted from the class label distribution (or the average label, for regression) and is used as the initial learner in the ensemble model.
+* Use integer types with defined widths (so ``int32_t`` instead of ``int``)
+
+We first define a set of enum types to be used in the serialization format.
+
+* ``TypeInfo``: underlying type ``uint8_t``. Indicates the data type of another field
+
+  - ``kInvalid`` (0)
+  - ``kUInt32``  (1)
+  - ``kFloat32`` (2)
+  - ``kFloat64`` (3)
+
+* ``TaskType``: underlying type ``uint8_t``. Indicates the type of the learning task.
+
+  - ``kBinaryClf`` (0): binary classifier
+  - ``kRegressor`` (1): regressor
+  - ``kLearningToRank`` (2): learning-to-rank
+  - ``kMultiClfGrovePerClass`` (3): multi-class classifier with grove-per-class
+  - ``kMultiClfProbDistLeaf`` (4): multi-class classifier with vector leaf outputs producing probability distribution
+
+* ``Operator``: underlying type ``int8_t``. Indicates the comparison operator used in an internal test node in a tree.
+
+  - ``kNone`` (0)
+  - ``kEQ`` (1)
+  - ``kLT`` (2)
+  - ``kLE`` (3)
+  - ``kGT`` (4)
+  - ``kGE`` (5)
+
+The model type is currently parametrized with two template parameters: ``ThresholdType`` and ``LeafOutputType``.
+In v4, the following combinations are allowed:
+
++---------------+----------------+
+| ThresholdType | LeafOutputType |
++---------------+----------------+
+| ``float``     | ``float``      |
++---------------+----------------+
+| ``double``    | ``double``     |
++---------------+----------------+
+
+A given Treelite model object is to be serialized as follows, with the fields to be
+written to the byte sequence in the exact order they appear in the following list.
+
+#. Header
+
+   * Major version: single ``int32_t`` scalar. Set it to ``4`` for the v4 version.
+   * Minor version: single ``int32_t`` scalar.
+   * Patch version: single ``int32_t`` scalar.
+   * Threshold type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
+   * Leaf output type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
+
+#. Number of trees: single ``uint64_t`` scalar.
+#. Header 2
+
+   * Number of features in data: single ``int32_t`` scalar.
+   * Task type: single ``uint8_t`` scalar representing enum ``TaskType``.
+   * Whether to average tree outputs: single ``bool`` scalar.
+   * Task parameters
+
+     - ``num_target``: single ``uint32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models.
+     - ``num_class``: an array of ``uint32_t`` with length ``num_target``.
+     - ``leaf_vector_shape``: an array of ``uint32_t`` with length 2. The first dimension is always ``num_target``. The second dimension is either 1 or ``max(num_class)``.
+     - ``grove_per_class``: single ``bool`` scalar
+
+   * Model parameters (``ModelParam``) a structure with following fields
+
+     - ``pred_transform``: 256-character long ``char`` array. Stores a human-readable name of the transformation function that's applied to prediction outputs. The unused elements in the array should be padded with null characters (``\0``).
+     - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
+     - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
+   * ``base_scores``: an array of ``float``. This vector is expected to have length ``num_target``.
+     The predicted margin scores of all data points will be adjusted by this vector.
+
+     .. note:: Writing an array to the disk or a stream
+
+        When writing an array to the disk or a stream, we first write the length of the array (``uint64_t`` scalar),
+        and then the content of the array.
+
+#. Extension slot 1: Per-model optional fields. This field is currently not used.
+
+   * Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+
+#. Tree 0: First tree, which is to be represented by the following fields.
+
+   * Number of nodes: single ``int32_t`` scalar.
+   * If categorical splits exist: single ``bool`` scalar.
+   * Array of nodes: an array of ``Node`` structure, where ``Node`` consists of the following fields:
+
+     - ``cleft_``: single ``int32_t`` scalar. Indicates the ID of the left child node. Set to ``-1`` to indicate the lack of the left child.
+     - ``cright_``: single ``int32_t`` scalar. Indicates the ID of the right child node. Set to ``-1`` to indicate the lack of the right child.
+     - ``sindex_``: single ``uint32_t`` scalar. This field gives both the feature ID used in the current test node (``split_index``), as well as the default direction for the missing value (``default_left``). Set this value by computing ``split_index | (default_left ? (1U << 31U) : 0)``.
+     - ``info_``: a union type containing ``leaf_value`` (of type ``LeafOutputType``) and ``threshold`` (of type ``ThresholdType``). To set this field, determine whether the node is a leaf node or an internal test node. Use ``leaf_value`` for leaf nodes; use ``threshold`` for internal test nodes.
+     - ``comp_``: single ``int8_t`` salar representing enum ``Operator``.
+     - ``categories_list_right_child_``: single ``bool`` scalar.
+
+   * Leaf vectors
+
+     - Content (``leaf_vector_``): an array of ``LeafOutputType``. This array stores the leaf vectors for all nodes, such that
+       the sub-array ``leaf_vector_[leaf_vector_begin[i]_:leaf_vector_end_[i]]`` yields the leaf vector for the i-th node.
+     - Beginning offset of each segment (``leaf_vector_begin_``): an array of ``uint64_t``.
+     - Ending offset of each segment (``leaf_vector_end_``): an array of ``uint64_t``.
+
+   * Matching categories (for categorical splits)
+
+     - Content (``matching_categories_``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
+       the sub-array ``matching_categories_[matching_categories_offset_[i]:matching_categories_offset_[i+1]]`` yields the
+       category list of the i-th node.
+     - Beginning offset of each segment (``matching_categories_offset_``): an array of ``uint64_t``.
+
+   * Metadata for node statistics
+
+     - ``data_count_``: an array of ``uint64_t``. ``data_count_[i]`` indicates the number of data points in the training data set whose traversal paths include node ``i``. LightGBM provides this statistics.
+     - ``data_count_present_``: an array of ``bool``. ``data_count_present[i]_`` indicates whether ``data_count_[i]`` is available.
+     - ``sum_hess_``: an array of ``double``. ``sum_hess_[i]`` indicates the sum of the Hessian values for all data points whose traversal paths include node ``i``. This information is available in XGBoost and is used as a proxy of the number of data points.
+     - ``sum_hess_present_``: an array of ``bool``.  ``sum_hess_present_[i]`` indicates whether ``sum_hess_[i]`` is available.
+     - ``gain_``: an array of ``double``.  ``gain_[i]`` indicates the change in the loss function that is attributed to the particular split at node ``i``.
+     - ``gain_present_``: an array of ``bool``. ``gain_present_[i]`` indicates whether ``gain_[i]`` is present.
+
+   * Extension slot 2: Per-tree optional fields. This field is currently not used.
+
+     - Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+
+   * Extension slot 3: Per-node optional fields. This field is currently not used.
+
+     - Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+
+#. Tree 1: Use the same set of fields as Tree 0.
+#. Other trees ...
+
+.. note:: Caveat for multi-target, multi-class classifiers
+
+   When the number of classes are different for targets, we use the larget number of
+   classes (``max_num_class``) and use it to shape the leaf vector. The leaf vector
+   will have shape ``(num_target, max_num_class)``. This heuristic has the following
+   consequences: If a target has significantly more classes than other targets, a lot
+   of space will be wasted.
+
+   This is the method used in scikit-learn's :py:class:`sklearn.ensemble.RandomForestClassifier`.
+
+.. note:: A few v3 models are not representable using v4
+
+   We designed the v4 format to be mostly backwards compatible with v3, but there are
+   a few exceptions:
+
+   * The task type ``kMultiClfCategLeaf`` is no longer supported. This task type has not
+     found any use in the wild. Neither GTIL nor TL2cgen supports it.
+   * It is no longer possible to output integers from leaves. So ``LeafOutputType`` can
+     no longer be ``uint32_t``; ``output_type`` can no longer be ``kInt``. Leaf outputs
+     will now be assumed to be ``float`` or ``double``. The ``output_type`` field is
+     removed in v4. Integer outputs are being removed, as they have found little use
+     in practice.
+
+.. note:: Always use the little-endian order when reading and writing bytes
+
+  Always use the little-endian byte order when reading and writing scalars and arrays.

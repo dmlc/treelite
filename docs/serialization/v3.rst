@@ -117,7 +117,7 @@ written to the byte sequence in the exact order they appear in the following lis
      - Content (``matching_categories_``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
        the sub-array ``matching_categories_[matching_categories_offset_[i]:matching_categories_offset_[i+1]]`` yields the
        category list of the i-th node.
-     - Beginning offset of each segment (``matching_categories_offset_``)
+     - Beginning offset of each segment (``matching_categories_offset_``): an array of ``size_t``.
 
    * Extension slot 2: Per-tree optional fields. This field is unused in the v3 version.
 

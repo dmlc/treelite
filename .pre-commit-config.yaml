@@ -50,7 +50,7 @@ repos:
       language: python
       args: [
         "--linelength=100", "--recursive",
-        "--filter=-build/c++11,-build/include,-build/namespaces_literals,-runtime/references,+build/include_what_you_use,+build/include_order",
+        "--filter=-build/c++11,-build/include,-build/namespaces_literals,-runtime/references,-build/include_order,+build/include_what_you_use",
         "--root=include"]
       additional_dependencies: [cpplint]
       types_or: [c++]

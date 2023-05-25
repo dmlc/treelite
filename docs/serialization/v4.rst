@@ -24,6 +24,7 @@ We first define a set of enum types to be used in the serialization format.
   - ``kLearningToRank`` (2): learning-to-rank
   - ``kMultiClfGrovePerClass`` (3): multi-class classifier with grove-per-class
   - ``kMultiClfProbDistLeaf`` (4): multi-class classifier with vector leaf outputs producing probability distribution
+  - ``kIsolationForest`` (5): isolation forest
 
 * ``Operator``: underlying type ``int8_t``. Indicates the comparison operator used in an internal test node in a tree.
 
@@ -74,7 +75,7 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``pred_transform``: 256-character long ``char`` array. Stores a human-readable name of the transformation function that's applied to prediction outputs. The unused elements in the array should be padded with null characters (``\0``).
      - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
      - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
-   * ``base_scores``: an array of ``float``. This vector is expected to have length ``num_target``.
+   * ``base_scores``: an array of ``LeafOutputType``. This vector is expected to have length ``num_target``.
      The predicted margin scores of all data points will be adjusted by this vector.
 
      .. note:: Writing an array to the disk or a stream

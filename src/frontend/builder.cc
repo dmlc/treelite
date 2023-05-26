@@ -11,6 +11,8 @@
 
 #include <memory>
 #include <queue>
+#include <type_traits>
+#include <variant>
 
 /* data structures with underscore prefixes are internal use only and don't have external linkage */
 namespace {
@@ -97,9 +99,6 @@ struct ModelBuilderImpl {
     TREELITE_CHECK(leaf_output_type != TypeInfo::kInvalid)
         << "ModelBuilder: leaf_output_type can't be invalid";
   }
-  // Templatized implementation of CommitModel()
-  template <typename ThresholdType, typename LeafOutputType>
-  void CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_model);
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -404,128 +403,133 @@ void ModelBuilder::DeleteTree(int index) {
 }
 
 std::unique_ptr<Model> ModelBuilder::CommitModel() {
-  std::unique_ptr<Model> model_ptr
-      = Model::Create(pimpl_->threshold_type, pimpl_->leaf_output_type);
-  model_ptr->Dispatch([this](auto& model) { this->pimpl_->CommitModelImpl(&model); });
-  return model_ptr;
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-void ModelBuilderImpl::CommitModelImpl(ModelImpl<ThresholdType, LeafOutputType>* out_model) {
-  ModelImpl<ThresholdType, LeafOutputType>& model = *out_model;
-  model.num_feature = this->num_feature;
-  model.average_tree_output = this->average_tree_output;
-  model.task_param.output_type = TaskParam::OutputType::kFloat;
-  model.task_param.num_class = this->num_class;
+  std::unique_ptr<Model> model = Model::Create(pimpl_->threshold_type, pimpl_->leaf_output_type);
+  model->num_feature = pimpl_->num_feature;
+  model->average_tree_output = pimpl_->average_tree_output;
+  model->task_param.output_type = TaskParam::OutputType::kFloat;
+  model->task_param.num_class = pimpl_->num_class;
   // extra parameters
-  InitParamAndCheck(&model.param, this->cfg);
+  InitParamAndCheck(&model->param, pimpl_->cfg);
 
   // flag to check consistent use of leaf vector
   // 0: no leaf should use leaf vector
   // 1: every leaf should use leaf vector
   // -1: indeterminate
-  int8_t flag_leaf_vector = -1;
+  std::int8_t flag_leaf_vector = -1;
 
-  for (auto const& tree_builder : this->trees) {
-    auto const& _tree = tree_builder.pimpl_->tree;
-    TREELITE_CHECK(_tree.root) << "CommitModel: a tree has no root node";
-    TREELITE_CHECK(_tree.root->status != NodeDraft::Status::kEmpty)
-        << "SetRootNode: cannot set an empty node as root";
-    model.trees.emplace_back();
-    Tree<ThresholdType, LeafOutputType>& tree = model.trees.back();
-    tree.Init();
+  std::visit(
+      [&](auto&& concrete_model) {
+        using ModelType =
+            typename std::remove_const_t<std::remove_reference_t<decltype(concrete_model)>>;
+        using ThresholdType = typename ModelType::threshold_type;
+        using LeafOutputType = typename ModelType::leaf_output_type;
+        for (auto const& tree_builder : pimpl_->trees) {
+          auto const& _tree = tree_builder.pimpl_->tree;
+          TREELITE_CHECK(_tree.root) << "CommitModel: a tree has no root node";
+          TREELITE_CHECK(_tree.root->status != NodeDraft::Status::kEmpty)
+              << "SetRootNode: cannot set an empty node as root";
+          concrete_model.trees.emplace_back();
+          auto& tree = concrete_model.trees.back();
+          tree.Init();
 
-    // assign node ID's so that a breadth-wise traversal would yield
-    // the monotonic sequence 0, 1, 2, ...
-    std::queue<std::pair<NodeDraft const*, int>> Q;  // (internal pointer, ID)
-    Q.push({_tree.root, 0});  // assign 0 to root
-    while (!Q.empty()) {
-      NodeDraft const* node;
-      int nid;
-      std::tie(node, nid) = Q.front();
-      Q.pop();
-      TREELITE_CHECK(node->status != NodeDraft::Status::kEmpty)
-          << "CommitModel: encountered an empty node in the middle of a tree";
-      if (node->status == NodeDraft::Status::kNumericalTest) {
-        TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
-        TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
-        TREELITE_CHECK(node->left_child->parent == node)
-            << "CommitModel: left child has wrong parent";
-        TREELITE_CHECK(node->right_child->parent == node)
-            << "CommitModel: right child has wrong parent";
-        tree.AddChilds(nid);
-        TREELITE_CHECK(node->threshold.GetValueType() == TypeToInfo<ThresholdType>())
-            << "CommitModel: The specified threshold has incorrect type. Expected: "
-            << TypeInfoToString(TypeToInfo<ThresholdType>())
-            << " Given: " << TypeInfoToString(node->threshold.GetValueType());
-        ThresholdType threshold = node->threshold.Get<ThresholdType>();
-        tree.SetNumericalSplit(nid, node->feature_id, threshold, node->default_left, node->op);
-        Q.push({node->left_child, tree.LeftChild(nid)});
-        Q.push({node->right_child, tree.RightChild(nid)});
-      } else if (node->status == NodeDraft::Status::kCategoricalTest) {
-        TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
-        TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
-        TREELITE_CHECK(node->left_child->parent == node)
-            << "CommitModel: left child has wrong parent";
-        TREELITE_CHECK(node->right_child->parent == node)
-            << "CommitModel: right child has wrong parent";
-        tree.AddChilds(nid);
-        tree.SetCategoricalSplit(
-            nid, node->feature_id, node->default_left, node->left_categories, false);
-        Q.push({node->left_child, tree.LeftChild(nid)});
-        Q.push({node->right_child, tree.RightChild(nid)});
-      } else {  // leaf node
-        TREELITE_CHECK(node->left_child == nullptr && node->right_child == nullptr)
-            << "CommitModel: a leaf node cannot have children";
-        if (!node->leaf_vector.empty()) {  // leaf vector exists
-          TREELITE_CHECK_NE(flag_leaf_vector, 0) << "CommitModel: Inconsistent use of leaf vector: "
-                                                    "if one leaf node uses a leaf vector, "
-                                                 << "*every* leaf node must use a leaf vector";
-          flag_leaf_vector = 1;  // now every leaf must use leaf vector
-          TREELITE_CHECK_EQ(node->leaf_vector.size(), model.task_param.num_class)
-              << "CommitModel: The length of leaf vector must be identical to the number of output "
-              << "groups";
-          SetLeafVector(&tree, nid, node->leaf_vector);
-        } else {  // ordinary leaf
-          TREELITE_CHECK_NE(flag_leaf_vector, 1)
-              << "CommitModel: Inconsistent use of leaf vector: if one leaf node does not use a "
-                 "leaf "
-              << "vector, *no other* leaf node can use a leaf vector";
-          flag_leaf_vector = 0;  // now no leaf can use leaf vector
-          TREELITE_CHECK(node->leaf_value.GetValueType() == TypeToInfo<LeafOutputType>())
-              << "CommitModel: The specified leaf value has incorrect type. Expected: "
-              << TypeInfoToString(TypeToInfo<LeafOutputType>())
-              << " Given: " << TypeInfoToString(node->leaf_value.GetValueType());
-          LeafOutputType leaf_value = node->leaf_value.Get<LeafOutputType>();
-          tree.SetLeaf(nid, leaf_value);
+          // assign node ID's so that a breadth-wise traversal would yield
+          // the monotonic sequence 0, 1, 2, ...
+          std::queue<std::pair<NodeDraft const*, int>> Q;  // (internal pointer, ID)
+          Q.push({_tree.root, 0});  // assign 0 to root
+          while (!Q.empty()) {
+            NodeDraft const* node;
+            int nid;
+            std::tie(node, nid) = Q.front();
+            Q.pop();
+            TREELITE_CHECK(node->status != NodeDraft::Status::kEmpty)
+                << "CommitModel: encountered an empty node in the middle of a tree";
+            if (node->status == NodeDraft::Status::kNumericalTest) {
+              TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
+              TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
+              TREELITE_CHECK(node->left_child->parent == node)
+                  << "CommitModel: left child has wrong parent";
+              TREELITE_CHECK(node->right_child->parent == node)
+                  << "CommitModel: right child has wrong parent";
+              tree.AddChilds(nid);
+              TREELITE_CHECK(node->threshold.GetValueType() == TypeToInfo<ThresholdType>())
+                  << "CommitModel: The specified threshold has incorrect type. Expected: "
+                  << TypeInfoToString(TypeToInfo<ThresholdType>())
+                  << " Given: " << TypeInfoToString(node->threshold.GetValueType());
+              ThresholdType threshold = node->threshold.Get<ThresholdType>();
+              tree.SetNumericalSplit(
+                  nid, node->feature_id, threshold, node->default_left, node->op);
+              Q.push({node->left_child, tree.LeftChild(nid)});
+              Q.push({node->right_child, tree.RightChild(nid)});
+            } else if (node->status == NodeDraft::Status::kCategoricalTest) {
+              TREELITE_CHECK(node->left_child) << "CommitModel: a test node lacks a left child";
+              TREELITE_CHECK(node->right_child) << "CommitModel: a test node lacks a right child";
+              TREELITE_CHECK(node->left_child->parent == node)
+                  << "CommitModel: left child has wrong parent";
+              TREELITE_CHECK(node->right_child->parent == node)
+                  << "CommitModel: right child has wrong parent";
+              tree.AddChilds(nid);
+              tree.SetCategoricalSplit(
+                  nid, node->feature_id, node->default_left, node->left_categories, false);
+              Q.push({node->left_child, tree.LeftChild(nid)});
+              Q.push({node->right_child, tree.RightChild(nid)});
+            } else {  // leaf node
+              TREELITE_CHECK(node->left_child == nullptr && node->right_child == nullptr)
+                  << "CommitModel: a leaf node cannot have children";
+              if (!node->leaf_vector.empty()) {  // leaf vector exists
+                TREELITE_CHECK_NE(flag_leaf_vector, 0)
+                    << "CommitModel: Inconsistent use of leaf vector: "
+                       "if one leaf node uses a leaf vector, "
+                    << "*every* leaf node must use a leaf vector";
+                flag_leaf_vector = 1;  // now every leaf must use leaf vector
+                TREELITE_CHECK_EQ(node->leaf_vector.size(), model->task_param.num_class)
+                    << "CommitModel: The length of leaf vector must be identical to the number of "
+                       "output "
+                    << "groups";
+                SetLeafVector(&tree, nid, node->leaf_vector);
+              } else {  // ordinary leaf
+                TREELITE_CHECK_NE(flag_leaf_vector, 1)
+                    << "CommitModel: Inconsistent use of leaf vector: if one leaf node does not "
+                       "use a "
+                       "leaf "
+                    << "vector, *no other* leaf node can use a leaf vector";
+                flag_leaf_vector = 0;  // now no leaf can use leaf vector
+                TREELITE_CHECK(node->leaf_value.GetValueType() == TypeToInfo<LeafOutputType>())
+                    << "CommitModel: The specified leaf value has incorrect type. Expected: "
+                    << TypeInfoToString(TypeToInfo<LeafOutputType>())
+                    << " Given: " << TypeInfoToString(node->leaf_value.GetValueType());
+                LeafOutputType leaf_value = node->leaf_value.Get<LeafOutputType>();
+                tree.SetLeaf(nid, leaf_value);
+              }
+            }
+          }
         }
-      }
-    }
-  }
+      },
+      model->variant_);
   if (flag_leaf_vector == 0) {
-    model.task_param.leaf_vector_size = 1;
-    if (model.task_param.num_class > 1) {
+    model->task_param.leaf_vector_size = 1;
+    if (model->task_param.num_class > 1) {
       // multi-class classifier, XGBoost/LightGBM style
-      model.task_type = TaskType::kMultiClfGrovePerClass;
-      model.task_param.grove_per_class = true;
-      TREELITE_CHECK_EQ(this->trees.size() % model.task_param.num_class, 0)
+      model->task_type = TaskType::kMultiClfGrovePerClass;
+      model->task_param.grove_per_class = true;
+      TREELITE_CHECK_EQ(model->GetNumTree() % model->task_param.num_class, 0)
           << "For multi-class classifiers with gradient boosted trees, the number of trees must be "
           << "evenly divisible by the number of output groups";
     } else {
       // binary classifier or regressor
-      model.task_type = TaskType::kBinaryClfRegr;
-      model.task_param.grove_per_class = false;
+      model->task_type = TaskType::kBinaryClfRegr;
+      model->task_param.grove_per_class = false;
     }
   } else if (flag_leaf_vector == 1) {
     // multi-class classifier, sklearn RF style
-    model.task_type = TaskType::kMultiClfProbDistLeaf;
-    model.task_param.grove_per_class = false;
-    TREELITE_CHECK_GT(model.task_param.num_class, 1)
+    model->task_type = TaskType::kMultiClfProbDistLeaf;
+    model->task_param.grove_per_class = false;
+    TREELITE_CHECK_GT(model->task_param.num_class, 1)
         << "Expected leaf vectors with length exceeding 1";
-    model.task_param.leaf_vector_size = model.task_param.num_class;
+    model->task_param.leaf_vector_size = model->task_param.num_class;
   } else {
     TREELITE_LOG(FATAL) << "Impossible thing happened: model has no leaf node!";
   }
+  return model;
 }
 
 template Value Value::Create(uint32_t init_value);

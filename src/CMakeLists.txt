@@ -102,6 +102,8 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
     ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/omp_exception.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/pybuffer_frame.h
     ${PROJECT_SOURCE_DIR}/include/treelite/task_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
@@ -112,6 +114,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/omp_exception.h
     ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer.h
 )
 
 # In MSVC solution, group sources according to directories

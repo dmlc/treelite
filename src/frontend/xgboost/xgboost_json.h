@@ -337,7 +337,7 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
 struct ParsedXGBoostModel {
   std::unique_ptr<treelite::Model> model_ptr;
-  treelite::ModelImpl<float, float>* model;
+  treelite::Model* model;
   std::vector<unsigned> version;
   std::vector<int> tree_info;
   std::string objective_name;
@@ -423,9 +423,9 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
-class LearnerParamHandler : public OutputHandler<treelite::ModelImpl<float, float>> {
+class LearnerParamHandler : public OutputHandler<treelite::Model> {
  public:
-  using OutputHandler<treelite::ModelImpl<float, float>>::OutputHandler;
+  using OutputHandler<treelite::Model>::OutputHandler;
   bool String(char const* str, std::size_t length, bool copy) override;
 
  protected:
@@ -539,7 +539,7 @@ class DelegatedHandler :
       : delegates{},
         result{treelite::Model::Create<float, float>(), nullptr, {}, {}, ""},
         handler_config_{handler_config} {
-    result.model = dynamic_cast<treelite::ModelImpl<float, float>*>(result.model_ptr.get());
+    result.model = result.model_ptr.get();
   }
 
   std::stack<std::shared_ptr<BaseHandler>> delegates;

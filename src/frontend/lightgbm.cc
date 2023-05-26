@@ -401,8 +401,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   /* 2. Export model */
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
-  auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
+  std::unique_ptr<treelite::Model> model = treelite::Model::Create<double, double>();
   model->num_feature = max_feature_idx_ + 1;
   model->average_tree_output = average_output_;
   if (num_class_ > 1) {
@@ -501,9 +500,10 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   // traverse trees
+  auto& model_inner = std::get<treelite::ModelPreset<double, double>>(model->variant_);
   for (auto const& lgb_tree : lgb_trees_) {
-    model->trees.emplace_back();
-    treelite::Tree<double, double>& tree = model->trees.back();
+    model_inner.trees.emplace_back();
+    treelite::Tree<double, double>& tree = model_inner.trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -570,7 +570,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       }
     }
   }
-  return model_ptr;
+  return model;
 }
 
 }  // anonymous namespace

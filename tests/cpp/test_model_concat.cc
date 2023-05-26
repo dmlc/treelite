@@ -62,10 +62,9 @@ TEST(ModelConcatenation, TreeStump) {
   std::unique_ptr<Model> concatenated_model = ConcatenateModelObjects(model_obj_refs);
   ASSERT_EQ(concatenated_model->GetNumTree(), kNumModelObjs);
   TestRoundTrip(concatenated_model.get());
-  auto const* concatenated_model_casted
-      = dynamic_cast<ModelImpl<float, float> const*>(concatenated_model.get());
+  auto& trees = std::get<ModelPreset<float, float>>(concatenated_model->variant_).trees;
   for (int i = 0; i < kNumModelObjs; ++i) {
-    auto const& tree = concatenated_model_casted->trees[i];
+    auto const& tree = trees[i];
     ASSERT_FALSE(tree.IsLeaf(0));
     ASSERT_TRUE(tree.IsLeaf(1));
     ASSERT_TRUE(tree.IsLeaf(2));

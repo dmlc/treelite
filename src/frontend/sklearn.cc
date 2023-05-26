@@ -19,43 +19,44 @@ namespace frontend {
 
 template <typename MetaHandlerFunc, typename LeafHandlerFunc>
 std::unique_ptr<treelite::Model> LoadSKLearnModel(int n_trees, int n_features, int n_classes,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
-    MetaHandlerFunc meta_handler, LeafHandlerFunc leaf_handler) {
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, MetaHandlerFunc meta_handler,
+    LeafHandlerFunc leaf_handler) {
   TREELITE_CHECK_GT(n_trees, 0);
   TREELITE_CHECK_GT(n_features, 0);
 
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
-  meta_handler(model_ptr.get(), n_features, n_classes);
-  auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
+  std::unique_ptr<Model> model = Model::Create<double, double>();
+  auto& model_inner = std::get<ModelPreset<double, double>>(model->variant_);
+  meta_handler(model.get(), n_features, n_classes);
 
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
-    model->trees.emplace_back();
-    treelite::Tree<double, double>& tree = model->trees.back();
+    model_inner.trees.emplace_back();
+    Tree<double, double>& tree = model_inner.trees.back();
     tree.Init();
 
     // Assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
-    std::queue<std::pair<int64_t, int>> Q;  // (old ID, new ID) pair
+    std::queue<std::pair<std::int64_t, int>> Q;  // (old ID, new ID) pair
     Q.push({0, 0});
-    const int64_t total_sample_cnt = n_node_samples[tree_id][0];
+    const std::int64_t total_sample_cnt = n_node_samples[tree_id][0];
     while (!Q.empty()) {
-      int64_t node_id;
+      std::int64_t node_id;
       int new_node_id;
       std::tie(node_id, new_node_id) = Q.front();
       Q.pop();
-      const int64_t left_child_id = children_left[tree_id][node_id];
-      const int64_t right_child_id = children_right[tree_id][node_id];
-      const int64_t sample_cnt = n_node_samples[tree_id][node_id];
+      const std::int64_t left_child_id = children_left[tree_id][node_id];
+      const std::int64_t right_child_id = children_right[tree_id][node_id];
+      const std::int64_t sample_cnt = n_node_samples[tree_id][node_id];
       double const weighted_sample_cnt = weighted_n_node_samples[tree_id][node_id];
       if (left_child_id == -1) {  // leaf node
         leaf_handler(tree_id, node_id, new_node_id, value, n_classes, tree);
       } else {
-        const int64_t split_index = feature[tree_id][node_id];
+        const std::int64_t split_index = feature[tree_id][node_id];
         double const split_cond = threshold[tree_id][node_id];
-        const int64_t left_child_sample_cnt = n_node_samples[tree_id][left_child_id];
-        const int64_t right_child_sample_cnt = n_node_samples[tree_id][right_child_id];
+        const std::int64_t left_child_sample_cnt = n_node_samples[tree_id][left_child_id];
+        const std::int64_t right_child_sample_cnt = n_node_samples[tree_id][right_child_id];
         double const gain
             = sample_cnt
               * (impurity[tree_id][node_id]
@@ -73,43 +74,43 @@ std::unique_ptr<treelite::Model> LoadSKLearnModel(int n_trees, int n_features, i
       tree.SetSumHess(new_node_id, weighted_sample_cnt);
     }
   }
-  return model_ptr;
+  return model;
 }
 
 template <typename MetaHandlerFunc, typename LeafHandlerFunc>
 std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoosting(int n_trees, int n_features,
     int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    std::int8_t const** default_left, double const** value, int64_t const** n_node_samples,
+    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
     double const** gain, MetaHandlerFunc meta_handler, LeafHandlerFunc leaf_handler) {
   TREELITE_CHECK_GT(n_trees, 0);
   TREELITE_CHECK_GT(n_features, 0);
 
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
-  meta_handler(model_ptr.get(), n_features, n_classes);
-  auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
+  std::unique_ptr<Model> model = Model::Create<double, double>();
+  auto& model_inner = std::get<ModelPreset<double, double>>(model->variant_);
+  meta_handler(model.get(), n_features, n_classes);
 
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
-    model->trees.emplace_back();
-    treelite::Tree<double, double>& tree = model->trees.back();
+    model_inner.trees.emplace_back();
+    treelite::Tree<double, double>& tree = model_inner.trees.back();
     tree.Init();
 
     // Assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
-    std::queue<std::pair<int64_t, int>> Q;  // (old ID, new ID) pair
+    std::queue<std::pair<std::int64_t, int>> Q;  // (old ID, new ID) pair
     Q.emplace(0, 0);
     while (!Q.empty()) {
-      int64_t node_id;
+      std::int64_t node_id;
       int new_node_id;
       std::tie(node_id, new_node_id) = Q.front();
       Q.pop();
-      const int64_t left_child_id = children_left[tree_id][node_id];
-      const int64_t right_child_id = children_right[tree_id][node_id];
-      const int64_t sample_cnt = n_node_samples[tree_id][node_id];
+      const std::int64_t left_child_id = children_left[tree_id][node_id];
+      const std::int64_t right_child_id = children_right[tree_id][node_id];
+      const std::int64_t sample_cnt = n_node_samples[tree_id][node_id];
       if (left_child_id == -1) {  // leaf node
         leaf_handler(tree_id, node_id, new_node_id, value, n_classes, tree);
       } else {
-        const int64_t split_index = feature[tree_id][node_id];
+        const std::int64_t split_index = feature[tree_id][node_id];
         double const split_cond = threshold[tree_id][node_id];
         tree.AddChilds(new_node_id);
         tree.SetNumericalSplit(new_node_id, split_index, split_cond,
@@ -121,14 +122,14 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoosting(int n_trees, in
       tree.SetDataCount(new_node_id, sample_cnt);
     }
   }
-  return model_ptr;
+  return model;
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(int n_estimators, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity) {
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
     model->average_tree_output = true;
@@ -140,7 +141,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(int n_estimato
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -151,10 +152,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(int n_estimato
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
-    double const ratio_c) {
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, double const ratio_c) {
   auto meta_handler = [ratio_c](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
     model->average_tree_output = true;
@@ -167,7 +168,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, in
         sizeof(model->param.pred_transform));
     model->param.ratio_c = ratio_c;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -178,9 +179,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, in
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierBinary(int n_estimators,
-    int n_features, int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    int n_features, int n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
     double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
@@ -193,7 +195,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierBinary(int n_e
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     // Get counts for each label (+/-) at this leaf node
     const double* leaf_count = &value[tree_id][node_id * 2];
@@ -207,9 +209,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierBinary(int n_e
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierMulticlass(int n_estimators,
-    int n_features, int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    int n_features, int n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
     double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
@@ -223,7 +226,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierMulticlass(int
         model->param.pred_transform, "identity_multiclass", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     // Get counts for each label class at this leaf node
     std::vector<double> prob_distribution(
@@ -241,10 +244,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifierMulticlass(int
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(int n_estimators, int n_features,
-    int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity) {
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity) {
   TREELITE_CHECK_GE(n_classes, 2) << "Number of classes must be at least 2";
   if (n_classes == 2) {
     return LoadSKLearnRandomForestClassifierBinary(n_estimators, n_features, n_classes, node_count,
@@ -258,10 +261,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(int n_estimat
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(int n_iter, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity) {
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
     model->average_tree_output = false;
@@ -273,7 +276,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(int n_iter
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -284,9 +287,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(int n_iter
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(int n_iter,
-    int n_features, int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    int n_features, int n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
     double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
@@ -299,7 +303,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(int
     std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -310,9 +314,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierBinary(int
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass(int n_iter,
-    int n_features, int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    int n_features, int n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
     double const** impurity) {
   auto meta_handler = [](treelite::Model* model, int n_features, int n_classes) {
     model->num_feature = n_features;
@@ -325,7 +330,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass
     std::strncpy(model->param.pred_transform, "softmax", sizeof(model->param.pred_transform));
     model->param.global_bias = 0.0f;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -336,10 +341,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifierMulticlass
 }
 
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(int n_iter, int n_features,
-    int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity) {
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity) {
   TREELITE_CHECK_GE(n_classes, 2) << "Number of classes must be at least 2";
   if (n_classes == 2) {
     return LoadSKLearnGradientBoostingClassifierBinary(n_iter, n_features, n_classes, node_count,
@@ -369,7 +374,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingRegressor(int n_
     std::strncpy(model->param.pred_transform, "identity", sizeof(model->param.pred_transform));
     model->param.global_bias = global_bias;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);
@@ -397,7 +402,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnHistGradientBoostingClassifierBinary
     std::strncpy(model->param.pred_transform, "sigmoid", sizeof(model->param.pred_transform));
     model->param.global_bias = global_bias;
   };
-  auto leaf_handler = [](int tree_id, int64_t node_id, int new_node_id, double const** value,
+  auto leaf_handler = [](int tree_id, std::int64_t node_id, int new_node_id, double const** value,
                           int n_classes, treelite::Tree<double, double>& dest_tree) {
     const double leaf_value = value[tree_id][node_id];
     dest_tree.SetLeaf(new_node_id, leaf_value);

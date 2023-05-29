@@ -7,7 +7,7 @@
 #ifndef TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 #define TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 
-#include <treelite/error.h>
+#include <treelite/logging.h>
 
 #include <cstddef>
 #include <cstring>

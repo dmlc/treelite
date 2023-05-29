@@ -178,7 +178,7 @@ class Deserializer {
     /* Extension slot 3: Per-node optional fields -- to be added later */
     mixin_.DeserializePrimitiveField(&tree.num_opt_field_per_node_);
     // Ignore extra fields; the input is likely from a later version of Treelite
-    for (int32_t i = 0; i < tree.num_opt_field_per_node_; ++i) {
+    for (std::int32_t i = 0; i < tree.num_opt_field_per_node_; ++i) {
       mixin_.SkipOptionalField();
     }
   }

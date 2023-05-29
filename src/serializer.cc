@@ -6,7 +6,7 @@
  */
 
 #include <treelite/detail/serializer_mixins.h>
-#include <treelite/error.h>
+#include <treelite/logging.h>
 #include <treelite/tree.h>
 #include <treelite/version.h>
 

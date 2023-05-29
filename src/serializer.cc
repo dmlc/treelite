@@ -61,6 +61,7 @@ class Serializer {
 
   template <typename ThresholdType, typename LeafOutputType>
   void SerializeTree(Tree<ThresholdType, LeafOutputType>& tree) {
+    TREELITE_CHECK_EQ(tree.num_nodes, tree.nodes_.Size()) << "Incorrect number of nodes";
     mixin_.SerializePrimitiveField(&tree.num_nodes);
     mixin_.SerializePrimitiveField(&tree.has_categorical_split_);
     mixin_.SerializeCompositeArray(&tree.nodes_, tree.GetFormatStringForNode());

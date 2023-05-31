@@ -112,34 +112,35 @@ class PyBufferSerializerMixIn {
 class PyBufferDeserializerMixIn {
  public:
   explicit PyBufferDeserializerMixIn(std::vector<PyBufferFrame> const& frames)
-      : it_(frames.cbegin()) {}
+      : frames_(frames), cur_idx_(0) {}
 
   template <typename T>
   void DeserializePrimitiveField(T* field) {
-    InitScalarFromPyBuffer(field, *it_++);
+    InitScalarFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   template <typename T>
   void DeserializeCompositeField(T* field) {
-    InitScalarFromPyBuffer(field, *it_++);
+    InitScalarFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   template <typename T>
   void DeserializePrimitiveArray(T* field) {
-    InitArrayFromPyBuffer(field, *it_++);
+    InitArrayFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   template <typename T>
   void DeserializeCompositeArray(T* field) {
-    InitArrayFromPyBuffer(field, *it_++);
+    InitArrayFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   void SkipOptionalField() {
-    ++it_;
+    ++cur_idx_;
   }
 
  private:
-  std::vector<PyBufferFrame>::const_iterator it_;
+  std::vector<PyBufferFrame> const& frames_;
+  std::size_t cur_idx_;
 };
 
 }  // namespace treelite::detail::serializer

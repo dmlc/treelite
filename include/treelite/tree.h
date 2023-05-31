@@ -10,6 +10,7 @@
 #include <treelite/base.h>
 #include <treelite/contiguous_array.h>
 #include <treelite/logging.h>
+#include <treelite/pybuffer_frame.h>
 #include <treelite/task_type.h>
 #include <treelite/version.h>
 
@@ -39,6 +40,15 @@
 #define TREELITE_DLL_EXPORT
 #endif
 
+namespace treelite::detail::serializer {
+
+template <typename MixIn>
+class Serializer;
+template <typename MixIn>
+class Deserializer;
+
+}  // namespace treelite::detail::serializer
+
 namespace treelite {
 
 class GTILBridge;
@@ -52,17 +62,6 @@ struct Version {
   std::int32_t minor_ver;
   std::int32_t patch_ver;
 };
-
-// Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
-// to hold only 1-D arrays with stride 1.
-struct PyBufferFrame {
-  void* buf;
-  char* format;
-  std::size_t itemsize;
-  std::size_t nitem;
-};
-
-static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 
 /*! \brief Group of parameters that are dependent on the choice of the task type. */
 struct TaskParam {
@@ -247,7 +246,7 @@ class Tree {
                     || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
       "Node size incorrect");
 
-  explicit Tree(bool use_opt_field = true);
+  Tree() = default;
   ~Tree() = default;
   Tree(Tree const&) = delete;
   Tree& operator=(Tree const&) = delete;
@@ -257,13 +256,6 @@ class Tree {
   inline Tree<ThresholdType, LeafOutputType> Clone() const;
 
   inline char const* GetFormatStringForNode();
-  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest);
-  inline void SerializeToStream(std::ostream& os);
-  // Load a Tree object from a sequence of PyBuffer frames
-  // Returns the updated position of the cursor in the sequence
-  inline std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
-      std::vector<PyBufferFrame>::iterator it);
-  inline void DeserializeFromStream(std::istream& is);
 
  private:
   // vector of nodes
@@ -290,16 +282,13 @@ class Tree {
   template <typename WriterType, typename X, typename Y>
   friend void DumpTreeAsJSON(WriterType& writer, Tree<X, Y> const& tree);
 
+  template <typename MixIn>
+  friend class detail::serializer::Serializer;
+  template <typename MixIn>
+  friend class detail::serializer::Deserializer;
+
   // allocate a new node
   inline int AllocNode();
-
-  // utility functions used for serialization, internal use only
-  template <typename ScalarHandler, typename PrimitiveArrayHandler, typename CompositeArrayHandler>
-  inline void SerializeTemplate(ScalarHandler scalar_handler,
-      PrimitiveArrayHandler primitive_array_handler, CompositeArrayHandler composite_array_handler);
-  template <typename ScalarHandler, typename ArrayHandler, typename SkipOptFieldHandlerFunc>
-  inline void DeserializeTemplate(ScalarHandler scalar_handler, ArrayHandler array_handler,
-      SkipOptFieldHandlerFunc skip_opt_field_handler);
 
   friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
 
@@ -690,7 +679,7 @@ class Model {
    * \brief number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
-  int32_t num_feature{0};
+  std::int32_t num_feature{0};
   /*! \brief Task type */
   TaskType task_type;
   /*! \brief whether to average tree outputs */
@@ -703,32 +692,22 @@ class Model {
  protected:
   /* Note: the following member fields shall be re-computed at serialization time */
   // Number of trees
-  uint64_t num_tree_{0};
+  std::uint64_t num_tree_{0};
   // Number of optional fields in the extension slot
-  int32_t num_opt_field_per_model_{0};
+  std::int32_t num_opt_field_per_model_{0};
   // Which Treelite version produced this model
-  int32_t major_ver_;
-  int32_t minor_ver_;
-  int32_t patch_ver_;
+  std::int32_t major_ver_;
+  std::int32_t minor_ver_;
+  std::int32_t patch_ver_;
 
  private:
   TypeInfo threshold_type_{TypeInfo::kInvalid};
   TypeInfo leaf_output_type_{TypeInfo::kInvalid};
-  // Internal functions for serialization
-  virtual void GetPyBuffer(std::vector<PyBufferFrame>* dest) = 0;
-  virtual void SerializeToStreamImpl(std::ostream& os) = 0;
-  // Load a Model object from a sequence of PyBuffer frames
-  // Returns the updated position of the cursor in the sequence
-  virtual std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
-      std::vector<PyBufferFrame>::iterator it, std::size_t num_frame)
-      = 0;
-  virtual void DeserializeFromStreamImpl(std::istream& is) = 0;
-  template <typename HeaderPrimitiveFieldHandlerFunc>
-  inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler);
-  template <typename HeaderPrimitiveFieldHandlerFunc>
-  inline static void DeserializeTemplate(
-      HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler, int32_t& major_ver,
-      int32_t& minor_ver, int32_t& patch_ver, TypeInfo& threshold_type, TypeInfo& leaf_output_type);
+
+  template <typename MixIn>
+  friend class detail::serializer::Serializer;
+  template <typename MixIn>
+  friend class detail::serializer::Deserializer;
 };
 
 template <typename ThresholdType, typename LeafOutputType>
@@ -752,24 +731,6 @@ class ModelImpl : public Model {
   void SetTreeLimit(std::size_t limit) override {
     return trees.resize(limit);
   }
-
-  inline void GetPyBuffer(std::vector<PyBufferFrame>* dest) override;
-  inline void SerializeToStreamImpl(std::ostream& os) override;
-  // Load a ModelImpl object from a sequence of PyBuffer frames
-  // Returns the updated position of the cursor in the sequence
-  inline std::vector<PyBufferFrame>::iterator InitFromPyBuffer(
-      std::vector<PyBufferFrame>::iterator it, std::size_t num_frame) override;
-  inline void DeserializeFromStreamImpl(std::istream& is) override;
-
- private:
-  template <typename HeaderPrimitiveFieldHandlerFunc, typename HeaderCompositeFieldHandlerFunc,
-      typename TreeHandlerFunc>
-  inline void SerializeTemplate(HeaderPrimitiveFieldHandlerFunc header_primitive_field_handler,
-      HeaderCompositeFieldHandlerFunc header_composite_field_handler, TreeHandlerFunc tree_handler);
-  template <typename HeaderFieldHandlerFunc, typename TreeHandlerFunc,
-      typename SkipOptFieldHandlerFunc>
-  inline void DeserializeTemplate(size_t num_tree, HeaderFieldHandlerFunc header_field_handler,
-      TreeHandlerFunc tree_handler, SkipOptFieldHandlerFunc skip_opt_field_handler);
 };
 
 /*!

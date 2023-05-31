@@ -22,12 +22,14 @@ cdef extern from "treelite/c_api.h":
     ctypedef void* ModelHandle
 
 
-cdef extern from "treelite/tree.h" namespace "treelite":
+cdef extern from "treelite/pybuffer_frame.h" namespace "treelite":
     cdef struct PyBufferFrame:
         void* buf
         char* format
         size_t itemsize
         size_t nitem
+
+cdef extern from "treelite/tree.h" namespace "treelite":
     cdef cppclass Model:
         vector[PyBufferFrame] GetPyBuffer() except +
         @staticmethod

@@ -88,30 +88,33 @@ target_sources(objtreelite
     gtil/pred_transform.cc
     threading_utils/parallel_for.h
     data.cc
-    serializer.cc
     json_serializer.cc
-    model_concat.cc
     logging.cc
+    model_concat.cc
+    serializer.cc
     typeinfo.cc
     ${PROJECT_SOURCE_DIR}/include/treelite/base.h
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/contiguous_array.h
     ${PROJECT_SOURCE_DIR}/include/treelite/data.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
     ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/math.h
     ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/omp_exception.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/pybuffer_frame.h
     ${PROJECT_SOURCE_DIR}/include/treelite/task_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/error.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/math.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/omp_exception.h
     ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_impl.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
 )
 
 # In MSVC solution, group sources according to directories

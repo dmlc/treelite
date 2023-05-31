@@ -236,46 +236,19 @@ inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
 
 template <typename ThresholdType, typename LeafOutputType>
 inline std::unique_ptr<Model> Model::Create() {
-  std::unique_ptr<Model> model = std::make_unique<ModelImpl<ThresholdType, LeafOutputType>>();
-  model->threshold_type_ = TypeToInfo<ThresholdType>();
-  model->leaf_output_type_ = TypeToInfo<LeafOutputType>();
+  std::unique_ptr<Model> model = std::make_unique<Model>();
+  model->variant_ = ModelPreset<ThresholdType, LeafOutputType>();
   return model;
 }
 
-template <typename ThresholdType, typename LeafOutputType>
-class ModelCreateImpl {
- public:
-  inline static std::unique_ptr<Model> Dispatch() {
-    return Model::Create<ThresholdType, LeafOutputType>();
-  }
-};
-
 inline std::unique_ptr<Model> Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
-  return DispatchWithModelTypes<ModelCreateImpl>(threshold_type, leaf_output_type);
-}
-
-template <typename ThresholdType, typename LeafOutputType>
-class ModelDispatchImpl {
- public:
-  template <typename Func>
-  inline static auto Dispatch(Model* model, Func func) {
-    return func(*dynamic_cast<ModelImpl<ThresholdType, LeafOutputType>*>(model));
-  }
-
-  template <typename Func>
-  inline static auto Dispatch(Model const* model, Func func) {
-    return func(*dynamic_cast<ModelImpl<ThresholdType, LeafOutputType> const*>(model));
-  }
-};
-
-template <typename Func>
-inline auto Model::Dispatch(Func func) {
-  return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
-}
-
-template <typename Func>
-inline auto Model::Dispatch(Func func) const {
-  return DispatchWithModelTypes<ModelDispatchImpl>(threshold_type_, leaf_output_type_, this, func);
+  std::unique_ptr<Model> model = std::make_unique<Model>();
+  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64);
+  TREELITE_CHECK(leaf_output_type == TypeInfo::kUInt32 || leaf_output_type == threshold_type);
+  int const target_variant_index
+      = (threshold_type == TypeInfo::kFloat64) * 2 + (leaf_output_type == TypeInfo::kUInt32);
+  model->variant_ = SetModelPresetVariant<0>(target_variant_index);
+  return model;
 }
 
 inline void InitParamAndCheck(

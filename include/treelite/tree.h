@@ -26,6 +26,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #define __TREELITE_STR(x) #x
@@ -613,7 +614,57 @@ static_assert(
 inline void InitParamAndCheck(
     ModelParam* param, std::vector<std::pair<std::string, std::string>> const& cfg);
 
-/*! \brief thin wrapper for tree ensemble model */
+/*! \brief Typed portion of the model class */
+template <typename ThresholdType, typename LeafOutputType>
+class ModelPreset {
+ public:
+  /*! \brief member trees */
+  std::vector<Tree<ThresholdType, LeafOutputType>> trees;
+
+  using threshold_type = ThresholdType;
+  using leaf_output_type = LeafOutputType;
+
+  /*! \brief disable copy; use default move */
+  ModelPreset() = default;
+  ~ModelPreset() = default;
+  ModelPreset(ModelPreset const&) = delete;
+  ModelPreset& operator=(ModelPreset const&) = delete;
+  ModelPreset(ModelPreset&&) noexcept = default;
+  ModelPreset& operator=(ModelPreset&&) noexcept = default;
+
+  inline TypeInfo GetThresholdType() const {
+    return TypeToInfo<ThresholdType>();
+  }
+  inline TypeInfo GetLeafOutputType() const {
+    return TypeToInfo<LeafOutputType>();
+  }
+  inline std::size_t GetNumTree() const {
+    return trees.size();
+  }
+  void SetTreeLimit(std::size_t limit) {
+    return trees.resize(limit);
+  }
+};
+
+using ModelPresetVariant
+    = std::variant<ModelPreset<float, float>, ModelPreset<float, std::uint32_t>,
+        ModelPreset<double, double>, ModelPreset<double, std::uint32_t>>;
+
+template <int variant_index>
+ModelPresetVariant SetModelPresetVariant(int target_variant_index) {
+  ModelPresetVariant result;
+  if constexpr (variant_index != std::variant_size_v<ModelPresetVariant>) {
+    if (variant_index == target_variant_index) {
+      using ModelPresetT = std::variant_alternative_t<variant_index, ModelPresetVariant>;
+      result = ModelPresetT();
+    } else {
+      result = SetModelPresetVariant<variant_index + 1>(target_variant_index);
+    }
+  }
+  return result;
+}
+
+/*! \brief Model class for tree ensemble model */
 class Model {
  public:
   /*! \brief disable copy; use default move */
@@ -627,23 +678,25 @@ class Model {
   Model(Model&&) = default;
   Model& operator=(Model&&) = default;
 
+  ModelPresetVariant variant_;
+
   template <typename ThresholdType, typename LeafOutputType>
   inline static std::unique_ptr<Model> Create();
   inline static std::unique_ptr<Model> Create(TypeInfo threshold_type, TypeInfo leaf_output_type);
   inline TypeInfo GetThresholdType() const {
-    return threshold_type_;
+    return std::visit([](auto&& inner) { return inner.GetThresholdType(); }, variant_);
   }
   inline TypeInfo GetLeafOutputType() const {
-    return leaf_output_type_;
+    return std::visit([](auto&& inner) { return inner.GetLeafOutputType(); }, variant_);
   }
-  template <typename Func>
-  inline auto Dispatch(Func func);
-  template <typename Func>
-  inline auto Dispatch(Func func) const;
 
-  virtual std::size_t GetNumTree() const = 0;
-  virtual void SetTreeLimit(std::size_t limit) = 0;
-  virtual void DumpAsJSON(std::ostream& fo, bool pretty_print) const = 0;
+  inline std::size_t GetNumTree() const {
+    return std::visit([](auto&& inner) { return inner.GetNumTree(); }, variant_);
+  }
+  inline void SetTreeLimit(std::size_t limit) {
+    std::visit([=](auto&& inner) { return inner.SetTreeLimit(limit); }, variant_);
+  }
+  void DumpAsJSON(std::ostream& fo, bool pretty_print) const;
 
   inline std::string DumpAsJSON(bool pretty_print) const {
     std::ostringstream oss;
@@ -653,13 +706,12 @@ class Model {
 
   /* Compatibility Matrix:
      +------------------+----------+----------+----------------+-----------+
-     |                  | To: =2.4 | To: =3.0 | To: >=3.1,<4.0 | To: >=4.0 |
+     |                  | To: =3.9 | To: =4.0 | To: >=4.1,<5.0 | To: >=5.0 |
      +------------------+----------+----------+----------------+-----------+
-     | From: <2.4       | No       | No       | No             | No        |
-     | From: =2.4       | Yes      | Yes      | Yes            | No        |
-     | From: =3.0       | No       | Yes      | Yes            | Yes       |
-     | From: >=3.1,<4.0 | No       | Yes      | Yes            | Yes       |
-     | From: >=4.0      | No       | No       | No             | Yes       |
+     | From: =3.9       | Yes      | Yes      | Yes            | No        |
+     | From: =4.0       | No       | Yes      | Yes            | Yes       |
+     | From: >=4.1,<5.0 | No       | Yes      | Yes            | Yes       |
+     | From: >=5.0      | No       | No       | No             | Yes       |
      +------------------+----------+----------+----------------+-----------+ */
 
   /* In-memory serialization, zero-copy */
@@ -689,7 +741,7 @@ class Model {
   /*! \brief extra parameters */
   ModelParam param{};
 
- protected:
+ private:
   /* Note: the following member fields shall be re-computed at serialization time */
   // Number of trees
   std::uint64_t num_tree_{0};
@@ -699,8 +751,7 @@ class Model {
   std::int32_t major_ver_;
   std::int32_t minor_ver_;
   std::int32_t patch_ver_;
-
- private:
+  // Type parameters
   TypeInfo threshold_type_{TypeInfo::kInvalid};
   TypeInfo leaf_output_type_{TypeInfo::kInvalid};
 
@@ -708,29 +759,6 @@ class Model {
   friend class detail::serializer::Serializer;
   template <typename MixIn>
   friend class detail::serializer::Deserializer;
-};
-
-template <typename ThresholdType, typename LeafOutputType>
-class ModelImpl : public Model {
- public:
-  /*! \brief member trees */
-  std::vector<Tree<ThresholdType, LeafOutputType>> trees;
-
-  /*! \brief disable copy; use default move */
-  ModelImpl() = default;
-  ~ModelImpl() override = default;
-  ModelImpl(ModelImpl const&) = delete;
-  ModelImpl& operator=(ModelImpl const&) = delete;
-  ModelImpl(ModelImpl&&) noexcept = default;
-  ModelImpl& operator=(ModelImpl&&) noexcept = default;
-
-  void DumpAsJSON(std::ostream& fo, bool pretty_print) const override;
-  inline std::size_t GetNumTree() const override {
-    return trees.size();
-  }
-  void SetTreeLimit(std::size_t limit) override {
-    return trees.resize(limit);
-  }
 };
 
 /*!

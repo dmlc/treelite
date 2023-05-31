@@ -24,6 +24,7 @@
 #include <queue>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include "xgboost/xgboost.h"
 
@@ -322,7 +323,7 @@ bool RegTreeHandler::EndObject(std::size_t) {
 
   std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
   if (num_nodes > 0) {
-    Q.push({0, 0});
+    Q.emplace(0, 0);
   }
   while (!Q.empty()) {
     int old_id, new_id;
@@ -330,7 +331,7 @@ bool RegTreeHandler::EndObject(std::size_t) {
     Q.pop();
 
     if (left_children[old_id] == -1) {
-      output.SetLeaf(new_id, split_conditions[old_id]);
+      output.SetLeaf(new_id, static_cast<float>(split_conditions[old_id]));
     } else {
       output.AddChilds(new_id);
       if (split_type[old_id] == details::xgboost::FeatureType::kCategorical) {
@@ -349,12 +350,13 @@ bool RegTreeHandler::EndObject(std::size_t) {
         output.SetCategoricalSplit(
             new_id, split_indices[old_id], default_left[old_id], right_categories, true);
       } else {
-        output.SetNumericalSplit(new_id, split_indices[old_id], split_conditions[old_id],
-            default_left[old_id], treelite::Operator::kLT);
+        output.SetNumericalSplit(new_id, split_indices[old_id],
+            static_cast<float>(split_conditions[old_id]), default_left[old_id],
+            treelite::Operator::kLT);
       }
       output.SetGain(new_id, loss_changes[old_id]);
-      Q.push({left_children[old_id], output.LeftChild(new_id)});
-      Q.push({right_children[old_id], output.RightChild(new_id)});
+      Q.emplace(left_children[old_id], output.LeftChild(new_id));
+      Q.emplace(right_children[old_id], output.RightChild(new_id));
     }
     output.SetSumHess(new_id, sum_hessian[old_id]);
   }
@@ -377,8 +379,9 @@ bool GBTreeModelHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
+  auto& trees = std::get<ModelPreset<float, float>>(output.model->variant_).trees;
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
-              std::vector<treelite::Tree<float, float>>>("trees", output.model->trees)
+              std::vector<treelite::Tree<float, float>>>("trees", trees)
           || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
 }
 
@@ -438,12 +441,12 @@ bool GradientBoosterHandler::StartArray() {
 bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
-    auto& trees = output.model->trees;
+    auto& trees = std::get<ModelPreset<float, float>>(output.model->variant_).trees;
     TREELITE_CHECK_EQ(trees.size(), weight_drop.size());
     for (size_t i = 0; i < trees.size(); ++i) {
       for (int nid = 0; nid < trees[i].num_nodes; ++nid) {
         if (trees[i].IsLeaf(nid)) {
-          trees[i].SetLeaf(nid, weight_drop[i] * trees[i].LeafValue(nid));
+          trees[i].SetLeaf(nid, static_cast<float>(weight_drop[i] * trees[i].LeafValue(nid)));
         }
       }
     }
@@ -525,8 +528,7 @@ bool LearnerHandler::StartObject() {
   }
   // "attributes" key is not documented in schema
   return (
-      push_key_handler<LearnerParamHandler, treelite::ModelImpl<float, float>>(
-          "learner_model_param", *output.model)
+      push_key_handler<LearnerParamHandler, treelite::Model>("learner_model_param", *output.model)
       || push_key_handler<GradientBoosterHandler, ParsedXGBoostModel>("gradient_booster", output)
       || push_key_handler<ObjectiveHandler, std::string>("objective", objective)
       || push_key_handler<IgnoreHandler>("attributes"));
@@ -717,16 +719,17 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
       // We need to re-order them as follows:
       // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
       std::vector<treelite::Tree<float, float>> new_trees;
-      std::size_t num_tree = parsed.model->trees.size();
+      auto& trees = std::get<treelite::ModelPreset<float, float>>(parsed.model->variant_).trees;
+      std::size_t num_tree = trees.size();
       for (std::size_t c = 0; c < num_parallel_tree; ++c) {
         for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
-          new_trees.push_back(std::move(parsed.model->trees[tree_id]));
+          new_trees.push_back(std::move(trees[tree_id]));
         }
       }
       TREELITE_CHECK_EQ(new_trees.size(), num_tree);
-      parsed.model->trees = std::move(new_trees);
+      trees = std::move(new_trees);
     }
   }
-  return std::move(parsed.model_ptr);
+  return std::move(parsed.model);
 }
 }  // anonymous namespace

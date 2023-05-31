@@ -229,8 +229,7 @@ std::unique_ptr<treelite::Model> BuildModelFromJSONString(
 
   TREELITE_CHECK(model_spec.IsObject()) << "JSON string must have an object at the root level";
 
-  std::unique_ptr<Model> model_ptr = Model::Create<float, float>();
-  auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
+  std::unique_ptr<Model> model = Model::Create<float, float>();
   model->num_feature = ExpectInt(model_spec, "num_feature");
   model->average_tree_output = ExpectBool(model_spec, "average_tree_output");
   model->task_type = StringToTaskType(ExpectString(model_spec, "task_type"));
@@ -240,13 +239,14 @@ std::unique_ptr<treelite::Model> BuildModelFromJSONString(
   model->param = ParseModelParam(ExpectObject(model_spec, "model_param"));
 
   auto const tree_array = ExpectArray(model_spec, "trees");
+  auto& trees = std::get<ModelPreset<float, float>>(model->variant_).trees;
   for (auto const& e : tree_array) {
     TREELITE_CHECK(e.IsObject()) << "Expected a JSON object in \"trees\" array";
-    model->trees.emplace_back();
-    ParseTree(e.GetObject(), model->trees.back());
+    trees.emplace_back();
+    ParseTree(e.GetObject(), trees.back());
   }
 
-  return model_ptr;
+  return model;
 }
 
 }  // namespace treelite::frontend

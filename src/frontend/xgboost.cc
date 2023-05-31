@@ -18,6 +18,7 @@
 #include <memory>
 #include <queue>
 #include <sstream>
+#include <variant>
 
 namespace {
 
@@ -25,8 +26,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 }  // anonymous namespace
 
-namespace treelite {
-namespace frontend {
+namespace treelite::frontend {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename) {
   std::ifstream fi(filename, std::ios::in | std::ios::binary);
@@ -38,8 +38,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(void const* buf, size_t len) {
   return ParseStream(fi);
 }
 
-}  // namespace frontend
-}  // namespace treelite
+}  // namespace treelite::frontend
 
 /* auxiliary data structures to interpret xgboost model file */
 namespace {
@@ -406,8 +405,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   /* 2. Export model */
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<float, float>();
-  auto* model = dynamic_cast<treelite::ModelImpl<float, float>*>(model_ptr.get());
+  std::unique_ptr<treelite::Model> model = treelite::Model::Create<float, float>();
   model->num_feature = static_cast<int>(mparam_.num_feature);
   model->average_tree_output = false;
   int const num_class = std::max(mparam_.num_class, 1);
@@ -437,16 +435,17 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   // traverse trees
+  auto& trees = std::get<treelite::ModelPreset<float, float>>(model->variant_).trees;
   for (auto const& xgb_tree : xgb_trees_) {
-    model->trees.emplace_back();
-    treelite::Tree<float, float>& tree = model->trees.back();
+    trees.emplace_back();
+    treelite::Tree<float, float>& tree = trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
     // deleted nodes will be excluded
     std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
-    Q.push({0, 0});
+    Q.emplace(0, 0);
     while (!Q.empty()) {
       int old_id, new_id;
       std::tie(old_id, new_id) = Q.front();
@@ -457,7 +456,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         bst_float leaf_value = node.leaf_value();
         // Fold weight drop into leaf value for dart models.
         if (!weight_drop.empty()) {
-          leaf_value *= weight_drop[model->trees.size() - 1];
+          leaf_value *= weight_drop[trees.size() - 1];
         }
         tree.SetLeaf(new_id, static_cast<float>(leaf_value));
       } else {
@@ -466,8 +465,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         tree.SetNumericalSplit(new_id, node.split_index(), static_cast<float>(split_cond),
             node.default_left(), treelite::Operator::kLT);
         tree.SetGain(new_id, stat.loss_chg);
-        Q.push({node.cleft(), tree.LeftChild(new_id)});
-        Q.push({node.cright(), tree.RightChild(new_id)});
+        Q.emplace(node.cleft(), tree.LeftChild(new_id));
+        Q.emplace(node.cright(), tree.RightChild(new_id));
       }
       tree.SetSumHess(new_id, stat.sum_hess);
     }
@@ -492,17 +491,17 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       // We need to re-order them as follows:
       // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
       std::vector<treelite::Tree<float, float>> new_trees;
-      std::size_t num_tree = model->trees.size();
+      std::size_t num_tree = trees.size();
       for (std::size_t c = 0; c < num_parallel_tree; ++c) {
         for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
-          new_trees.push_back(std::move(model->trees[tree_id]));
+          new_trees.push_back(std::move(trees[tree_id]));
         }
       }
       TREELITE_CHECK_EQ(new_trees.size(), num_tree);
-      model->trees = std::move(new_trees);
+      trees = std::move(new_trees);
     }
   }
-  return model_ptr;
+  return model;
 }
 
 }  // anonymous namespace

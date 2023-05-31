@@ -185,7 +185,7 @@ class Deserializer {
   }
 
  private:
-  std::shared_ptr<MixIn>& mixin_;
+  std::shared_ptr<MixIn> mixin_;
 };
 
 }  // namespace detail::serializer

@@ -139,7 +139,7 @@ written to the byte sequence in the exact order they appear in the following lis
 
    When the number of classes are different for targets, we use the larget number of
    classes (``max_num_class``) to shape the leaf vector (and ``base_scores``). The leaf vector
-   will have shape ``(num_target, max_num_class)``. This heuristic has the following
+   will have shape ``(num_target, max_num_class)``, with extra elements padded with ``0``. This heuristic has the following
    consequences: If a target has significantly more classes than other targets, a lot
    of space will be wasted.
 

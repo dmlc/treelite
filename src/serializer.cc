@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <memory>
+#include <variant>
 
 namespace treelite {
 
@@ -30,6 +31,8 @@ class Serializer {
     mixin_->SerializePrimitiveField(&model.major_ver_);
     mixin_->SerializePrimitiveField(&model.minor_ver_);
     mixin_->SerializePrimitiveField(&model.patch_ver_);
+    model.threshold_type_ = model.GetThresholdType();
+    model.leaf_output_type_ = model.GetLeafOutputType();
     mixin_->SerializePrimitiveField(&model.threshold_type_);
     mixin_->SerializePrimitiveField(&model.leaf_output_type_);
 
@@ -51,13 +54,15 @@ class Serializer {
   }
 
   void SerializeTrees(Model& model) {
-    model.Dispatch([&](auto&& concrete_model) {
-      TREELITE_CHECK_EQ(concrete_model.trees.size(), model.num_tree_)
-          << "Incorrect number of trees in the model";
-      for (auto& tree : concrete_model.trees) {
-        SerializeTree(tree);
-      }
-    });
+    std::visit(
+        [&](auto&& concrete_model) {
+          TREELITE_CHECK_EQ(concrete_model.trees.size(), model.num_tree_)
+              << "Incorrect number of trees in the model";
+          for (auto& tree : concrete_model.trees) {
+            SerializeTree(tree);
+          }
+        },
+        model.variant_);
   }
 
   template <typename ThresholdType, typename LeafOutputType>
@@ -147,13 +152,15 @@ class Deserializer {
   }
 
   void DeserializeTrees(Model& model) {
-    model.Dispatch([&](auto&& concrete_model) {
-      concrete_model.trees.clear();
-      for (std::uint64_t i = 0; i < model.num_tree_; ++i) {
-        concrete_model.trees.emplace_back();
-        DeserializeTree(concrete_model.trees.back());
-      }
-    });
+    std::visit(
+        [&](auto&& concrete_model) {
+          concrete_model.trees.clear();
+          for (std::uint64_t i = 0; i < model.num_tree_; ++i) {
+            concrete_model.trees.emplace_back();
+            DeserializeTree(concrete_model.trees.back());
+          }
+        },
+        model.variant_);
   }
 
   template <typename ThresholdType, typename LeafOutputType>

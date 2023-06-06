@@ -157,8 +157,8 @@ void DumpTreeAsJSON(WriterType& writer, Tree<ThresholdType, LeafOutputType> cons
   TREELITE_CHECK_EQ(tree.matching_categories_offset_.Back(), tree.matching_categories_.Size());
 }
 
-template <typename WriterType, typename ThresholdType, typename LeafOutputType>
-void DumpModelAsJSON(WriterType& writer, ModelImpl<ThresholdType, LeafOutputType> const& model) {
+template <typename WriterType>
+void DumpModelAsJSON(WriterType& writer, Model const& model) {
   writer.StartObject();
 
   writer.Key("num_feature");
@@ -173,17 +173,19 @@ void DumpModelAsJSON(WriterType& writer, ModelImpl<ThresholdType, LeafOutputType
   SerializeModelParamToJSON(writer, model.param);
   writer.Key("trees");
   writer.StartArray();
-  for (Tree<ThresholdType, LeafOutputType> const& tree : model.trees) {
-    DumpTreeAsJSON(writer, tree);
-  }
+  std::visit(
+      [&writer](auto&& concrete_model) {
+        for (auto const& tree : concrete_model.trees) {
+          DumpTreeAsJSON(writer, tree);
+        }
+      },
+      model.variant_);
   writer.EndArray();
 
   writer.EndObject();
 }
 
-template <typename ThresholdType, typename LeafOutputType>
-void ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(
-    std::ostream& fo, bool pretty_print) const {
+void Model::DumpAsJSON(std::ostream& fo, bool pretty_print) const {
   rapidjson::OStreamWrapper os(fo);
   if (pretty_print) {
     rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(os);
@@ -194,10 +196,5 @@ void ModelImpl<ThresholdType, LeafOutputType>::DumpAsJSON(
     DumpModelAsJSON(writer, *this);
   }
 }
-
-template void ModelImpl<float, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<float, float>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, uint32_t>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
-template void ModelImpl<double, double>::DumpAsJSON(std::ostream& fo, bool pretty_print) const;
 
 }  // namespace treelite

@@ -96,65 +96,6 @@ inline auto DispatchWithTypeInfo(TypeInfo type, Args&&... args) {
   return Dispatcher<double>::Dispatch(std::forward<Args>(args)...);  // avoid missing return error
 }
 
-/*!
- * \brief Given the types for thresholds and leaf outputs, validate that they consist of a valid
- *        combination for a model and then dispatch a function with the corresponding template args.
- *        More precisely, we shall call Dispatcher<ThresholdType, LeafOutputType>::Dispatch() where
- *        the template args ThresholdType and LeafOutputType correspond to the parameters
- *        `threshold_type` and `leaf_output_type`, respectively.
- * \tparam Dispatcher Function object that takes in two template args.
- *         It must have a Dispatch() static function.
- * \tparam Parameter pack, to forward an arbitrary number of args to Dispatcher::Dispatch()
- * \param threshold_type TypeInfo indicating the type of thresholds
- * \param leaf_output_type TypeInfo indicating the type of leaf outputs
- * \param args Other extra parameters to pass to Dispatcher::Dispatch()
- * \return Whatever that's returned by the dispatcher
- */
-template <template <class, class> class Dispatcher, typename... Args>
-inline auto DispatchWithModelTypes(
-    TypeInfo threshold_type, TypeInfo leaf_output_type, Args&&... args) {
-  auto error_threshold_type = [threshold_type]() {
-    std::ostringstream oss;
-    oss << "Invalid threshold type: " << treelite::TypeInfoToString(threshold_type);
-    return oss.str();
-  };
-  auto error_leaf_output_type = [threshold_type, leaf_output_type]() {
-    std::ostringstream oss;
-    oss << "Cannot use leaf output type " << treelite::TypeInfoToString(leaf_output_type)
-        << " with threshold type " << treelite::TypeInfoToString(threshold_type);
-    return oss.str();
-  };
-  switch (threshold_type) {
-  case treelite::TypeInfo::kFloat32:
-    switch (leaf_output_type) {
-    case treelite::TypeInfo::kUInt32:
-      return Dispatcher<float, uint32_t>::Dispatch(std::forward<Args>(args)...);
-    case treelite::TypeInfo::kFloat32:
-      return Dispatcher<float, float>::Dispatch(std::forward<Args>(args)...);
-    default:
-      throw Error(error_leaf_output_type());
-      break;
-    }
-    break;
-  case treelite::TypeInfo::kFloat64:
-    switch (leaf_output_type) {
-    case treelite::TypeInfo::kUInt32:
-      return Dispatcher<double, uint32_t>::Dispatch(std::forward<Args>(args)...);
-    case treelite::TypeInfo::kFloat64:
-      return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);
-    default:
-      throw Error(error_leaf_output_type());
-      break;
-    }
-    break;
-  default:
-    throw Error(error_threshold_type());
-    break;
-  }
-  return Dispatcher<double, double>::Dispatch(std::forward<Args>(args)...);
-  // avoid missing return value warning
-}
-
 }  // namespace treelite
 
 #endif  // TREELITE_TYPEINFO_H_

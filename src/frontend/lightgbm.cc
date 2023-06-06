@@ -15,6 +15,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 namespace {
 
@@ -22,8 +23,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 }  // anonymous namespace
 
-namespace treelite {
-namespace frontend {
+namespace treelite::frontend {
 
 std::unique_ptr<treelite::Model> LoadLightGBMModel(char const* filename) {
   std::ifstream fi(filename, std::ios::in);
@@ -35,8 +35,7 @@ std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(char const* model_s
   return ParseStream(is);
 }
 
-}  // namespace frontend
-}  // namespace treelite
+}  // namespace treelite::frontend
 
 /* auxiliary data structures to interpret lightgbm model file */
 namespace {
@@ -401,8 +400,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   /* 2. Export model */
-  std::unique_ptr<treelite::Model> model_ptr = treelite::Model::Create<double, double>();
-  auto* model = dynamic_cast<treelite::ModelImpl<double, double>*>(model_ptr.get());
+  std::unique_ptr<treelite::Model> model = treelite::Model::Create<double, double>();
   model->num_feature = max_feature_idx_ + 1;
   model->average_tree_output = average_output_;
   if (num_class_ > 1) {
@@ -501,9 +499,10 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   // traverse trees
+  auto& trees = std::get<treelite::ModelPreset<double, double>>(model->variant_).trees;
   for (auto const& lgb_tree : lgb_trees_) {
-    model->trees.emplace_back();
-    treelite::Tree<double, double>& tree = model->trees.back();
+    trees.emplace_back();
+    treelite::Tree<double, double>& tree = trees.back();
     tree.Init();
 
     // assign node ID's so that a breadth-wise traversal would yield
@@ -513,9 +512,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       continue;
     } else if (lgb_tree.num_leaves == 1) {
       // A constant-value tree with a single root node that's also a leaf
-      Q.push({-1, 0});
+      Q.emplace(-1, 0);
     } else {
-      Q.push({0, 0});
+      Q.emplace(0, 0);
     }
     while (!Q.empty()) {
       int old_id, new_id;
@@ -565,12 +564,12 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         if (!lgb_tree.split_gain.empty()) {
           tree.SetGain(new_id, static_cast<double>(lgb_tree.split_gain[old_id]));
         }
-        Q.push({lgb_tree.left_child[old_id], tree.LeftChild(new_id)});
-        Q.push({lgb_tree.right_child[old_id], tree.RightChild(new_id)});
+        Q.emplace(lgb_tree.left_child[old_id], tree.LeftChild(new_id));
+        Q.emplace(lgb_tree.right_child[old_id], tree.RightChild(new_id));
       }
     }
   }
-  return model_ptr;
+  return model;
 }
 
 }  // anonymous namespace

@@ -382,7 +382,8 @@ bool GBTreeModelHandler::StartArray() {
   auto& trees = std::get<ModelPreset<float, float>>(output.model->variant_).trees;
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
               std::vector<treelite::Tree<float, float>>>("trees", trees)
-          || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
+          || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info)
+          || push_key_handler<IgnoreHandler>("iteration_indptr"));
 }
 
 bool GBTreeModelHandler::StartObject() {

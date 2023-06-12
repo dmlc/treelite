@@ -297,7 +297,7 @@ class XGBTree {
     nodes[nodes[nid].cleft()].set_parent(nid, true);
     nodes[nodes[nid].cright()].set_parent(nid, false);
   }
-  inline void Load(PeekableInputStream* fi) {
+  inline void Load(PeekableInputStream* fi, LearnerModelParam const& mparam) {
     TREELITE_CHECK_EQ(fi->Read(&param, sizeof(TreeParam)), sizeof(TreeParam))
         << "Ill-formed XGBoost model file: can't read TreeParam";
     TREELITE_CHECK_GT(param.num_nodes, 0) << "Ill-formed XGBoost model file: a tree can't be empty";
@@ -309,13 +309,17 @@ class XGBTree {
     TREELITE_CHECK_EQ(
         fi->Read(stats.data(), sizeof(NodeStat) * stats.size()), sizeof(NodeStat) * stats.size())
         << "Ill-formed XGBoost model file: cannot read specified number of nodes";
-    if (param.size_leaf_vector != 0) {
+    if (param.size_leaf_vector != 0 && mparam.major_version < 2) {
       uint64_t len;
       TREELITE_CHECK_EQ(fi->Read(&len, sizeof(len)), sizeof(len))
           << "Ill-formed XGBoost model file";
       if (len > 0) {
         CONSUME_BYTES(fi, sizeof(bst_float) * len);
       }
+    } else if (mparam.major_version == 2) {
+      TREELITE_CHECK_EQ(param.size_leaf_vector, 1)
+          << "Multi-target models are not supported with binary serialization. "
+          << "Please save the XGBoost model using the JSON format.";
     }
     TREELITE_CHECK_EQ(param.num_roots, 1)
         << "Invalid XGBoost model file: treelite does not support trees "
@@ -378,7 +382,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       << "Invalid XGBoost model file: num_trees must be 0 or greater";
   for (int i = 0; i < gbm_param_.num_trees; ++i) {
     xgb_trees_.emplace_back();
-    xgb_trees_.back().Load(fp.get());
+    xgb_trees_.back().Load(fp.get(), mparam_);
   }
   if (mparam_.major_version < 1 || (mparam_.major_version == 1 && mparam_.minor_version < 6)) {
     // In XGBoost 1.6, num_roots is used as num_parallel_tree, so don't check

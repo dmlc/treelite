@@ -78,8 +78,8 @@ written to the byte sequence in the exact order they appear in the following lis
    * Per-tree Metadata
      - ``target_id``: an array of ``int32_t``. ``target[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target[i]`` is set to -1.
         This array is expected to have length ``num_tree``.
-     - ``grove_id``: an array of ``int32_t``. ``grove[i]`` indicates the class for which the ``i``-th tree produces output. If ``task_type == kMultiClfGrovePerClass``, the ``grove_id`` array will have length ``num_tree``;
-       if ``task_type != kMultiClfGrovePerClass``, the ``grove_id`` array will be empty. For multi-target trees, the corresponding ``grove_id[i]`` is set to -1.
+     - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For multi-target trees, the corresponding ``class_id[i]`` is set to -1.
+        If ``task_type == kMultiClfGrovePerClass``, the ``class_id`` array will have length ``num_tree``; if ``task_type != kMultiClfGrovePerClass``, the ``class_id`` array will be empty.
    * ``base_scores``: an array of ``LeafOutputType``. This vector is expected to have length ``num_target * max(num_class)``. The elements will be laid out in the row-major layout.
      The predicted margin scores of all data points will be adjusted by this vector.
 

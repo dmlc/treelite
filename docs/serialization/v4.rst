@@ -75,11 +75,14 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``pred_transform``: 256-character long ``char`` array. Stores a human-readable name of the transformation function that's applied to prediction outputs. The unused elements in the array should be padded with null characters (``\0``).
      - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
      - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
+
    * Per-tree Metadata
+
      - ``target_id``: an array of ``int32_t``. ``target[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target[i]`` is set to -1.
-        This array is expected to have length ``num_tree``.
+       This array is expected to have length ``num_tree``.
      - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For multi-target trees, the corresponding ``class_id[i]`` is set to -1.
-        If ``task_type == kMultiClfGrovePerClass``, the ``class_id`` array will have length ``num_tree``; if ``task_type != kMultiClfGrovePerClass``, the ``class_id`` array will be empty.
+       If ``task_type == kMultiClfGrovePerClass``, the ``class_id`` array will have length ``num_tree``; if ``task_type != kMultiClfGrovePerClass``, the ``class_id`` array will be empty.
+
    * ``base_scores``: an array of ``LeafOutputType``. This vector is expected to have length ``num_target * max(num_class)``. The elements will be laid out in the row-major layout.
      The predicted margin scores of all data points will be adjusted by this vector.
 

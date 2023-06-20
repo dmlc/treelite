@@ -21,10 +21,9 @@ We first define a set of enum types to be used in the serialization format.
 
   - ``kBinaryClf`` (0): binary classifier
   - ``kRegressor`` (1): regressor
-  - ``kLearningToRank`` (2): learning-to-rank
-  - ``kMultiClfGrovePerClass`` (3): multi-class classifier with grove-per-class
-  - ``kMultiClfProbDistLeaf`` (4): multi-class classifier with vector leaf outputs producing probability distribution
-  - ``kIsolationForest`` (5): isolation forest
+  - ``kMultiClf`` (2): multi-class classifier
+  - ``kLearningToRank`` (3): learning-to-rank
+  - ``kIsolationForest`` (4): isolation forest
 
 * ``Operator``: underlying type ``int8_t``. Indicates the comparison operator used in an internal test node in a tree.
 
@@ -57,11 +56,11 @@ written to the byte sequence in the exact order they appear in the following lis
    * Threshold type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
    * Leaf output type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
 
-#. Number of trees: single ``uint64_t`` scalar.
+#. Number of trees (``num_tree``): single ``uint64_t`` scalar.
 #. Header 2
 
    * Number of features in data: single ``int32_t`` scalar.
-   * Task type: single ``uint8_t`` scalar representing enum ``TaskType``.
+   * Task type (``task_type``): single ``uint8_t`` scalar representing enum ``TaskType``.
    * Whether to average tree outputs: single ``bool`` scalar.
    * Task parameters
 
@@ -75,6 +74,14 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``pred_transform``: 256-character long ``char`` array. Stores a human-readable name of the transformation function that's applied to prediction outputs. The unused elements in the array should be padded with null characters (``\0``).
      - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
      - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
+
+   * Per-tree Metadata
+
+     - ``target_id``: an array of ``int32_t``. ``target_id[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target_id[i]`` is set to -1.
+       This array is expected to have length ``num_tree``.
+     - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For vector-leaf trees that produce outputs for multiple classes,
+       the corresponding ``class_id[i]`` is set to -1. The ``class_id`` array is expected to have length ``num_tree``.
+
    * ``base_scores``: an array of ``LeafOutputType``. This vector is expected to have length ``num_target * max(num_class)``. The elements will be laid out in the row-major layout.
      The predicted margin scores of all data points will be adjusted by this vector.
 

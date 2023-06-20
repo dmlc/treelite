@@ -77,7 +77,7 @@ written to the byte sequence in the exact order they appear in the following lis
 
    * Per-tree Metadata
 
-     - ``target_id``: an array of ``int32_t``. ``target[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target[i]`` is set to -1.
+     - ``target_id``: an array of ``int32_t``. ``target_id[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target_id[i]`` is set to -1.
        This array is expected to have length ``num_tree``.
      - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For vector-leaf trees that produce outputs for multiple classes,
        the corresponding ``class_id[i]`` is set to -1. The ``class_id`` array is expected to have length ``num_tree``.

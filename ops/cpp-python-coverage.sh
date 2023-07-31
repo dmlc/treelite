@@ -13,11 +13,11 @@ ninja install -v
 cd ..
 
 echo "##[section]Running Google C++ tests..."
-pip install -vvv .
+./build/treelite_cpp_test
 
 echo "##[section]Build Cython extension..."
 cd tests/cython
-python setup.py build_ext --inplace
+pip install -vvv .
 cd ../..
 
 echo "##[section]Running Python integration tests..."

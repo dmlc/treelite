@@ -30,9 +30,6 @@ else()
 endif()
 
 python_add_library(serializer MODULE "${PROJECT_BINARY_DIR}/serializer.cpp" WITH_SOABI)
-target_include_directories(serializer PRIVATE
-  "${PROJECT_SOURCE_DIR}/../../include"
-  "${PROJECT_SOURCE_DIR}/../../build/include")
 target_link_libraries(serializer PRIVATE treelite::treelite)
 set_target_properties(serializer
   PROPERTIES

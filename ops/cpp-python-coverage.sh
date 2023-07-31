@@ -9,11 +9,11 @@ echo "##[section]Building Treelite..."
 mkdir build/
 cd build/
 cmake .. -DTEST_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug -DBUILD_CPP_TEST=ON -GNinja
-ninja
+ninja install -v
 cd ..
 
 echo "##[section]Running Google C++ tests..."
-./build/treelite_cpp_test
+pip install -vvv .
 
 echo "##[section]Build Cython extension..."
 cd tests/cython

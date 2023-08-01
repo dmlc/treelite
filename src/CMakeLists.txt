@@ -5,9 +5,6 @@ target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only RapidJSON::rapidj
 
 if(USE_OPENMP)
   if(APPLE)
-    # Require CMake 3.16+ on Mac OSX, as previous versions of CMake had trouble locating
-    # OpenMP on Mac. See https://github.com/dmlc/xgboost/pull/5146#issuecomment-568312706
-    cmake_minimum_required(VERSION 3.16)
     find_package(OpenMP)
     if (NOT OpenMP_FOUND)
       # Try again with extra path info; required for libomp 15+ from Homebrew

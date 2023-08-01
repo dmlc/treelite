@@ -13,6 +13,7 @@
 #include <treelite/tree.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -53,7 +54,8 @@ inline void TestRoundTrip(treelite::Model* model) {
 
   for (int i = 0; i < 2; ++i) {
     // Test round trip with serialization to a file stream
-    char const* filename = std::tmpnam(nullptr);
+    std::filesystem::path tmpdir = std::filesystem::temp_directory_path();
+    std::filesystem::path filename = tmpdir / (std::string("binary") + std::to_string(i) + ".bin");
     std::unique_ptr<treelite::Model> received_model;
     {
       std::ofstream ofs(filename, std::ios::out | std::ios::binary);
@@ -71,6 +73,8 @@ inline void TestRoundTrip(treelite::Model* model) {
     // Use ASSERT_TRUE, since ASSERT_EQ will dump all the raw bytes into a string, potentially
     // causing an OOM error
     ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
+
+    std::filesystem::remove(filename);
   }
 }
 
@@ -830,14 +834,15 @@ TEST(ForwardCompatibility, TreeStump) {
   }
 
   /* Insert new optional fields to the extension slots */
-  frames_to_add[num_opt_field_per_model_offset] = PyBufferFrame{extra_opt_field1.data(), "=q",
-      sizeof(decltype(extra_opt_field1)::value_type), extra_opt_field1.size()};
+  frames_to_add[num_opt_field_per_model_offset]
+      = PyBufferFrame{extra_opt_field1.data(), const_cast<char*>("=q"),
+          sizeof(decltype(extra_opt_field1)::value_type), extra_opt_field1.size()};
   for (std::size_t i : num_opt_field_per_tree_offset) {
-    frames_to_add[i] = PyBufferFrame{extra_opt_field2.data(), "=l",
+    frames_to_add[i] = PyBufferFrame{extra_opt_field2.data(), const_cast<char*>("=l"),
         sizeof(decltype(extra_opt_field2)::value_type), extra_opt_field2.size()};
   }
   for (std::size_t i : num_opt_field_per_node_offset) {
-    frames_to_add[i] = PyBufferFrame{extra_opt_field3.data(), "=d",
+    frames_to_add[i] = PyBufferFrame{extra_opt_field3.data(), const_cast<char*>("=d"),
         sizeof(decltype(extra_opt_field3)::value_type), extra_opt_field3.size()};
   }
 

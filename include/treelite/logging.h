@@ -46,15 +46,21 @@ std::unique_ptr<std::string> LogCheckFormat(X const& x, Y const& y) {
     return LogCheck##name<int, int>(x, y);                                                     \
   }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif  // __GNUC__
+
 DEFINE_CHECK_FUNC(_LT, <)
 DEFINE_CHECK_FUNC(_GT, >)
 DEFINE_CHECK_FUNC(_LE, <=)
 DEFINE_CHECK_FUNC(_GE, >=)
 DEFINE_CHECK_FUNC(_EQ, ==)
 DEFINE_CHECK_FUNC(_NE, !=)
+
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif  // __GNUC__
 
 #define TREELITE_CHECK_BINARY_OP(name, op, x, y)                    \
   if (auto __treelite__log__err = ::treelite::LogCheck##name(x, y)) \

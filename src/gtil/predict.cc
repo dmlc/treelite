@@ -11,6 +11,7 @@
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <cstddef>
@@ -213,7 +214,8 @@ struct PredictScoreByTreeWithVectorLeafOutputLogic {
   inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
       std::size_t, int node_id, float* output, std::size_t) {
     auto leaf_vector = tree.LeafVector(node_id);
-    std::copy(std::begin(leaf_vector), std::end(leaf_vector), output);
+    std::transform(std::begin(leaf_vector), std::end(leaf_vector), output,
+        [](auto e) { return static_cast<float>(e); });
   }
 };
 

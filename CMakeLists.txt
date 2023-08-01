@@ -1,12 +1,26 @@
+cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required (VERSION 3.16)
 project(treelite LANGUAGES CXX C VERSION 4.0.0)
 
-# check MSVC version
+# Check compiler versions
+# Use latest compilers to ensure that std::filesystem is available
 if(MSVC)
   if(MSVC_VERSION LESS 1920)
-    message(FATAL_ERROR "Need Visual Studio 2019 or newer to compile Treelite")
+    message(FATAL_ERROR "Need Visual Studio 2019 or newer to build Treelite")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.1")
+    message(FATAL_ERROR "Need GCC 8.1 or newer to build Treelite")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "11.0")
+    message(FATAL_ERROR "Need Xcode 11.0 (AppleClang 11.0) or newer to build Treelite")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
+    message(FATAL_ERROR "Need Clang 9.0 or newer to build Treelite")
   endif()
 endif()
 

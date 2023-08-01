@@ -176,7 +176,7 @@ class BaseHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, BaseH
   template <typename ValueType>
   bool assign_value(std::string const& key, ValueType const& value, ValueType& output);
 
-  virtual bool is_recognized_key(std::string const& key) {
+  virtual bool is_recognized_key([[maybe_unused]] std::string const& key) {
     return false;
   }
 

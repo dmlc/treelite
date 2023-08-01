@@ -46,7 +46,8 @@ int TreeliteLoadLightGBMModel(char const* filename, ModelHandle* out) {
   return TreeliteLoadLightGBMModelEx(filename, "{}", out);
 }
 
-int TreeliteLoadLightGBMModelEx(char const* filename, char const* config_json, ModelHandle* out) {
+int TreeliteLoadLightGBMModelEx(
+    char const* filename, [[maybe_unused]] char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModel(filename);
@@ -60,7 +61,8 @@ int TreeliteLoadXGBoostModel(char const* filename, ModelHandle* out) {
   return TreeliteLoadXGBoostModelEx(filename, "{}", out);
 }
 
-int TreeliteLoadXGBoostModelEx(char const* filename, char const* config_json, ModelHandle* out) {
+int TreeliteLoadXGBoostModelEx(
+    char const* filename, [[maybe_unused]] char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(filename);
@@ -103,7 +105,7 @@ int TreeliteLoadXGBoostModelFromMemoryBuffer(void const* buf, size_t len, ModelH
 }
 
 int TreeliteLoadXGBoostModelFromMemoryBufferEx(
-    void const* buf, size_t len, char const* config_json, ModelHandle* out) {
+    void const* buf, size_t len, [[maybe_unused]] char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadXGBoostModel(buf, len);
@@ -118,7 +120,7 @@ int TreeliteLoadLightGBMModelFromString(char const* model_str, ModelHandle* out)
 }
 
 int TreeliteLoadLightGBMModelFromStringEx(
-    char const* model_str, char const* config_json, ModelHandle* out) {
+    char const* model_str, [[maybe_unused]] char const* config_json, ModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::LoadLightGBMModelFromString(model_str);
@@ -127,7 +129,7 @@ int TreeliteLoadLightGBMModelFromStringEx(
 }
 
 int TreeliteBuildModelFromJSONString(
-    char const* json_str, char const* config_json, ModelHandle* out) {
+    char const* json_str, [[maybe_unused]] char const* config_json, ModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<Model> model = frontend::BuildModelFromJSONString(json_str, config_json);
   *out = static_cast<ModelHandle>(model.release());
@@ -364,8 +366,8 @@ int TreeliteGTILPredictEx(ModelHandle model, float const* input, size_t num_row,
   auto const* config_ = static_cast<gtil::Configuration const*>(config);
   auto& pred_shape = TreeliteAPIThreadLocalStore::Get()->prediction_shape;
   *out_result_size = gtil::Predict(model_, input, num_row, output, *config_, pred_shape);
-  auto prod
-      = std::accumulate<>(std::begin(pred_shape), std::end(pred_shape), 1, std::multiplies<>{});
+  auto prod = std::accumulate<>(
+      std::begin(pred_shape), std::end(pred_shape), std::size_t(1), std::multiplies<>{});
   TREELITE_CHECK_EQ(prod, *out_result_size);
   *out_result_ndim = pred_shape.size();
   *out_result_shape = pred_shape.data();

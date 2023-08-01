@@ -141,7 +141,6 @@ void ParseTree(rapidjson::Value::ConstObject const& object, treelite::Tree<float
   TREELITE_CHECK_GE(root_id, 0) << "root_id cannot be negative";
   auto const& nodes = ExpectArray(object, "nodes");
   TREELITE_CHECK(!nodes.Empty()) << "The nodes array must not be empty";
-  const std::size_t num_nodes = nodes.Size();
 
   // Scan through nodes and create a lookup table. This is so that users can specify custom
   // node IDs via field "node_id". Note that the constructed Treelite model objects will use
@@ -218,7 +217,7 @@ void ParseTree(rapidjson::Value::ConstObject const& object, treelite::Tree<float
 namespace treelite::frontend {
 
 std::unique_ptr<treelite::Model> BuildModelFromJSONString(
-    char const* json_str, char const* config_json) {
+    char const* json_str, [[maybe_unused]] char const* config_json) {
   // config_json unused for now
 
   rapidjson::Document model_spec;

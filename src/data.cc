@@ -96,7 +96,8 @@ void DenseDMatrixImpl<ElementType>::FillRow(std::size_t row_id, OutputType* out)
 
 template <typename ElementType>
 template <typename OutputType>
-void DenseDMatrixImpl<ElementType>::ClearRow(std::size_t row_id, OutputType* out) const {
+void DenseDMatrixImpl<ElementType>::ClearRow(
+    [[maybe_unused]] std::size_t row_id, OutputType* out) const {
   for (std::size_t i = 0; i < num_col; ++i) {
     out[i] = std::numeric_limits<OutputType>::quiet_NaN();
   }

@@ -439,7 +439,7 @@ bool GradientBoosterHandler::StartArray() {
   return push_key_handler<ArrayHandler<double>, std::vector<double>>("weight_drop", weight_drop);
 }
 
-bool GradientBoosterHandler::EndObject(std::size_t memberCount) {
+bool GradientBoosterHandler::EndObject([[maybe_unused]] std::size_t memberCount) {
   if (name == "dart" && !weight_drop.empty()) {
     // Fold weight drop into leaf value for dart models.
     auto& trees = std::get<ModelPreset<float, float>>(output.model->variant_).trees;
@@ -595,7 +595,7 @@ bool XGBoostModelHandler::StartObject() {
           || push_key_handler<XGBoostCheckpointHandler, ParsedXGBoostModel>("Model", output));
 }
 
-bool XGBoostModelHandler::EndObject(std::size_t memberCount) {
+bool XGBoostModelHandler::EndObject([[maybe_unused]] std::size_t memberCount) {
   output.model->average_tree_output = false;
   output.model->task_param.output_type = TaskParam::OutputType::kFloat;
   output.model->task_param.leaf_vector_size = 1;

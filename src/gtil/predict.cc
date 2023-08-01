@@ -240,7 +240,7 @@ void FVecFill(const std::size_t block_size, const std::size_t batch_offset,
 
 template <typename DMatrixType>
 void FVecDrop(const std::size_t block_size, const std::size_t batch_offset,
-    DMatrixType const* input, const std::size_t fvec_offset, int num_feature,
+    DMatrixType const* input, const std::size_t fvec_offset, [[maybe_unused]] int num_feature,
     std::vector<FVec>& feats) {
   for (std::size_t i = 0; i < block_size; ++i) {
     const std::size_t row_id = batch_offset + i;
@@ -654,8 +654,8 @@ inline std::size_t PredTransform(treelite::Model const& model, DMatrixType const
   // Query the size of output per input row.
   output_size_per_row = pred_transform_func(model, &output[0], &temp[0]);
   // Now transform predictions in parallel
-  treelite::threading_utils::ParallelFor(
-      std::size_t(0), num_row, thread_config, sched, [&](std::size_t row_id, int thread_id) {
+  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config, sched,
+      [&](std::size_t row_id, [[maybe_unused]] int thread_id) {
         pred_transform_func(
             model, &output[row_id * num_class], &temp[row_id * output_size_per_row]);
       });

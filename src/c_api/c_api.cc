@@ -142,7 +142,7 @@ int TreeliteLoadSKLearnRandomForestRegressor(int n_estimators, int n_features,
     int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestRegressor(n_estimators,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadRandomForestRegressor(n_estimators,
       n_features, node_count, children_left, children_right, feature, threshold, value,
       n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
@@ -155,7 +155,7 @@ int TreeliteLoadSKLearnIsolationForest(int n_estimators, int n_features, int64_t
     double const** weighted_n_node_samples, double const** impurity, double const ratio_c,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnIsolationForest(n_estimators, n_features,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadIsolationForest(n_estimators, n_features,
       node_count, children_left, children_right, feature, threshold, value, n_node_samples,
       weighted_n_node_samples, impurity, ratio_c);
   *out = static_cast<ModelHandle>(model.release());
@@ -168,7 +168,7 @@ int TreeliteLoadSKLearnRandomForestClassifier(int n_estimators, int n_features, 
     int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnRandomForestClassifier(n_estimators,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadRandomForestClassifier(n_estimators,
       n_features, n_classes, node_count, children_left, children_right, feature, threshold, value,
       n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
@@ -181,9 +181,9 @@ int TreeliteLoadSKLearnGradientBoostingRegressor(int n_iter, int n_features,
     int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingRegressor(n_iter, n_features,
-      node_count, children_left, children_right, feature, threshold, value, n_node_samples,
-      weighted_n_node_samples, impurity);
+  std::unique_ptr<Model> model = frontend::sklearn::LoadGradientBoostingRegressor(n_iter,
+      n_features, node_count, children_left, children_right, feature, threshold, value,
+      n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
 }
@@ -194,8 +194,8 @@ int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n_features, in
     int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
     ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnGradientBoostingClassifier(n_iter, n_features,
-      n_classes, node_count, children_left, children_right, feature, threshold, value,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadGradientBoostingClassifier(n_iter,
+      n_features, n_classes, node_count, children_left, children_right, feature, threshold, value,
       n_node_samples, weighted_n_node_samples, impurity);
   *out = static_cast<ModelHandle>(model.release());
   API_END();
@@ -207,7 +207,7 @@ int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
     double const** value, int64_t const** n_node_samples, double const** gain,
     double const* baseline_prediction, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingRegressor(n_iter,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadHistGradientBoostingRegressor(n_iter,
       n_features, node_count, children_left, children_right, feature, threshold, default_left,
       value, n_node_samples, gain, baseline_prediction);
   *out = static_cast<ModelHandle>(model.release());
@@ -220,7 +220,7 @@ int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features
     double const** value, int64_t const** n_node_samples, double const** gain,
     double const* baseline_prediction, ModelHandle* out) {
   API_BEGIN();
-  std::unique_ptr<Model> model = frontend::LoadSKLearnHistGradientBoostingClassifier(n_iter,
+  std::unique_ptr<Model> model = frontend::sklearn::LoadHistGradientBoostingClassifier(n_iter,
       n_features, n_classes, node_count, children_left, children_right, feature, threshold,
       default_left, value, n_node_samples, gain, baseline_prediction);
   *out = static_cast<ModelHandle>(model.release());

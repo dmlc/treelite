@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2021 by Contributors
+ * Copyright (c) 2017-2023 by Contributors
  * \file frontend.h
  * \brief Collection of front-end methods to load or construct ensemble model
  * \author Hyunsu Cho
@@ -9,6 +9,7 @@
 
 #include <treelite/base.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -108,10 +109,10 @@ std::unique_ptr<treelite::Model> BuildModelFromJSONString(
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(int n_estimators, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity);
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
 /*!
  * \brief Load a scikit-learn isolation forest model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -138,10 +139,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestRegressor(int n_estimato
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples, double const** impurity,
-    double const ratio_c);
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, double ratio_c);
 /*!
  * \brief Load a scikit-learn random forest classifier model from a collection of arrays. Refer to
  *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -170,10 +171,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, in
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(int n_estimators, int n_features,
-    int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity);
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
 /*!
  * \brief Load a scikit-learn gradient boosting regressor model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -200,10 +201,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnRandomForestClassifier(int n_estimat
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(int n_iter, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, double const** value,
-    int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity);
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
 /*!
  * \brief Load a scikit-learn gradient boosting classifier model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -231,10 +232,10 @@ std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingRegressor(int n_iter
  * \return loaded model
  */
 std::unique_ptr<treelite::Model> LoadSKLearnGradientBoostingClassifier(int n_iter, int n_features,
-    int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity);
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2021 by Contributors
+ * Copyright (c) 2021-2023 by Contributors
  * \file sklearn.cc
  * \brief Frontend for scikit-learn models
  * \author Hyunsu Cho
@@ -157,7 +157,7 @@ std::unique_ptr<treelite::Model> LoadSKLearnIsolationForest(int n_estimators, in
     std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
     double const** value, std::int64_t const** n_node_samples,
-    double const** weighted_n_node_samples, double const** impurity, double const ratio_c) {
+    double const** weighted_n_node_samples, double const** impurity, double ratio_c) {
   auto meta_handler
       = [ratio_c](treelite::Model* model, int n_features, [[maybe_unused]] int n_classes) {
           model->num_feature = n_features;

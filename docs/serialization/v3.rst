@@ -22,6 +22,12 @@ We first define a set of enum types to be used in the serialization format.
   - ``kFloat`` (0)
   - ``kInt`` (1)
 
+* ``SplitFeatureType``: underlying type ``int8_t``. Indicates the type of an internal test node in a tree.
+
+  - ``kNone`` (0)
+  - ``kNumerical`` (1)
+  - ``kCategorical`` (2)
+
 * ``Operator``: underlying type ``int8_t``. Indicates the comparison operator used in an internal test node in a tree.
 
   - ``kNone`` (0)
@@ -94,7 +100,8 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``data_count_``: single ``uint64_t`` scalar. Indicates the number of data points in the training data set whose traversal paths include this node. LightGBM provides this statistics.
      - ``sum_hess_``: single ``double`` scalar. Indicates the sum of the Hessian values for all data points whose traversal paths include this node. This information is available in XGBoost and is used as a proxy of the number of data points.
      - ``gain_``: single ``double`` scalar. Indicates the change in the loss function that is attributed to this particular split.
-     - ``comp_``: single ``int8_t`` scalar representing enum ``Operator``.
+     - ``split_type_``: single ``int8_t`` scalar representing enum ``SplitFeatureType``.
+     - ``cmp_``: single ``int8_t`` scalar representing enum ``Operator``.
      - ``data_count_present_``: single ``bool`` scalar. Indicates whether ``data_count_`` is present.
      - ``sum_hess_present_``: single ``bool`` scalar. Indicates whether ``sum_hess_`` is present.
      - ``gain_present_``: single ``bool`` scalar. Indicates whether ``gain_`` is present.

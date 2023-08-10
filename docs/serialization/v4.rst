@@ -25,6 +25,12 @@ We first define a set of enum types to be used in the serialization format.
   - ``kLearningToRank`` (3): learning-to-rank
   - ``kIsolationForest`` (4): isolation forest
 
+* ``NodeType``: underlying type ``int8_t``. Indicates the type of a node in a tree.
+
+  - ``kLeafNode`` (0)
+  - ``kNumericalTestNode`` (1)
+  - ``kCategoricalTestNode`` (2)
+
 * ``Operator``: underlying type ``int8_t``. Indicates the comparison operator used in an internal test node in a tree.
 
   - ``kNone`` (0)
@@ -59,21 +65,19 @@ written to the byte sequence in the exact order they appear in the following lis
 #. Number of trees (``num_tree``): single ``uint64_t`` scalar.
 #. Header 2
 
-   * Number of features in data: single ``int32_t`` scalar.
+   * Number of features in data (``num_feature``): single ``int32_t`` scalar.
    * Task type (``task_type``): single ``uint8_t`` scalar representing enum ``TaskType``.
-   * Whether to average tree outputs: single ``bool`` scalar.
+   * ``average_tree_output``: single ``bool`` scalar indicating whether to average tree outputs
    * Task parameters
 
      - ``num_target``: single ``uint32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models.
      - ``num_class``: an array of ``uint32_t`` with length ``num_target``.
+
+       .. note:: Writing an array to the disk or a stream
+
+          When writing an array to the disk or a stream, we first write the length of the array (``uint64_t`` scalar),
+          and then the content of the array.
      - ``leaf_vector_shape``: an array of ``uint32_t`` with length 2. The first dimension is always ``num_target``. The second dimension is either 1 or ``max(num_class)``.
-     - ``grove_per_class``: single ``bool`` scalar
-
-   * Model parameters (``ModelParam``) a structure with following fields
-
-     - ``pred_transform``: 256-character long ``char`` array. Stores a human-readable name of the transformation function that's applied to prediction outputs. The unused elements in the array should be padded with null characters (``\0``).
-     - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
-     - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
 
    * Per-tree Metadata
 
@@ -82,13 +86,18 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For vector-leaf trees that produce outputs for multiple classes,
        the corresponding ``class_id[i]`` is set to -1. The ``class_id`` array is expected to have length ``num_tree``.
 
-   * ``base_scores``: an array of ``LeafOutputType``. This vector is expected to have length ``num_target * max(num_class)``. The elements will be laid out in the row-major layout.
-     The predicted margin scores of all data points will be adjusted by this vector.
+   * Model parameters
 
-     .. note:: Writing an array to the disk or a stream
+     - ``pred_transform``: an array of ``char``. Stores a human-readable name of the transformation function that's applied to prediction outputs.
+     - ``sigmoid_alpha``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="sigmoid"``.
+     - ``ratio_c``: single ``float`` scalar. This model parameter is relevant when ``pred_transform="exponential_standard_ratio"``.
+     - ``base_scores``: an array of ``double``. This vector is expected to have length ``num_target * max(num_class)``. The elements will be laid out in the row-major layout.
+       The predicted margin scores of all data points will be adjusted by this vector.
+     - ``attributes``: an array of ``char`` containing a JSON string. The JSON string can store arbitrary model attributes. The JSON string
+       must be a valid JSON object. To indicate the lack of an attribute, you may either:
 
-        When writing an array to the disk or a stream, we first write the length of the array (``uint64_t`` scalar),
-        and then the content of the array.
+       * Set the field to an empty string (zero length) or
+       * Set the field to ``{}``.
 
 #. Extension slot 1: Per-model optional fields. This field is currently not used.
 
@@ -96,31 +105,46 @@ written to the byte sequence in the exact order they appear in the following lis
 
 #. Tree 0: First tree, which is to be represented by the following fields.
 
-   * Number of nodes: single ``int32_t`` scalar.
-   * If categorical splits exist: single ``bool`` scalar.
-   * Array of nodes: an array of ``Node`` structure, where ``Node`` consists of the following fields:
-
-     - ``cleft_``: single ``int32_t`` scalar. Indicates the ID of the left child node. Set to ``-1`` to indicate the lack of the left child.
-     - ``cright_``: single ``int32_t`` scalar. Indicates the ID of the right child node. Set to ``-1`` to indicate the lack of the right child.
-     - ``sindex_``: single ``uint32_t`` scalar. This field gives both the feature ID used in the current test node (``split_index``), as well as the default direction for the missing value (``default_left``). Set this value by computing ``split_index | (default_left ? (1U << 31U) : 0)``.
-     - ``info_``: a union type containing ``leaf_value`` (of type ``LeafOutputType``) and ``threshold`` (of type ``ThresholdType``). To set this field, determine whether the node is a leaf node or an internal test node. Use ``leaf_value`` for leaf nodes; use ``threshold`` for internal test nodes.
-     - ``comp_``: single ``int8_t`` scalar representing enum ``Operator``.
-     - ``categories_list_right_child_``: single ``bool`` scalar.
+   * ``num_nodes``: single ``int32_t`` scalar indicating the number of nodes
+   * ``has_categorical_split_``: single ``bool`` scalar indicating if categorical splits exist
+   * ``node_type_``: an array of ``int8_t`` representing enum ``NodeType``. ``node_type_[i]`` indicates the type of node ``i``.
+   * ``cleft_``: an array of ``int32_t``, so that ``cleft_[i]`` identifies the left child node of node ``i``.
+     Set to ``-1`` to indicate the lack of the left child.
+   * ``cright_``: an array of ``int32_t``, so that ``cright_[i]`` identifies the right child node of node ``i``.
+     Set to ``-1`` to indicate the lack of the right child.
+   * ``split_index_``: an array of ``int32_t``, where ``split_index_[i]`` gives the feature ID used in the test node ``i``.
+     If node ``i`` is not a test node, ``split_index_[i]`` shall be ``-1``.
+   * ``default_left_``: an array of ``bool``, where ``default_left_[i]`` indicates the default direction for the missing value
+     in the test node ``i``.
+   * ``leaf_value_``: an array of ``LeafOutputType``, where ``leaf_value_[i]`` is the output of the leaf node ``i``.
+     ``leaf_value_[i]`` is only valid if node ``i`` is a leaf node with a scalar output. To access the output of a leaf node that
+     produces a vector output, use ``leaf_vector_`` instead. (See below.)
+   * ``threshold_``: an array of ``ThresholdType``, where ``threshold_[i]`` is the threshold used in the test node ``i``.
+     ``threshold_[i]`` is only valid if node ``i`` is a test node with a numerical test (of form ``[feature value] [op] [threshold]``).
+     For categorical test nodes, use ``matching_categories_`` instead. (See below.)
+   * ``cmp_``: an array of ``int8_t`` (representing enum ``Operator``). ``cmp_[i]`` is the comparison operator used in the test node ``i``.
+     ``cmp_[i]`` is only valid if node ``i`` is a numerical test node.
+   * ``category_list_right_child_``: an array of ``bool`` where ``category_list_right_child_[i]`` indicates which child node should be
+     followed when a categorical test (of form ``[feature value] in [category list]``). ``category_list_right_child_[i]`` is not defined
+     if node ``i`` is not a categorical test node.
 
    * Leaf vectors
 
      - Content (``leaf_vector_``): an array of ``LeafOutputType``. This array stores the leaf vectors for all nodes, such that
        the sub-array ``leaf_vector_[leaf_vector_begin[i]_:leaf_vector_end_[i]]`` yields the leaf vector for the i-th node.
        The leaf vector uses the row-major layout to store a 2D array.
+       If node ``i`` is not a leaf node with a vector output, the sub-array should be empty
+       (``leaf_vector_begin_[i] == leaf_vector_end_[i]``).
      - Beginning offset of each segment (``leaf_vector_begin_``): an array of ``uint64_t``.
      - Ending offset of each segment (``leaf_vector_end_``): an array of ``uint64_t``.
 
-   * Matching categories (for categorical splits)
+   * Category list (for categorical splits)
 
-     - Content (``matching_categories_``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
-       the sub-array ``matching_categories_[matching_categories_offset_[i]:matching_categories_offset_[i+1]]`` yields the
-       category list of the i-th node.
-     - Beginning offset of each segment (``matching_categories_offset_``): an array of ``uint64_t``.
+     - Content (``category_list_``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
+       the sub-array ``category_list_[category_list_begin_[i]:category_list_end_[i]]`` yields the category list of the i-th node.
+       If node ``i`` is not a categorical test node, the sub-array should be empty (``category_list_begin_[i] == category_list_end_[i]``).
+     - Beginning offset of each segment (``category_list_begin_``): an array of ``uint64_t``.
+     - Ending offset of each segment (``category_list_end_``): an array of ``uint64_t``.
 
    * Metadata for node statistics
 
@@ -133,11 +157,11 @@ written to the byte sequence in the exact order they appear in the following lis
 
    * Extension slot 2: Per-tree optional fields. This field is currently not used.
 
-     - Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+     - ``num_opt_field_per_tree_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
    * Extension slot 3: Per-node optional fields. This field is currently not used.
 
-     - Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+     - ``num_opt_field_per_node_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
 #. Tree 1: Use the same set of fields as Tree 0.
 #. Other trees ...

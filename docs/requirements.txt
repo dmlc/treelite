@@ -3,7 +3,6 @@ sphinx_rtd_theme>=1.0.0
 breathe
 autodocsumm
 scikit-learn
-sh>=1.12.14
 matplotlib>=2.1
 graphviz
 numpy

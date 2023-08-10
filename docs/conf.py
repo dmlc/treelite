@@ -11,8 +11,6 @@ import warnings
 from subprocess import call
 from urllib.error import HTTPError
 
-from sh.contrib import git
-
 CURR_PATH = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
 PROJECT_ROOT = os.path.normpath(os.path.join(CURR_PATH, os.path.pardir))
 DOX_DIR = "doxygen"
@@ -58,19 +56,6 @@ def is_readthedocs_build():
 if is_readthedocs_build():
     run_doxygen()
 
-
-git_branch_var = os.getenv("SPHINX_GIT_BRANCH", default=None)
-if not git_branch_var:
-    # If SPHINX_GIT_BRANCH environment variable is not given, run git
-    # to determine branch name
-    git_branch_ = [
-        re.sub(r"origin/", "", x.lstrip(" "))
-        for x in str(git.branch("-r", "--contains", "HEAD")).rstrip("\n").split("\n")
-    ]
-    git_branch = [x for x in git_branch_ if "HEAD" not in x]
-else:
-    git_branch = [git_branch_var]
-print(f"git_branch = {git_branch[0]}")
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

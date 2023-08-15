@@ -121,7 +121,7 @@ written to the byte sequence in the exact order they appear in the following lis
      produces a vector output, use ``leaf_vector_`` instead. (See below.)
    * ``threshold_``: an array of ``ThresholdType``, where ``threshold_[i]`` is the threshold used in the test node ``i``.
      ``threshold_[i]`` is only valid if node ``i`` is a test node with a numerical test (of form ``[feature value] [op] [threshold]``).
-     For categorical test nodes, use ``matching_categories_`` instead. (See below.)
+     For categorical test nodes, use ``category_list_`` instead. (See below.)
    * ``cmp_``: an array of ``int8_t`` (representing enum ``Operator``). ``cmp_[i]`` is the comparison operator used in the test node ``i``.
      ``cmp_[i]`` is only valid if node ``i`` is a numerical test node.
    * ``category_list_right_child_``: an array of ``bool`` where ``category_list_right_child_[i]`` indicates which child node should be

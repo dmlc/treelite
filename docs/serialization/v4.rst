@@ -150,10 +150,13 @@ written to the byte sequence in the exact order they appear in the following lis
 
      - ``data_count_``: an array of ``uint64_t``. ``data_count_[i]`` indicates the number of data points in the training data set whose traversal paths include node ``i``. LightGBM provides this statistics.
      - ``data_count_present_``: an array of ``bool``. ``data_count_present[i]_`` indicates whether ``data_count_[i]`` is available.
+       You may assign an empty array (length 0) to ``data_count_`` and ``data_count_present_`` if data count is unavailable for all nodes.
      - ``sum_hess_``: an array of ``double``. ``sum_hess_[i]`` indicates the sum of the Hessian values for all data points whose traversal paths include node ``i``. This information is available in XGBoost and is used as a proxy of the number of data points.
      - ``sum_hess_present_``: an array of ``bool``.  ``sum_hess_present_[i]`` indicates whether ``sum_hess_[i]`` is available.
+       You may assign an empty array (length 0) to ``sum_hess_`` and ``sum_hess_present_`` if Hessian sum is unavailable for all nodes.
      - ``gain_``: an array of ``double``.  ``gain_[i]`` indicates the change in the loss function that is attributed to the particular split at node ``i``.
      - ``gain_present_``: an array of ``bool``. ``gain_present_[i]`` indicates whether ``gain_[i]`` is present.
+       You may assign an empty array (length 0) to ``gain_`` and ``gain_present_`` if gain is unavailable for all nodes.
 
    * Extension slot 2: Per-tree optional fields. This field is currently not used.
 

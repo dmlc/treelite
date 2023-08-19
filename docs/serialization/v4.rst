@@ -25,7 +25,7 @@ We first define a set of enum types to be used in the serialization format.
   - ``kLearningToRank`` (3): learning-to-rank
   - ``kIsolationForest`` (4): isolation forest
 
-* ``NodeType``: underlying type ``int8_t``. Indicates the type of a node in a tree.
+* ``TreeNodeType``: underlying type ``int8_t``. Indicates the type of a node in a tree.
 
   - ``kLeafNode`` (0)
   - ``kNumericalTestNode`` (1)
@@ -107,7 +107,7 @@ written to the byte sequence in the exact order they appear in the following lis
 
    * ``num_nodes``: single ``int32_t`` scalar indicating the number of nodes
    * ``has_categorical_split_``: single ``bool`` scalar indicating if categorical splits exist
-   * ``node_type_``: an array of ``int8_t`` representing enum ``NodeType``. ``node_type_[i]`` indicates the type of node ``i``.
+   * ``node_type_``: an array of ``int8_t`` representing enum ``TreeNodeType``. ``node_type_[i]`` indicates the type of node ``i``.
    * ``cleft_``: an array of ``int32_t``, so that ``cleft_[i]`` identifies the left child node of node ``i``.
      Set to ``-1`` to indicate the lack of the left child.
    * ``cright_``: an array of ``int32_t``, so that ``cright_[i]`` identifies the right child node of node ``i``.

@@ -101,7 +101,7 @@ written to the byte sequence in the exact order they appear in the following lis
 
 #. Extension slot 1: Per-model optional fields. This field is currently not used.
 
-   * Number of fields: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+   * ``num_opt_field_per_model_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
 #. Tree 0: First tree, which is to be represented by the following fields.
 

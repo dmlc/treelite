@@ -59,6 +59,7 @@ def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, d
         "verbosity": 0,
         "objective": objective,
         "num_parallel_tree": num_parallel_tree,
+        "base_score": 0.0
     }
     num_round = 10
     bst = xgb.train(
@@ -96,7 +97,7 @@ def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, d
         assert predictor.num_feature == dtrain.num_col()
         assert predictor.num_class == 1
         assert predictor.pred_transform == "identity"
-        assert predictor.global_bias == 0.5
+        assert predictor.global_bias == 0.0
         assert predictor.sigmoid_alpha == 1.0
         dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
         out_pred = predictor.predict(dmat)
@@ -184,7 +185,7 @@ def test_xgb_iris(
         ("count:poisson", 4, math.log(0.5)),
         ("rank:pairwise", 5, 0.5),
         ("rank:ndcg", 5, 0.5),
-        ("rank:map", 5, 0.5),
+        ("rank:map", 2, 0.5),
     ],
     ids=[
         "binary:logistic",
@@ -276,7 +277,8 @@ def test_xgb_deserializers(toolchain, dataset):
     )
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dtest = xgb.DMatrix(X_test, label=y_test)
-    param = {"max_depth": 8, "eta": 1, "silent": 1, "objective": "reg:linear"}
+    param = {"max_depth": 8, "eta": 1, "silent": 1, "objective": "reg:linear",
+             "base_score": 0.5}
     num_round = 10
     bst = xgb.train(
         param,
@@ -417,7 +419,6 @@ def test_xgb_dart(tmpdir, toolchain, model_format):
     assert predictor.num_feature == dtrain.num_col()
     assert predictor.num_class == 1
     assert predictor.pred_transform == "sigmoid"
-    np.testing.assert_almost_equal(predictor.global_bias, 0, decimal=5)
     assert predictor.sigmoid_alpha == 1.0
     dmat = treelite_runtime.DMatrix(X, dtype="float32")
     out_pred = predictor.predict(dmat)

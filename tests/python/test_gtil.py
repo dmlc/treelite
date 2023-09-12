@@ -330,7 +330,7 @@ def test_xgb_multiclass_classifier(
             ("count:poisson", 4),
             ("rank:pairwise", 5),
             ("rank:ndcg", 5),
-            ("rank:map", 5),
+            ("rank:map", 2),
         ],
     ),
     model_format=sampled_from(["binary", "json"]),

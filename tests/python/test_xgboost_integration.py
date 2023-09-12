@@ -27,16 +27,15 @@ except ImportError:
     pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
+@pytest.mark.parametrize("objective",
+    [
+        "reg:linear",
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ])
 @given(
     toolchain=sampled_from(os_compatible_toolchains()),
-    objective=sampled_from(
-        [
-            "reg:linear",
-            "reg:squarederror",
-            "reg:squaredlogerror",
-            "reg:pseudohubererror",
-        ]
-    ),
     model_format=sampled_from(["binary", "json"]),
     num_parallel_tree=integers(min_value=1, max_value=10),
     dataset=standard_regression_datasets(),
@@ -45,9 +44,14 @@ except ImportError:
 def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, dataset):
     # pylint: disable=too-many-locals
     """Test a random regression dataset"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
     X, y = dataset
     if objective == "reg:squaredlogerror":
-        assume(np.all(y > -1))
+        y = np.where(y <= -1, -0.9, y)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )

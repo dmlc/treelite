@@ -366,7 +366,8 @@ bool GBTreeModelHandler::StartArray() {
   return (push_key_handler<ArrayHandler<treelite::Tree<float, float>, RegTreeHandler>,
                            std::vector<treelite::Tree<float, float>>>(
                                "trees", output.model->trees) ||
-          push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info));
+          push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info) ||
+          push_key_handler<IgnoreHandler>("iteration_indptr"));
 }
 
 bool GBTreeModelHandler::StartObject() {

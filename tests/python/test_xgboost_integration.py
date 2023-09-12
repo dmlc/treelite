@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 import pytest
-from hypothesis import assume, given, settings
+from hypothesis import given, settings
 from hypothesis.strategies import integers, lists, sampled_from
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split

@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 import scipy
-from hypothesis import assume, given, settings
+from hypothesis import given, settings
 from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import floats, integers, just, sampled_from
 from sklearn.datasets import load_svmlight_file

@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 import pytest
-from hypothesis import assume, given, settings
+from hypothesis import given, settings
 from hypothesis.strategies import integers, lists, sampled_from
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -27,16 +27,15 @@ except ImportError:
     pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
+@pytest.mark.parametrize("objective",
+    [
+        "reg:linear",
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ])
 @given(
     toolchain=sampled_from(os_compatible_toolchains()),
-    objective=sampled_from(
-        [
-            "reg:linear",
-            "reg:squarederror",
-            "reg:squaredlogerror",
-            "reg:pseudohubererror",
-        ]
-    ),
     model_format=sampled_from(["binary", "json"]),
     num_parallel_tree=integers(min_value=1, max_value=10),
     dataset=standard_regression_datasets(),
@@ -45,9 +44,14 @@ except ImportError:
 def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, dataset):
     # pylint: disable=too-many-locals
     """Test a random regression dataset"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
     X, y = dataset
     if objective == "reg:squaredlogerror":
-        assume(np.all(y > -1))
+        y = np.where(y <= -1, -0.9, y)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )
@@ -59,6 +63,7 @@ def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, d
         "verbosity": 0,
         "objective": objective,
         "num_parallel_tree": num_parallel_tree,
+        "base_score": 0.0
     }
     num_round = 10
     bst = xgb.train(
@@ -96,7 +101,7 @@ def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, d
         assert predictor.num_feature == dtrain.num_col()
         assert predictor.num_class == 1
         assert predictor.pred_transform == "identity"
-        assert predictor.global_bias == 0.5
+        assert predictor.global_bias == 0.0
         assert predictor.sigmoid_alpha == 1.0
         dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
         out_pred = predictor.predict(dmat)
@@ -184,7 +189,7 @@ def test_xgb_iris(
         ("count:poisson", 4, math.log(0.5)),
         ("rank:pairwise", 5, 0.5),
         ("rank:ndcg", 5, 0.5),
-        ("rank:map", 5, 0.5),
+        ("rank:map", 2, 0.5),
     ],
     ids=[
         "binary:logistic",
@@ -276,7 +281,8 @@ def test_xgb_deserializers(toolchain, dataset):
     )
     dtrain = xgb.DMatrix(X_train, label=y_train)
     dtest = xgb.DMatrix(X_test, label=y_test)
-    param = {"max_depth": 8, "eta": 1, "silent": 1, "objective": "reg:linear"}
+    param = {"max_depth": 8, "eta": 1, "silent": 1, "objective": "reg:linear",
+             "base_score": 0.5}
     num_round = 10
     bst = xgb.train(
         param,
@@ -417,7 +423,6 @@ def test_xgb_dart(tmpdir, toolchain, model_format):
     assert predictor.num_feature == dtrain.num_col()
     assert predictor.num_class == 1
     assert predictor.pred_transform == "sigmoid"
-    np.testing.assert_almost_equal(predictor.global_bias, 0, decimal=5)
     assert predictor.sigmoid_alpha == 1.0
     dmat = treelite_runtime.DMatrix(X, dtype="float32")
     out_pred = predictor.predict(dmat)

@@ -18,10 +18,10 @@ dependencies:
 - llvm-openmp
 - cython
 - lightgbm
-- xgboost
 - cpplint
 - pylint
 - awscli
 - pip
 - pip:
   - cibuildwheel
+  - xgboost>=2.0

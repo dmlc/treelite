@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pytest
 import scipy
-from hypothesis import assume, given, settings
+from hypothesis import given, settings
 from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import floats, integers, just, sampled_from
 from sklearn.datasets import load_svmlight_file
@@ -198,16 +198,15 @@ def test_skl_hist_gradient_boosting_with_categorical():
         treelite.sklearn.import_model(clf)
 
 
+@pytest.mark.parametrize("objective",
+    [
+        "reg:linear",
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ])
 @given(
     dataset=standard_regression_datasets(),
-    objective=sampled_from(
-        [
-            "reg:linear",
-            "reg:squarederror",
-            "reg:squaredlogerror",
-            "reg:pseudohubererror",
-        ]
-    ),
     model_format=sampled_from(["binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
@@ -218,9 +217,14 @@ def test_xgb_regression(
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
     X, y = dataset
     if objective == "reg:squaredlogerror":
-        assume(np.all(y > -1))
+        y = np.where(y <= -1, -0.9, y)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )
@@ -330,7 +334,7 @@ def test_xgb_multiclass_classifier(
             ("count:poisson", 4),
             ("rank:pairwise", 5),
             ("rank:ndcg", 5),
-            ("rank:map", 5),
+            ("rank:map", 2),
         ],
     ),
     model_format=sampled_from(["binary", "json"]),

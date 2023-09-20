@@ -70,14 +70,14 @@ written to the byte sequence in the exact order they appear in the following lis
    * ``average_tree_output``: single ``bool`` scalar indicating whether to average tree outputs
    * Task parameters
 
-     - ``num_target``: single ``uint32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models.
-     - ``num_class``: an array of ``uint32_t`` with length ``num_target``.
+     - ``num_target``: single ``int32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models. Negative value is invalid.
+     - ``num_class``: an array of ``int32_t`` with length ``num_target``. Negative value is invalid.
 
        .. note:: Writing an array to the disk or a stream
 
           When writing an array to the disk or a stream, we first write the length of the array (``uint64_t`` scalar),
           and then the content of the array.
-     - ``leaf_vector_shape``: an array of ``uint32_t`` with length 2. The first dimension is either 1 or ``num_target``. The second dimension is either 1 or ``max(num_class)``.
+     - ``leaf_vector_shape``: an array of ``int32_t`` with length 2. The first dimension is either 1 or ``num_target``. The second dimension is either 1 or ``max(num_class)``.
 
    * Per-tree Metadata
 

@@ -67,7 +67,8 @@ written to the byte sequence in the exact order they appear in the following lis
 
    * Number of features in data (``num_feature``): single ``int32_t`` scalar.
    * Task type (``task_type``): single ``uint8_t`` scalar representing enum ``TaskType``.
-   * ``average_tree_output``: single ``bool`` scalar indicating whether to average tree outputs
+   * ``average_tree_output``: single ``bool`` scalar indicating whether to average tree outputs. When this field is set to True, each output ``out[target_id, row_id, class_id]`` is divided by the number of trees that are associated with the same target and class. (See ``target_id`` and ``class_id`` fields below.)
+
    * Task parameters
 
      - ``num_target``: single ``int32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models. Negative value is invalid.

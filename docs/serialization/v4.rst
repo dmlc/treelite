@@ -72,7 +72,7 @@ written to the byte sequence in the exact order they appear in the following lis
    * Task parameters
 
      - ``num_target``: single ``int32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models. Negative value is invalid.
-     - ``num_class``: an array of ``int32_t`` with length ``num_target``. Negative value is invalid.
+     - ``num_class``: an array of ``int32_t`` with length ``num_target``. Negative value is invalid. Set ``num_class=[1, 1, 1, ...]`` for regression and other non-classifier models.
 
        .. note:: Writing an array to the disk or a stream
 
@@ -85,7 +85,7 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``target_id``: an array of ``int32_t``. ``target_id[i]`` indicates the target for which the ``i``-th tree produces output.  If the tree is a multi-target tree (i.e. it yields output for all targets), ``target_id[i]`` is set to -1.
        This array is expected to have length ``num_tree``.
      - ``class_id``: an array of ``int32_t``. ``class_id[i]`` indicates the class for which the ``i``-th tree produces output. For vector-leaf trees that produce outputs for multiple classes,
-       the corresponding ``class_id[i]`` is set to -1. The ``class_id`` array is expected to have length ``num_tree``.
+       the corresponding ``class_id[i]`` is set to -1. For regression and other non-classifier models, ``class_id[i]`` should be 0 for all trees. The ``class_id`` array is expected to have length ``num_tree``.
 
    * Model parameters
 

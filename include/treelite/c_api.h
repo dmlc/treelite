@@ -686,4 +686,12 @@ TREELITE_DLL int TreeliteRegisterLogCallback(void (*callback)(char const*));
  */
 TREELITE_DLL int TreeliteRegisterWarningCallback(void (*callback)(char const*));
 
+#ifdef __cplusplus
+extern "C" {
+extern char const* TREELITE_VERSION;
+}
+#else
+extern char const* TREELITE_VERSION;
+#endif
+
 #endif  // TREELITE_C_API_H_

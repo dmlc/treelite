@@ -68,6 +68,7 @@ class Serializer {
   template <typename ThresholdType, typename LeafOutputType>
   void SerializeTree(Tree<ThresholdType, LeafOutputType>& tree) {
     TREELITE_CHECK_EQ(tree.num_nodes, tree.nodes_.Size()) << "Incorrect number of nodes";
+    tree.ComputeCategoryOffsets();  // Ensure offsets are correct before serialization
     mixin_->SerializePrimitiveField(&tree.num_nodes);
     mixin_->SerializePrimitiveField(&tree.has_categorical_split_);
     mixin_->SerializeCompositeArray(&tree.nodes_, tree.GetFormatStringForNode());
@@ -175,6 +176,8 @@ class Deserializer {
     mixin_->DeserializePrimitiveArray(&tree.leaf_vector_end_);
     mixin_->DeserializePrimitiveArray(&tree.matching_categories_);
     mixin_->DeserializePrimitiveArray(&tree.matching_categories_offset_);
+
+    tree.ComputeCategorySizes();  // Compute sizes from offsets
 
     /* Extension slot 2: Per-tree optional fields -- to be added later */
     mixin_->DeserializePrimitiveField(&tree.num_opt_field_per_tree_);

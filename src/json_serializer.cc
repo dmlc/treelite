@@ -154,7 +154,6 @@ void DumpTreeAsJSON(WriterType& writer, Tree<ThresholdType, LeafOutputType> cons
   // Basic checks
   TREELITE_CHECK_EQ(tree.nodes_.Size(), tree.num_nodes);
   TREELITE_CHECK_EQ(tree.nodes_.Size() + 1, tree.matching_categories_offset_.Size());
-  TREELITE_CHECK_EQ(tree.matching_categories_offset_.Back(), tree.matching_categories_.Size());
 }
 
 template <typename WriterType>

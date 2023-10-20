@@ -90,6 +90,7 @@ inline Tree<ThresholdType, LeafOutputType> Tree<ThresholdType, LeafOutputType>::
   tree.leaf_vector_end_ = leaf_vector_end_.Clone();
   tree.matching_categories_ = matching_categories_.Clone();
   tree.matching_categories_offset_ = matching_categories_offset_.Clone();
+  tree.matching_categories_size_ = matching_categories_size_.Clone();
   return tree;
 }
 
@@ -126,7 +127,8 @@ inline int Tree<ThresholdType, LeafOutputType>::AllocNode() {
   for (int nid = nd; nid < num_nodes; ++nid) {
     leaf_vector_begin_.PushBack(0);
     leaf_vector_end_.PushBack(0);
-    matching_categories_offset_.PushBack(matching_categories_offset_.Back());
+    matching_categories_offset_.PushBack(0);
+    matching_categories_size_.PushBack(0);
     nodes_.Resize(nodes_.Size() + 1);
     nodes_.Back().Init();
   }
@@ -142,6 +144,7 @@ inline void Tree<ThresholdType, LeafOutputType>::Init() {
   leaf_vector_end_.Resize(1, {});
   matching_categories_.Clear();
   matching_categories_offset_.Resize(2, 0);
+  matching_categories_size_.Resize(1, 0);
   nodes_.Resize(1);
   nodes_.at(0).Init();
   SetLeaf(0, static_cast<LeafOutputType>(0));
@@ -180,23 +183,11 @@ inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(int nid, un
     throw Error("split_index too big");
   }
 
-  const std::size_t end_oft = matching_categories_offset_.Back();
-  const std::size_t new_end_oft = end_oft + categories_list.size();
-  if (end_oft != matching_categories_.Size()) {
-    throw Error("Invariant violated");
-  }
-  if (!std::all_of(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-          [end_oft](std::size_t x) { return (x == end_oft); })) {
-    throw Error("Invariant violated");
-  }
-  // Hopefully we won't have to move any element as we add node_matching_categories for node nid
+  const std::size_t end_oft = matching_categories_.Size();
+  matching_categories_offset_.at(nid) = end_oft;
+  matching_categories_size_.at(nid) = categories_list.size();
   matching_categories_.Extend(categories_list);
-  if (new_end_oft != matching_categories_.Size()) {
-    throw Error("Invariant violated");
-  }
-  std::for_each(&matching_categories_offset_.at(nid + 1), matching_categories_offset_.End(),
-      [new_end_oft](std::size_t& x) { x = new_end_oft; });
-  if (!matching_categories_.Empty()) {
+  if (!categories_list.empty()) {
     std::sort(&matching_categories_.at(end_oft), matching_categories_.End());
   }
 
@@ -232,6 +223,53 @@ inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
   node.cleft_ = -1;
   node.cright_ = -1;
   node.split_type_ = SplitFeatureType::kNone;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void Tree<ThresholdType, LeafOutputType>::ComputeCategoryOffsets() {
+  if (matching_categories_offset_.Size() != nodes_.Size() + 1) {
+    throw Error(
+        "Invariant violated: matching_categories_offset_ size is not one more than the nodes size");
+  }
+  if (matching_categories_size_.Size() != nodes_.Size()) {
+    throw Error(
+        "Invariant violated: matching_categories_size_ size is not the same as the nodes size");
+  }
+  size_t offset = 0;
+  for (size_t i = 0; i < nodes_.Size(); ++i) {
+    size_t size = matching_categories_size_.at(i);
+    if (size == 0) {
+      matching_categories_offset_.at(i) = offset;
+    } else {
+      size_t actual_offset = matching_categories_offset_.at(i);
+      if (actual_offset != offset) {
+        std::ostringstream oss;
+        oss << "Invariant violated: expected offset " << offset << " for node " << i
+            << " but found " << actual_offset;
+        throw Error(oss.str());
+      }
+      offset += size;
+    }
+  }
+  matching_categories_offset_.at(nodes_.Size()) = offset;
+}
+
+template <typename ThresholdType, typename LeafOutputType>
+inline void Tree<ThresholdType, LeafOutputType>::ComputeCategorySizes() {
+  if (matching_categories_offset_.Size() != nodes_.Size() + 1) {
+    throw Error(
+        "Invariant violated: matching_categories_offset_ size is not one more than the nodes size");
+  }
+  matching_categories_size_.Resize(nodes_.Size());
+  size_t offset = matching_categories_offset_.at(0);
+  for (size_t i = 0; i < nodes_.Size(); ++i) {
+    size_t next_offset = matching_categories_offset_.at(i + 1);
+    if (next_offset < offset) {
+      throw Error("Invariant violated: matching_categories_offset_ values went backwards");
+    }
+    matching_categories_size_.at(i) = next_offset - offset;
+    offset = next_offset;
+  }
 }
 
 template <typename ThresholdType, typename LeafOutputType>

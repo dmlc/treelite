@@ -256,7 +256,7 @@ void ApplyPostProcessor(Model const& model, InputT* output, std::uint64_t num_ro
 
   for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
     std::int32_t const num_class = model.num_class[target_id];
-    detail::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config,
+    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
         detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
           auto row = stdex::submdspan(output_view, target_id, row_id, stdex::full_extent);
           static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>);

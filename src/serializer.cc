@@ -17,7 +17,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -429,7 +428,7 @@ class Deserializer {
       tree.gain_present_.PushBack(node.gain_present_);
     }
 
-    static_assert(std::is_same_v<std::size_t, std::uint64_t>, "Wrong size for size_t");
+    static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "Wrong size for size_t");
     mixin_->DeserializeArray(&tree.leaf_vector_);
     mixin_->DeserializeArray(&tree.leaf_vector_begin_);
     mixin_->DeserializeArray(&tree.leaf_vector_end_);

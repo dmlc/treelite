@@ -43,7 +43,7 @@ int TreeliteLoadXGBoostModel(
 }
 
 int TreeliteLoadXGBoostModelFromString(
-    char const* json_str, std::uint64_t length, char const* config_json, TreeliteModelHandle* out) {
+    char const* json_str, std::size_t length, char const* config_json, TreeliteModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<treelite::Model> model
       = treelite::model_loader::LoadXGBoostModelFromString(json_str, length, config_json);

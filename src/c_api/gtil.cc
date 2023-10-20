@@ -29,7 +29,7 @@ int TreeliteGTILDeleteConfig(TreeliteGTILConfigHandle handle) {
   API_END();
 }
 
-int TreeliteGTILGetOutputShape(TreeliteModelHandle model, std::size_t num_row,
+int TreeliteGTILGetOutputShape(TreeliteModelHandle model, std::uint64_t num_row,
     TreeliteGTILConfigHandle config, std::uint64_t const** out, std::uint64_t* out_ndim) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);

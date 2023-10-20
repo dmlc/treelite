@@ -9,9 +9,9 @@ if(RapidJSON_FOUND)
 else()
   message(STATUS "Did not find RapidJSON in the system root. Fetching RapidJSON now...")
   FetchContent_Declare(
-      RapidJSON
-      GIT_REPOSITORY      https://github.com/Tencent/rapidjson
-      GIT_TAG             v1.1.0
+    RapidJSON
+    GIT_REPOSITORY      https://github.com/Tencent/rapidjson
+    GIT_TAG             v1.1.0
   )
   FetchContent_Populate(RapidJSON)
   message(STATUS "RapidJSON was downloaded at ${rapidjson_SOURCE_DIR}.")
@@ -43,9 +43,9 @@ if(BUILD_CPP_TEST)
   if(NOT GTEST_FOUND)
     message(STATUS "Did not find Google Test in the system root. Fetching Google Test now...")
     FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG        release-1.11.0
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG        release-1.11.0
     )
     FetchContent_MakeAvailable(googletest)
     add_library(GTest::GTest ALIAS gtest)

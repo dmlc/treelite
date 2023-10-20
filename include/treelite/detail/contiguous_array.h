@@ -9,6 +9,7 @@
 
 #include <treelite/logging.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <vector>
@@ -24,6 +25,30 @@ ContiguousArray<T>::~ContiguousArray() {
   if (buffer_ && owned_buffer_) {
     std::free(buffer_);
   }
+}
+
+template <typename T>
+ContiguousArray<T>::ContiguousArray(std::vector<T> const& other) {
+  buffer_ = static_cast<T*>(std::malloc(sizeof(T) * other.capacity()));
+  TREELITE_CHECK(buffer_) << "Could not allocate buffer";
+  std::memcpy(buffer_, other.data(), sizeof(T) * other.size());
+  size_ = other.size();
+  capacity_ = other.capacity();
+  owned_buffer_ = true;
+}
+
+template <typename T>
+ContiguousArray<T>& ContiguousArray<T>::operator=(std::vector<T> const& other) {
+  if (buffer_ && owned_buffer_) {
+    std::free(buffer_);
+  }
+  buffer_ = static_cast<T*>(std::malloc(sizeof(T) * other.capacity()));
+  TREELITE_CHECK(buffer_) << "Could not allocate buffer";
+  std::memcpy(buffer_, other.data(), sizeof(T) * other.size());
+  size_ = other.size();
+  capacity_ = other.capacity();
+  owned_buffer_ = true;
+  return *this;
 }
 
 template <typename T>
@@ -55,9 +80,7 @@ inline ContiguousArray<T> ContiguousArray<T>::Clone() const {
   ContiguousArray clone;
   if (buffer_) {
     clone.buffer_ = static_cast<T*>(std::malloc(sizeof(T) * capacity_));
-    if (!clone.buffer_) {
-      throw Error("Could not allocate memory for the clone");
-    }
+    TREELITE_CHECK(clone.buffer_) << "Could not allocate memory for the clone";
     std::memcpy(clone.buffer_, buffer_, sizeof(T) * size_);
   } else {
     TREELITE_CHECK_EQ(size_, 0);
@@ -123,73 +146,62 @@ inline bool ContiguousArray<T>::Empty() const {
 
 template <typename T>
 inline void ContiguousArray<T>::Reserve(std::size_t newsize) {
-  if (!owned_buffer_) {
-    throw Error("Cannot resize when using a foreign buffer; clone first");
-  }
+  TREELITE_CHECK(owned_buffer_) << "Cannot resize when using a foreign buffer; clone first";
   T* newbuf = static_cast<T*>(std::realloc(static_cast<void*>(buffer_), sizeof(T) * newsize));
-  if (!newbuf) {
-    throw Error("Could not expand buffer");
-  }
+  TREELITE_CHECK(newbuf) << "Could not expand buffer";
   buffer_ = newbuf;
   capacity_ = newsize;
 }
 
 template <typename T>
 inline void ContiguousArray<T>::Resize(std::size_t newsize) {
-  if (!owned_buffer_) {
-    throw Error("Cannot resize when using a foreign buffer; clone first");
-  }
+  Resize(newsize, T{});
+}
+
+template <typename T>
+inline void ContiguousArray<T>::Resize(std::size_t newsize, T t) {
+  TREELITE_CHECK(owned_buffer_) << "Cannot resize when using a foreign buffer; clone first";
+  std::size_t oldsize = Size();
   if (newsize > capacity_) {
     std::size_t newcapacity = capacity_;
     if (newcapacity == 0) {
       newcapacity = 1;
     }
-    while (newcapacity <= newsize) {
+    while (newcapacity < newsize) {
       newcapacity *= 2;
     }
     Reserve(newcapacity);
+  }
+  for (std::size_t i = oldsize; i < newsize; ++i) {
+    buffer_[i] = t;
   }
   size_ = newsize;
 }
 
 template <typename T>
-inline void ContiguousArray<T>::Resize(std::size_t newsize, T t) {
-  if (!owned_buffer_) {
-    throw Error("Cannot resize when using a foreign buffer; clone first");
-  }
-  std::size_t oldsize = Size();
-  Resize(newsize);
-  for (std::size_t i = oldsize; i < newsize; ++i) {
-    buffer_[i] = t;
-  }
-}
-
-template <typename T>
 inline void ContiguousArray<T>::Clear() {
-  if (!owned_buffer_) {
-    throw Error("Cannot clear when using a foreign buffer; clone first");
-  }
+  TREELITE_CHECK(owned_buffer_) << "Cannot clear when using a foreign buffer; clone first";
   Resize(0);
 }
 
 template <typename T>
 inline void ContiguousArray<T>::PushBack(T t) {
-  if (!owned_buffer_) {
-    throw Error("Cannot add element when using a foreign buffer; clone first");
-  }
+  TREELITE_CHECK(owned_buffer_) << "Cannot add element when using a foreign buffer; clone first";
   if (size_ == capacity_) {
-    Reserve(capacity_ * 2);
+    if (capacity_ == 0) {
+      Reserve(1);
+    } else {
+      Reserve(capacity_ * 2);
+    }
   }
   buffer_[size_++] = t;
 }
 
 template <typename T>
 inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
-  if (!owned_buffer_) {
-    throw Error("Cannot add elements when using a foreign buffer; clone first");
-  }
+  TREELITE_CHECK(owned_buffer_) << "Cannot add elements when using a foreign buffer; clone first";
   if (other.empty()) {
-    return;  // appending an empty vector is a no-op
+    return;  // Appending an empty vector is a no-op
   }
   std::size_t newsize = size_ + other.size();
   if (newsize > capacity_) {
@@ -207,6 +219,48 @@ inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
 }
 
 template <typename T>
+inline void ContiguousArray<T>::Extend(ContiguousArray const& other) {
+  TREELITE_CHECK(owned_buffer_) << "Cannot add elements when using a foreign buffer; clone first";
+  if (other.Empty()) {
+    return;  // Appending an empty vector is a no-op
+  }
+  std::size_t newsize = size_ + other.Size();
+  if (newsize > capacity_) {
+    std::size_t newcapacity = capacity_;
+    if (newcapacity == 0) {
+      newcapacity = 1;
+    }
+    while (newcapacity <= newsize) {
+      newcapacity *= 2;
+    }
+    Reserve(newcapacity);
+  }
+  std::memcpy(&buffer_[size_], static_cast<void const*>(other.Data()), sizeof(T) * other.Size());
+  size_ = newsize;
+}
+
+template <typename T>
+inline std::vector<T> ContiguousArray<T>::AsVector() const {
+  auto const size = Size();
+  std::vector<T> vec(size);
+  std::copy(buffer_, buffer_ + size, vec.begin());
+  return vec;
+}
+
+template <typename T>
+inline bool ContiguousArray<T>::operator==(ContiguousArray const& other) {
+  if (Size() != other.Size()) {
+    return false;
+  }
+  for (std::size_t i = 0; i < Size(); ++i) {
+    if (buffer_[i] != other.buffer_[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
 inline T& ContiguousArray<T>::operator[](std::size_t idx) {
   return buffer_[idx];
 }
@@ -218,24 +272,20 @@ inline T const& ContiguousArray<T>::operator[](std::size_t idx) const {
 
 template <typename T>
 inline T& ContiguousArray<T>::at(std::size_t idx) {
-  if (idx >= Size()) {
-    throw Error("nid out of range");
-  }
+  TREELITE_CHECK_LT(idx, Size()) << "nid out of range";
   return buffer_[idx];
 }
 
 template <typename T>
 inline T const& ContiguousArray<T>::at(std::size_t idx) const {
-  if (idx >= Size()) {
-    throw Error("nid out of range");
-  }
+  TREELITE_CHECK_LT(idx, Size()) << "nid out of range";
   return buffer_[idx];
 }
 
 template <typename T>
 inline T& ContiguousArray<T>::at(int idx) {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
-    throw Error("nid out of range");
+    TREELITE_LOG(FATAL) << "nid out of range";
   }
   return buffer_[static_cast<std::size_t>(idx)];
 }
@@ -243,7 +293,7 @@ inline T& ContiguousArray<T>::at(int idx) {
 template <typename T>
 inline T const& ContiguousArray<T>::at(int idx) const {
   if (idx < 0 || static_cast<std::size_t>(idx) >= Size()) {
-    throw Error("nid out of range");
+    TREELITE_LOG(FATAL) << "nid out of range";
   }
   return buffer_[static_cast<std::size_t>(idx)];
 }

@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only RapidJSON::rapidjson)
+target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
 
 if(USE_OPENMP)
   if(APPLE)
@@ -60,6 +60,7 @@ set_target_properties(objtreelite
   POSITION_INDEPENDENT_CODE ON
   CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON)
+target_compile_features(objtreelite PUBLIC cxx_std_17)
 
 if(HIDE_CXX_SYMBOLS)
   set_target_properties(objtreelite
@@ -70,50 +71,60 @@ endif(HIDE_CXX_SYMBOLS)
 
 target_sources(objtreelite
     PRIVATE
-    c_api/c_api_error.cc
-    c_api/c_api.cc
-    frontend/builder.cc
-    frontend/json_importer.cc
-    frontend/lightgbm.cc
-    frontend/sklearn.cc
-    frontend/xgboost.cc
-    frontend/xgboost_json.cc
-    frontend/xgboost_util.cc
-    gtil/predict.cc
-    gtil/config.cc
-    gtil/pred_transform.h
-    gtil/pred_transform.cc
-    threading_utils/parallel_for.h
-    data.cc
+    ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/error.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/model_builder.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/model_loader.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/pybuffer_frame.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/file_utils.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/omp_exception.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/threading_utils.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/tree.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/operator.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/task_type.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/tree_node_type.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
     model_concat.cc
     serializer.cc
-    typeinfo.cc
-    ${PROJECT_SOURCE_DIR}/include/treelite/base.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/contiguous_array.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/data.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/error.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/frontend_impl.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/math.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/omp.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/omp_exception.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/pybuffer_frame.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/task_type.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/tree_impl.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/typeinfo.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_impl.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
+    c_api/c_api_error.cc
+    c_api/c_api_utils.h
+    c_api/gtil.cc
+    c_api/logging.cc
+    c_api/model.cc
+    c_api/model_builder.cc
+    c_api/model_loader.cc
+    c_api/serializer.cc
+    c_api/sklearn.cc
+    enum/operator.cc
+    enum/task_type.cc
+    enum/tree_node_type.cc
+    enum/typeinfo.cc
+    gtil/config.cc
+    gtil/output_shape.cc
+    gtil/postprocessor.cc
+    gtil/postprocessor.h
+    gtil/predict.cc
+    model_builder/metadata.cc
+    model_builder/model_builder.cc
+    model_builder/detail/json_parsing.h
+    model_loader/lightgbm.cc
+    model_loader/sklearn.cc
+    model_loader/xgboost_json.cc
+    model_loader/xgboost_legacy.cc
+    model_loader/detail/lightgbm.h
+    model_loader/detail/string_utils.h
+    model_loader/detail/xgboost.cc
+    model_loader/detail/xgboost.h
+    model_loader/detail/xgboost_json.h
 )
-
-# In MSVC solution, group sources according to directories
-file(GLOB_RECURSE ALL_SOURCES *.cc *.h)
-auto_source_group("${ALL_SOURCES}")

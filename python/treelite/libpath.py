@@ -1,4 +1,3 @@
-# coding: utf-8
 """Find the path to Treelite dynamic library files."""
 
 import os

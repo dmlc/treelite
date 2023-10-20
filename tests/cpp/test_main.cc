@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2020 by Contributors
+ * Copyright (c) 2020-2023 by Contributors
  * \file test_main.cc
  * \author Hyunsu Cho
  * \brief Launcher for C++ unit tests, using Google Test framework

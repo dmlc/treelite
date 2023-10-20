@@ -18,6 +18,11 @@ repos:
   hooks:
   - id: isort
     args: ["--profile", "black", "--filter-files"]
+- repo: https://github.com/MarcoGorelli/cython-lint
+  rev: v0.15.0
+  hooks:
+  - id: cython-lint
+  - id: double-quote-cython-strings
 - repo: https://github.com/PyCQA/flake8
   rev: 5.0.4
   hooks:
@@ -58,5 +63,4 @@ repos:
   rev: v1.2.0
   hooks:
     - id: mypy
-      exclude: setup.py
-      additional_dependencies: [types-setuptools]
+      additional_dependencies: [types-setuptools, numpy]

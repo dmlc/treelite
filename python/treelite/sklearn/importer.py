@@ -1,14 +1,14 @@
-# coding: utf-8
 """Converter to ingest scikit-learn models into Treelite"""
 
 import ctypes
 
 import numpy as np
-from scipy.special import psi
+from sklearn.dummy import DummyClassifier, DummyRegressor
 
-from ..core import _LIB, _check_call, c_array
+from ..core import _LIB, TreeliteError, _check_call
 from ..frontend import Model
-from ..util import TreeliteError
+from ..util import c_array
+from .isolation_forest import calculate_depths, expected_depth
 
 
 class ArrayOfArrays:
@@ -19,13 +19,19 @@ class ArrayOfArrays:
     def __init__(self, *, dtype):
         int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
+        uint32_ptr_type = ctypes.POINTER(ctypes.c_uint32)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
+        void_ptr_type = ctypes.c_void_p
         if dtype == np.int64:
             self.ptr_type = int64_ptr_type
         elif dtype == np.float64:
             self.ptr_type = float64_ptr_type
+        elif dtype == np.uint32:
+            self.ptr_type = uint32_ptr_type
         elif dtype == np.int8:
             self.ptr_type = int8_ptr_type
+        elif dtype == "void":
+            self.ptr_type = void_ptr_type
         else:
             raise ValueError(f"dtype {dtype} is not supported")
         self.dtype = dtype
@@ -34,7 +40,8 @@ class ArrayOfArrays:
 
     def add(self, array, *, expected_shape=None):
         """Add an array to the collection"""
-        assert array.dtype == self.dtype
+        if self.dtype != "void":
+            assert array.dtype == self.dtype
         if expected_shape:
             assert (
                 array.shape == expected_shape
@@ -49,36 +56,6 @@ class ArrayOfArrays:
         return c_array(self.ptr_type, self.collection_ptr)
 
 
-# Helpers for isolation forests
-def harmonic(number):
-    """Calculates the n-th harmonic number"""
-    return psi(number + 1) + np.euler_gamma
-
-
-def expected_depth(n_remainder):
-    """Calculates the expected isolation depth for a remainder of uniform points"""
-    if n_remainder <= 1:
-        return 0
-    if n_remainder == 2:
-        return 1
-    return float(2 * (harmonic(n_remainder) - 1))
-
-
-def calculate_depths(isolation_depths, tree, curr_node, curr_depth):
-    """Fill in an array of isolation depths for a scikit-learn isolation forest model"""
-    if tree.children_left[curr_node] == -1:
-        isolation_depths[curr_node] = curr_depth + expected_depth(
-            tree.n_node_samples[curr_node]
-        )
-    else:
-        calculate_depths(
-            isolation_depths, tree, tree.children_left[curr_node], curr_depth + 1
-        )
-        calculate_depths(
-            isolation_depths, tree, tree.children_right[curr_node], curr_depth + 1
-        )
-
-
 def import_model(sklearn_model):
     # pylint: disable=R0914,R0912,R0915
     """
@@ -86,10 +63,10 @@ def import_model(sklearn_model):
 
     Note
     ----
-    For 'IsolationForest', it will calculate the outlier score using the standardized ratio as
-    proposed in the original reference, which matches with
-    'IsolationForest._compute_chunked_score_samples' but is a bit different from
-    'IsolationForest.decision_function'.
+    For :py:class:`~sklearn.ensemble.IsolationForest`, the loaded model will calculate the outlier
+    score using the standardized ratio as proposed in the original reference,
+    which matches with :py:meth:`~sklearn.ensemble.IsolationForest._compute_chunked_score_samples`
+    but is a bit different from :py:meth:`~sklearn.ensemble.IsolationForest.decision_function`.
 
     Parameters
     ----------
@@ -118,7 +95,7 @@ def import_model(sklearn_model):
 
       import sklearn.datasets
       import sklearn.ensemble
-      X, y = sklearn.datasets.load_boston(return_X_y=True)
+      X, y = sklearn.datasets.load_diabetes(return_X_y=True)
       clf = sklearn.ensemble.RandomForestRegressor(n_estimators=10)
       clf.fit(X, y)
 
@@ -151,36 +128,32 @@ def import_model(sklearn_model):
     if isinstance(sklearn_model, (HistGradientBoostingR, HistGradientBoostingC)):
         return _import_hist_gradient_boosting(sklearn_model)
 
-    if isinstance(
-        sklearn_model,
-        (
-            RandomForestR,
-            ExtraTreesR,
-            GradientBoostingR,
-            GradientBoostingC,
-            IsolationForest,
-        ),
-    ):
+    if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
         # pylint: disable=C3001
-        leaf_value_expected_shape = lambda node_count: (node_count, 1, 1)  # noqa: E731
+        leaf_value_expected_shape = lambda node_count: (  # noqa: E731
+            node_count,
+            sklearn_model.n_outputs_,
+            1,
+        )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         # pylint: disable=C3001
         leaf_value_expected_shape = lambda node_count: (  # noqa: E731
             node_count,
-            1,
+            sklearn_model.n_outputs_,
             sklearn_model.n_classes_,
+        )
+    elif isinstance(
+        sklearn_model, (GradientBoostingR, GradientBoostingC, IsolationForest)
+    ):
+        # pylint: disable=C3001
+        leaf_value_expected_shape = lambda node_count: (  # noqa: E731
+            node_count,
+            1,
+            1,
         )
     else:
         raise TreeliteError(
             f"Not supported model type: {sklearn_model.__class__.__name__}"
-        )
-
-    if (
-        isinstance(sklearn_model, (GradientBoostingR, GradientBoostingC))
-        and sklearn_model.init != "zero"
-    ):
-        raise TreeliteError(
-            "Gradient boosted trees must be trained with the option init='zero'"
         )
 
     if isinstance(sklearn_model, IsolationForest):
@@ -214,16 +187,16 @@ def import_model(sklearn_model):
             children_right.add(tree.children_right, expected_shape=(tree.node_count,))
             feature.add(tree.feature, expected_shape=(tree.node_count,))
             threshold.add(tree.threshold, expected_shape=(tree.node_count,))
-            if not isinstance(sklearn_model, IsolationForest):
+            if isinstance(sklearn_model, IsolationForest):
+                value.add(
+                    isolation_depths.reshape((-1, 1, 1)),
+                    expected_shape=leaf_value_expected_shape(tree.node_count),
+                )
+            else:
                 # Note: for gradient boosted trees, we shrink each leaf output by the
                 # learning rate
                 value.add(
                     tree.value * learning_rate,
-                    expected_shape=leaf_value_expected_shape(tree.node_count),
-                )
-            else:
-                value.add(
-                    isolation_depths.reshape((-1, 1, 1)),
                     expected_shape=leaf_value_expected_shape(tree.node_count),
                 )
             n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
@@ -238,6 +211,7 @@ def import_model(sklearn_model):
             _LIB.TreeliteLoadSKLearnRandomForestRegressor(
                 ctypes.c_int(sklearn_model.n_estimators),
                 ctypes.c_int(sklearn_model.n_features_in_),
+                ctypes.c_int(sklearn_model.n_outputs_),
                 c_array(ctypes.c_int64, node_count),
                 children_left.as_c_array(),
                 children_right.as_c_array(),
@@ -269,11 +243,13 @@ def import_model(sklearn_model):
             )
         )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
+        n_classes = np.array(sklearn_model.n_classes_, dtype=np.int32)
         _check_call(
             _LIB.TreeliteLoadSKLearnRandomForestClassifier(
                 ctypes.c_int(sklearn_model.n_estimators),
                 ctypes.c_int(sklearn_model.n_features_in_),
-                ctypes.c_int(sklearn_model.n_classes_),
+                ctypes.c_int(sklearn_model.n_outputs_),
+                n_classes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 c_array(ctypes.c_int64, node_count),
                 children_left.as_c_array(),
                 children_right.as_c_array(),
@@ -287,6 +263,13 @@ def import_model(sklearn_model):
             )
         )
     elif isinstance(sklearn_model, GradientBoostingR):
+        if sklearn_model.init_ == "zero":
+            base_scores = np.array([0], dtype=np.float64)
+        elif isinstance(sklearn_model.init_, (DummyRegressor,)):
+            base_scores = np.array(sklearn_model.init_.constant_, dtype=np.float64)
+            assert base_scores.size == 1
+        else:
+            raise NotImplementedError("Custom init estimator not supported")
         _check_call(
             _LIB.TreeliteLoadSKLearnGradientBoostingRegressor(
                 ctypes.c_int(sklearn_model.n_estimators),
@@ -300,10 +283,25 @@ def import_model(sklearn_model):
                 n_node_samples.as_c_array(),
                 weighted_n_node_samples.as_c_array(),
                 impurity.as_c_array(),
+                base_scores.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 ctypes.byref(handle),
             )
         )
     elif isinstance(sklearn_model, GradientBoostingC):
+        if sklearn_model.init_ == "zero":
+            base_scores = np.array([0], dtype=np.float64)
+        elif isinstance(sklearn_model.init_, (DummyClassifier,)):
+            if sklearn_model.init_.strategy != "prior":
+                raise NotImplementedError("Custom init estimator not supported")
+            # pylint: disable=W0212
+            base_scores = np.array(
+                sklearn_model._loss.get_init_raw_predictions(
+                    np.zeros((1, sklearn_model.n_features_in_)), sklearn_model.init_
+                ),
+                dtype=np.float64,
+            )
+        else:
+            raise NotImplementedError("Custom init estimator not supported")
         _check_call(
             _LIB.TreeliteLoadSKLearnGradientBoostingClassifier(
                 ctypes.c_int(sklearn_model.n_estimators),
@@ -318,6 +316,7 @@ def import_model(sklearn_model):
                 n_node_samples.as_c_array(),
                 weighted_n_node_samples.as_c_array(),
                 impurity.as_c_array(),
+                base_scores.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 ctypes.byref(handle),
             )
         )
@@ -327,7 +326,7 @@ def import_model(sklearn_model):
             + "currently random forests, extremely randomized trees, and gradient "
             + "boosted trees are supported"
         )
-    return Model(handle)
+    return Model(handle=handle)
 
 
 def _import_hist_gradient_boosting(sklearn_model):
@@ -337,45 +336,28 @@ def _import_hist_gradient_boosting(sklearn_model):
     from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
 
     # Arrays to be passed to C API functions
+    (
+        known_cat_bitsets,
+        f_idx_map,
+    ) = sklearn_model._bin_mapper.make_known_categories_bitsets()
+    n_categorical_splits = known_cat_bitsets.shape[0]
+    n_trees = 0
+    nodes = ArrayOfArrays(dtype="void")
+    raw_left_cat_bitsets = ArrayOfArrays(dtype=np.uint32)
     node_count = []
-    children_left = ArrayOfArrays(dtype=np.int64)
-    children_right = ArrayOfArrays(dtype=np.int64)
-    feature = ArrayOfArrays(dtype=np.int64)
-    threshold = ArrayOfArrays(dtype=np.float64)
-    default_left = ArrayOfArrays(dtype=np.int8)
-    value = ArrayOfArrays(dtype=np.float64)
-    n_node_samples = ArrayOfArrays(dtype=np.int64)
-    gain = ArrayOfArrays(dtype=np.float64)
+    itemsize = None
 
     for estimator in sklearn_model._predictors:
         estimator_range = estimator
         for sub_estimator in estimator_range:
-            # each node has values:
-            # ("value", "count", "feature_idx", "threshold", "missing_go_to_left",
-            #  "left", "right", "gain", "depth", "is_leaf", "bin_threshold",
-            #  "is_categorical", "bitset_idx")
-            nodes = sub_estimator.nodes
-            node_count.append(len(nodes))
-            children_left.add(
-                np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64)
-            )
-            children_right.add(
-                np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64)
-            )
-            feature.add(np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64))
-            threshold.add(np.array([n[3] for n in nodes], dtype=np.float64))
-            default_left.add(np.array([n[4] for n in nodes], dtype=np.int8))
-            value.add(np.array([[n[0]] for n in nodes], dtype=np.float64))
-            n_node_samples.add(np.array([[n[1]] for n in nodes], dtype=np.int64))
-            gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
-
-            # TODO(hcho3): Add support for categorical splits
-            for node in nodes:
-                if node[11]:
-                    raise NotImplementedError(
-                        "Categorical splits are not yet supported for "
-                        "HistGradientBoostingClassifier / HistGradientBoostingRegressor"
-                    )
+            nodes.add(sub_estimator.nodes)
+            raw_left_cat_bitsets.add(sub_estimator.raw_left_cat_bitsets)
+            node_count.append(len(sub_estimator.nodes))
+            n_trees += 1
+            if itemsize is None:
+                itemsize = sub_estimator.nodes.itemsize
+            elif itemsize != sub_estimator.nodes.itemsize:
+                raise RuntimeError("itemsize mismatch")
 
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):
@@ -384,14 +366,12 @@ def _import_hist_gradient_boosting(sklearn_model):
                 ctypes.c_int(sklearn_model.n_iter_),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 c_array(ctypes.c_int64, node_count),
-                children_left.as_c_array(),
-                children_right.as_c_array(),
-                feature.as_c_array(),
-                threshold.as_c_array(),
-                default_left.as_c_array(),
-                value.as_c_array(),
-                n_node_samples.as_c_array(),
-                gain.as_c_array(),
+                nodes.as_c_array(),
+                ctypes.c_int(itemsize),
+                ctypes.c_int32(n_categorical_splits),
+                raw_left_cat_bitsets.as_c_array(),
+                known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),
@@ -405,14 +385,12 @@ def _import_hist_gradient_boosting(sklearn_model):
                 ctypes.c_int(sklearn_model.n_features_in_),
                 ctypes.c_int(len(sklearn_model.classes_)),
                 c_array(ctypes.c_int64, node_count),
-                children_left.as_c_array(),
-                children_right.as_c_array(),
-                feature.as_c_array(),
-                threshold.as_c_array(),
-                default_left.as_c_array(),
-                value.as_c_array(),
-                n_node_samples.as_c_array(),
-                gain.as_c_array(),
+                nodes.as_c_array(),
+                ctypes.c_int(itemsize),
+                ctypes.c_int32(n_categorical_splits),
+                raw_left_cat_bitsets.as_c_array(),
+                known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),
@@ -423,4 +401,4 @@ def _import_hist_gradient_boosting(sklearn_model):
         raise TreeliteError(
             f"Unsupported model type {sklearn_model.__class__.__name__}"
         )
-    return Model(handle)
+    return Model(handle=handle)

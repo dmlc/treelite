@@ -1,11 +1,12 @@
 /*!
- * Copyright (c) 2021 by Contributors
+ * Copyright (c) 2023 by Contributors
  */
-#ifndef TREELITE_VERSION_CONFIG_H_
-#define TREELITE_VERSION_CONFIG_H_
+#ifndef TREELITE_VERSION_H_
+#define TREELITE_VERSION_H_
 
 #define TREELITE_VER_MAJOR @treelite_VERSION_MAJOR@
 #define TREELITE_VER_MINOR @treelite_VERSION_MINOR@
 #define TREELITE_VER_PATCH @treelite_VERSION_PATCH@
+#define TREELITE_VERSION_STR "@treelite_VERSION_MAJOR@.@treelite_VERSION_MINOR@.@treelite_VERSION_PATCH@"
 
-#endif  // TREELITE_VERSION_CONFIG_H_
+#endif  // TREELITE_VERSION_H_

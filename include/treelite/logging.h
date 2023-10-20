@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2017-2021 by Contributors
+ * Copyright (c) 2017-2023 by Contributors
  * \file logging.h
  * \brief logging facility for Treelite
  * \author Hyunsu Cho
@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>

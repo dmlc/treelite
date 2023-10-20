@@ -8,11 +8,13 @@
 #ifndef TREELITE_DETAIL_SERIALIZER_MIXINS_H_
 #define TREELITE_DETAIL_SERIALIZER_MIXINS_H_
 
-#include <treelite/detail/serializer_impl.h>
+#include <treelite/contiguous_array.h>
+#include <treelite/detail/serializer.h>
 #include <treelite/pybuffer_frame.h>
 
 #include <istream>
 #include <ostream>
+#include <string>
 #include <vector>
 
 namespace treelite::detail::serializer {
@@ -22,22 +24,16 @@ class StreamSerializerMixIn {
   explicit StreamSerializerMixIn(std::ostream& os) : os_(os) {}
 
   template <typename T>
-  void SerializePrimitiveField(T* field) {
+  void SerializeScalar(T* field) {
     WriteScalarToStream(field, os_);
   }
 
-  template <typename T>
-  void SerializeCompositeField(T* field, char const*) {
-    WriteScalarToStream(field, os_);
+  void SerializeString(std::string* field) {
+    WriteStringToStream(field, os_);
   }
 
   template <typename T>
-  void SerializePrimitiveArray(T* field) {
-    WriteArrayToStream(field, os_);
-  }
-
-  template <typename T>
-  void SerializeCompositeArray(T* field, char const*) {
+  void SerializeArray(ContiguousArray<T>* field) {
     WriteArrayToStream(field, os_);
   }
 
@@ -50,27 +46,21 @@ class StreamDeserializerMixIn {
   explicit StreamDeserializerMixIn(std::istream& is) : is_(is) {}
 
   template <typename T>
-  void DeserializePrimitiveField(T* field) {
+  void DeserializeScalar(T* field) {
     ReadScalarFromStream(field, is_);
   }
 
-  template <typename T>
-  void DeserializeCompositeField(T* field) {
-    ReadScalarFromStream(field, is_);
+  void DeserializeString(std::string* field) {
+    ReadStringFromStream(field, is_);
   }
 
   template <typename T>
-  void DeserializePrimitiveArray(T* field) {
-    ReadArrayFromStream(field, is_);
-  }
-
-  template <typename T>
-  void DeserializeCompositeArray(T* field) {
+  void DeserializeArray(ContiguousArray<T>* field) {
     ReadArrayFromStream(field, is_);
   }
 
   void SkipOptionalField() {
-    SkipOptFieldInStream(is_);
+    SkipOptionalFieldInStream(is_);
   }
 
  private:
@@ -82,23 +72,17 @@ class PyBufferSerializerMixIn {
   PyBufferSerializerMixIn() = default;
 
   template <typename T>
-  void SerializePrimitiveField(T* field) {
+  void SerializeScalar(T* field) {
     frames_.push_back(GetPyBufferFromScalar(field));
   }
 
-  template <typename T>
-  void SerializeCompositeField(T* field, char const* format) {
-    frames_.push_back(GetPyBufferFromScalar(field, format));
+  void SerializeString(std::string* field) {
+    frames_.push_back(GetPyBufferFromString(field));
   }
 
   template <typename T>
-  void SerializePrimitiveArray(T* field) {
+  void SerializeArray(ContiguousArray<T>* field) {
     frames_.push_back(GetPyBufferFromArray(field));
-  }
-
-  template <typename T>
-  void SerializeCompositeArray(T* field, char const* format) {
-    frames_.push_back(GetPyBufferFromArray(field, format));
   }
 
   std::vector<PyBufferFrame> GetFrames() {
@@ -115,27 +99,21 @@ class PyBufferDeserializerMixIn {
       : frames_(frames), cur_idx_(0) {}
 
   template <typename T>
-  void DeserializePrimitiveField(T* field) {
+  void DeserializeScalar(T* field) {
     InitScalarFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
-  template <typename T>
-  void DeserializeCompositeField(T* field) {
-    InitScalarFromPyBuffer(field, frames_[cur_idx_++]);
+  void DeserializeString(std::string* field) {
+    InitStringFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   template <typename T>
-  void DeserializePrimitiveArray(T* field) {
-    InitArrayFromPyBuffer(field, frames_[cur_idx_++]);
-  }
-
-  template <typename T>
-  void DeserializeCompositeArray(T* field) {
+  void DeserializeArray(ContiguousArray<T>* field) {
     InitArrayFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   void SkipOptionalField() {
-    ++cur_idx_;
+    cur_idx_ += 2;  // field name + content
   }
 
  private:

@@ -1,748 +1,359 @@
 /*!
- * Copyright (c) 2021 by Contributors
+ * Copyright (c) 2021-2023 by Contributors
  * \file predict.cc
  * \author Hyunsu Cho
  * \brief General Tree Inference Library (GTIL), providing a reference implementation for
- *        predicting with decision trees. GTIL is useful in cases it is infeasible to build the
- *        tree models as native shared libs.
+ *        predicting with decision trees.
  */
-#include <treelite/data.h>
+#include <treelite/detail/threading_utils.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
+#include <experimental/mdspan>
 #include <limits>
-#include <vector>
+#include <string>
+#include <type_traits>
+#include <variant>
 
-#include "../threading_utils/parallel_for.h"
-#include "./pred_transform.h"
+#include "./postprocessor.h"
 
-namespace treelite {
+namespace treelite::gtil {
 
-class GTILBridge {
- public:
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static const typename Tree<ThresholdType, LeafOutputType>::Node* GetNode(
-      Tree<ThresholdType, LeafOutputType> const& tree, int nid) {
-    return &tree.nodes_[nid];
-  }
-};
+namespace stdex = std::experimental;
+// Multidimensional array views. Use row-major (C) layout
+template <typename ElemT>
+using Array1DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 1>, stdex::layout_right>;
+template <typename ElemT>
+using Array2DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
+template <typename ElemT>
+using Array3DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 3>, stdex::layout_right>;
+template <typename ElemT>
+using CArray1DView
+    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 1>, stdex::layout_right>;
+template <typename ElemT>
+using CArray2DView
+    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
 
-}  // namespace treelite
-
-namespace {
-
-using treelite::threading_utils::ThreadConfig;
-using PredTransformFuncType = std::size_t (*)(treelite::Model const&, float const*, float*);
-
-constexpr std::size_t kBlockOfRowsSize = 64;
-
-/*!
- * \brief A dense feature vector.
- */
-class FVec {
- public:
-  void Init(std::size_t size) {
-    data_.resize(size);
-    missing_.resize(size);
-    std::fill(data_.begin(), data_.end(), std::numeric_limits<float>::quiet_NaN());
-    std::fill(missing_.begin(), missing_.end(), true);
-    has_missing_ = true;
-  }
-  template <typename DMatrixType>
-  void Fill(DMatrixType const* input, std::size_t row_id) {
-    std::size_t feature_count = 0;
-    input->FillRow(row_id, &data_[0]);
-    for (std::size_t i = 0; i < data_.size(); ++i) {
-      if (!(missing_[i] = std::isnan(data_[i]))) {
-        ++feature_count;
-      }
-    }
-    has_missing_ = data_.size() != feature_count;
-  }
-  template <typename DMatrixType>
-  void Clear(DMatrixType const* input, std::size_t row_id) {
-    input->ClearRow(row_id, &data_[0]);
-    std::fill(missing_.begin(), missing_.end(), true);
-    has_missing_ = true;
-  }
-  std::size_t Size() const {
-    return data_.size();
-  }
-  float GetFValue(std::size_t i) const {
-    return data_[i];
-  }
-  bool IsMissing(size_t i) const {
-    return missing_[i];
-  }
-  bool HasMissing() const {
-    return has_missing_;
-  }
-
- private:
-  std::vector<float> data_;
-  std::vector<bool> missing_;
-  bool has_missing_;
-};
-
-template <typename ThresholdType>
-inline int NextNode(float fvalue, ThresholdType threshold, treelite::Operator op, int left_child) {
-  // XGBoost
-  if (op == treelite::Operator::kLT) {
-    return left_child + !(fvalue < threshold);
-  }
-  // LightGBM, sklearn, cuML RF
-  if (op == treelite::Operator::kLE) {
-    return left_child + !(fvalue <= threshold);
-  }
+template <typename InputT, typename ThresholdT>
+inline int NextNode(
+    InputT fvalue, ThresholdT threshold, Operator op, int left_child, int right_child) {
+  static_assert(std::is_floating_point_v<InputT>, "Expected floating point type for input");
+  bool cond = false;
   switch (op) {
-  case treelite::Operator::kEQ:
-    return left_child + !(fvalue == threshold);
-  case treelite::Operator::kGT:
-    return left_child + !(fvalue > threshold);
-  case treelite::Operator::kGE:
-    return left_child + !(fvalue >= threshold);
+  case Operator::kLT:
+    cond = fvalue < threshold;
+    break;
+  case Operator::kLE:
+    cond = fvalue <= threshold;
+    break;
+  case Operator::kEQ:
+    cond = fvalue == threshold;
+    break;
+  case Operator::kGT:
+    cond = fvalue > threshold;
+    break;
+  case Operator::kGE:
+    cond = fvalue >= threshold;
+    break;
   default:
     TREELITE_CHECK(false) << "Unrecognized comparison operator " << static_cast<int>(op);
     return -1;
   }
+  return (cond ? left_child : right_child);
 }
 
-inline int NextNodeCategorical(float fvalue, std::vector<std::uint32_t> const& matching_categories,
-    bool categories_list_right_child, int left_child, int right_child) {
-  bool is_matching_category;
-  auto max_representable_int = static_cast<float>(std::uint32_t(1) << FLT_MANT_DIG);
+template <typename InputT>
+inline int NextNodeCategorical(InputT fvalue, std::vector<std::uint32_t> const& category_list,
+    bool category_list_right_child, int left_child, int right_child) {
+  static_assert(std::is_floating_point_v<InputT>, "Expected floating point type for input");
+  bool category_matched;
+  // A valid (integer) category must satisfy two criteria:
+  // 1) it must be exactly representable as InputT (float or double)
+  // 2) it must fit into uint32_t
+  auto max_representable_int
+      = std::min(static_cast<InputT>(std::numeric_limits<std::uint32_t>::max()),
+          static_cast<InputT>(std::uint64_t(1) << std::numeric_limits<InputT>::digits));
   if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
-    is_matching_category = false;
+    category_matched = false;
   } else {
     auto const category_value = static_cast<std::uint32_t>(fvalue);
-    is_matching_category
-        = (std::find(matching_categories.begin(), matching_categories.end(), category_value)
-            != matching_categories.end());
+    category_matched = (std::find(category_list.begin(), category_list.end(), category_value)
+                        != category_list.end());
   }
-  if (categories_list_right_child) {
-    return is_matching_category ? right_child : left_child;
+  if (category_list_right_child) {
+    return category_matched ? right_child : left_child;
   } else {
-    return is_matching_category ? left_child : right_child;
+    return category_matched ? left_child : right_child;
   }
 }
 
-struct BinaryClfRegrOutputLogic {
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-      std::size_t, int node_id, float* sum, std::size_t) {
-    sum[0] += tree.LeafValue(node_id);
-  }
-  inline static void ApplyAverageFactor(treelite::TaskParam const& task_param, std::size_t num_tree,
-      float* output, std::size_t batch_offset, std::size_t block_size) {
-    auto const average_factor = static_cast<float>(num_tree);
-    unsigned const num_class = task_param.num_class;
-    for (std::size_t i = 0; i < block_size; ++i) {
-      for (unsigned k = 0; k < num_class; ++k) {
-        output[(batch_offset + i) * num_class + k] /= average_factor;
-      }
-    }
-  }
-};
-
-struct MultiClfGrovePerClassOutputLogic {
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-      std::size_t tree_id, int node_id, float* sum, std::size_t num_class) {
-    sum[tree_id % num_class] += tree.LeafValue(node_id);
-  }
-  inline static void ApplyAverageFactor(treelite::TaskParam const& task_param, std::size_t num_tree,
-      float* output, std::size_t batch_offset, std::size_t block_size) {
-    auto num_boosting_round = num_tree / static_cast<std::size_t>(task_param.num_class);
-    auto const average_factor = static_cast<float>(num_boosting_round);
-    unsigned const num_class = task_param.num_class;
-    for (std::size_t i = 0; i < block_size; ++i) {
-      for (unsigned k = 0; k < num_class; ++k) {
-        output[(batch_offset + i) * num_class + k] /= average_factor;
-      }
-    }
-  }
-};
-
-struct MultiClfProbDistLeafOutputLogic {
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-      std::size_t, int node_id, float* sum, std::size_t num_class) {
-    auto leaf_vector = tree.LeafVector(node_id);
-    for (unsigned int i = 0; i < num_class; ++i) {
-      sum[i] += leaf_vector[i];
-    }
-  }
-  inline static void ApplyAverageFactor(treelite::TaskParam const& task_param, std::size_t num_tree,
-      float* output, std::size_t batch_offset, std::size_t block_size) {
-    return BinaryClfRegrOutputLogic::ApplyAverageFactor(
-        task_param, num_tree, output, batch_offset, block_size);
-  }
-};
-
-struct PredictLeafOutputLogic {
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const&, std::size_t,
-      int node_id, float* output, std::size_t) {
-    *output = static_cast<float>(node_id);
-  }
-};
-
-struct PredictScoreByTreeWithScalarLeafOutputLogic {
-  inline static std::size_t GetOutputOffset(
-      std::size_t row_id, std::size_t tree_id, std::size_t num_tree, int) {
-    return row_id * num_tree + tree_id;
-  }
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-      std::size_t, int node_id, float* output, std::size_t) {
-    *output = tree.LeafValue(node_id);
-  }
-};
-
-struct PredictScoreByTreeWithVectorLeafOutputLogic {
-  inline static std::size_t GetOutputOffset(
-      std::size_t row_id, std::size_t tree_id, std::size_t num_tree, int num_class) {
-    return (row_id * num_tree + tree_id) * num_class;
-  }
-  template <typename ThresholdType, typename LeafOutputType>
-  inline static void PushOutput(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-      std::size_t, int node_id, float* output, std::size_t) {
-    auto leaf_vector = tree.LeafVector(node_id);
-    std::transform(std::begin(leaf_vector), std::end(leaf_vector), output,
-        [](auto e) { return static_cast<float>(e); });
-  }
-};
-
-template <typename T1, typename T2>
-inline T1 DivRoundUp(const T1 a, const T2 b) {
-  return static_cast<T1>(std::ceil(static_cast<double>(a) / b));
-}
-
-template <typename DMatrixType>
-void FVecFill(const std::size_t block_size, const std::size_t batch_offset,
-    DMatrixType const* input, const std::size_t fvec_offset, int num_feature,
-    std::vector<FVec>& feats) {
-  for (std::size_t i = 0; i < block_size; ++i) {
-    FVec& vec = feats[fvec_offset + i];
-    if (vec.Size() == 0) {
-      vec.Init(static_cast<std::size_t>(num_feature));
-    }
-    const std::size_t row_id = batch_offset + i;
-    vec.Fill(input, row_id);
-  }
-}
-
-template <typename DMatrixType>
-void FVecDrop(const std::size_t block_size, const std::size_t batch_offset,
-    DMatrixType const* input, const std::size_t fvec_offset, [[maybe_unused]] int num_feature,
-    std::vector<FVec>& feats) {
-  for (std::size_t i = 0; i < block_size; ++i) {
-    const std::size_t row_id = batch_offset + i;
-    feats[fvec_offset + i].Clear(input, row_id);
-  }
-}
-
-template <typename DMatrixType>
-inline void InitOutPredictions(
-    treelite::Model const& model, DMatrixType const* input, float* output) {
-  const std::size_t num_row = input->GetNumRow();
-  auto const num_class = model.task_param.num_class;
-  std::fill(output, output + num_row * num_class, model.param.global_bias);
-}
-
-template <bool has_missing, bool has_categorical, typename OutputLogic, typename ThresholdType,
-    typename LeafOutputType>
-void PredValueByOneTreeImpl(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-    std::size_t tree_id, FVec const& feats, float* output, std::size_t num_class) {
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+int EvaluateTree(Tree<ThresholdT, LeafOutputT> const& tree, Array1DView<InputT> row) {
   int node_id = 0;
-  const typename treelite::Tree<ThresholdType, LeafOutputType>::Node* node
-      = treelite::GTILBridge::GetNode(tree, node_id);
-  while (!node->IsLeaf()) {
-    auto const split_index = node->SplitIndex();
-    if (has_missing && feats.IsMissing(split_index)) {
-      node_id = node->DefaultChild();
+  while (!tree.IsLeaf(node_id)) {
+    auto const split_index = tree.SplitIndex(node_id);
+    InputT const fvalue = row(split_index);
+    if (std::isnan(fvalue)) {
+      node_id = tree.DefaultChild(node_id);
     } else {
-      float const fvalue = feats.GetFValue(split_index);
-      if (has_categorical && node->SplitType() == treelite::SplitFeatureType::kCategorical) {
-        node_id = NextNodeCategorical(fvalue, tree.MatchingCategories(node_id),
-            node->CategoriesListRightChild(), node->LeftChild(), node->RightChild());
+      if (tree.NodeType(node_id) == treelite::TreeNodeType::kCategoricalTestNode) {
+        node_id = NextNodeCategorical(fvalue, tree.CategoryList(node_id),
+            tree.CategoryListRightChild(node_id), tree.LeftChild(node_id),
+            tree.RightChild(node_id));
       } else {
-        node_id = NextNode(fvalue, node->Threshold(), node->ComparisonOp(), node->LeftChild());
+        node_id = NextNode(fvalue, tree.Threshold(node_id), tree.ComparisonOp(node_id),
+            tree.LeftChild(node_id), tree.RightChild(node_id));
       }
     }
-    node = treelite::GTILBridge::GetNode(tree, node_id);
   }
-  OutputLogic::PushOutput(tree, tree_id, node_id, output, num_class);
+  return node_id;
 }
 
-template <bool has_categorical, typename OutputLogic, typename ThresholdType,
-    typename LeafOutputType>
-void PredValueByOneTree(treelite::Tree<ThresholdType, LeafOutputType> const& tree,
-    std::size_t tree_id, FVec const& feats, float* output, std::size_t num_class) {
-  if (feats.HasMissing()) {
-    PredValueByOneTreeImpl<true, has_categorical, OutputLogic>(
-        tree, tree_id, feats, output, num_class);
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& tree, int tree_id,
+    int leaf_id, std::uint64_t row_id, std::int32_t max_num_class,
+    Array3DView<InputT> output_view) {
+  auto leaf_out = tree.LeafVector(leaf_id);
+  if (model.target_id[tree_id] == -1 && model.class_id[tree_id] == -1) {
+    std::vector<std::int32_t> const expected_shape{model.num_target, max_num_class};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, max_num_class);
+    for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+        output_view(target_id, row_id, class_id) += leaf_view(target_id, class_id);
+      }
+    }
+  } else if (model.target_id[tree_id] == -1) {
+    std::vector<std::int32_t> const expected_leaf_shape{model.num_target, 1};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, 1);
+    auto const class_id = model.class_id[tree_id];
+    for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      output_view(target_id, row_id, class_id) += leaf_view(target_id, 0);
+    }
+  } else if (model.class_id[tree_id] == -1) {
+    std::vector<std::int32_t> const expected_leaf_shape{1, max_num_class};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), 1, max_num_class);
+    auto const target_id = model.target_id[tree_id];
+    for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+      output_view(target_id, row_id, class_id) += leaf_view(0, class_id);
+    }
   } else {
-    PredValueByOneTreeImpl<false, has_categorical, OutputLogic>(
-        tree, tree_id, feats, output, num_class);
+    std::vector<std::int32_t> const expected_leaf_shape{1, 1};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto const target_id = model.target_id[tree_id];
+    auto const class_id = model.class_id[tree_id];
+    output_view(target_id, row_id, class_id) += leaf_out[0];
   }
 }
 
-template <typename OutputLogic, typename ThresholdType, typename LeafOutputType>
-void PredictByAllTrees(treelite::ModelPreset<ThresholdType, LeafOutputType> const& model,
-    float* output, const std::size_t batch_offset, const std::size_t num_class,
-    std::vector<FVec> const& feats, const std::size_t fvec_offset, const std::size_t block_size) {
-  const std::size_t num_tree = model.trees.size();
-  for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
-    treelite::Tree<ThresholdType, LeafOutputType> const& tree = model.trees[tree_id];
-    auto has_categorical = tree.HasCategoricalSplit();
-    if (has_categorical) {
-      for (std::size_t i = 0; i < block_size; ++i) {
-        PredValueByOneTree<true, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
-            &output[(batch_offset + i) * num_class], num_class);
-      }
-    } else {
-      for (std::size_t i = 0; i < block_size; ++i) {
-        PredValueByOneTree<false, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
-            &output[(batch_offset + i) * num_class], num_class);
-      }
-    }
-  }
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tree, int tree_id,
+    int leaf_id, std::uint64_t row_id, Array3DView<InputT> output_view) {
+  auto const target_id = model.target_id[tree_id];
+  auto const class_id = model.class_id[tree_id];
+  TREELITE_CHECK(target_id != -1 && class_id != -1);
+
+  std::vector<std::int32_t> const expected_leaf_shape{1, 1};
+  TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+  output_view(target_id, row_id, class_id) += tree.LeafValue(leaf_id);
 }
 
-template <std::size_t block_of_rows_size, typename OutputLogic, typename DMatrixType>
-void PredictBatchByBlockOfRowsKernel(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config) {
-  const std::size_t num_row = input->GetNumRow();
-  int const num_feature = model.num_feature;
-  auto const& task_param = model.task_param;
-  std::size_t n_blocks = DivRoundUp(num_row, block_of_rows_size);
-
+template <typename InputT>
+void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
+    detail::threading_utils::ThreadConfig const& thread_config) {
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  std::size_t const num_tree = model.GetNumTree();
+  std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
   std::visit(
       [&](auto&& concrete_model) {
-        std::vector<FVec> feats(thread_config.nthread * block_of_rows_size);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        treelite::threading_utils::ParallelFor(std::size_t(0), n_blocks, thread_config, sched,
-            [&](std::size_t block_id, int thread_id) {
-              const std::size_t batch_offset = block_id * block_of_rows_size;
-              const std::size_t block_size = std::min(num_row - batch_offset, block_of_rows_size);
-              const std::size_t fvec_offset = thread_id * block_of_rows_size;
-
-              FVecFill(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-              // process block of rows through all trees to keep cache locality
-              PredictByAllTrees<OutputLogic>(concrete_model, output, batch_offset,
-                  static_cast<std::size_t>(task_param.num_class), feats, fvec_offset, block_size);
-              FVecDrop(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-              if (model.average_tree_output) {
-                OutputLogic::ApplyAverageFactor(
-                    task_param, model.GetNumTree(), output, batch_offset, block_size);
+        detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+            detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+              auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+              static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>);
+              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+                auto const& tree = concrete_model.trees[tree_id];
+                int const leaf_id = EvaluateTree(tree, row);
+                if (tree.HasLeafVector(leaf_id)) {
+                  OutputLeafVector(
+                      model, tree, tree_id, leaf_id, row_id, max_num_class, output_view);
+                } else {
+                  OutputLeafValue(model, tree, tree_id, leaf_id, row_id, output_view);
+                }
               }
             });
       },
       model.variant_);
-}
-
-template <typename OutputLogic, typename DMatrixType>
-void PredictBatchTreeParallelKernel(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config) {
-  std::size_t const num_row = input->GetNumRow();
-
-  int const num_feature = model.num_feature;
-  auto const num_class = model.task_param.num_class;
-
-  std::visit(
-      [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.GetNumTree();
-        FVec feats;
-        feats.Init(num_feature);
-        std::vector<float> sum_tloc(num_class * thread_config.nthread);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
-          std::fill(sum_tloc.begin(), sum_tloc.end(), 0.0f);
-          feats.Fill(input, row_id);
-          treelite::threading_utils::ParallelFor(std::size_t(0), num_tree, thread_config, sched,
-              [&](std::size_t tree_id, int thread_id) {
-                auto const& tree = concrete_model.trees[tree_id];
-                auto has_categorical = tree.HasCategoricalSplit();
-                if (has_categorical) {
-                  PredValueByOneTree<true, OutputLogic>(
-                      tree, tree_id, feats, &sum_tloc[thread_id * num_class], num_class);
-                } else {
-                  PredValueByOneTree<false, OutputLogic>(
-                      tree, tree_id, feats, &sum_tloc[thread_id * num_class], num_class);
-                }
-              });
-          feats.Clear(input, row_id);
-          for (std::uint32_t thread_id = 0; thread_id < thread_config.nthread; ++thread_id) {
-            for (unsigned i = 0; i < num_class; ++i) {
-              output[row_id * num_class + i] += sum_tloc[thread_id * num_class + i];
+  // Apply tree averaging
+  if (model.average_tree_output) {
+    std::vector<std::size_t> average_factor(model.num_target * max_num_class, 0);
+    auto average_factor_view
+        = Array2DView<std::size_t>(average_factor.data(), model.num_target, max_num_class);
+    for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+      if (model.target_id[tree_id] < 0 && model.class_id[tree_id] < 0) {
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+          for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+            average_factor_view(target_id, class_id) += 1;
+          }
+        }
+      } else if (model.target_id[tree_id] < 0) {
+        std::int32_t const class_id = model.class_id[tree_id];
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+          average_factor_view(target_id, class_id) += 1;
+        }
+      } else if (model.class_id[tree_id] < 0) {
+        std::int32_t const target_id = model.target_id[tree_id];
+        for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+          average_factor_view(target_id, class_id) += 1;
+        }
+      } else {
+        average_factor_view(model.target_id[tree_id], model.class_id[tree_id]) += 1;
+      }
+    }
+    for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+          detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+            for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+              output_view(target_id, row_id, class_id)
+                  /= static_cast<InputT>(average_factor_view(target_id, class_id));
             }
+          });
+    }
+  }
+  // Apply base scores
+  auto base_score_view
+      = CArray2DView<double>(model.base_scores.Data(), model.num_target, max_num_class);
+  for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+        detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+          for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+            output_view(target_id, row_id, class_id) += base_score_view(target_id, class_id);
           }
-        }
-        if (model.average_tree_output) {
-          for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
-            OutputLogic::ApplyAverageFactor(model.task_param, num_tree, output, row_id, 1);
-          }
-        }
-      },
-      model.variant_);
-}
-
-template <typename OutputLogic, typename DMatrixType>
-void PredictBatchDispatch(treelite::Model const& model, DMatrixType const* input, float* output,
-    ThreadConfig const& thread_config) {
-  if (input->GetNumRow() < kBlockOfRowsSize) {
-    // Small batch size => tree parallel method
-    PredictBatchTreeParallelKernel<OutputLogic>(model, input, output, thread_config);
-  } else {
-    // Sufficiently large batch size => row parallel method
-    PredictBatchByBlockOfRowsKernel<kBlockOfRowsSize, OutputLogic>(
-        model, input, output, thread_config);
+        });
   }
 }
 
-template <typename DMatrixType>
-inline void PredictRaw(treelite::Model const& model, DMatrixType const* input, float* output,
-    ThreadConfig const& thread_config) {
-  InitOutPredictions(model, input, output);
+template <typename InputT>
+void ApplyPostProcessor(Model const& model, InputT* output, std::uint64_t num_row,
+    Configuration const& pred_config, detail::threading_utils::ThreadConfig const& thread_config) {
+  auto postprocessor_func = gtil::GetPostProcessorFunc<InputT>(model.postprocessor);
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
 
-  switch (model.task_type) {
-  case treelite::TaskType::kBinaryClfRegr:
-    PredictBatchDispatch<BinaryClfRegrOutputLogic>(model, input, output, thread_config);
-    break;
-  case treelite::TaskType::kMultiClfGrovePerClass:
-    PredictBatchDispatch<MultiClfGrovePerClassOutputLogic>(model, input, output, thread_config);
-    break;
-  case treelite::TaskType::kMultiClfProbDistLeaf:
-    PredictBatchDispatch<MultiClfProbDistLeafOutputLogic>(model, input, output, thread_config);
-    break;
-  case treelite::TaskType::kMultiClfCategLeaf:
-  default:
-    TREELITE_LOG(FATAL) << "Unsupported task type of the tree ensemble model: "
-                        << static_cast<int>(model.task_type);
+  for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+    std::int32_t const num_class = model.num_class[target_id];
+    detail::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config,
+        detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
+          auto row = stdex::submdspan(output_view, target_id, row_id, stdex::full_extent);
+          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>);
+          postprocessor_func(model, num_class, row.data_handle());
+        });
   }
 }
 
-template <typename DMatrixType>
-void PredictLeafBatchTreeParallelKernel(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config) {
-  const std::size_t num_row = input->GetNumRow();
-  int const num_feature = model.num_feature;
-  auto const num_class = model.task_param.num_class;
-
-  std::visit(
-      [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.GetNumTree();
-        FVec feats;
-        feats.Init(num_feature);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
-          feats.Fill(input, row_id);
-          treelite::threading_utils::ParallelFor(
-              std::size_t(0), num_tree, thread_config, sched, [&](std::size_t tree_id, int) {
-                auto const& tree = concrete_model.trees[tree_id];
-                auto has_categorical = tree.HasCategoricalSplit();
-                if (has_categorical) {
-                  PredValueByOneTree<true, PredictLeafOutputLogic>(
-                      tree, tree_id, feats, &output[row_id * num_tree + tree_id], num_class);
-                } else {
-                  PredValueByOneTree<false, PredictLeafOutputLogic>(
-                      tree, tree_id, feats, &output[row_id * num_tree + tree_id], num_class);
-                }
-              });
-          feats.Clear(input, row_id);
-        }
-      },
-      model.variant_);
-}
-
-template <std::size_t block_of_rows_size, typename DMatrixType>
-void PredictLeafBatchByBlockOfRowsKernel(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config) {
-  const std::size_t num_row = input->GetNumRow();
-  auto const num_class = model.task_param.num_class;
-  int const num_feature = model.num_feature;
-  std::size_t n_blocks = DivRoundUp(num_row, block_of_rows_size);
-
-  std::visit(
-      [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.GetNumTree();
-        std::vector<FVec> feats(thread_config.nthread * block_of_rows_size);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        treelite::threading_utils::ParallelFor(std::size_t(0), n_blocks, thread_config, sched,
-            [&](std::size_t block_id, int thread_id) {
-              const std::size_t batch_offset = block_id * block_of_rows_size;
-              const std::size_t block_size = std::min(num_row - batch_offset, block_of_rows_size);
-              const std::size_t fvec_offset = thread_id * block_of_rows_size;
-
-              FVecFill(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-              // process block of rows through all trees to keep cache locality
-              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
-                auto const& tree = concrete_model.trees[tree_id];
-                auto has_categorical = tree.HasCategoricalSplit();
-                if (has_categorical) {
-                  for (std::size_t i = 0; i < block_size; ++i) {
-                    PredValueByOneTree<true, PredictLeafOutputLogic>(tree, tree_id,
-                        feats[fvec_offset + i], &output[(batch_offset + i) * num_tree + tree_id],
-                        num_class);
-                  }
-                } else {
-                  for (std::size_t i = 0; i < block_size; ++i) {
-                    PredValueByOneTree<false, PredictLeafOutputLogic>(tree, tree_id,
-                        feats[fvec_offset + i], &output[(batch_offset + i) * num_tree + tree_id],
-                        num_class);
-                  }
-                }
-              }
-              FVecDrop(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-            });
-      },
-      model.variant_);
-}
-
-template <typename OutputLogic, typename DMatrixType>
-void PredictScoreByTreeBatchTreeParallelKernel(treelite::Model const& model,
-    DMatrixType const* input, float* output, ThreadConfig const& thread_config) {
-  const std::size_t num_row = input->GetNumRow();
-  int const num_feature = model.num_feature;
-  auto const num_class = model.task_param.num_class;
-
-  std::visit(
-      [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.GetNumTree();
-        FVec feats;
-        feats.Init(num_feature);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        for (std::size_t row_id = 0; row_id < num_row; ++row_id) {
-          feats.Fill(input, row_id);
-          treelite::threading_utils::ParallelFor(
-              std::size_t(0), num_tree, thread_config, sched, [&](std::size_t tree_id, int) {
-                auto const& tree = concrete_model.trees[tree_id];
-                auto has_categorical = tree.HasCategoricalSplit();
-                if (has_categorical) {
-                  PredValueByOneTree<true, OutputLogic>(tree, tree_id, feats,
-                      &output[OutputLogic::GetOutputOffset(row_id, tree_id, num_tree, num_class)],
-                      num_class);
-                } else {
-                  PredValueByOneTree<false, OutputLogic>(tree, tree_id, feats,
-                      &output[OutputLogic::GetOutputOffset(row_id, tree_id, num_tree, num_class)],
-                      num_class);
-                }
-              });
-          feats.Clear(input, row_id);
-        }
-      },
-      model.variant_);
-}
-
-template <std::size_t block_of_rows_size, typename OutputLogic, typename DMatrixType>
-void PredictScoreByTreeBatchByBlockOfRowsKernel(treelite::Model const& model,
-    DMatrixType const* input, float* output, ThreadConfig const& thread_config) {
-  const std::size_t num_row = input->GetNumRow();
-  auto const num_class = model.task_param.num_class;
-  int const num_feature = model.num_feature;
-  std::size_t n_blocks = DivRoundUp(num_row, block_of_rows_size);
-
-  std::visit(
-      [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.GetNumTree();
-        std::vector<FVec> feats(thread_config.nthread * block_of_rows_size);
-        auto sched = treelite::threading_utils::ParallelSchedule::Static();
-        treelite::threading_utils::ParallelFor(std::size_t(0), n_blocks, thread_config, sched,
-            [&](std::size_t block_id, int thread_id) {
-              const std::size_t batch_offset = block_id * block_of_rows_size;
-              const std::size_t block_size = std::min(num_row - batch_offset, block_of_rows_size);
-              const std::size_t fvec_offset = thread_id * block_of_rows_size;
-
-              FVecFill(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-              // process block of rows through all trees to keep cache locality
-              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
-                auto const& tree = concrete_model.trees[tree_id];
-                auto has_categorical = tree.HasCategoricalSplit();
-                if (has_categorical) {
-                  for (std::size_t i = 0; i < block_size; ++i) {
-                    PredValueByOneTree<true, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
-                        &output[OutputLogic::GetOutputOffset(
-                            batch_offset + i, tree_id, num_tree, num_class)],
-                        num_class);
-                  }
-                } else {
-                  for (std::size_t i = 0; i < block_size; ++i) {
-                    PredValueByOneTree<false, OutputLogic>(tree, tree_id, feats[fvec_offset + i],
-                        &output[OutputLogic::GetOutputOffset(
-                            batch_offset + i, tree_id, num_tree, num_class)],
-                        num_class);
-                  }
-                }
-              }
-              FVecDrop(block_size, batch_offset, input, fvec_offset, num_feature, feats);
-            });
-      },
-      model.variant_);
-}
-
-template <typename DMatrixType>
-inline void PredictLeaf(treelite::Model const& model, DMatrixType const* input, float* output,
-    ThreadConfig const& thread_config) {
-  if (input->GetNumRow() < kBlockOfRowsSize) {
-    // Small batch size => tree parallel method
-    PredictLeafBatchTreeParallelKernel(model, input, output, thread_config);
-  } else {
-    // Sufficiently large batch size => row parallel method
-    PredictLeafBatchByBlockOfRowsKernel<kBlockOfRowsSize>(model, input, output, thread_config);
-  }
-}
-
-template <typename OutputLogic, typename DMatrixType>
-inline void PredictScoreByTreeImpl(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config) {
-  if (input->GetNumRow() < kBlockOfRowsSize) {
-    // Small batch size => tree parallel method
-    PredictScoreByTreeBatchTreeParallelKernel<OutputLogic>(model, input, output, thread_config);
-  } else {
-    // Sufficiently large batch size => row parallel method
-    PredictScoreByTreeBatchByBlockOfRowsKernel<kBlockOfRowsSize, OutputLogic>(
-        model, input, output, thread_config);
-  }
-}
-
-template <typename DMatrixType>
-inline std::size_t PredictScoreByTree(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config, std::vector<std::size_t>& output_shape) {
-  auto const num_row = input->GetNumRow();
+template <typename InputT>
+void PredictLeaf(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
+    detail::threading_utils::ThreadConfig const& thread_config) {
   auto const num_tree = model.GetNumTree();
-  auto const num_class = model.task_param.num_class;
-  switch (model.task_type) {
-  case treelite::TaskType::kBinaryClfRegr:
-  case treelite::TaskType::kMultiClfGrovePerClass:
-    PredictScoreByTreeImpl<PredictScoreByTreeWithScalarLeafOutputLogic>(
-        model, input, output, thread_config);
-    TREELITE_CHECK_EQ(num_tree % num_class, 0);
-    output_shape = {num_row, num_tree};
-    return num_row * num_tree;
-  case treelite::TaskType::kMultiClfProbDistLeaf:
-    PredictScoreByTreeImpl<PredictScoreByTreeWithVectorLeafOutputLogic>(
-        model, input, output, thread_config);
-    output_shape = {num_row, num_tree, num_class};
-    return num_row * num_tree * num_class;
-  case treelite::TaskType::kMultiClfCategLeaf:
-  default:
-    TREELITE_LOG(FATAL) << "Unsupported task type of the tree ensemble model: "
-                        << static_cast<int>(model.task_type);
-    return 0;
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
+  auto output_view = Array2DView<InputT>(output, num_row, num_tree);
+  std::visit(
+      [&](auto&& concrete_model) {
+        std::size_t const num_tree = concrete_model.trees.size();
+        detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+            detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+              auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+              static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>);
+              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+                auto const& tree = concrete_model.trees[tree_id];
+                int const leaf_id = EvaluateTree(tree, row);
+                output_view(row_id, tree_id) = leaf_id;
+              }
+            });
+      },
+      model.variant_);
+}
+
+template <typename InputT>
+void PredictScoreByTree(Model const& model, InputT const* input, std::uint64_t num_row,
+    InputT* output, detail::threading_utils::ThreadConfig const& thread_config) {
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
+  auto const num_tree = model.GetNumTree();
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(
+      output, num_row, num_tree, model.leaf_vector_shape[0] * model.leaf_vector_shape[1]);
+  std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
+  std::visit(
+      [&](auto&& concrete_model) {
+        std::size_t const num_tree = concrete_model.trees.size();
+        detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+            detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+              auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+              static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>);
+              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+                auto const& tree = concrete_model.trees[tree_id];
+                int const leaf_id = EvaluateTree(tree, row);
+                if (tree.HasLeafVector(leaf_id)) {
+                  auto const leafvec = tree.LeafVector(leaf_id);
+                  for (std::size_t i = 0; i < leafvec.size(); ++i) {
+                    output_view(row_id, tree_id, i) = leafvec[i];
+                  }
+                } else {
+                  output_view(row_id, tree_id, 0) = tree.LeafValue(leaf_id);
+                }
+              }
+            });
+      },
+      model.variant_);
+}
+
+template <typename InputT>
+void Predict(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
+    Configuration const& config) {
+  TypeInfo leaf_output_type = model.GetLeafOutputType();
+  TypeInfo input_type = TypeInfoFromType<InputT>();
+  if (leaf_output_type != input_type) {
+    std::string expected = TypeInfoToString(leaf_output_type);
+    std::string got = TypeInfoToString(input_type);
+    if (got == "invalid") {
+      got = typeid(InputT).name();
+    }
+    TREELITE_LOG(FATAL) << "Incorrect input type passed to GTIL predict(). "
+                        << "Expected: " << expected << ", Got: " << got;
   }
-}
-
-template <typename DMatrixType>
-inline std::size_t PredTransform(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config,
-    treelite::gtil::Configuration const& pred_config, std::vector<std::size_t>& output_shape) {
-  std::size_t output_size_per_row;
-  auto const num_class = model.task_param.num_class;
-  std::size_t num_row = input->GetNumRow();
-
-  std::vector<float> temp(treelite::gtil::GetPredictOutputSize(&model, num_row, pred_config));
-  PredTransformFuncType pred_transform_func
-      = treelite::gtil::LookupPredTransform(model.param.pred_transform);
-  auto sched = treelite::threading_utils::ParallelSchedule::Static();
-  // Query the size of output per input row.
-  output_size_per_row = pred_transform_func(model, &output[0], &temp[0]);
-  // Now transform predictions in parallel
-  treelite::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config, sched,
-      [&](std::size_t row_id, [[maybe_unused]] int thread_id) {
-        pred_transform_func(
-            model, &output[row_id * num_class], &temp[row_id * output_size_per_row]);
-      });
-  // Copy transformed score back to output
-  temp.resize(output_size_per_row * num_row);
-  std::copy(temp.begin(), temp.end(), output);
-
-  output_shape = {num_row, output_size_per_row};
-  return num_row * output_size_per_row;
-}
-
-template <typename DMatrixType>
-inline std::size_t PredictImpl(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config,
-    treelite::gtil::Configuration const& pred_config, std::vector<std::size_t>& output_shape) {
-  using treelite::gtil::PredictType;
-  if (pred_config.pred_type == PredictType::kPredictDefault) {
-    PredictRaw(model, input, output, thread_config);
-    return PredTransform(model, input, output, thread_config, pred_config, output_shape);
-  } else if (pred_config.pred_type == PredictType::kPredictRaw) {
-    PredictRaw(model, input, output, thread_config);
-    output_shape = {input->GetNumRow(), model.task_param.num_class};
-    return input->GetNumRow() * model.task_param.num_class;
-  } else if (pred_config.pred_type == PredictType::kPredictLeafID) {
-    PredictLeaf(model, input, output, thread_config);
-    output_shape = {input->GetNumRow(), model.GetNumTree()};
-    return input->GetNumRow() * model.GetNumTree();
-  } else if (pred_config.pred_type == PredictType::kPredictPerTree) {
-    return PredictScoreByTree(model, input, output, thread_config, output_shape);
+  auto thread_config = detail::threading_utils::ThreadConfig(config.nthread);
+  if (config.pred_kind == PredictKind::kPredictDefault) {
+    PredictRaw(model, input, num_row, output, thread_config);
+    ApplyPostProcessor(model, output, num_row, config, thread_config);
+  } else if (config.pred_kind == PredictKind::kPredictRaw) {
+    PredictRaw(model, input, num_row, output, thread_config);
+  } else if (config.pred_kind == PredictKind::kPredictLeafID) {
+    PredictLeaf(model, input, num_row, output, thread_config);
+  } else if (config.pred_kind == PredictKind::kPredictPerTree) {
+    PredictScoreByTree(model, input, num_row, output, thread_config);
   } else {
     TREELITE_LOG(FATAL) << "Not implemented";
-    return 0;
   }
 }
 
-}  // anonymous namespace
-
-namespace treelite::gtil {
-
-std::size_t Predict(Model const* model, DMatrix const* input, float* output,
-    Configuration const& config, std::vector<std::size_t>& output_shape) {
-  // If nthread <= 0, then use all CPU cores in the system
-  auto tconfig = threading_utils::ConfigureThreadConfig(config.nthread);
-  // Check type of DMatrix
-  auto const* d1 = dynamic_cast<DenseDMatrixImpl<float> const*>(input);
-  auto const* d2 = dynamic_cast<CSRDMatrixImpl<float> const*>(input);
-  if (d1) {
-    return PredictImpl(*model, d1, output, tconfig, config, output_shape);
-  } else if (d2) {
-    return PredictImpl(*model, d2, output, tconfig, config, output_shape);
-  } else {
-    TREELITE_LOG(FATAL) << "DMatrix with float64 data is not supported";
-    return 0;
-  }
-}
-
-std::size_t Predict(Model const* model, float const* input, std::size_t num_row, float* output,
-    Configuration const& pred_config, std::vector<std::size_t>& output_shape) {
-  std::unique_ptr<DenseDMatrixImpl<float>> dmat = std::make_unique<DenseDMatrixImpl<float>>(
-      std::vector<float>(input, input + num_row * model->num_feature),
-      std::numeric_limits<float>::quiet_NaN(), num_row, model->num_feature);
-  return Predict(model, dmat.get(), output, pred_config, output_shape);
-}
-
-std::size_t GetPredictOutputSize(
-    Model const* model, std::size_t num_row, Configuration const& config) {
-  switch (config.pred_type) {
-  case PredictType::kPredictDefault:
-  case PredictType::kPredictRaw:
-    return num_row * model->task_param.num_class;
-  case PredictType::kPredictLeafID:
-    return num_row * model->GetNumTree();
-  case PredictType::kPredictPerTree:
-    if (model->task_type == TaskType::kMultiClfProbDistLeaf) {
-      return num_row * model->GetNumTree() * model->task_param.num_class;
-    } else {
-      return num_row * model->GetNumTree();
-    }
-  default:
-    TREELITE_LOG(FATAL) << "Unrecognized prediction type: " << static_cast<int>(config.pred_type);
-    return 0;
-  }
-}
-
-std::size_t GetPredictOutputSize(
-    Model const* model, DMatrix const* input, Configuration const& config) {
-  return GetPredictOutputSize(model, input->GetNumRow(), config);
-}
+template void Predict<float>(
+    Model const&, float const*, std::uint64_t, float*, Configuration const&);
+template void Predict<double>(
+    Model const&, double const*, std::uint64_t, double*, Configuration const&);
 
 }  // namespace treelite::gtil

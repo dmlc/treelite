@@ -12,7 +12,7 @@ for /R %%i in (python\\dist\\*.whl) DO (
 
 echo ##[section]Running Python tests...
 mkdir temp
-python -m pytest --basetemp="%WORKING_DIR%\temp" -v -rxXs --fulltrace --durations=0 tests\python\test_basic.py
+python -m pytest --basetemp="%WORKING_DIR%\temp" -v -rxXs --fulltrace --durations=0 tests\python\test_gtil.py
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo ##[section]Uploading Python wheels...

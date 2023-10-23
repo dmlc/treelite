@@ -8,8 +8,8 @@ project(treelite LANGUAGES CXX C VERSION 4.0.0)
 # Check compiler versions
 # Use latest compilers to ensure that std::filesystem is available
 if(MSVC)
-  if(MSVC_VERSION LESS 1920)
-    message(FATAL_ERROR "Need Visual Studio 2019 or newer to build Treelite")
+  if(MSVC_VERSION LESS 1930)
+    message(FATAL_ERROR "Need Visual Studio 2022 or newer to build Treelite")
   endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.1")

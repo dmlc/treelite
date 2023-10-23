@@ -17,7 +17,7 @@ if(TEST_COVERAGE)
   if(MSVC)
     message(FATAL_ERROR "Test coverage not available on Windows")
   endif()
-  target_compile_options(treelite_cpp_test PUBLIC -g -O0 --coverage)
+  target_compile_options(treelite_cpp_test PUBLIC -g3 --coverage)
   target_link_options(treelite_cpp_test PUBLIC --coverage)
 endif()
 

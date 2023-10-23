@@ -2,7 +2,7 @@ name: dev
 channels:
 - conda-forge
 dependencies:
-- python=3.9
+- python=3.10
 - numpy
 - scipy
 - pandas
@@ -17,8 +17,6 @@ dependencies:
 - cmake
 - llvm-openmp
 - cython
-- lightgbm
-- xgboost
 - cpplint
 - pylint
 - awscli
@@ -26,3 +24,5 @@ dependencies:
 - pip
 - pip:
   - cibuildwheel
+  - xgboost
+  - lightgbm

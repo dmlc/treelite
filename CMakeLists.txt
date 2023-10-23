@@ -121,32 +121,30 @@ set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
 if(NOT FMTLIB_FROM_SYSTEM_ROOT AND BUILD_CPP_TEST)
   list(APPEND INSTALL_TARGETS fmt-header-only)
 endif()
-if(NOT TEST_COVERAGE)
-  install(TARGETS ${INSTALL_TARGETS}
-      EXPORT TreeliteTargets
-      ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-      INCLUDES DESTINATION include)
-  install(DIRECTORY include/treelite "${PROJECT_BINARY_DIR}/include/treelite"
-      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-  install(EXPORT TreeliteTargets
-      FILE TreeliteTargets.cmake
-      NAMESPACE treelite::
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
-  configure_package_config_file(
-      cmake/TreeliteConfig.cmake.in
-      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
-      INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
-  write_basic_package_version_file(
-      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
-      VERSION ${PROJECT_VERSION}
-      COMPATIBILITY SameMajorVersion)
-  install(FILES
-      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
-      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
-endif()
+install(TARGETS ${INSTALL_TARGETS}
+    EXPORT TreeliteTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION include)
+install(DIRECTORY include/treelite "${PROJECT_BINARY_DIR}/include/treelite"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(EXPORT TreeliteTargets
+    FILE TreeliteTargets.cmake
+    NAMESPACE treelite::
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
+configure_package_config_file(
+    cmake/TreeliteConfig.cmake.in
+    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+install(FILES
+    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
 
 write_version()
 set_default_configuration_release()

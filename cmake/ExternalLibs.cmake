@@ -66,6 +66,7 @@ if(BUILD_CPP_TEST)
     set(FMTLIB_FROM_SYSTEM_ROOT TRUE)
   else()
     message(STATUS "Did not find fmtlib in the system root. Fetching fmtlib now...")
+    set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(
         fmtlib
         GIT_REPOSITORY  https://github.com/fmtlib/fmt.git

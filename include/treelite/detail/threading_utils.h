@@ -33,6 +33,14 @@ inline int omp_get_num_procs() {
   return 1;
 }
 
+inline int omp_get_thread_num() {
+  return 0;
+}
+
+inline int omp_get_thread_limit() {
+  return std::numeric_limits<int>::max();
+}
+
 #endif  // TREELITE_OPENMP_SUPPORT
 
 namespace treelite::detail::threading_utils {

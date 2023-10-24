@@ -17,6 +17,7 @@ dependencies:
 - cmake
 - llvm-openmp
 - cython
+- lightgbm
 - cpplint
 - pylint
 - awscli

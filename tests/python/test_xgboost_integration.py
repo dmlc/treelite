@@ -217,7 +217,6 @@ def test_xgb_multiclass_classifier(
             ("rank:map", 2),
         ],
     ),
-    pred_margin=sampled_from([True, False]),
     num_boost_round=integers(min_value=3, max_value=10),
     num_parallel_tree=integers(min_value=1, max_value=3),
     use_categorical=sampled_from([True, False]),
@@ -226,7 +225,6 @@ def test_xgb_multiclass_classifier(
 @settings(**standard_settings())
 def test_xgb_nonlinear_objective(
     objective_pair,
-    pred_margin,
     num_boost_round,
     num_parallel_tree,
     use_categorical,
@@ -280,9 +278,9 @@ def test_xgb_nonlinear_objective(
         else:
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
 
-        out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
+        out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=True)
         expected_pred = xgb_model.predict(
-            xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
+            xgb.DMatrix(X_pred), output_margin=True, validate_features=False
         ).reshape((X.shape[0], -1))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 

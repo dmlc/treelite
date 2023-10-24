@@ -24,5 +24,3 @@ dependencies:
 - pip
 - pip:
   - cibuildwheel
-  - xgboost
-  - lightgbm

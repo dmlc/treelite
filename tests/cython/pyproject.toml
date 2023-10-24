@@ -1,7 +1,7 @@
 [build-system]
-requires = ["scikit-build-core", "cython"]
+requires = ["scikit-build-core>=0.4.8", "cython"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "example"
+name = "treelite-cython-test"
 version = "0.0.1"

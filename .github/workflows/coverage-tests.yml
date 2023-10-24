@@ -41,7 +41,7 @@ jobs:
         bash ops/cpp-python-coverage.sh
   win-python-coverage:
     name: Run Python and C++ tests with test coverage (Windows)
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
       with:
@@ -63,7 +63,7 @@ jobs:
         call ops/win-python-coverage.bat
   macos-python-coverage:
     name: Run Python and C++ tests with test coverage (MacOS)
-    runs-on: macos-11
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
       with:

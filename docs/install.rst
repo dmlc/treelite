@@ -29,7 +29,7 @@ For other operating systems, see the next section.
 .. note:: Windows users need to install Visual C++ Redistributable
 
   Treelite requires DLLs from `Visual C++ Redistributable
-  <https://www.microsoft.com/en-us/download/details.aspx?id=48145>`_
+  <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2015-2017-2019-and-2022>`_
   in order to function, so make sure to install it. Exception: If
   you have Visual Studio installed, you already have access to
   necessary libraries and thus don't need to install Visual C++

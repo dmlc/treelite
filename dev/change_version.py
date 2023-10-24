@@ -35,6 +35,7 @@ def update_pypkg(
     rc_ver: Optional[int] = None,
 ) -> None:
     """Change version in the Python package"""
+    # pylint: disable=too-many-arguments
     version = f"{major}.{minor}.{patch}"
     if is_rc:
         assert rc_ver

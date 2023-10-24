@@ -25,7 +25,7 @@ env:
 jobs:
   windows-wheel-builder:
     name: Build and test Python wheels (Windows)
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
       with:

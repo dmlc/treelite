@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from math import ceil
 from sys import platform as _platform
 from typing import Any, Optional, Tuple, Union
+import ctypes
 
 import numpy as np
 
@@ -78,7 +79,8 @@ def to_categorical(
     import pandas as pd
 
     features = features.copy()  # Avoid clobbering source matrix
-    rng = np.random.default_rng(seed=hash(random_state))  # Allow RandomState object
+    seed = ctypes.c_size_t(hash(random_state)).value  # Allow RandomState object
+    rng = np.random.default_rng(seed=seed)
     n_features = features.shape[1]
     # First n_categorical columns will be converted into categorical columns.
     cat_cols = features[:, :n_categorical]

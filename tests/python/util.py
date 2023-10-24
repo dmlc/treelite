@@ -1,11 +1,11 @@
 """Utility functions for tests"""
+import ctypes
 import os
 import tempfile
 from contextlib import contextmanager
 from math import ceil
 from sys import platform as _platform
 from typing import Any, Optional, Tuple, Union
-import ctypes
 
 import numpy as np
 

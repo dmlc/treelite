@@ -3,7 +3,6 @@
 import ctypes
 
 import numpy as np
-from sklearn.dummy import DummyClassifier, DummyRegressor
 
 from ..core import _LIB, TreeliteError, _check_call
 from ..frontend import Model
@@ -109,6 +108,7 @@ def import_model(sklearn_model):
     test nodes have numerical test conditions.
     """
     try:
+        from sklearn.dummy import DummyClassifier, DummyRegressor
         from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesC
         from sklearn.ensemble import ExtraTreesRegressor as ExtraTreesR
         from sklearn.ensemble import GradientBoostingClassifier as GradientBoostingC

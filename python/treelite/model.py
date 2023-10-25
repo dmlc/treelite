@@ -110,7 +110,7 @@ class Model:
         cls, filename: str, model_format: str, allow_unknown_field: bool = False
     ) -> Model:
         """
-        Deprecated. Please use :py:meth:`~treelite.frontend.load_xgboost_model` instead.
+        Deprecated; please use :py:meth:`~treelite.frontend.load_xgboost_model` instead.
         Load a tree ensemble model from a file.
 
         Parameters
@@ -157,7 +157,7 @@ class Model:
     @classmethod
     def from_xgboost(cls, booster: Any) -> Model:
         """
-        Deprecated. Please use :py:meth:`~treelite.frontend.from_xgboost` instead.
+        Deprecated; please use :py:meth:`~treelite.frontend.from_xgboost` instead.
         Load a tree ensemble model from an XGBoost Booster object.
 
         Parameters
@@ -187,7 +187,7 @@ class Model:
         allow_unknown_field: bool = False,
     ) -> Model:
         """
-        Deprecated. Please use :py:meth:`~treelite.frontend.from_xgboost_json` instead.
+        Deprecated; please use :py:meth:`~treelite.frontend.from_xgboost_json` instead.
         Load a tree ensemble model from a string containing XGBoost JSON.
 
         Parameters
@@ -218,7 +218,7 @@ class Model:
     @classmethod
     def from_lightgbm(cls, booster):
         """
-        Deprecated. Please use :py:meth:`~treelite.frontend.from_lightgbm` instead.
+        Deprecated; please use :py:meth:`~treelite.frontend.from_lightgbm` instead.
         Load a tree ensemble model from a LightGBM Booster object.
 
         Parameters

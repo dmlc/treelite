@@ -295,8 +295,8 @@ def import_model(sklearn_model):
                 raise NotImplementedError("Custom init estimator not supported")
             # pylint: disable=W0212
             base_scores = np.array(
-                sklearn_model._loss.get_init_raw_predictions(
-                    np.zeros((1, sklearn_model.n_features_in_)), sklearn_model.init_
+                sklearn_model._raw_predict_init(
+                    np.zeros((1, sklearn_model.n_features_in_))
                 ),
                 dtype=np.float64,
             )

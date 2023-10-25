@@ -101,8 +101,8 @@ def import_model(sklearn_model):
       import treelite.sklearn
       model = treelite.sklearn.import_model(clf)
 
-    Notes
-    -----
+    Note
+    ----
     This function does not yet support categorical splits in HistGradientBoostingRegressor and
     HistGradientBoostingClassifier. If you are using either estimator types, make sure that all
     test nodes have numerical test conditions.

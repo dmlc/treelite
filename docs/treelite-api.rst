@@ -35,6 +35,12 @@ Model builder (Legacy)
     :members:
     :member-order: bysource
 
+Model builder (Legacy)
+----------------------
+
+.. autoclass:: treelite.ModelBuilder
+    :members:
+
 Model class
 -----------
 

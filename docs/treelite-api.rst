@@ -25,6 +25,12 @@ Model builder
 .. automodule:: treelite.model_builder
     :members:
 
+Model builder (Legacy)
+----------------------
+
+.. autoclass:: treelite.ModelBuilder
+    :members:
+
 Model class
 -----------
 

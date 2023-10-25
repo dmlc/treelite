@@ -18,7 +18,8 @@ class Metadata:
     Parameters
     ----------
     num_feature:
-        Number of features
+        Number of features used in the model.
+        We assume that all feature indices are between ``0`` and ``num_feature - 1``.
     task_type:
         Task type
     average_tree_output:
@@ -84,19 +85,29 @@ class PostProcessorFunc:
     ----------
     name:
         Name of the postprocessor
-    config:
-        Optional parameters for the postprocessor
+    sigmoid_alpha:
+        Scaling parameter for sigmoid function ``sigmoid(x) = 1 / (1 + exp(-alpha * x))``.
+        This parameter is applicable only when ``name="sigmoid"`` or ``name="multiclass_ova"``.
+        It must be strictly positive.
+    ratio_c:
+        Scaling parameter for exponential standard ratio transformation
+        ``expstdratio(x) = exp2(-x / c)``.
+        This parameter is applicable only when ``name="exponential_standard_ratio"``.
     """
 
     name: str
-    config: Optional[Dict[Any, Any]] = None
+    sigmoid_alpha: float = 1.0
+    ratio_c: float = 1.0
 
     def asdict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
-        ret: Dict[str, Any] = {"name": self.name}
-        if self.config is not None:
-            ret["config"] = self.config
-        return ret
+        return {
+            "name": self.name,
+            "config": {
+                "sigmoid_alpha": self.sigmoid_alpha,
+                "ratio_c": self.ratio_c,
+            },
+        }
 
 
 class ModelBuilder:

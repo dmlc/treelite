@@ -4,6 +4,7 @@ import pathlib
 from . import frontend, gtil, model_builder, sklearn
 from .core import TreeliteError
 from .model import Model
+from .model_builder_legacy import ModelBuilder
 
 VERSION_FILE = pathlib.Path(__file__).parent / "VERSION"
 with open(VERSION_FILE, "r", encoding="UTF-8") as _f:
@@ -16,5 +17,6 @@ __all__ = [
     "sklearn",
     "model_builder",
     "TreeliteError",
+    "ModelBuilder",
     "__version__",
 ]

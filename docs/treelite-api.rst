@@ -19,14 +19,14 @@ Scikit-learn importer
 .. automodule:: treelite.sklearn
    :members:
 
-The Model object
-----------------
-
-.. automodule:: treelite
-   :members:
-
 Model builder
 -------------
 
 .. automodule:: treelite.model_builder
     :members:
+
+Model class
+-----------
+
+.. autoclass:: treelite.Model
+   :members:

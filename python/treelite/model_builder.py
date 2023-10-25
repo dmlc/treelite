@@ -105,9 +105,9 @@ class ModelBuilder:
 
     .. note::
 
-        The model builder object must only be access by a single thread. To build
+        The model builder object must be only accessed by a single thread. To build
         multiple trees in parallel, create multiple builder objects and use model
-        concatenation.
+        concatenation (:py:meth:`~treelite.Model.concatenate`).
 
     Parameters
     ----------

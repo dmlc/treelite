@@ -81,14 +81,17 @@ class Model:
         ----------
         model_objs :
             List of :py:class:`Model` objects
+
         Returns
         -------
         model : :py:class:`Model` object
             Concatenated model
+
         Example
         -------
         .. code-block:: python
-           concatenated_model = Model.concatenate([model1, model2, model3])
+
+           concatenated_model = treelite.Model.concatenate([model1, model2, model3])
         """
         concatenated_model_handle = ctypes.c_void_p()
         model_obj_handles = []

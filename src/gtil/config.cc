@@ -2,17 +2,17 @@
  * Copyright (c) 2023 by Contributors
  * \file config.cc
  * \author Hyunsu Cho
- * \brief Configuration handling logic for General Tree Inference Library (GTIL)
+ * \brief Configuration handling logic for GTIL
  */
+#include <rapidjson/document.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
-#include <rapidjson/document.h>
+
 #include <string>
 
-namespace treelite {
-namespace gtil {
+namespace treelite::gtil {
 
-Configuration::Configuration(const char* config_json) {
+Configuration::Configuration(std::string const& config_json) {
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
 
@@ -21,13 +21,13 @@ Configuration::Configuration(const char* config_json) {
     if (itr != parsed_config.MemberEnd() && itr->value.IsString()) {
       auto value = std::string(itr->value.GetString());
       if (value == "default") {
-        this->pred_type = PredictType::kPredictDefault;
+        this->pred_kind = PredictKind::kPredictDefault;
       } else if (value == "raw") {
-        this->pred_type = PredictType::kPredictRaw;
+        this->pred_kind = PredictKind::kPredictRaw;
       } else if (value == "leaf_id") {
-        this->pred_type = PredictType::kPredictLeafID;
+        this->pred_kind = PredictKind::kPredictLeafID;
       } else if (value == "score_per_tree") {
-        this->pred_type = PredictType::kPredictPerTree;
+        this->pred_kind = PredictKind::kPredictPerTree;
       } else {
         TREELITE_LOG(FATAL) << "Unknown prediction type: " << value;
       }
@@ -44,5 +44,4 @@ Configuration::Configuration(const char* config_json) {
   }
 }
 
-}  // namespace gtil
-}  // namespace treelite
+}  // namespace treelite::gtil

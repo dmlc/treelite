@@ -4,8 +4,8 @@ set_target_properties(treelite_cpp_test
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON)
 target_link_libraries(treelite_cpp_test
-    PRIVATE objtreelite objtreelite_runtime objtreelite_common rapidjson
-    GTest::GTest GTest::gmock fmt::fmt-header-only)
+    PRIVATE objtreelite rapidjson
+    GTest::GTest GTest::gmock fmt::fmt-header-only std::mdspan)
 set_output_directory(treelite_cpp_test ${PROJECT_BINARY_DIR})
 
 if(MSVC)
@@ -17,23 +17,21 @@ if(TEST_COVERAGE)
   if(MSVC)
     message(FATAL_ERROR "Test coverage not available on Windows")
   endif()
-  target_compile_options(treelite_cpp_test PUBLIC -g -O0 --coverage)
+  target_compile_options(treelite_cpp_test PUBLIC -g3 --coverage)
   target_link_options(treelite_cpp_test PUBLIC --coverage)
 endif()
 
 target_sources(treelite_cpp_test
-  PRIVATE  test_main.cc
-           test_serializer.cc
-           test_frontend.cc
-           test_compiler_param.cc
-           test_threading_utils.cc
-           test_model_concat.cc
+    PRIVATE
+    test_main.cc
+    test_gtil.cc
+    test_model_builder.cc
+    test_model_concat.cc
+    test_model_loader.cc
+    test_serializer.cc
+    test_utils.cc
 )
 
 target_include_directories(treelite_cpp_test
-  PRIVATE  ../../src/frontend ../../src/
+    PRIVATE  ${PROJECT_SOURCE_DIR}/src/
 )
-
-# In MSVC solution, group sources according to directories
-file(GLOB_RECURSE TEST_SOURCES *.cc *.h)
-auto_source_group("${TEST_SOURCES}")

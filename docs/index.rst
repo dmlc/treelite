@@ -22,7 +22,7 @@ as well as the network.
   use :doc:`TL2cgen <tl2cgen:index>`.
   To migrate existing code using Treelite 3.x, consult the page
   :doc:`tl2cgen:treelite-migration`.
-  
+
 
 Why Treelite?
 =============
@@ -109,9 +109,9 @@ Contents
   treelite-gtil-api
   treelite-c-api
   knobs/index
-  notes-on-serialization
+  serialization/index
   treelite-doxygen
-  
+
 
 *******
 Indices

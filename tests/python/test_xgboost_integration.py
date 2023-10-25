@@ -1,24 +1,23 @@
-# -*- coding: utf-8 -*-
 """Tests for XGBoost integration"""
-# pylint: disable=R0201, R0915
+# pylint: disable=R0201, R0915, R0913, R0914
 import json
-import math
-import os
+import pathlib
 
 import numpy as np
 import pytest
-from hypothesis import assume, given, settings
-from hypothesis.strategies import integers, lists, sampled_from
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
+from hypothesis import given, settings
+from hypothesis.strategies import data as hypothesis_callback
+from hypothesis.strategies import integers, just, lists, sampled_from
 
 import treelite
-import treelite_runtime
-from treelite.contrib import _libext
 
-from .hypothesis_util import standard_regression_datasets, standard_settings
-from .metadata import dataset_db
-from .util import TemporaryDirectory, check_predictor, os_compatible_toolchains
+from .hypothesis_util import (
+    standard_classification_datasets,
+    standard_multi_target_binary_classification_datasets,
+    standard_regression_datasets,
+    standard_settings,
+)
+from .util import TemporaryDirectory, to_categorical
 
 try:
     import xgboost as xgb
@@ -27,197 +26,242 @@ except ImportError:
     pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
+def generate_data_for_squared_log_error(n_targets: int = 1):
+    """Generate data containing outliers."""
+    n_rows = 4096
+    n_cols = 16
+
+    outlier_mean = 10000  # mean of generated outliers
+    n_outliers = 64
+
+    X = np.random.randn(n_rows, n_cols)
+    y = np.random.randn(n_rows, n_targets)
+    y += np.abs(np.min(y, axis=0))
+
+    # Create outliers
+    for _ in range(0, n_outliers):
+        ind = np.random.randint(0, len(y) - 1)
+        y[ind, :] += np.random.randint(0, outlier_mean)
+
+    # rmsle requires all label be greater than -1.
+    assert np.all(y > -1.0)
+
+    return X, y
+
+
+@pytest.mark.parametrize(
+    "objective",
+    [
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ],
+)
 @given(
-    toolchain=sampled_from(os_compatible_toolchains()),
-    objective=sampled_from(
-        [
-            "reg:linear",
-            "reg:squarederror",
-            "reg:squaredlogerror",
-            "reg:pseudohubererror",
-        ]
-    ),
-    model_format=sampled_from(["binary", "json"]),
-    num_parallel_tree=integers(min_value=1, max_value=10),
-    dataset=standard_regression_datasets(),
+    pred_margin=sampled_from([True, False]),
+    num_boost_round=integers(min_value=3, max_value=10),
+    num_parallel_tree=integers(min_value=1, max_value=3),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_xgb_regression(toolchain, objective, model_format, num_parallel_tree, dataset):
+def test_xgb_regressor(
+    objective,
+    pred_margin,
+    num_boost_round,
+    num_parallel_tree,
+    callback,
+):
     # pylint: disable=too-many-locals
-    """Test a random regression dataset"""
-    X, y = dataset
+    """Test XGBoost with regression data"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
     if objective == "reg:squaredlogerror":
-        assume(np.all(y > -1))
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    dtest = xgb.DMatrix(X_test, label=y_test)
+        X, y = generate_data_for_squared_log_error()
+        use_categorical = False
+    else:
+        X, y = callback.draw(standard_regression_datasets())
+        use_categorical = callback.draw(sampled_from([True, False]))
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
+        model_format = "json"
+    else:
+        dtrain = xgb.DMatrix(X, label=y)
+        X_pred = X.copy()
+        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
     param = {
         "max_depth": 8,
-        "eta": 1,
+        "eta": 0.1,
         "verbosity": 0,
         "objective": objective,
         "num_parallel_tree": num_parallel_tree,
     }
-    num_round = 10
-    bst = xgb.train(
+    xgb_model = xgb.train(
         param,
         dtrain,
-        num_boost_round=num_round,
-        evals=[(dtrain, "train"), (dtest, "test")],
+        num_boost_round=num_boost_round,
     )
     with TemporaryDirectory() as tmpdir:
         if model_format == "json":
-            model_name = "regression.json"
-            model_path = os.path.join(tmpdir, model_name)
-            bst.save_model(model_path)
-            model = treelite.Model.load(
-                filename=model_path, model_format="xgboost_json"
-            )
+            model_name = "model.json"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
-            model_name = "regression.model"
-            model_path = os.path.join(tmpdir, model_name)
-            bst.save_model(model_path)
-            model = treelite.Model.load(filename=model_path, model_format="xgboost")
-
-        assert model.num_feature == dtrain.num_col()
-        assert model.num_class == 1
-        assert model.num_tree == num_round * num_parallel_tree
-        libpath = os.path.join(tmpdir, "regression" + _libext())
-        model.export_lib(
-            toolchain=toolchain,
-            libpath=libpath,
-            params={"parallel_comp": model.num_tree},
-            verbose=True,
+            model_name = "model.model"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        assert (
+            len(json.loads(tl_model.dump_as_json())["trees"])
+            == num_boost_round * num_parallel_tree
         )
 
-        predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-        assert predictor.num_feature == dtrain.num_col()
-        assert predictor.num_class == 1
-        assert predictor.pred_transform == "identity"
-        assert predictor.global_bias == 0.5
-        assert predictor.sigmoid_alpha == 1.0
-        dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
-        out_pred = predictor.predict(dmat)
-        expected_pred = bst.predict(dtest)
+        out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
+        expected_pred = xgb_model.predict(
+            xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
+        ).reshape((X.shape[0], -1))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
-@pytest.mark.parametrize("num_parallel_tree", [1, 3, 5])
-@pytest.mark.parametrize("model_format", ["binary", "json"])
-@pytest.mark.parametrize(
-    "objective,expected_pred_transform",
-    [("multi:softmax", "max_index"), ("multi:softprob", "softmax")],
-    ids=["multi:softmax", "multi:softprob"],
+@given(
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
+    ),
+    objective=sampled_from(["multi:softmax", "multi:softprob"]),
+    pred_margin=sampled_from([True, False]),
+    num_boost_round=integers(min_value=3, max_value=10),
+    num_parallel_tree=integers(min_value=1, max_value=3),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
-@pytest.mark.parametrize("toolchain", os_compatible_toolchains())
-def test_xgb_iris(
-    tmpdir,
-    toolchain,
+@settings(**standard_settings())
+def test_xgb_multiclass_classifier(
+    dataset,
     objective,
-    model_format,
-    expected_pred_transform,
+    pred_margin,
+    num_boost_round,
     num_parallel_tree,
+    use_categorical,
+    callback,
 ):
-    # pylint: disable=too-many-locals, too-many-arguments
-    """Test Iris data (multi-class classification)"""
-    X, y = load_iris(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    dtest = xgb.DMatrix(X_test, label=y_test)
-    num_class = 3
-    num_round = 10
+    # pylint: disable=too-many-locals
+    """Test XGBoost with Iris data (multi-class classification)"""
+    X, y = dataset
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
+        model_format = "json"
+    else:
+        dtrain = xgb.DMatrix(X, label=y)
+        X_pred = X.copy()
+        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
+
+    num_class = np.max(y) + 1
     param = {
         "max_depth": 6,
-        "eta": 0.05,
+        "eta": 0.1,
         "num_class": num_class,
         "verbosity": 0,
         "objective": objective,
         "metric": "mlogloss",
         "num_parallel_tree": num_parallel_tree,
     }
-    bst = xgb.train(
+    xgb_model = xgb.train(
         param,
         dtrain,
-        num_boost_round=num_round,
-        evals=[(dtrain, "train"), (dtest, "test")],
+        num_boost_round=num_boost_round,
     )
 
-    if model_format == "json":
-        model_name = "iris.json"
-        model_path = os.path.join(tmpdir, model_name)
-        bst.save_model(model_path)
-        model = treelite.Model.load(filename=model_path, model_format="xgboost_json")
-    else:
-        model_name = "iris.model"
-        model_path = os.path.join(tmpdir, model_name)
-        bst.save_model(model_path)
-        model = treelite.Model.load(filename=model_path, model_format="xgboost")
-    assert model.num_feature == dtrain.num_col()
-    assert model.num_class == num_class
-    assert model.num_tree == num_round * num_class * num_parallel_tree
-    libpath = os.path.join(tmpdir, "iris" + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
+    with TemporaryDirectory() as tmpdir:
+        if model_format == "json":
+            model_name = "iris.json"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            model_name = "iris.model"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        expected_num_tree = num_class * num_boost_round * num_parallel_tree
+        assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
-    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_class == num_class
-    assert predictor.pred_transform == expected_pred_transform
-    assert predictor.global_bias == 0.5
-    assert predictor.sigmoid_alpha == 1.0
-    dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
-    out_pred = predictor.predict(dmat)
-    expected_pred = bst.predict(dtest)
-    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+        if objective == "multi:softmax" and not pred_margin:
+            out_pred = treelite.gtil.predict_leaf(tl_model, X_pred)
+            expected_pred = xgb_model.predict(
+                xgb.DMatrix(X_pred), pred_leaf=True, validate_features=False
+            )
+        else:
+            out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
+            expected_pred = xgb_model.predict(
+                xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
+            )
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
-@pytest.mark.parametrize("model_format", ["binary", "json"])
-@pytest.mark.parametrize(
-    "objective,max_label,expected_global_bias",
-    [
-        ("binary:logistic", 2, 0),
-        ("binary:hinge", 2, 0.5),
-        ("binary:logitraw", 2, 0.5),
-        ("count:poisson", 4, math.log(0.5)),
-        ("rank:pairwise", 5, 0.5),
-        ("rank:ndcg", 5, 0.5),
-        ("rank:map", 5, 0.5),
-    ],
-    ids=[
-        "binary:logistic",
-        "binary:hinge",
-        "binary:logitraw",
-        "count:poisson",
-        "rank:pairwise",
-        "rank:ndcg",
-        "rank:map",
-    ],
+@given(
+    objective_pair=sampled_from(
+        [
+            ("binary:logistic", 2),
+            ("binary:hinge", 2),
+            ("binary:logitraw", 2),
+            ("count:poisson", 4),
+            ("rank:pairwise", 5),
+            ("rank:ndcg", 5),
+            ("rank:map", 2),
+        ],
+    ),
+    num_boost_round=integers(min_value=3, max_value=10),
+    num_parallel_tree=integers(min_value=1, max_value=3),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
-@pytest.mark.parametrize("toolchain", os_compatible_toolchains())
-def test_nonlinear_objective(
-    tmpdir, objective, max_label, expected_global_bias, toolchain, model_format
+@settings(**standard_settings())
+def test_xgb_nonlinear_objective(
+    objective_pair,
+    num_boost_round,
+    num_parallel_tree,
+    use_categorical,
+    callback,
 ):
-    # pylint: disable=too-many-locals,too-many-arguments
-    """Test non-linear objectives with dummy data"""
-    np.random.seed(0)
-    nrow = 16
-    ncol = 8
-    X = np.random.randn(nrow, ncol)
-    y = np.random.randint(0, max_label, size=nrow)
-    assert np.min(y) == 0
-    assert np.max(y) == max_label - 1
+    # pylint: disable=too-many-locals
+    """Test XGBoost with non-linear objectives with synthetic data"""
+    objective, num_class = objective_pair
+    X, y = callback.draw(
+        standard_classification_datasets(
+            n_classes=just(num_class), n_informative=just(5)
+        )
+    )
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
+        model_format = "json"
+    else:
+        dtrain = xgb.DMatrix(X, label=y)
+        X_pred = X.copy()
+        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
 
-    num_round = 4
-    dtrain = xgb.DMatrix(X, label=y)
+    assert np.min(y) == 0
+    assert np.max(y) == num_class - 1
+
     if objective.startswith("rank:"):
-        dtrain.set_group([nrow])
-    bst = xgb.train(
-        {"objective": objective, "base_score": 0.5, "seed": 0},
+        dtrain.set_group([X.shape[0]])
+    params = {
+        "objective": objective,
+        "seed": 0,
+        "num_parallel_tree": num_parallel_tree,
+    }
+    xgb_model = xgb.train(
+        params,
         dtrain=dtrain,
-        num_boost_round=num_round,
+        num_boost_round=num_boost_round,
     )
 
     objective_tag = objective.replace(":", "_")
@@ -225,166 +269,33 @@ def test_nonlinear_objective(
         model_name = f"nonlinear_{objective_tag}.json"
     else:
         model_name = f"nonlinear_{objective_tag}.bin"
-    model_path = os.path.join(tmpdir, model_name)
-    bst.save_model(model_path)
+    with TemporaryDirectory() as tmpdir:
+        model_path = pathlib.Path(tmpdir) / model_name
+        xgb_model.save_model(model_path)
 
-    model = treelite.Model.load(
-        filename=model_path,
-        model_format=("xgboost_json" if model_format == "json" else "xgboost"),
-    )
-    assert model.num_feature == dtrain.num_col()
-    assert model.num_class == 1
-    assert model.num_tree == num_round
-    libpath = os.path.join(tmpdir, objective_tag + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
+        if model_format == "json":
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
 
-    expected_pred_transform = {
-        "binary:logistic": "sigmoid",
-        "binary:hinge": "hinge",
-        "binary:logitraw": "identity",
-        "count:poisson": "exponential",
-        "rank:pairwise": "identity",
-        "rank:ndcg": "identity",
-        "rank:map": "identity",
-    }
-
-    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_class == 1
-    assert predictor.pred_transform == expected_pred_transform[objective]
-    np.testing.assert_almost_equal(
-        predictor.global_bias, expected_global_bias, decimal=5
-    )
-    assert predictor.sigmoid_alpha == 1.0
-    dmat = treelite_runtime.DMatrix(X, dtype="float32")
-    out_pred = predictor.predict(dmat)
-    expected_pred = bst.predict(dtrain)
-    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+        out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=True)
+        expected_pred = xgb_model.predict(
+            xgb.DMatrix(X_pred), output_margin=True, validate_features=False
+        ).reshape((X.shape[0], -1))
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
 @given(
-    toolchain=sampled_from(os_compatible_toolchains()),
-    dataset=standard_regression_datasets(),
+    dataset=standard_classification_datasets(n_classes=just(2)),
+    model_format=sampled_from(["legacy_binary", "json"]),
+    num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
-def test_xgb_deserializers(toolchain, dataset):
+def test_xgb_dart(dataset, model_format, num_boost_round):
     # pylint: disable=too-many-locals
-    """Test a random regression dataset and test serializers"""
+    """Test XGBoost DART model with dummy data"""
     X, y = dataset
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    dtest = xgb.DMatrix(X_test, label=y_test)
-    param = {"max_depth": 8, "eta": 1, "silent": 1, "objective": "reg:linear"}
-    num_round = 10
-    bst = xgb.train(
-        param,
-        dtrain,
-        num_boost_round=num_round,
-        evals=[(dtrain, "train"), (dtest, "test")],
-    )
 
-    with TemporaryDirectory() as tmpdir:
-        # Serialize xgboost model
-        model_bin_path = os.path.join(tmpdir, "serialized.model")
-        bst.save_model(model_bin_path)
-        model_json_path = os.path.join(tmpdir, "serialized.json")
-        bst.save_model(model_json_path)
-        model_json_str = bst.save_raw(raw_format="json")
-
-        # Construct Treelite models from xgboost serializations
-        model_bin = treelite.Model.load(model_bin_path, model_format="xgboost")
-        model_json = treelite.Model.load(model_json_path, model_format="xgboost_json")
-        model_json_str = treelite.Model.from_xgboost_json(model_json_str)
-
-        # Compile models to libraries
-        model_bin_lib = os.path.join(tmpdir, "bin{}".format(_libext()))
-        model_bin.export_lib(
-            toolchain=toolchain,
-            libpath=model_bin_lib,
-            params={"parallel_comp": model_bin.num_tree},
-        )
-        model_json_lib = os.path.join(tmpdir, "json{}".format(_libext()))
-        model_json.export_lib(
-            toolchain=toolchain,
-            libpath=model_json_lib,
-            params={"parallel_comp": model_json.num_tree},
-        )
-        model_json_str_lib = os.path.join(tmpdir, "json_str{}".format(_libext()))
-        model_json_str.export_lib(
-            toolchain=toolchain,
-            libpath=model_json_str_lib,
-            params={"parallel_comp": model_json_str.num_tree},
-        )
-
-        # Generate predictors from compiled libraries
-        predictor_bin = treelite_runtime.Predictor(model_bin_lib)
-        assert predictor_bin.num_feature == dtrain.num_col()
-        assert predictor_bin.num_class == 1
-        assert predictor_bin.pred_transform == "identity"
-        assert predictor_bin.global_bias == pytest.approx(0.5)
-        assert predictor_bin.sigmoid_alpha == pytest.approx(1.0)
-
-        predictor_json = treelite_runtime.Predictor(model_json_lib)
-        assert predictor_json.num_feature == dtrain.num_col()
-        assert predictor_json.num_class == 1
-        assert predictor_json.pred_transform == "identity"
-        assert predictor_json.global_bias == pytest.approx(0.5)
-        assert predictor_json.sigmoid_alpha == pytest.approx(1.0)
-
-        predictor_json_str = treelite_runtime.Predictor(model_json_str_lib)
-        assert predictor_json_str.num_feature == dtrain.num_col()
-        assert predictor_json_str.num_class == 1
-        assert predictor_json_str.pred_transform == "identity"
-        assert predictor_json_str.global_bias == pytest.approx(0.5)
-        assert predictor_json_str.sigmoid_alpha == pytest.approx(1.0)
-
-        # Run inference with each predictor
-        dmat = treelite_runtime.DMatrix(X_test, dtype="float32")
-        bin_pred = predictor_bin.predict(dmat)
-        json_pred = predictor_json.predict(dmat)
-        json_str_pred = predictor_json_str.predict(dmat)
-
-        expected_pred = bst.predict(dtest)
-        np.testing.assert_almost_equal(bin_pred, expected_pred, decimal=4)
-        np.testing.assert_almost_equal(json_pred, expected_pred, decimal=4)
-        np.testing.assert_almost_equal(json_str_pred, expected_pred, decimal=4)
-
-
-@pytest.mark.parametrize("parallel_comp", [None, 5])
-@pytest.mark.parametrize("quantize", [True, False])
-@pytest.mark.parametrize("toolchain", os_compatible_toolchains())
-def test_xgb_categorical_split(tmpdir, toolchain, quantize, parallel_comp):
-    """Test toy XGBoost model with categorical splits"""
-    dataset = "xgb_toy_categorical"
-    model = treelite.Model.load(dataset_db[dataset].model, model_format="xgboost_json")
-    libpath = os.path.join(tmpdir, dataset_db[dataset].libname + _libext())
-
-    params = {
-        "quantize": (1 if quantize else 0),
-        "parallel_comp": (parallel_comp if parallel_comp else 0),
-    }
-    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
-
-    predictor = treelite_runtime.Predictor(libpath)
-    check_predictor(predictor, dataset)
-
-
-@pytest.mark.parametrize("model_format", ["binary", "json"])
-@pytest.mark.parametrize("toolchain", os_compatible_toolchains())
-def test_xgb_dart(tmpdir, toolchain, model_format):
-    # pylint: disable=too-many-locals,too-many-arguments
-    """Test dart booster with dummy data"""
-    np.random.seed(0)
-    nrow = 16
-    ncol = 8
-    X = np.random.randn(nrow, ncol)
-    y = np.random.randint(0, 2, size=nrow)
-    assert np.min(y) == 0
-    assert np.max(y) == 1
-
-    num_round = 50
     dtrain = xgb.DMatrix(X, label=y)
     param = {
         "booster": "dart",
@@ -396,46 +307,32 @@ def test_xgb_dart(tmpdir, toolchain, model_format):
         "rate_drop": 0.1,
         "skip_drop": 0.5,
     }
-    bst = xgb.train(param, dtrain=dtrain, num_boost_round=num_round)
+    xgb_model = xgb.train(param, dtrain=dtrain, num_boost_round=num_boost_round)
 
-    if model_format == "json":
-        model_json_path = os.path.join(tmpdir, "serialized.json")
-        bst.save_model(model_json_path)
-        model = treelite.Model.load(model_json_path, model_format="xgboost_json")
-    else:
-        model_bin_path = os.path.join(tmpdir, "serialized.model")
-        bst.save_model(model_bin_path)
-        model = treelite.Model.load(model_bin_path, model_format="xgboost")
-
-    assert model.num_feature == dtrain.num_col()
-    assert model.num_class == 1
-    assert model.num_tree == num_round
-    libpath = os.path.join(tmpdir, "dart" + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, params={}, verbose=True)
-
-    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    assert predictor.num_feature == dtrain.num_col()
-    assert predictor.num_class == 1
-    assert predictor.pred_transform == "sigmoid"
-    np.testing.assert_almost_equal(predictor.global_bias, 0, decimal=5)
-    assert predictor.sigmoid_alpha == 1.0
-    dmat = treelite_runtime.DMatrix(X, dtype="float32")
-    out_pred = predictor.predict(dmat)
-    expected_pred = bst.predict(dtrain)
-    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+    with TemporaryDirectory() as tmpdir:
+        if model_format == "json":
+            model_name = "dart.json"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            tl_model = treelite.Model.from_xgboost(xgb_model)
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+        expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
+            (X.shape[0], -1)
+        )
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
 @given(
-    lists(integers(min_value=0, max_value=20), min_size=1, max_size=10),
-    sampled_from(["string", "object", "list"]),
-    sampled_from([True, False])
+    random_integer_seq=lists(
+        integers(min_value=0, max_value=20), min_size=1, max_size=10
+    ),
+    extra_field_type=sampled_from(["string", "object", "list"]),
+    use_tempfile=sampled_from([True, False]),
 )
 @settings(print_blob=True, deadline=None)
-def test_extra_field_in_xgb_json(
-    random_integer_seq,
-    extra_field_type,
-    use_tempfile
-):
+def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempfile):
     # pylint: disable=too-many-locals,too-many-arguments
     """
     Test if we can handle extra fields in XGBoost JSON model file
@@ -503,10 +400,168 @@ def test_extra_field_in_xgb_json(
     assert "extra_field" in new_model_str
     if use_tempfile:
         with TemporaryDirectory() as tmpdir:
-            new_model_path = os.path.join(tmpdir, "new_model.json")
+            new_model_path = pathlib.Path(tmpdir) / "new_model.json"
             with open(new_model_path, "w", encoding="utf-8") as f:
                 f.write(new_model_str)
-            treelite.Model.load(new_model_path, model_format="xgboost_json",
-                                allow_unknown_field=True)
+            treelite.frontend.load_xgboost_model(
+                new_model_path, allow_unknown_field=True
+            )
     else:
-        treelite.Model.from_xgboost_json(new_model_str, allow_unknown_field=True)
+        treelite.frontend.from_xgboost_json(new_model_str, allow_unknown_field=True)
+
+
+@given(
+    dataset=standard_multi_target_binary_classification_datasets(
+        n_targets=integers(min_value=2, max_value=5)
+    ),
+    num_boost_round=integers(min_value=5, max_value=8),
+    num_parallel_tree=integers(min_value=1, max_value=2),
+    multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
+    use_categorical=sampled_from([True, False]),
+    pred_margin=sampled_from([True, False]),
+    in_memory=sampled_from([True, False]),
+    callback=hypothesis_callback(),
+)
+@settings(**standard_settings())
+def test_xgb_multi_target_binary_classifier(
+    dataset,
+    num_boost_round,
+    num_parallel_tree,
+    multi_strategy,
+    use_categorical,
+    pred_margin,
+    in_memory,
+    callback,
+):
+    """Test XGBoost with multi-target classification problem"""
+    X, y = dataset
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
+    else:
+        dtrain = xgb.DMatrix(X, label=y)
+        X_pred = X.copy()
+
+    if use_categorical or multi_strategy == "multi_output_tree" or in_memory:
+        model_format = "json"
+    else:
+        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+
+    params = {
+        "tree_method": "hist",
+        "learning_rate": 0.1,
+        "max_depth": 8,
+        "objective": "binary:logistic",
+        "num_parallel_tree": num_parallel_tree,
+        "multi_strategy": multi_strategy,
+    }
+    bst = xgb.train(params, dtrain, num_boost_round=num_boost_round)
+
+    if in_memory:
+        tl_model = treelite.frontend.from_xgboost(bst)
+    else:
+        with TemporaryDirectory() as tmpdir:
+            if model_format == "json":
+                model_path = pathlib.Path(tmpdir) / "multi_target.json"
+                bst.save_model(model_path)
+                tl_model = treelite.frontend.load_xgboost_model(model_path)
+            else:
+                model_path = pathlib.Path(tmpdir) / "multi_target.model"
+                bst.save_model(model_path)
+                tl_model = treelite.frontend.load_xgboost_model_legacy_binary(
+                    model_path
+                )
+
+    out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
+    expected_pred = bst.predict(
+        xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
+    )
+    expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.parametrize(
+    "objective",
+    [
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ],
+)
+@given(
+    n_targets=integers(min_value=2, max_value=3),
+    num_boost_round=integers(min_value=3, max_value=6),
+    num_parallel_tree=integers(min_value=1, max_value=2),
+    multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
+    callback=hypothesis_callback(),
+)
+@settings(**standard_settings())
+def test_xgb_multi_target_regressor(
+    n_targets,
+    objective,
+    num_boost_round,
+    num_parallel_tree,
+    multi_strategy,
+    callback,
+):
+    # pylint: disable=too-many-locals
+    """Test XGBoost with regression data"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
+    if objective == "reg:squaredlogerror":
+        X, y = generate_data_for_squared_log_error(n_targets=n_targets)
+        use_categorical = False
+    else:
+        X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
+        use_categorical = callback.draw(sampled_from([True, False]))
+    if multi_strategy == "multi_output_tree" or use_categorical:
+        model_format = "json"
+    else:
+        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
+    else:
+        dtrain = xgb.DMatrix(X, label=y)
+        X_pred = X.copy()
+
+    params = {
+        "max_depth": 6,
+        "eta": 0.1,
+        "verbosity": 0,
+        "objective": objective,
+        "num_parallel_tree": num_parallel_tree,
+        "multi_strategy": multi_strategy,
+    }
+    xgb_model = xgb.train(
+        params,
+        dtrain,
+        num_boost_round=num_boost_round,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        if model_format == "json":
+            model_name = "model.json"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            model_name = "model.model"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        expected_n_trees = num_boost_round * num_parallel_tree
+        if multi_strategy == "one_output_per_tree":
+            expected_n_trees *= n_targets
+        assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_n_trees
+
+        out_pred = treelite.gtil.predict(tl_model, X_pred)
+        expected_pred = xgb_model.predict(xgb.DMatrix(X_pred), validate_features=False)
+        expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)

@@ -41,7 +41,7 @@ jobs:
         bash ops/cpp-python-coverage.sh
   win-python-coverage:
     name: Run Python and C++ tests with test coverage (Windows)
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
       with:
@@ -63,7 +63,7 @@ jobs:
         call ops/win-python-coverage.bat
   macos-python-coverage:
     name: Run Python and C++ tests with test coverage (MacOS)
-    runs-on: macos-11
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
       with:
@@ -83,29 +83,3 @@ jobs:
       shell: bash -l {0}
       run: |
         bash ops/macos-python-coverage.sh
-  java-coverage:
-    name: Run Java tests with test coverage
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
-    - uses: mamba-org/provision-with-micromamba@v14
-      with:
-        cache-downloads: true
-        cache-env: true
-        environment-name: dev
-        environment-file: ops/conda_env/dev.yml
-    - uses: actions/setup-java@v1
-      with:
-        java-version: 1.8
-    - name: Cache Maven packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.m2
-        key: treelite4j-${{ runner.os }}-m2-${{ hashFiles('./runtime/java/treelite4j/pom.xml') }}
-        restore-keys: treelite4j-${{ runner.os }}-m2
-    - name: Run tests with test coverage computation
-      shell: bash -l {0}
-      run: |
-        bash ops/java-coverage.sh

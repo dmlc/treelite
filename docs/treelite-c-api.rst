@@ -24,32 +24,6 @@ languages. This page will be most useful for:
 .. contents:: Contents
   :local:
 
-Data matrix interface
----------------------
-Use the following functions to load and manipulate data from a variety of
-sources.
-
-.. doxygengroup:: dmatrix
-   :project: treelite
-   :content-only:
-
-Branch annotator interface
---------------------------
-Use the following functions to annotate branches in decision trees.
-
-.. doxygengroup:: annotator
-   :project: treelite
-   :content-only:
-
-Compiler interface
-------------------
-Use the following functions to produce optimize prediction subroutine (in C)
-from a given decision tree ensemble.
-
-.. doxygengroup:: compiler
-   :project: treelite
-   :content-only:
-
 Model loader interface
 ----------------------
 Use the following functions to load decision tree ensemble models from a file.
@@ -65,15 +39,6 @@ Use the following functions to incrementally build decisio n tree ensemble
 models.
 
 .. doxygengroup:: model_builder
-   :project: treelite
-   :content-only:
-
-Predictor interface
--------------------
-Use the following functions to load compiled prediction subroutines
-from shared libraries and to make predictions.
-
-.. doxygengroup:: predictor
    :project: treelite
    :content-only:
 
@@ -93,4 +58,3 @@ are ``void*`` pointers that store raw memory addresses.
 .. doxygengroup:: opaque_handles
    :project: treelite
    :content-only:
-

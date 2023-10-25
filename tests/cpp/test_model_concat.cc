@@ -1,15 +1,17 @@
 /*!
- * Copyright (c) 2021 by Contributors
+ * Copyright (c) 2021-2023 by Contributors
  * \file test_model_concat.cc
  * \author Hyunsu Cho
  * \brief C++ tests for model concatenation
  */
 #include <gtest/gtest.h>
+#include <treelite/model_builder.h>
 #include <treelite/tree.h>
-#include <treelite/frontend.h>
+
 #include <algorithm>
-#include <sstream>
 #include <memory>
+#include <sstream>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -38,77 +40,81 @@ TEST(ModelConcatenation, TreeStump) {
   constexpr int kNumModelObjs = 5;
 
   for (int i = 0; i < kNumModelObjs; ++i) {
-    std::unique_ptr<frontend::ModelBuilder> builder{
-        new frontend::ModelBuilder(2, 1, false, TypeInfo::kFloat32, TypeInfo::kFloat32)
-    };
-    std::unique_ptr<frontend::TreeBuilder> tree{
-        new frontend::TreeBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32)
-    };
-    tree->CreateNode(0);
-    tree->CreateNode(1);
-    tree->CreateNode(2);
-    tree->SetNumericalTestNode(0, 0, "<", frontend::Value::Create<float>(0.0f), true, 1, 2);
-    tree->SetRootNode(0);
-    tree->SetLeafNode(1, frontend::Value::Create<float>(1.0f));
-    tree->SetLeafNode(2, frontend::Value::Create<float>(2.0f));
-    builder->InsertTree(tree.get());
-
+    auto builder = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32,
+        model_builder::Metadata{2, TaskType::kRegressor, false, 1, {1}, {1, 1}},
+        model_builder::TreeAnnotation{1, {0}, {0}}, model_builder::PostProcessorFunc{"identity"},
+        {0.0});
+    builder->StartTree();
+    builder->StartNode(0);
+    builder->NumericalTest(0, 0.0, true, Operator::kLT, 1, 2);
+    builder->EndNode();
+    builder->StartNode(1);
+    builder->LeafScalar(1.0);
+    builder->EndNode();
+    builder->StartNode(2);
+    builder->LeafScalar(2.0);
+    builder->EndNode();
+    builder->EndTree();
     model_objs.push_back(builder->CommitModel());
   }
 
-  std::vector<const Model*> model_obj_refs;
+  std::vector<Model const*> model_obj_refs;
   std::transform(model_objs.begin(), model_objs.end(), std::back_inserter(model_obj_refs),
-                 [](const auto& obj) { return obj.get(); });
+      [](auto const& obj) { return obj.get(); });
 
   std::unique_ptr<Model> concatenated_model = ConcatenateModelObjects(model_obj_refs);
   ASSERT_EQ(concatenated_model->GetNumTree(), kNumModelObjs);
+  EXPECT_EQ(concatenated_model->GetThresholdType(), TypeInfo::kFloat32);
+  EXPECT_EQ(concatenated_model->GetLeafOutputType(), TypeInfo::kFloat32);
+  EXPECT_TRUE(concatenated_model->target_id
+              == ContiguousArray<std::int32_t>(std::vector<std::int32_t>(kNumModelObjs, 0)));
+  EXPECT_TRUE(concatenated_model->class_id
+              == ContiguousArray<std::int32_t>(std::vector<std::int32_t>(kNumModelObjs, 0)));
   TestRoundTrip(concatenated_model.get());
-  const auto* concatenated_model_casted = dynamic_cast<const ModelImpl<float, float>*>(concatenated_model.get());
+  auto& trees = std::get<ModelPreset<float, float>>(concatenated_model->variant_).trees;
   for (int i = 0; i < kNumModelObjs; ++i) {
-    const auto& tree = concatenated_model_casted->trees[i];
-    ASSERT_FALSE(tree.IsLeaf(0));
-    ASSERT_TRUE(tree.IsLeaf(1));
-    ASSERT_TRUE(tree.IsLeaf(2));
-    ASSERT_EQ(tree.SplitType(0), SplitFeatureType::kNumerical);
-    ASSERT_EQ(tree.SplitIndex(0), 0);
-    ASSERT_EQ(tree.Threshold(0), 0.0f);
-    ASSERT_EQ(tree.LeftChild(0), 1);
-    ASSERT_EQ(tree.RightChild(0), 2);
-    ASSERT_EQ(tree.LeafValue(1), 1.0f);
-    ASSERT_EQ(tree.LeafValue(2), 2.0f);
+    auto const& tree = trees[i];
+    EXPECT_FALSE(tree.IsLeaf(0));
+    EXPECT_TRUE(tree.IsLeaf(1));
+    EXPECT_TRUE(tree.IsLeaf(2));
+    EXPECT_EQ(tree.NodeType(0), TreeNodeType::kNumericalTestNode);
+    EXPECT_EQ(tree.SplitIndex(0), 0);
+    EXPECT_EQ(tree.Threshold(0), 0.0f);
+    EXPECT_EQ(tree.LeftChild(0), 1);
+    EXPECT_EQ(tree.RightChild(0), 2);
+    EXPECT_EQ(tree.LeafValue(1), 1.0f);
+    EXPECT_EQ(tree.LeafValue(2), 2.0f);
   }
 }
 
 TEST(ModelConcatenation, MismatchedTreeType) {
   std::vector<std::unique_ptr<Model>> model_objs;
 
-  std::unique_ptr<frontend::ModelBuilder> builder{
-      new frontend::ModelBuilder(2, 1, false, TypeInfo::kFloat32, TypeInfo::kFloat32)
-  };
-  std::unique_ptr<frontend::TreeBuilder> tree{
-      new frontend::TreeBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32)
-  };
-  tree->CreateNode(0);
-  tree->SetRootNode(0);
-  tree->SetLeafNode(0, frontend::Value::Create<float>(1.0f));
-  builder->InsertTree(tree.get());
+  auto builder = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32,
+      model_builder::Metadata{2, TaskType::kRegressor, false, 1, {1}, {1, 1}},
+      model_builder::TreeAnnotation{1, {0}, {0}}, model_builder::PostProcessorFunc{"identity"},
+      {0.0});
+  builder->StartTree();
+  builder->StartNode(0);
+  builder->LeafScalar(1.0);
+  builder->EndNode();
+  builder->EndTree();
   model_objs.push_back(builder->CommitModel());
 
-  std::unique_ptr<frontend::ModelBuilder> builder2{
-      new frontend::ModelBuilder(2, 1, false, TypeInfo::kFloat64, TypeInfo::kFloat64)
-  };
-  std::unique_ptr<frontend::TreeBuilder> tree2{
-      new frontend::TreeBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64)
-  };
-  tree2->CreateNode(0);
-  tree2->SetRootNode(0);
-  tree2->SetLeafNode(0, frontend::Value::Create<double>(1.0));
-  builder2->InsertTree(tree2.get());
+  auto builder2 = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64,
+      model_builder::Metadata{2, TaskType::kRegressor, false, 1, {1}, {1, 1}},
+      model_builder::TreeAnnotation{1, {0}, {0}}, model_builder::PostProcessorFunc{"identity"},
+      {0.0});
+  builder2->StartTree();
+  builder2->StartNode(0);
+  builder2->LeafScalar(1.0);
+  builder2->EndNode();
+  builder2->EndTree();
   model_objs.push_back(builder2->CommitModel());
 
-  std::vector<const Model*> model_obj_refs;
+  std::vector<Model const*> model_obj_refs;
   std::transform(model_objs.begin(), model_objs.end(), std::back_inserter(model_obj_refs),
-                 [](const auto& obj) { return obj.get(); });
+      [](auto const& obj) { return obj.get(); });
   ASSERT_THROW(ConcatenateModelObjects(model_obj_refs), treelite::Error);
 }
 

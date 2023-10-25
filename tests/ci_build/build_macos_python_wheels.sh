@@ -28,15 +28,15 @@ if [[ "$platform_id" == macosx_* ]]; then
         # cibuildwheel will take care of cross-compilation.
         wheel_tag=macosx_12_0_arm64
         cpython_ver=38
-        setup_env_var='CIBW_TARGET_OSX_ARM64=1'  # extra flag to be passed to setup.py
+        setup_env_var='CIBW_TARGET_OSX_ARM64=1'  # extra flag to be passed to treelite.packager backend
         export PYTHON_CROSSENV=1
         export MACOSX_DEPLOYMENT_TARGET=12.0
         OPENMP_URL="https://anaconda.org/conda-forge/llvm-openmp/11.1.0/download/osx-arm64/llvm-openmp-11.1.0-hf3c4609_1.tar.bz2"
     elif [[ "$platform_id" == macosx_x86_64 ]]; then
         # MacOS, Intel
         wheel_tag=macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64
-        cpython_ver=37
-        export MACOSX_DEPLOYMENT_TARGET=10.13
+        cpython_ver=38
+        export MACOSX_DEPLOYMENT_TARGET=10.15
         OPENMP_URL="https://anaconda.org/conda-forge/llvm-openmp/11.1.0/download/osx-64/llvm-openmp-11.1.0-hda6cdc1_1.tar.bz2"
     else
         echo "Platform not supported: $platform_id"
@@ -67,8 +67,4 @@ else
 fi
 
 python -m cibuildwheel python --output-dir wheelhouse
-python -m cibuildwheel runtime/python --output-dir wheelhouse-runtime
 python tests/ci_build/rename_whl.py wheelhouse ${commit_id} ${wheel_tag}
-python tests/ci_build/rename_whl.py wheelhouse-runtime ${commit_id} ${wheel_tag}
-mv -v wheelhouse-runtime/*.whl wheelhouse/
-rmdir wheelhouse-runtime/

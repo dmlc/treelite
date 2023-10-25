@@ -1,175 +1,140 @@
-# -*- coding: utf-8 -*-
 """Tests for model builder interface"""
-import os
-
-import pytest
 import numpy as np
+import pytest
+
 import treelite
-import treelite_runtime
-from treelite.contrib import _libext
-from sklearn.datasets import load_svmlight_file
-from .metadata import dataset_db
-from .util import os_compatible_toolchains, check_predictor
+from treelite import TreeliteError
+from treelite.model_builder import (
+    Metadata,
+    ModelBuilder,
+    PostProcessorFunc,
+    TreeAnnotation,
+)
 
 
-@pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-@pytest.mark.parametrize('quantize', [True, False])
-@pytest.mark.parametrize('use_annotation', [True, False])
-def test_model_builder(tmpdir, use_annotation, quantize, toolchain, test_round_trip):
-    # pylint: disable=R0914,R0915
-    """A simple model"""
-    num_feature = 127
-    pred_transform = 'sigmoid'
-    builder = treelite.ModelBuilder(num_feature=num_feature, average_tree_output=False,
-                                    pred_transform=pred_transform)
-
-    # Build mushroom model
-    tree = treelite.ModelBuilder.Tree()
-    tree[0].set_numerical_test_node(
-        feature_id=29, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=1, right_child_key=2)
-    tree[1].set_numerical_test_node(
-        feature_id=56, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=3, right_child_key=4)
-    tree[3].set_numerical_test_node(
-        feature_id=60, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=7, right_child_key=8)
-    tree[7].set_leaf_node(leaf_value=1.89899647)
-    tree[8].set_leaf_node(leaf_value=-1.94736838)
-    tree[4].set_numerical_test_node(
-        feature_id=21, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=9, right_child_key=10)
-    tree[9].set_leaf_node(leaf_value=1.78378379)
-    tree[10].set_leaf_node(leaf_value=-1.98135197)
-    tree[2].set_numerical_test_node(
-        feature_id=109, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=5, right_child_key=6)
-    tree[5].set_numerical_test_node(
-        feature_id=67, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=11, right_child_key=12)
-    tree[11].set_leaf_node(leaf_value=-1.9854598)
-    tree[12].set_leaf_node(leaf_value=0.938775539)
-    tree[6].set_leaf_node(leaf_value=1.87096775)
-    tree[0].set_root()
-    builder.append(tree)
-
-    tree = treelite.ModelBuilder.Tree()
-    tree[0].set_numerical_test_node(
-        feature_id=29, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=1, right_child_key=2)
-    tree[1].set_numerical_test_node(
-        feature_id=21, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=3, right_child_key=4)
-    tree[3].set_leaf_node(leaf_value=1.14607906)
-    tree[4].set_numerical_test_node(
-        feature_id=36, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=7, right_child_key=8)
-    tree[7].set_leaf_node(leaf_value=-6.87994671)
-    tree[8].set_leaf_node(leaf_value=-0.10659159)
-    tree[2].set_numerical_test_node(
-        feature_id=109, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=5, right_child_key=6)
-    tree[5].set_numerical_test_node(
-        feature_id=39, opname='<', threshold=-9.53674316e-07, default_left=True,
-        left_child_key=9, right_child_key=10)
-    tree[9].set_leaf_node(leaf_value=-0.0930657759)
-    tree[10].set_leaf_node(leaf_value=-1.15261209)
-    tree[6].set_leaf_node(leaf_value=1.00423074)
-    tree[0].set_root()
-    builder.append(tree)
-
-    model = builder.commit()
-    if test_round_trip == "file":
-        checkpoint_path = os.path.join(tmpdir, "checkpoint.bin")
-        model.serialize(checkpoint_path)
-        model = treelite.Model.deserialize(checkpoint_path)
-    elif test_round_trip == "bytes":
-        model_bytes = model.serialize_bytes()
-        model = treelite.Model.deserialize_bytes(model_bytes)
-    assert model.num_feature == num_feature
-    assert model.num_class == 1
-    assert model.num_tree == 2
-
-    annotation_path = os.path.join(tmpdir, 'annotation.json')
-    if use_annotation:
-        dtrain = treelite_runtime.DMatrix(
-            load_svmlight_file(dataset_db['mushroom'].dtrain, zero_based=True)[0],
-            dtype='float32')
-        annotator = treelite.Annotator()
-        annotator.annotate_branch(model=model, dmat=dtrain, verbose=True)
-        annotator.save(path=annotation_path)
-
-    params = {
-        'annotate_in': (annotation_path if use_annotation else 'NULL'),
-        'quantize': (1 if quantize else 0),
-        'parallel_comp': model.num_tree
-    }
-    libpath = os.path.join(tmpdir, 'mushroom' + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, params=params, verbose=True)
-    predictor = treelite_runtime.Predictor(libpath=libpath, verbose=True)
-    check_predictor(predictor, 'mushroom')
+def test_orphaned_nodes():
+    """Test for orphaned nodes"""
+    builder = ModelBuilder(
+        threshold_type="float32",
+        leaf_output_type="float32",
+        metadata=Metadata(
+            num_feature=1,
+            task_type="kBinaryClf",
+            average_tree_output=False,
+            num_target=1,
+            num_class=[1],
+            leaf_vector_shape=(1, 1),
+        ),
+        tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
+        postprocessor=PostProcessorFunc(name="sigmoid", sigmoid_alpha=2.0),
+        base_scores=[0.0],
+    )
+    builder.start_tree()
+    builder.start_node(0)
+    builder.leaf(0.0)
+    builder.end_node()
+    builder.start_node(1)
+    builder.leaf(1.0)
+    builder.end_node()
+    with pytest.raises(TreeliteError):
+        builder.end_tree()
 
 
-@pytest.mark.parametrize("test_round_trip", ["bytes", "file", "none"])
-@pytest.mark.parametrize('toolchain', os_compatible_toolchains())
-def test_node_insert_delete(tmpdir, toolchain, test_round_trip):
-    # pylint: disable=R0914
-    """Test ability to add and remove nodes"""
-    num_feature = 3
-    builder = treelite.ModelBuilder(num_feature=num_feature)
-    builder.append(treelite.ModelBuilder.Tree())
-    builder[0][1].set_root()
-    builder[0][1].set_numerical_test_node(
-        feature_id=2, opname='<', threshold=-0.5, default_left=True,
-        left_child_key=5, right_child_key=10)
-    builder[0][5].set_leaf_node(-1)
-    builder[0][10].set_numerical_test_node(
-        feature_id=0, opname='<=', threshold=0.5, default_left=False,
-        left_child_key=7, right_child_key=8)
-    builder[0][7].set_leaf_node(0.0)
-    builder[0][8].set_leaf_node(1.0)
-    del builder[0][1]
-    del builder[0][5]
-    builder[0][5].set_categorical_test_node(
-        feature_id=1, left_categories=[1, 2, 4], default_left=True,
-        left_child_key=20, right_child_key=10)
-    builder[0][20].set_leaf_node(2.0)
-    builder[0][5].set_root()
+def test_invalid_node_id():
+    """Test for invalid node IDs"""
+    builder = ModelBuilder(
+        threshold_type="float32",
+        leaf_output_type="float32",
+        metadata=Metadata(
+            num_feature=1,
+            task_type="kBinaryClf",
+            average_tree_output=False,
+            num_target=1,
+            num_class=[1],
+            leaf_vector_shape=(1, 1),
+        ),
+        tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
+        postprocessor=PostProcessorFunc(name="sigmoid"),
+        base_scores=[0.0],
+    )
+    builder.start_tree()
+    with pytest.raises(TreeliteError):
+        builder.start_node(-1)
+    builder.start_node(0)
+
+    def invalid_numerical_test(left_child_key, right_child_key):
+        builder.numerical_test(
+            feature_id=0,
+            threshold=0.0,
+            default_left=True,
+            opname="<",
+            left_child_key=left_child_key,
+            right_child_key=right_child_key,
+        )
+
+    with pytest.raises(TreeliteError):
+        invalid_numerical_test(0, 1)
+    with pytest.raises(TreeliteError):
+        invalid_numerical_test(2, 2)
+    with pytest.raises(TreeliteError):
+        invalid_numerical_test(-1, -2)
+    with pytest.raises(TreeliteError):
+        invalid_numerical_test(-1, 2)
+    with pytest.raises(TreeliteError):
+        invalid_numerical_test(2, -1)
+
+
+@pytest.mark.parametrize("predict_kind", ["default", "raw", "leaf_id"])
+def test_leaf_vector_rf(predict_kind):
+    """Test a small random forest with leaf vector output"""
+    builder = ModelBuilder(
+        threshold_type="float32",
+        leaf_output_type="float32",
+        metadata=Metadata(
+            num_feature=1,
+            task_type="kMultiClf",
+            average_tree_output=True,
+            num_target=1,
+            num_class=[3],
+            leaf_vector_shape=(1, 3),
+        ),
+        tree_annotation=TreeAnnotation(num_tree=2, target_id=[0, 0], class_id=[-1, -1]),
+        postprocessor=PostProcessorFunc(name="identity_multiclass"),
+        base_scores=[100.0, 200.0, 300.0],
+    )
+
+    def make_tree_stump(left_child_val, right_child_val):
+        builder.start_tree()
+        builder.start_node(0)
+        builder.numerical_test(
+            feature_id=0,
+            threshold=0.0,
+            default_left=False,
+            opname="<",
+            left_child_key=1,
+            right_child_key=2,
+        )
+        builder.end_node()
+        builder.start_node(1)
+        builder.leaf(left_child_val)
+        builder.end_node()
+        builder.start_node(2)
+        builder.leaf(right_child_val)
+        builder.end_node()
+        builder.end_tree()
+
+    make_tree_stump([1.0, 0.0, 0.0], [0.0, 0.5, 0.5])
+    make_tree_stump([1.0, 0.0, 0.0], [0.0, 0.5, 0.5])
 
     model = builder.commit()
-    if test_round_trip == "file":
-        checkpoint_path = os.path.join(tmpdir, "checkpoint.bin")
-        model.serialize(checkpoint_path)
-        model = treelite.Model.deserialize(checkpoint_path)
-    elif test_round_trip == "bytes":
-        model_bytes = model.serialize_bytes()
-        model = treelite.Model.deserialize_bytes(model_bytes)
-    assert model.num_feature == num_feature
-    assert model.num_class == 1
-    assert model.num_tree == 1
-
-    libpath = os.path.join(tmpdir, 'libtest' + _libext())
-    model.export_lib(toolchain=toolchain, libpath=libpath, verbose=True)
-    predictor = treelite_runtime.Predictor(libpath=libpath)
-    assert predictor.num_feature == num_feature
-    assert predictor.num_class == 1
-    assert predictor.pred_transform == 'identity'
-    assert predictor.global_bias == 0.0
-    assert predictor.sigmoid_alpha == 1.0
-    assert predictor.ratio_c == 1.0
-    for f0 in [-0.5, 0.5, 1.5, np.nan]:
-        for f1 in [0, 1, 2, 3, 4, np.nan]:
-            for f2 in [-1.0, -0.5, 1.0, np.nan]:
-                x = np.array([[f0, f1, f2]])
-                dmat = treelite_runtime.DMatrix(x, dtype='float32')
-                pred = predictor.predict(dmat)
-                if f1 in [1, 2, 4] or np.isnan(f1):
-                    expected_pred = 2.0
-                elif f0 <= 0.5 and not np.isnan(f0):
-                    expected_pred = 0.0
-                else:
-                    expected_pred = 1.0
-                if pred != expected_pred:
-                    raise ValueError(f'Prediction wrong for f0={f0}, f1={f1}, f2={f2}: ' +
-                                     f'expected_pred = {expected_pred} vs actual_pred = {pred}')
+    dmat = np.array([[1.0], [-1.0]], dtype=np.float32)
+    if predict_kind in "default":
+        expected_pred = np.array([[100.0, 200.5, 300.5], [101.0, 200.0, 300.0]])
+        pred = treelite.gtil.predict(model, dmat, pred_margin=False)
+    elif predict_kind == "raw":
+        expected_pred = np.array([[100.0, 200.5, 300.5], [101.0, 200.0, 300.0]])
+        pred = treelite.gtil.predict(model, dmat, pred_margin=True)
+    else:
+        expected_pred = np.array([[2, 2], [1, 1]])
+        pred = treelite.gtil.predict_leaf(model, dmat)
+    np.testing.assert_almost_equal(pred, expected_pred, decimal=5)

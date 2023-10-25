@@ -1,0 +1,30 @@
+[flake8]
+filename = *.py, *.pyx, *.pxd
+exclude =
+   *.egg,
+   .git,
+   __pycache__,
+   build/,
+   cpp,
+   docs,
+   tests/cython/
+
+# Cython Rules ignored:
+# E999: invalid syntax (works for Python, not Cython)
+# E225: Missing whitespace around operators (breaks cython casting syntax like <int>)
+# E226: Missing whitespace around arithmetic operators (breaks cython pointer syntax like int*)
+# E227: Missing whitespace around bitwise or shift operator (Can also break casting syntax)
+# W503: line break before binary operator (breaks lines that start with a pointer)
+# W504: line break after binary operator (breaks lines that end with a pointer)
+
+extend-ignore =
+    # handled by black
+    E501, W503, E203
+    # imported but unused
+    F401
+    # redefinition of unused
+    F811
+    extend-ignore =
+    # E203 whitespace before ':'
+    # https://github.com/psf/black/issues/315
+    E203

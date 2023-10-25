@@ -1,0 +1,66 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v3.2.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: check-yaml
+  - id: check-added-large-files
+    args: ["--maxkb=4000"]
+- repo: https://github.com/psf/black
+  rev: 23.1.0
+  hooks:
+  - id: black
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0
+  hooks:
+  - id: isort
+    args: ["--profile", "black", "--filter-files"]
+- repo: https://github.com/MarcoGorelli/cython-lint
+  rev: v0.15.0
+  hooks:
+  - id: cython-lint
+  - id: double-quote-cython-strings
+- repo: https://github.com/PyCQA/flake8
+  rev: 5.0.4
+  hooks:
+  - id: flake8
+    args: [--config=.flake8]
+    files: .*$
+    types: [file]
+    types_or: [python]
+    additional_dependencies: [flake8-force]
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: python dev/run_pylint.py
+      language: python
+      types: [python]
+      additional_dependencies: [
+        pylint, hatchling, pytest, scikit-learn, hypothesis, pandas, treelite,
+        lightgbm, xgboost, tqdm
+      ]
+- repo: https://github.com/pocc/pre-commit-hooks
+  rev: v1.3.5
+  hooks:
+    - id: clang-format
+      args: ["-i", "--style=file:.clang-format"]
+      language: python
+      additional_dependencies: [clang-format>=15.0]
+      types_or: [c, c++]
+    - id: cpplint
+      language: python
+      args: [
+        "--linelength=100", "--recursive",
+        "--filter=-build/c++11,-build/include,-build/namespaces_literals,-runtime/references,-build/include_order,+build/include_what_you_use",
+        "--root=include"]
+      additional_dependencies: [cpplint]
+      types_or: [c++]
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.2.0
+  hooks:
+    - id: mypy
+      additional_dependencies: [types-setuptools, numpy]

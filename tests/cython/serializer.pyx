@@ -3,31 +3,35 @@
 # cython: language_level = 3
 """Utilities to (de)serialize Treelite objects via Python protocol"""
 
-from libcpp.vector cimport vector
-from cython.operator cimport dereference as deref, preincrement as inc
 from cpython.object cimport PyObject
-from libcpp.memory cimport unique_ptr
 from libc.stdint cimport uintptr_t
-from typing import Tuple, Dict, List, Union
+from libcpp.memory cimport unique_ptr
+from libcpp.vector cimport vector
+
 import ctypes
-import treelite
+from typing import Dict, List, Union
+
 import numpy as np
+
+import treelite
 
 
 cdef extern from "treelite/c_api.h":
-    ctypedef void* ModelHandle
+    ctypedef void* TreeliteModelHandle
 
 
-cdef extern from "treelite/tree.h" namespace "treelite":
+cdef extern from "treelite/pybuffer_frame.h" namespace "treelite":
     cdef struct PyBufferFrame:
         void* buf
         char* format
         size_t itemsize
         size_t nitem
+
+cdef extern from "treelite/tree.h" namespace "treelite":
     cdef cppclass Model:
-        vector[PyBufferFrame] GetPyBuffer() except +
+        vector[PyBufferFrame] SerializeToPyBuffer() except +
         @staticmethod
-        unique_ptr[Model] CreateFromPyBuffer(vector[PyBufferFrame]) except +
+        unique_ptr[Model] DeserializeFromPyBuffer(vector[PyBufferFrame]) except +
 
 
 cdef extern from "Python.h":
@@ -73,17 +77,17 @@ cdef PyBufferFrameWrapper MakePyBufferFrameWrapper(PyBufferFrame handle):
     return wrapper
 
 
-cdef list _get_frames(ModelHandle model):
+cdef list _get_frames(TreeliteModelHandle model):
     return [memoryview(MakePyBufferFrameWrapper(v))
-            for v in (<Model*>model).GetPyBuffer()]
+            for v in (<Model*>model).SerializeToPyBuffer()]
 
 
-cdef ModelHandle _init_from_frames(vector[PyBufferFrame] frames) except *:
-    return <ModelHandle>Model.CreateFromPyBuffer(frames).release()
+cdef TreeliteModelHandle _init_from_frames(vector[PyBufferFrame] frames) except *:
+    return <TreeliteModelHandle>Model.DeserializeFromPyBuffer(frames).release()
 
 
 def get_frames(model: uintptr_t) -> List[memoryview]:
-    return _get_frames(<ModelHandle> model)
+    return _get_frames(<TreeliteModelHandle> model)
 
 
 def init_from_frames(frames: List[np.ndarray],
@@ -91,7 +95,7 @@ def init_from_frames(frames: List[np.ndarray],
     cdef vector[PyBufferFrame] cpp_frames
     cdef Py_buffer* buf
     cdef PyBufferFrame cpp_frame
-    format_bytes = [s.encode('utf-8') for s in format_str]
+    format_bytes = [s.encode("utf-8") for s in format_str]
     for i, frame in enumerate(frames):
         x = memoryview(frame)
         buf = PyMemoryView_GET_BUFFER(<PyObject*>x)
@@ -107,9 +111,9 @@ def _treelite_serialize(
     model: uintptr_t
 ) -> Dict[str, Union[List[str], List[np.ndarray]]]:
     frames = get_frames(model)
-    header = {'format_str': [x.format for x in frames],
-              'itemsize': [x.itemsize for x in frames]}
-    return {'header': header, 'frames': [np.asarray(x) for x in frames]}
+    header = {"format_str": [x.format for x in frames],
+              "itemsize": [x.itemsize for x in frames]}
+    return {"header": header, "frames": [np.asarray(x) for x in frames]}
 
 
 def treelite_serialize(
@@ -121,8 +125,8 @@ def treelite_serialize(
 def _treelite_deserialize(
     payload: Dict[str, Union[List[str], List[bytes]]]
 ) -> uintptr_t:
-    header, frames = payload['header'], payload['frames']
-    return init_from_frames(frames, header['format_str'], header['itemsize'])
+    header, frames = payload["header"], payload["frames"]
+    return init_from_frames(frames, header["format_str"], header["itemsize"])
 
 
 def treelite_deserialize(

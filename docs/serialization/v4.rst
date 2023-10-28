@@ -56,11 +56,11 @@ written to the byte sequence in the exact order they appear in the following lis
 
 #. Header
 
-   * Major version: single ``int32_t`` scalar. Set it to ``4`` for the v4 version.
-   * Minor version: single ``int32_t`` scalar.
-   * Patch version: single ``int32_t`` scalar.
-   * Threshold type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
-   * Leaf output type: single ``uint8_t`` scalar representing enum ``TypeInfo``.
+   * Major version (``major_ver``): single ``int32_t`` scalar. Set it to ``4`` for the v4 version.
+   * Minor version (``minor_ver``): single ``int32_t`` scalar.
+   * Patch version (``patch_ver``): single ``int32_t`` scalar.
+   * Threshold type (``threshold_type``): single ``uint8_t`` scalar representing enum ``TypeInfo``.
+   * Leaf output type (``leaf_output_type``): single ``uint8_t`` scalar representing enum ``TypeInfo``.
 
 #. Number of trees (``num_tree``): single ``uint64_t`` scalar.
 #. Header 2
@@ -102,70 +102,70 @@ written to the byte sequence in the exact order they appear in the following lis
 
 #. Extension slot 1: Per-model optional fields. This field is currently not used.
 
-   * ``num_opt_field_per_model_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+   * ``num_opt_field_per_model``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
 #. Tree 0: First tree, which is to be represented by the following fields.
 
    * ``num_nodes``: single ``int32_t`` scalar indicating the number of nodes
-   * ``has_categorical_split_``: single ``bool`` scalar indicating if categorical splits exist
-   * ``node_type_``: an array of ``int8_t`` representing enum ``TreeNodeType``. ``node_type_[i]`` indicates the type of node ``i``.
-   * ``cleft_``: an array of ``int32_t``, so that ``cleft_[i]`` identifies the left child node of node ``i``.
+   * ``has_categorical_split``: single ``bool`` scalar indicating if categorical splits exist
+   * ``node_type``: an array of ``int8_t`` representing enum ``TreeNodeType``. ``node_type[i]`` indicates the type of node ``i``.
+   * ``cleft``: an array of ``int32_t``, so that ``cleft[i]`` identifies the left child node of node ``i``.
      Set to ``-1`` to indicate the lack of the left child.
-   * ``cright_``: an array of ``int32_t``, so that ``cright_[i]`` identifies the right child node of node ``i``.
+   * ``cright``: an array of ``int32_t``, so that ``cright[i]`` identifies the right child node of node ``i``.
      Set to ``-1`` to indicate the lack of the right child.
-   * ``split_index_``: an array of ``int32_t``, where ``split_index_[i]`` gives the feature ID used in the test node ``i``.
-     If node ``i`` is not a test node, ``split_index_[i]`` shall be ``-1``.
-   * ``default_left_``: an array of ``bool``, where ``default_left_[i]`` indicates the default direction for the missing value
+   * ``split_index``: an array of ``int32_t``, where ``split_index[i]`` gives the feature ID used in the test node ``i``.
+     If node ``i`` is not a test node, ``split_index[i]`` shall be ``-1``.
+   * ``default_left``: an array of ``bool``, where ``default_left[i]`` indicates the default direction for the missing value
      in the test node ``i``.
-   * ``leaf_value_``: an array of ``LeafOutputType``, where ``leaf_value_[i]`` is the output of the leaf node ``i``.
-     ``leaf_value_[i]`` is only valid if node ``i`` is a leaf node with a scalar output. To access the output of a leaf node that
-     produces a vector output, use ``leaf_vector_`` instead. (See below.)
-   * ``threshold_``: an array of ``ThresholdType``, where ``threshold_[i]`` is the threshold used in the test node ``i``.
-     ``threshold_[i]`` is only valid if node ``i`` is a test node with a numerical test (of form ``[feature value] [op] [threshold]``).
-     For categorical test nodes, use ``category_list_`` instead. (See below.)
-   * ``cmp_``: an array of ``int8_t`` (representing enum ``Operator``). ``cmp_[i]`` is the comparison operator used in the test node ``i``.
-     ``cmp_[i]`` is only valid if node ``i`` is a numerical test node.
-   * ``category_list_right_child_``: an array of ``bool`` where ``category_list_right_child_[i]`` indicates which child node should be
-     followed when a categorical test (of form ``[feature value] in [category list]``). ``category_list_right_child_[i]`` is not defined
+   * ``leaf_value``: an array of ``LeafOutputType``, where ``leaf_value[i]`` is the output of the leaf node ``i``.
+     ``leaf_value[i]`` is only valid if node ``i`` is a leaf node with a scalar output. To access the output of a leaf node that
+     produces a vector output, use ``leaf_vector`` instead. (See below.)
+   * ``threshold``: an array of ``ThresholdType``, where ``threshold[i]`` is the threshold used in the test node ``i``.
+     ``threshold[i]`` is only valid if node ``i`` is a test node with a numerical test (of form ``[feature value] [op] [threshold]``).
+     For categorical test nodes, use ``category_list`` instead. (See below.)
+   * ``cmp``: an array of ``int8_t`` (representing enum ``Operator``). ``cmp[i]`` is the comparison operator used in the test node ``i``.
+     ``cmp[i]`` is only valid if node ``i`` is a numerical test node.
+   * ``category_list_right_child``: an array of ``bool`` where ``category_list_right_child[i]`` indicates which child node should be
+     followed when a categorical test (of form ``[feature value] in [category list]``). ``category_list_right_child[i]`` is not defined
      if node ``i`` is not a categorical test node.
 
    * Leaf vectors
 
-     - Content (``leaf_vector_``): an array of ``LeafOutputType``. This array stores the leaf vectors for all nodes, such that
-       the sub-array ``leaf_vector_[leaf_vector_begin[i]_:leaf_vector_end_[i]]`` yields the leaf vector for the i-th node.
+     - Content (``leaf_vector``): an array of ``LeafOutputType``. This array stores the leaf vectors for all nodes, such that
+       the sub-array ``leaf_vector[leaf_vector_begin[i]:leaf_vector_end[i]]`` yields the leaf vector for the i-th node.
        The leaf vector uses the row-major layout to store a 2D array.
        If node ``i`` is not a leaf node with a vector output, the sub-array should be empty
-       (``leaf_vector_begin_[i] == leaf_vector_end_[i]``).
-     - Beginning offset of each segment (``leaf_vector_begin_``): an array of ``uint64_t``.
-     - Ending offset of each segment (``leaf_vector_end_``): an array of ``uint64_t``.
+       (``leaf_vector_begin[i] == leaf_vector_end[i]``).
+     - Beginning offset of each segment (``leaf_vector_begin``): an array of ``uint64_t``.
+     - Ending offset of each segment (``leaf_vector_end``): an array of ``uint64_t``.
 
    * Category list (for categorical splits)
 
-     - Content (``category_list_``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
-       the sub-array ``category_list_[category_list_begin_[i]:category_list_end_[i]]`` yields the category list of the i-th node.
-       If node ``i`` is not a categorical test node, the sub-array should be empty (``category_list_begin_[i] == category_list_end_[i]``).
-     - Beginning offset of each segment (``category_list_begin_``): an array of ``uint64_t``.
-     - Ending offset of each segment (``category_list_end_``): an array of ``uint64_t``.
+     - Content (``category_list``): an array of ``uint32_t``. This array stores the category lists of all nodes, such that
+       the sub-array ``category_list[category_list_begin[i]:category_list_end[i]]`` yields the category list of the i-th node.
+       If node ``i`` is not a categorical test node, the sub-array should be empty (``category_list_begin[i] == category_list_end[i]``).
+     - Beginning offset of each segment (``category_list_begin``): an array of ``uint64_t``.
+     - Ending offset of each segment (``category_list_end``): an array of ``uint64_t``.
 
    * Metadata for node statistics
 
-     - ``data_count_``: an array of ``uint64_t``. ``data_count_[i]`` indicates the number of data points in the training data set whose traversal paths include node ``i``. LightGBM provides this statistics.
-     - ``data_count_present_``: an array of ``bool``. ``data_count_present[i]_`` indicates whether ``data_count_[i]`` is available.
-       You may assign an empty array (length 0) to ``data_count_`` and ``data_count_present_`` if data count is unavailable for all nodes.
-     - ``sum_hess_``: an array of ``double``. ``sum_hess_[i]`` indicates the sum of the Hessian values for all data points whose traversal paths include node ``i``. This information is available in XGBoost and is used as a proxy of the number of data points.
-     - ``sum_hess_present_``: an array of ``bool``.  ``sum_hess_present_[i]`` indicates whether ``sum_hess_[i]`` is available.
-       You may assign an empty array (length 0) to ``sum_hess_`` and ``sum_hess_present_`` if Hessian sum is unavailable for all nodes.
-     - ``gain_``: an array of ``double``.  ``gain_[i]`` indicates the change in the loss function that is attributed to the particular split at node ``i``.
-     - ``gain_present_``: an array of ``bool``. ``gain_present_[i]`` indicates whether ``gain_[i]`` is present.
-       You may assign an empty array (length 0) to ``gain_`` and ``gain_present_`` if gain is unavailable for all nodes.
+     - ``data_count``: an array of ``uint64_t``. ``data_count[i]`` indicates the number of data points in the training data set whose traversal paths include node ``i``. LightGBM provides this statistics.
+     - ``data_count_present``: an array of ``bool``. ``data_count_present[i]`` indicates whether ``data_count[i]`` is available.
+       You may assign an empty array (length 0) to ``data_count`` and ``data_count_present`` if data count is unavailable for all nodes.
+     - ``sum_hess``: an array of ``double``. ``sum_hess[i]`` indicates the sum of the Hessian values for all data points whose traversal paths include node ``i``. This information is available in XGBoost and is used as a proxy of the number of data points.
+     - ``sum_hess_present``: an array of ``bool``.  ``sum_hess_present[i]`` indicates whether ``sum_hess[i]`` is available.
+       You may assign an empty array (length 0) to ``sum_hess`` and ``sum_hess_present`` if Hessian sum is unavailable for all nodes.
+     - ``gain``: an array of ``double``.  ``gain[i]`` indicates the change in the loss function that is attributed to the particular split at node ``i``.
+     - ``gain_present``: an array of ``bool``. ``gain_present[i]`` indicates whether ``gain[i]`` is present.
+       You may assign an empty array (length 0) to ``gain`` and ``gain_present`` if gain is unavailable for all nodes.
 
    * Extension slot 2: Per-tree optional fields. This field is currently not used.
 
-     - ``num_opt_field_per_tree_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+     - ``num_opt_field_per_tree``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
    * Extension slot 3: Per-node optional fields. This field is currently not used.
 
-     - ``num_opt_field_per_node_``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+     - ``num_opt_field_per_node``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
 
 #. Tree 1: Use the same set of fields as Tree 0.
 #. Other trees ...

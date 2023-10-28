@@ -65,6 +65,13 @@ Serializer
    :project: treelite
    :content-only:
 
+Getters and setters for the model object
+----------------------------------------
+
+.. doxygengroup:: accessor
+   :project: treelite
+   :content-only:
+
 General Tree Inference Library (GTIL)
 -------------------------------------
 

@@ -33,12 +33,35 @@ Treelite supports multiple model file formats.
    :project: treelite
    :content-only:
 
+Model loader interface for scikit-learn models
+----------------------------------------------
+Use the following functions to load decision tree ensemble models from a scikit-learn
+model object.
+
+.. doxygengroup:: sklearn
+   :project: treelite
+   :content-only:
+
 Model builder interface
 -----------------------
 Use the following functions to incrementally build decisio n tree ensemble
 models.
 
 .. doxygengroup:: model_builder
+   :project: treelite
+   :content-only:
+
+Model manager interface
+-----------------------
+
+.. doxygengroup:: model_manager
+   :project: treelite
+   :content-only:
+
+Serializer
+----------
+
+.. doxygengroup:: serializer
    :project: treelite
    :content-only:
 

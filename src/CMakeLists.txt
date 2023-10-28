@@ -99,6 +99,7 @@ target_sources(objtreelite
     serializer.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h
+    c_api/field_accessor.cc
     c_api/gtil.cc
     c_api/logging.cc
     c_api/model.cc

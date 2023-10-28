@@ -29,8 +29,7 @@
 #endif
 
 /*!
- * \addtogroup opaque_handles
- * Opaque handles
+ * \defgroup opaque_handles C API: Opaque handles
  * \{
  */
 /*! \brief Handle to a decision tree ensemble model */
@@ -42,7 +41,7 @@ typedef void* TreeliteGTILConfigHandle;
 /*! \} */
 
 /*!
- * \defgroup model_loader Model loaders for XGBoost and LightGBM
+ * \defgroup model_loader C API: Model loaders for XGBoost and LightGBM
  * \{
  */
 /*!
@@ -112,7 +111,7 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromString(
 /*! \} */
 
 /*!
- * \defgroup sklearn Model loaders for scikit-learn
+ * \defgroup sklearn C API: Model loaders for scikit-learn
  * \{
  */
 /*!
@@ -348,7 +347,7 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
 /*! \} */
 
 /*!
- * \defgroup model_builder Functions to build model objects
+ * \defgroup model_builder C API: Functions to build model objects
  * \{
  */
 /*!
@@ -507,7 +506,7 @@ TREELITE_DLL int TreeliteModelBuilderCommitModel(
 /*! \} */
 
 /*!
- * \defgroup model_manager Functions to query and modify model objects
+ * \defgroup model_manager C API: Functions to query and modify model objects
  * \{
  */
 /*!
@@ -565,7 +564,7 @@ TREELITE_DLL int TreeliteFreeModel(TreeliteModelHandle handle);
 /*! \} */
 
 /*!
- * \defgroup serializer Functions to serialize model objects
+ * \defgroup serializer C API: Functions to serialize model objects
  * \{
  */
 /*!
@@ -606,9 +605,8 @@ TREELITE_DLL int TreeliteDeserializeModelFromBytes(
 /*! \} */
 
 /*!
- * \defgroup gtil General Tree Inference Library (GTIL), providing a reference implementation for
- * predicting with decision trees. GTIL is useful in cases it is infeasible to build the
- * tree models as native shared libs.
+ * \defgroup gtil C API: General Tree Inference Library (GTIL)
+ * GTIL provides a reference implementation for predicting with decision trees.
  * \{
  */
 
@@ -660,6 +658,14 @@ TREELITE_DLL int TreeliteGTILGetOutputShape(TreeliteModelHandle model, uint64_t 
 TREELITE_DLL int TreeliteGTILPredict(TreeliteModelHandle model, void const* input,
     char const* input_type, uint64_t num_row, void* output, TreeliteGTILConfigHandle config);
 
+/*! \} */
+
+/*!
+ * \defgroup accessor C API: Getters and setters for tree fields
+ * The getter and setter methods are useful for modifying a tree model in-place. This interface
+ * should be used by an expert user, as the interface performs no validation for the setter.
+ * \{
+ */
 /*! \} */
 
 /*!

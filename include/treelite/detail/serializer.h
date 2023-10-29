@@ -23,6 +23,7 @@
 #include <ostream>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 namespace treelite::detail::serializer {
 
@@ -114,33 +115,41 @@ inline void InitArrayFromPyBuffer(ContiguousArray<T>* vec, PyBufferFrame frame) 
   vec->UseForeignBuffer(frame.buf, frame.nitem);
 }
 
+template <typename T>
+inline void InitArrayFromPyBufferWithCopy(ContiguousArray<T>* vec, PyBufferFrame frame) {
+  TREELITE_CHECK_EQ(sizeof(T), frame.itemsize) << "Incorrect itemsize";
+  ContiguousArray<T> new_vec;
+  new_vec.UseForeignBuffer(frame.buf, frame.nitem);
+  *vec = std::move(new_vec);
+}
+
 inline void InitStringFromPyBuffer(std::string* str, PyBufferFrame frame) {
   TREELITE_CHECK_EQ(sizeof(char), frame.itemsize) << "Incorrect itemsize";
   *str = std::string(static_cast<char*>(frame.buf), frame.nitem);
 }
 
-inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(TypeInfo* scalar, PyBufferFrame frame) {
   using T = std::underlying_type_t<TypeInfo>;
-  TREELITE_CHECK_EQ(sizeof(T), buffer.itemsize) << "Incorrect itemsize";
-  TREELITE_CHECK_EQ(buffer.nitem, 1) << "nitem must be 1 for a scalar";
-  T* t = static_cast<T*>(buffer.buf);
+  TREELITE_CHECK_EQ(sizeof(T), frame.itemsize) << "Incorrect itemsize";
+  TREELITE_CHECK_EQ(frame.nitem, 1) << "nitem must be 1 for a scalar";
+  T* t = static_cast<T*>(frame.buf);
   *scalar = static_cast<TypeInfo>(*t);
 }
 
-inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(TaskType* scalar, PyBufferFrame frame) {
   using T = std::underlying_type_t<TaskType>;
-  TREELITE_CHECK_EQ(sizeof(T), buffer.itemsize) << "Incorrect itemsize";
-  TREELITE_CHECK_EQ(buffer.nitem, 1) << "nitem must be 1 for a scalar";
-  T* t = static_cast<T*>(buffer.buf);
+  TREELITE_CHECK_EQ(sizeof(T), frame.itemsize) << "Incorrect itemsize";
+  TREELITE_CHECK_EQ(frame.nitem, 1) << "nitem must be 1 for a scalar";
+  T* t = static_cast<T*>(frame.buf);
   *scalar = static_cast<TaskType>(*t);
 }
 
 template <typename T>
-inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame buffer) {
+inline void InitScalarFromPyBuffer(T* scalar, PyBufferFrame frame) {
   static_assert(std::is_standard_layout_v<T>, "T must be in the standard layout");
-  TREELITE_CHECK_EQ(sizeof(T), buffer.itemsize) << "Incorrect itemsize";
-  TREELITE_CHECK_EQ(buffer.nitem, 1) << "nitem must be 1 for a scalar";
-  T* t = static_cast<T*>(buffer.buf);
+  TREELITE_CHECK_EQ(sizeof(T), frame.itemsize) << "Incorrect itemsize";
+  TREELITE_CHECK_EQ(frame.nitem, 1) << "nitem must be 1 for a scalar";
+  T* t = static_cast<T*>(frame.buf);
   *scalar = *t;
 }
 

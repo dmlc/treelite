@@ -7,6 +7,8 @@ import pathlib
 import warnings
 from typing import Any, List, Optional, Union
 
+import numpy as np
+
 from . import compat
 from .core import _LIB, _check_call
 from .util import c_array, c_str, py_str
@@ -84,7 +86,7 @@ class Model:
 
         Returns
         -------
-        model : :py:class:`Model` object
+        model : :py:class:`Model`
             Concatenated model
 
         Example
@@ -128,12 +130,12 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Loaded model
         """
         model_format = model_format.lower()
 
-        def deprecation_warning(alt: str) -> None:
+        def deprecation_warning(alt: str):
             warnings.warn(
                 (
                     "treelite.Model.load() is deprecated. "
@@ -170,7 +172,7 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Loaded model
         """
         warnings.warn(
@@ -202,7 +204,7 @@ class Model:
 
         Returns
         -------
-        model
+        model : :py:class:`Model`
             Loaded model
         """
         warnings.warn(
@@ -231,7 +233,7 @@ class Model:
 
         Returns
         -------
-        model : :py:class:`Model` object
+        model : :py:class:`Model`
             loaded model
         """
         warnings.warn(
@@ -255,7 +257,7 @@ class Model:
 
         Returns
         -------
-        json_str :
+        json_str : str
             JSON string representing the model
         """
         json_str = ctypes.c_char_p()
@@ -268,7 +270,26 @@ class Model:
         )
         return py_str(json_str.value)
 
-    def serialize(self, filename: Union[str, pathlib.Path]) -> None:
+    def get_header_accessor(self) -> HeaderAccessor:
+        """
+        Obtain accessor for fields in the header.
+        See :ref:`field_accessors` for more details.
+        """
+        return HeaderAccessor(self)
+
+    def get_tree_accessor(self, tree_id: int) -> TreeAccessor:
+        """
+        Obtain accessor for fields in a tree.
+        See :ref:`field_accessors` for more details.
+
+        Parameters
+        ----------
+        tree_id:
+            ID of the tree
+        """
+        return TreeAccessor(self, tree_id=tree_id)
+
+    def serialize(self, filename: Union[str, pathlib.Path]):
         """
         Serialize (persist) the model to a checkpoint file in the disk, using a fast binary
         representation. To recover the model from the checkpoint, use :py:func:`deserialize`
@@ -324,7 +345,7 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Recovered model
         """
         handle = ctypes.c_void_p()
@@ -348,12 +369,12 @@ class Model:
 
         Parameters
         ----------
-        model_bytes : :py:class:`bytes <python:bytes>`
+        model_bytes :
             Byte sequence representing the serialized model
 
         Returns
         -------
-        model : :py:class:`Model` object
+        model : :py:class:`Model`
             Recovered model
         """
         handle = ctypes.c_void_p()
@@ -367,3 +388,229 @@ class Model:
             )
         )
         return Model(handle=handle)
+
+
+class _TreelitePyBufferFrame(ctypes.Structure):  # pylint: disable=R0903
+    """Abridged buffer structure used by Treelite"""
+
+    _fields_ = [
+        ("buf", ctypes.c_void_p),
+        ("format", ctypes.c_char_p),
+        ("itemsize", ctypes.c_size_t),
+        ("nitem", ctypes.c_size_t),
+    ]
+
+
+class _PyBuffer(ctypes.Structure):  # pylint: disable=R0902,R0903
+    """The full Python buffer structure as defined by PEP 3118"""
+
+    _fields_ = (
+        ("buf", ctypes.c_void_p),
+        ("obj", ctypes.py_object),
+        ("len", ctypes.c_ssize_t),
+        ("itemsize", ctypes.c_ssize_t),
+        ("readonly", ctypes.c_int),
+        ("ndim", ctypes.c_int),
+        ("format", ctypes.c_char_p),
+        ("shape", ctypes.POINTER(ctypes.c_ssize_t)),
+        ("strides", ctypes.POINTER(ctypes.c_ssize_t)),
+        ("suboffsets", ctypes.POINTER(ctypes.c_ssize_t)),
+        ("internal", ctypes.c_void_p),
+    )
+
+
+ctypes.pythonapi.PyMemoryView_FromBuffer.argtypes = [ctypes.POINTER(_PyBuffer)]
+ctypes.pythonapi.PyMemoryView_FromBuffer.restype = ctypes.py_object
+ctypes.pythonapi.PyObject_GetBuffer.argtypes = [
+    ctypes.py_object,
+    ctypes.POINTER(_PyBuffer),
+    ctypes.c_int,
+]
+ctypes.pythonapi.PyObject_GetBuffer.restype = ctypes.c_int
+
+
+def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
+    if not frame.buf:
+        if frame.format == b"=l":
+            dtype = "int32"
+        elif frame.format == b"=L":
+            dtype = "uint32"
+        elif frame.format == b"=f":
+            dtype = "float32"
+        elif frame.format == b"=d":
+            dtype = "float64"
+        else:
+            raise RuntimeError(
+                f"Unrecognized format string: {frame.format.decode('utf-8')}"
+            )
+        return np.array([], dtype=dtype)
+    py_buf = _PyBuffer()
+    py_buf.buf = frame.buf
+    py_buf.obj = ctypes.py_object(frame)
+    py_buf.len = frame.nitem * frame.itemsize
+    py_buf.itemsize = frame.itemsize
+    py_buf.readonly = 0
+    py_buf.ndim = 1
+    py_buf.format = frame.format
+    py_buf.shape = (ctypes.c_ssize_t * 1)(frame.nitem)
+    py_buf.strides = (ctypes.c_ssize_t * 1)(frame.itemsize)
+    py_buf.suboffsets = None
+    py_buf.internal = None
+
+    view: memoryview = ctypes.pythonapi.PyMemoryView_FromBuffer(ctypes.byref(py_buf))
+    return np.asarray(view)
+
+
+def _numpy2pybuffer(array: np.ndarray) -> _TreelitePyBufferFrame:
+    if len(array.shape) != 1:
+        raise ValueError("Cannot handle NumPy array that has more than 1 dimension")
+    view: memoryview = array.data
+    buffer = _PyBuffer()
+    if (
+        ctypes.pythonapi.PyObject_GetBuffer(
+            ctypes.py_object(view),
+            ctypes.byref(buffer),
+            ctypes.c_int(0),  # PyBUF_SIMPLE
+        )
+        != 0
+    ):
+        raise RuntimeError("Call to PyObject_GetBuffer() failed")
+    frame = _TreelitePyBufferFrame()
+    frame.buf = buffer.buf
+    frame.format = buffer.format
+    frame.itemsize = buffer.itemsize
+    frame.nitem = array.shape[0]
+    return frame
+
+
+class HeaderAccessor:
+    """
+    Accessor for fields in the header
+
+    Parameters
+    ----------
+    model:
+        The model object
+    """
+
+    def __init__(self, model: Model):
+        self._model = model
+
+    def get_field(self, name: str) -> Union[np.ndarray, str]:
+        """
+        Get a field
+
+        Parameters
+        ----------
+        name:
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
+
+        Returns
+        -------
+        field: :py:class:`numpy.ndarray` or :py:class:`str`
+            Value in the field
+            (``str`` for a string field, ``np.ndarray`` for other fields)
+        """
+        obj = _TreelitePyBufferFrame()
+        _check_call(
+            _LIB.TreeliteGetHeaderField(
+                self._model.handle,
+                c_str(name),
+                ctypes.byref(obj),
+            )
+        )
+        array = _pybuffer2numpy(obj)
+        if array.dtype == "S1":
+            return array.tobytes().decode("utf-8")
+        return array
+
+    def set_field(self, name: str, value: Union[np.ndarray, str]):
+        """
+        Set a field
+
+        Parameters
+        ----------
+        name:
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
+        value:
+            New value for the field
+            (``str`` for a string field, ``np.ndarray`` for other fields)
+        """
+        if isinstance(value, str):
+            value = np.frombuffer(value.encode("utf-8"), dtype="S1")
+        _check_call(
+            _LIB.TreeliteSetHeaderField(
+                self._model.handle,
+                c_str(name),
+                _numpy2pybuffer(value),
+            )
+        )
+
+
+class TreeAccessor:
+    """
+    Accessor for fields in a tree
+
+    Parameters
+    ----------
+    model:
+        The model object
+    tree_id:
+        ID of the tree
+    """
+
+    def __init__(self, model: Model, *, tree_id: int):
+        self._model = model
+        self._tree_id = tree_id
+
+    def get_field(self, name: str) -> np.ndarray:
+        """
+        Get a field
+
+        Parameters
+        ----------
+        name:
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
+
+        Returns
+        -------
+        field: :py:class:`numpy.ndarray`
+            Value in the field
+        """
+        obj = _TreelitePyBufferFrame()
+        _check_call(
+            _LIB.TreeliteGetTreeField(
+                self._model.handle,
+                ctypes.c_uint64(self._tree_id),
+                c_str(name),
+                ctypes.byref(obj),
+            )
+        )
+        return _pybuffer2numpy(obj)
+
+    def set_field(self, name: str, value: np.ndarray):
+        """
+        Set a field
+
+        Parameters
+        ----------
+        name:
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
+        value:
+            New value for the field
+        """
+        _check_call(
+            _LIB.TreeliteSetTreeField(
+                self._model.handle,
+                ctypes.c_uint64(self._tree_id),
+                c_str(name),
+                _numpy2pybuffer(value),
+            )
+        )
+
+
+__all__ = ["Model", "HeaderAccessor", "TreeAccessor"]

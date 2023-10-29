@@ -83,8 +83,8 @@ def import_model(sklearn_model):
 
     Returns
     -------
-    model : :py:class:`~treelite.Model` object
-        loaded model
+    model : :py:class:`Model`
+        Loaded model
 
     Example
     -------
@@ -103,8 +103,10 @@ def import_model(sklearn_model):
 
     Note
     ----
-    This function does not yet support categorical splits in HistGradientBoostingRegressor and
-    HistGradientBoostingClassifier. If you are using either estimator types, make sure that all
+    This function does not yet support categorical splits in
+    :py:class:`~sklearn.ensemble.HistGradientBoostingRegressor` and
+    :py:class:`~sklearn.ensemble.HistGradientBoostingClassifier`.
+    If you are using either estimator types, make sure that all
     test nodes have numerical test conditions.
     """
     try:

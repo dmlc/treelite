@@ -1,5 +1,5 @@
+"""Script to test backward compatibility of serializer"""
 import argparse
-import os
 import pickle
 
 import lightgbm as lgb
@@ -21,6 +21,7 @@ def _train_model(X, y):
 
 
 def save(args):
+    """Save model"""
     X, y = _fetch_data()
     clf = _train_model(X, y)
     with open(args.model_pickle_path, "wb") as f:
@@ -30,7 +31,8 @@ def save(args):
 
 
 def load(args):
-    X, y = _fetch_data()
+    """Load model"""
+    X, _ = _fetch_data()
     with open(args.model_pickle_path, "rb") as f:
         clf = pickle.load(f)
     tl_model = treelite.Model.deserialize(args.checkpoint_path)
@@ -41,6 +43,7 @@ def load(args):
 
 
 def main(args):
+    """Main function"""
     if treelite.__version__ != args.expected_treelite_version:
         raise ValueError(
             f"Expected Treelite {args.expected_treelite_version} "
@@ -58,5 +61,5 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint-path", type=str, required=True)
     parser.add_argument("--model-pickle-path", type=str, required=True)
     parser.add_argument("--expected-treelite-version", type=str, required=True)
-    args = parser.parse_args()
-    main(args)
+    parsed_args = parser.parse_args()
+    main(parsed_args)

@@ -57,3 +57,29 @@ int TreeliteDeserializeModelFromBytes(
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }
+
+int TreeliteSerializeModelToPyBuffer(
+    TreeliteModelHandle handle, TreelitePyBufferFrame** out_frames, size_t* out_num_frames) {
+  API_BEGIN();
+  auto* model_ = static_cast<treelite::Model*>(handle);
+  std::vector<TreelitePyBufferFrame>& ret_frames
+      = treelite::c_api::ReturnValueStore::Get()->ret_frames;
+  ret_frames = model_->SerializeToPyBuffer();
+  if (ret_frames.empty()) {
+    *out_frames = nullptr;
+    *out_num_frames = 0;
+  } else {
+    *out_frames = &ret_frames[0];
+    *out_num_frames = ret_frames.size();
+  }
+  API_END();
+}
+
+int TreeliteDeserializeModelFromPyBuffer(
+    TreelitePyBufferFrame* frames, size_t num_frames, TreeliteModelHandle* out) {
+  API_BEGIN();
+  std::vector<TreelitePyBufferFrame> frames_(frames, frames + num_frames);
+  auto model = treelite::Model::DeserializeFromPyBuffer(frames_);
+  *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}

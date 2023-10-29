@@ -22,6 +22,7 @@ class-attribute-naming-style=snake_case
 
 # Allow single-letter variables
 variable-rgx=[a-zA-Z_][a-z0-9_]{0,30}$
+argument-rgx=[a-zA-Z_][a-z0-9_]{0,30}$
 
 [TYPECHECK]
 generated-members=np.float32,np.uintc,np.uintp,np.uint32

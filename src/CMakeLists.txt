@@ -93,12 +93,14 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/task_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/tree_node_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
+    field_accessor.cc
     json_serializer.cc
     logging.cc
     model_concat.cc
     serializer.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h
+    c_api/field_accessor.cc
     c_api/gtil.cc
     c_api/logging.cc
     c_api/model.cc

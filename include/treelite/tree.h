@@ -38,6 +38,13 @@
 #define TREELITE_DLL_EXPORT
 #endif
 
+namespace treelite {
+
+template <typename ThresholdType, typename LeafOutputType>
+class ModelPreset;
+
+}
+
 namespace treelite::detail::serializer {
 
 template <typename MixIn>
@@ -46,6 +53,17 @@ template <typename MixIn>
 class Deserializer;
 
 }  // namespace treelite::detail::serializer
+
+namespace treelite::detail::field_accessor {
+
+template <typename ThresholdType, typename LeafOutputType>
+PyBufferFrame GetTreeFieldImpl(
+    ModelPreset<ThresholdType, LeafOutputType>&, std::uint64_t, std::string const&);
+template <typename ThresholdType, typename LeafOutputType>
+void SetTreeFieldImpl(
+    ModelPreset<ThresholdType, LeafOutputType>&, std::uint64_t, std::string const&, PyBufferFrame);
+
+}  // namespace treelite::detail::field_accessor
 
 namespace treelite {
 
@@ -120,6 +138,12 @@ class Tree {
   friend class detail::serializer::Serializer;
   template <typename MixIn>
   friend class detail::serializer::Deserializer;
+  template <typename X, typename Y>
+  friend PyBufferFrame detail::field_accessor::GetTreeFieldImpl(
+      ModelPreset<X, Y>&, std::uint64_t, std::string const&);
+  template <typename X, typename Y>
+  friend void detail::field_accessor::SetTreeFieldImpl(
+      ModelPreset<X, Y>&, std::uint64_t, std::string const&, PyBufferFrame);
 
  public:
   /*! \brief Number of nodes */
@@ -480,6 +504,15 @@ class Model {
   inline Version GetVersion() const {
     return {major_ver_, minor_ver_, patch_ver_};
   }
+
+  /*! \brief Get a field in the header */
+  PyBufferFrame GetHeaderField(std::string const& name);
+  /*! \brief Get a field in a tree */
+  PyBufferFrame GetTreeField(std::uint64_t tree_id, std::string const& name);
+  /*! \brief Set a field in the header */
+  void SetHeaderField(std::string const& name, PyBufferFrame frame);
+  /*! \brief Set a field in a tree */
+  void SetTreeField(std::uint64_t tree_id, std::string const& name, PyBufferFrame frame);
 
   /*!
    * \brief Number of features used for the model.

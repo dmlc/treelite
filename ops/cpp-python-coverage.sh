@@ -15,14 +15,9 @@ cd ..
 echo "##[section]Running Google C++ tests..."
 ./build/treelite_cpp_test
 
-echo "##[section]Build Cython extension..."
-cd tests/cython
-pip install -vvv .
-cd ../..
-
 echo "##[section]Running Python integration tests..."
 export PYTHONPATH='./python'
-python -m pytest --cov=treelite -v -rxXs --fulltrace --durations=0 tests/python tests/cython
+python -m pytest --cov=treelite -v -rxXs --fulltrace --durations=0 tests/python tests/serializer
 
 echo "##[section]Collecting coverage data..."
 lcov --directory . --capture --output-file coverage.info

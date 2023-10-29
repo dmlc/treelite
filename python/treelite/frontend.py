@@ -22,7 +22,7 @@ def load_xgboost_model_legacy_binary(filename: Union[str, pathlib.Path]) -> Mode
 
     Returns
     -------
-    model :
+    model : :py:class:`Model`
         Loaded model
 
     Example
@@ -51,7 +51,7 @@ def load_xgboost_model(
 
     Returns
     -------
-    model :
+    model : :py:class:`Model`
         Loaded model
 
     Example
@@ -79,7 +79,7 @@ def load_lightgbm_model(filename: Union[str, pathlib.Path]) -> Model:
 
     Returns
     -------
-    model :
+    model : :py:class:`Model`
         Loaded model
 
     Example
@@ -103,7 +103,7 @@ def from_xgboost(booster: Any) -> Model:
 
     Returns
     -------
-    model :
+    model : :py:class:`Model`
         Loaded model
     """
     return Model(handle=compat.from_xgboost(booster))
@@ -126,7 +126,7 @@ def from_xgboost_json(
 
     Returns
     -------
-    model
+    model: :py:class:`Model`
         Loaded model
     """
     return Model(
@@ -147,8 +147,8 @@ def from_lightgbm(booster: Any) -> Model:
 
     Returns
     -------
-    model :
-        loaded model
+    model : :py:class:`Model`
+        Loaded model
     """
     return Model(handle=compat.from_lightgbm(booster))
 

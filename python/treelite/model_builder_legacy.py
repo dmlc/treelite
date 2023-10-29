@@ -427,7 +427,7 @@ class ModelBuilder:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Finished model
         """
         num_tree = len(self.trees)

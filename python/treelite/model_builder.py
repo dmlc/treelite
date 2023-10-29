@@ -379,7 +379,14 @@ class ModelBuilder:
         )
 
     def commit(self) -> Model:
-        """Conclude model building and obtain the final model object."""
+        """
+        Conclude model building and obtain the final model object.
+
+        Returns
+        -------
+        model : :py:class:`Model`
+            Finished model
+        """
         model_handle = ctypes.c_void_p()
         _check_call(
             _LIB.TreeliteModelBuilderCommitModel(

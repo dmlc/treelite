@@ -86,7 +86,7 @@ class Model:
 
         Returns
         -------
-        model : :py:class:`Model` object
+        model : :py:class:`Model`
             Concatenated model
 
         Example
@@ -130,12 +130,12 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Loaded model
         """
         model_format = model_format.lower()
 
-        def deprecation_warning(alt: str) -> None:
+        def deprecation_warning(alt: str):
             warnings.warn(
                 (
                     "treelite.Model.load() is deprecated. "
@@ -172,7 +172,7 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Loaded model
         """
         warnings.warn(
@@ -204,7 +204,7 @@ class Model:
 
         Returns
         -------
-        model
+        model : :py:class:`Model`
             Loaded model
         """
         warnings.warn(
@@ -233,7 +233,7 @@ class Model:
 
         Returns
         -------
-        model : :py:class:`Model` object
+        model : :py:class:`Model`
             loaded model
         """
         warnings.warn(
@@ -257,7 +257,7 @@ class Model:
 
         Returns
         -------
-        json_str :
+        json_str : str
             JSON string representing the model
         """
         json_str = ctypes.c_char_p()
@@ -271,12 +271,16 @@ class Model:
         return py_str(json_str.value)
 
     def get_header_accessor(self) -> HeaderAccessor:
-        """Obtain accessor for fields in the header"""
+        """
+        Obtain accessor for fields in the header.
+        See :ref:`field_accessors` for more details.
+        """
         return HeaderAccessor(self)
 
     def get_tree_accessor(self, tree_id: int) -> TreeAccessor:
         """
-        Obtain accessor for fields in a tree
+        Obtain accessor for fields in a tree.
+        See :ref:`field_accessors` for more details.
 
         Parameters
         ----------
@@ -285,7 +289,7 @@ class Model:
         """
         return TreeAccessor(self, tree_id=tree_id)
 
-    def serialize(self, filename: Union[str, pathlib.Path]) -> None:
+    def serialize(self, filename: Union[str, pathlib.Path]):
         """
         Serialize (persist) the model to a checkpoint file in the disk, using a fast binary
         representation. To recover the model from the checkpoint, use :py:func:`deserialize`
@@ -341,7 +345,7 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Recovered model
         """
         handle = ctypes.c_void_p()
@@ -370,7 +374,7 @@ class Model:
 
         Returns
         -------
-        model :
+        model : :py:class:`Model`
             Recovered model
         """
         handle = ctypes.c_void_p()
@@ -485,11 +489,12 @@ class HeaderAccessor:
         Parameters
         ----------
         name:
-            Name of the field
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
 
         Returns
         -------
-        field:
+        field: :py:class:`numpy.ndarray` or :py:class:`str`
             Value in the field
             (``str`` for a string field, ``np.ndarray`` for other fields)
         """
@@ -513,7 +518,8 @@ class HeaderAccessor:
         Parameters
         ----------
         name:
-            Name of the field
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
         value:
             New value for the field
             (``str`` for a string field, ``np.ndarray`` for other fields)
@@ -552,11 +558,12 @@ class TreeAccessor:
         Parameters
         ----------
         name:
-            Name of the field
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
 
         Returns
         -------
-        field:
+        field: :py:class:`numpy.ndarray`
             Value in the field
         """
         obj = _TreelitePyBufferFrame()
@@ -577,7 +584,8 @@ class TreeAccessor:
         Parameters
         ----------
         name:
-            Name of the field
+            Name of the field. Consult :doc:`the model spec </serialization/v4>`
+            for the list of fields.
         value:
             New value for the field
         """

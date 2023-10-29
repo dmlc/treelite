@@ -27,7 +27,7 @@
 #define TREELITE_DLL_STRUCT TREELITE_EXTERN_C struct __declspec(dllexport)
 #else
 #define TREELITE_DLL TREELITE_EXTERN_C __attribute__((visibility("default")))
-#define TREELITE_DLL_STRUCT TREELITE_EXTERN_C __attribute__((visibility("default"))) struct
+#define TREELITE_DLL_STRUCT TREELITE_EXTERN_C struct __attribute__((visibility("default")))
 #endif
 
 /*!
@@ -57,6 +57,10 @@ TREELITE_DLL_STRUCT TreelitePyBufferFrame {
   size_t nitem;
 };
 /*! \} */
+
+#ifndef __cplusplus
+typedef struct TreelitePyBufferFrame TreelitePyBufferFrame;
+#endif
 
 /*!
  * \defgroup model_loader C API: Model loaders for XGBoost and LightGBM
@@ -615,11 +619,30 @@ TREELITE_DLL int TreeliteSerializeModelToBytes(
  * \param bytes Byte sequence containing serialized model. The string should be created by a call to
  *              \ref TreeliteSerializeModelToBytes.
  * \param bytes_len Length of bytes
- * \param out Handle to the model object
+ * \param out Loaded model
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteDeserializeModelFromBytes(
     char const* bytes, size_t bytes_len, TreeliteModelHandle* out);
+
+/*!
+ * \brief Serialize a model object using the Python buffer protocol (PEP 3118).
+ * \param handle Handle to the model object
+ * \param out_frames Pointer to buffer frames
+ * \param out_num_frames Number of buffer frames
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSerializeModelToPyBuffer(
+    TreeliteModelHandle handle, TreelitePyBufferFrame** out_frames, size_t* out_num_frames);
+/*!
+ * \brief Deserialize a model object using the Python buffer protocol (PEP 3118).
+ * \param frames Buffer frames
+ * \param num_frames Number of buffer frames
+ * \param out Loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeserializeModelFromPyBuffer(
+    TreelitePyBufferFrame* frames, size_t num_frames, TreeliteModelHandle* out);
 /*! \} */
 
 /*!

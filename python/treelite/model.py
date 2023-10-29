@@ -430,6 +430,20 @@ ctypes.pythonapi.PyObject_GetBuffer.restype = ctypes.c_int
 
 
 def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
+    if not frame.buf:
+        if frame.format == b"=l":
+            dtype = "int32"
+        elif frame.format == b"=L":
+            dtype = "uint32"
+        elif frame.format == b"=f":
+            dtype = "float32"
+        elif frame.format == b"=d":
+            dtype = "float64"
+        else:
+            raise RuntimeError(
+                f"Unrecognized format string: {frame.format.decode('utf-8')}"
+            )
+        return np.array([], dtype=dtype)
     py_buf = _PyBuffer()
     py_buf.buf = frame.buf
     py_buf.obj = ctypes.py_object(frame)

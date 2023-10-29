@@ -1,9 +1,9 @@
 """Test for serialization, via buffer protocol"""
-import os
+import ctypes
+from typing import List
 
 import numpy as np
 import pytest
-from serializer import treelite_deserialize, treelite_serialize
 from sklearn.datasets import load_iris
 from sklearn.ensemble import (
     ExtraTreesClassifier,
@@ -12,6 +12,39 @@ from sklearn.ensemble import (
 )
 
 import treelite
+from treelite.core import _LIB, _check_call
+from treelite.model import _numpy2pybuffer, _pybuffer2numpy, _TreelitePyBufferFrame
+from treelite.util import c_array
+
+
+def treelite_deserialize(frames: List[np.ndarray]) -> treelite.Model:
+    """Serialize model to PyBuffer frames"""
+    buffers = [_numpy2pybuffer(frame) for frame in frames]
+    handle = ctypes.c_void_p()
+    _check_call(
+        _LIB.TreeliteDeserializeModelFromPyBuffer(
+            c_array(_TreelitePyBufferFrame, buffers),
+            ctypes.c_size_t(len(buffers)),
+            ctypes.byref(handle),
+        )
+    )
+    return treelite.Model(handle=handle)
+
+
+def treelite_serialize(
+    model: treelite.Model,
+) -> List[np.ndarray]:
+    """Deserialize model from PyBuffer frames"""
+    frames = ctypes.POINTER(_TreelitePyBufferFrame)()
+    n_frames = ctypes.c_size_t()
+    _check_call(
+        _LIB.TreeliteSerializeModelToPyBuffer(
+            model.handle,
+            ctypes.byref(frames),
+            ctypes.byref(n_frames),
+        )
+    )
+    return [_pybuffer2numpy(frames[i]) for i in range(n_frames.value)]
 
 
 @pytest.mark.parametrize(
@@ -36,7 +69,6 @@ def test_serialize_as_buffer(clazz):
 
     # The model should serialize to the same byte sequence after a round-trip
     frames2 = treelite_serialize(tl_model2)
-    assert frames["header"] == frames2["header"]
-    assert len(frames["frames"]) == len(frames2["frames"])
-    for x, y in zip(frames["frames"], frames2["frames"]):
+    assert len(frames) == len(frames2)
+    for x, y in zip(frames, frames2):
         assert np.array_equal(x, y)

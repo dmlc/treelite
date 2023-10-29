@@ -7,6 +7,7 @@
 #ifndef SRC_C_API_C_API_UTILS_H_
 #define SRC_C_API_C_API_UTILS_H_
 
+#include <treelite/pybuffer_frame.h>
 #include <treelite/thread_local.h>
 
 #include <cstdint>
@@ -21,6 +22,7 @@ namespace treelite::c_api {
 struct ReturnValueEntry {
   std::string ret_str;
   std::vector<std::uint64_t> ret_shape;
+  std::vector<treelite::PyBufferFrame> ret_frames;
 };
 using ReturnValueStore = ThreadLocalStore<ReturnValueEntry>;
 

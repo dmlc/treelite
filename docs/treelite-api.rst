@@ -41,3 +41,12 @@ Model class
 .. autoclass:: treelite.Model
    :members:
    :member-order: bysource
+
+Field accessors
+---------------
+
+.. autoclass:: treelite.model.HeaderAccessor
+   :members:
+
+.. autoclass:: treelite.model.TreeAccessor
+   :members:

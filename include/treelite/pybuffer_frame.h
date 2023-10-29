@@ -8,19 +8,14 @@
 #ifndef TREELITE_PYBUFFER_FRAME_H_
 #define TREELITE_PYBUFFER_FRAME_H_
 
+#include <treelite/c_api.h>
+
 #include <cstddef>
 #include <type_traits>
 
 namespace treelite {
 
-// Represent a frame in the Python buffer protocol (PEP 3118). We use a simplified representation
-// to hold only 1-D arrays with stride 1.
-struct PyBufferFrame {
-  void* buf;
-  char* format;
-  std::size_t itemsize;
-  std::size_t nitem;
-};
+using PyBufferFrame = TreelitePyBufferFrame;
 
 static_assert(std::is_pod<PyBufferFrame>::value, "PyBufferFrame must be a POD type");
 

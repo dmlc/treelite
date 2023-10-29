@@ -24,8 +24,10 @@
 /* Special symbols for DLL library on Windows */
 #if defined(_MSC_VER) || defined(_WIN32)
 #define TREELITE_DLL TREELITE_EXTERN_C __declspec(dllexport)
+#define TREELITE_DLL_STRUCT TREELITE_EXTERN_C struct __declspec(dllexport)
 #else
 #define TREELITE_DLL TREELITE_EXTERN_C __attribute__((visibility("default")))
+#define TREELITE_DLL_STRUCT TREELITE_EXTERN_C __attribute__((visibility("default"))) struct
 #endif
 
 /*!
@@ -38,6 +40,22 @@ typedef void* TreeliteModelHandle;
 typedef void* TreeliteModelBuilderHandle;
 /*! \brief Handle to a configuration of GTIL predictor */
 typedef void* TreeliteGTILConfigHandle;
+/*! \} */
+
+/*!
+ * \defgroup buffer_protocol C API: Python buffer protocol (PEP 3118)
+ * \{
+ */
+/*! \brief Represent a frame in the Python buffer protocol (PEP 3118).
+ *
+ * We use a simplified representation to hold only 1-D arrays with stride 1.
+ */
+TREELITE_DLL_STRUCT TreelitePyBufferFrame {
+  void* buf;
+  char* format;
+  size_t itemsize;
+  size_t nitem;
+};
 /*! \} */
 
 /*!
@@ -666,6 +684,52 @@ TREELITE_DLL int TreeliteGTILPredict(TreeliteModelHandle model, void const* inpu
  * should be used by an expert user, as the interface performs no validation for the setter.
  * \{
  */
+/*!
+ * \brief Get a field in the header.
+ *
+ * This function returns the requested field using the Python buffer protocol (PEP 3118).
+ * \param model Treelite Model object
+ * \param name Name of the field
+ * \param out_frame Buffer frame representing the requested field
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetHeaderField(
+    TreeliteModelHandle model, char const* name, TreelitePyBufferFrame* out_frame);
+/*!
+ * \brief Get a field in a tree.
+ *
+ * This function returns the requested field using the Python buffer protocol (PEP 3118).
+ * \param model Treelite Model object
+ * \param tree_id ID of the tree
+ * \param name Name of the field
+ * \param out_frame Buffer frame representing the requested field
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetTreeField(TreeliteModelHandle model, uint64_t tree_id, char const* name,
+    TreelitePyBufferFrame* out_frame);
+/*!
+ * \brief Set a field in the header.
+ *
+ * This function accepts the field's new value using the Python buffer protocol (PEP 3118).
+ * \param model Treelite Model object
+ * \param name Name of the field
+ * \param frame Buffer frame representing the new value for the field
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteSetHeaderField(
+    TreeliteModelHandle model, char const* name, TreelitePyBufferFrame frame);
+/*!
+ * \brief Set a field in a tree.
+ *
+ * This function accepts the field's new value using the Python buffer protocol (PEP 3118).
+ * \param model Treelite Model object
+ * \param tree_id ID of the tree
+ * \param name Name of the field
+ * \param frame Buffer frame representing the new value for the field
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteSetTreeField(
+    TreeliteModelHandle model, uint64_t tree_id, char const* name, TreelitePyBufferFrame frame);
 /*! \} */
 
 /*!

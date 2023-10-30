@@ -127,6 +127,8 @@ PyBufferFrame GetTreeFieldImpl(ModelPreset<ThresholdType, LeafOutputType>& model
     std::uint64_t tree_id, std::string const& name) {
   using treelite::detail::serializer::GetPyBufferFromArray;
   using treelite::detail::serializer::GetPyBufferFromScalar;
+  TREELITE_CHECK_LT(tree_id, model_preset.trees.size())
+      << "tree_id too big; it must be at most " << model_preset.trees.size();
   Tree<ThresholdType, LeafOutputType>& tree = model_preset.trees[tree_id];
   if (name == "num_nodes") {
     return GetPyBufferFromScalar(&tree.num_nodes);
@@ -190,6 +192,8 @@ void SetTreeFieldImpl(ModelPreset<ThresholdType, LeafOutputType>& model_preset,
     std::uint64_t tree_id, std::string const& name, PyBufferFrame frame) {
   using treelite::detail::serializer::InitArrayFromPyBufferWithCopy;
   using treelite::detail::serializer::InitScalarFromPyBuffer;
+  TREELITE_CHECK_LT(tree_id, model_preset.trees.size())
+      << "tree_id too big; it must be at most " << model_preset.trees.size();
   Tree<ThresholdType, LeafOutputType>& tree = model_preset.trees[tree_id];
   if (name == "num_opt_field_per_tree" || name == "num_opt_field_per_node") {
     TREELITE_LOG(FATAL) << "Field " << name << " is read-only and cannot be modified";

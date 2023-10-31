@@ -21,7 +21,8 @@ class Metadata:
         Number of features used in the model.
         We assume that all feature indices are between ``0`` and ``num_feature - 1``.
     task_type:
-        Task type
+        Task type. Can be one of ``kBinaryClf``, ``kRegressor``, ``kMultiClf``,
+        ``kLearningToRank``, or ``kIsolationForest``.
     average_tree_output:
         Whether to average outputs of trees
     num_target:

@@ -17,5 +17,5 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 
 echo ##[section]Uploading Python wheels...
 for /R %%i in (python\\dist\\*.whl) DO (
-  python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read || cd .
+  python -m awscli s3 cp "%%i" s3://treelite-wheels/ --acl public-read --region us-west-2 || cd .
 )

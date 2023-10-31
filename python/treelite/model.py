@@ -433,8 +433,12 @@ def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
     if not frame.buf:
         if frame.format == b"=l":
             dtype = "int32"
+        elif frame.format == b"=Q":
+            dtype = "uint64"
         elif frame.format == b"=L":
             dtype = "uint32"
+        elif frame.format == b"=B":
+            dtype = "uint8"
         elif frame.format == b"=f":
             dtype = "float32"
         elif frame.format == b"=d":

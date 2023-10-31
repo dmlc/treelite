@@ -85,7 +85,8 @@ class PostProcessorFunc:
     Parameters
     ----------
     name:
-        Name of the postprocessor
+        Name of the postprocessor. Consult :py:doc:`/knobs/postprocessor` for the list
+        of available postprocessor functions.
     sigmoid_alpha:
         Scaling parameter for sigmoid function ``sigmoid(x) = 1 / (1 + exp(-alpha * x))``.
         This parameter is applicable only when ``name="sigmoid"`` or ``name="multiclass_ova"``.

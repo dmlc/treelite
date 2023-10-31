@@ -86,7 +86,7 @@ Import your tree ensemble model into Treelite:
 .. code-block:: python
 
   import treelite
-  model = treelite.Model.load("my_model.model", model_format="xgboost")
+  model = treelite.frontend.load_xgboost_model("my_model.json")
 
 Compute predictions using :doc:`treelite-gtil-api`:
 

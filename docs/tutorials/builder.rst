@@ -416,7 +416,9 @@ indicates a strong vote for the positive class.)
 
 To obtain probability scores, we pass the sum of the tree outputs through a **link function**
 ``sigmoid(x) = 1/(1+exp(-x))``. In the model builder API,
-the link function is specified by the ``postprocessor`` argument. Let's look at how the builder object is constructed:
+the link function is specified by the ``postprocessor`` argument. (Consult :doc:`/knobs/postprocessor` for the list of
+available postprocessors.)
+Let's look at how the builder object is constructed:
 
 .. code-block:: python
 

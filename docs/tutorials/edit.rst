@@ -1,5 +1,5 @@
-Editing tree models
--------------------
+Editing tree models (Advanced)
+------------------------------
 
 :ref:`The field accessor API <field_accessors>` allows users to inspect and edit tree model objects after they have been
 constructed. Here are some examples:
@@ -30,8 +30,8 @@ constructed. Here are some examples:
 
 Consult :doc:`/serialization/v4` for the list of fields.
 
-How to use setter methods (Advanced)
-====================================
+How to use setter methods
+=========================
 There are lots of gotchas and pitfalls involved when using :py:meth:`~treelite.model.TreeAccessor.set_field` to modify
 trees. We must start by the following notice:
 
@@ -53,6 +53,14 @@ Make sure to follow the rules below to prevent errors and silent crashes:
 * When adding additional nodes, make sure to update the ``num_nodes`` field as well as all tree fields. Example:
 
   .. code-block:: python
+
+    import treelite
+    from treelite.model_builder import (
+      Metadata,
+      ModelBuilder,
+      PostProcessorFunc,
+      TreeAnnotation,
+    )
 
     # Tree stump with 3 nodes
     builder = ModelBuilder(

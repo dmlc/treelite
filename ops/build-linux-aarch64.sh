@@ -13,4 +13,4 @@ mv -v wheelhouse/*.whl python/dist/
 python tests/ci_build/rename_whl.py python/dist ${COMMIT_ID} ${TAG}
 
 echo "##[section]Uploading Python wheel (aarch64)..."
-python -m awscli s3 cp python/dist/*.whl s3://treelite-wheels/ --acl public-read --region us-west-2
+python -m awscli s3 cp python/dist/*.whl s3://treelite-wheels/ --acl public-read --region us-west-2 || true

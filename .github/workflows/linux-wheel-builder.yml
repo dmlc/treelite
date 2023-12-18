@@ -24,7 +24,7 @@ env:
 
 jobs:
   linux-wheel-builder:
-    name: Build and test Python wheels (Linux)
+    name: Build and test Python wheels (Linux amd64)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -46,6 +46,26 @@ jobs:
     - name: Test wheel
       run: |
         bash ops/test-linux-python-wheel.sh
+  linux-wheel-builder-aarch64:
+    name: Build and test Python wheels (Linux aarch64)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Build wheel
+      run: |
+        bash ops/build-linux-aarch64.sh
   cpack-builder:
     name: Build CPack
     runs-on: ubuntu-latest

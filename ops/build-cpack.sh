@@ -13,7 +13,7 @@ do
 done
 
 echo "##[section]Uploading CPack for amd64..."
-python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2
+python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2 || true
 
 rm -rf build/
 
@@ -30,4 +30,4 @@ do
 done
 
 echo "##[section]Uploading CPack for aarch64..."
-python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2
+python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2 || true

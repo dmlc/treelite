@@ -10,7 +10,7 @@ export CIBW_BUILD_VERBOSITY=3
 export CIBW_MANYLINUX_X86_64_IMAGE=manylinux2014
 
 echo "##[section]Building Python wheel (amd64) for Treelite..."
-python -m cibuildwheel python-package --output-dir wheelhouse
+python -m cibuildwheel python --output-dir wheelhouse
 mv -v wheelhouse/*.whl python/dist/
 python tests/ci_build/rename_whl.py python/dist ${COMMIT_ID} ${TAG}
 

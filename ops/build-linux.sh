@@ -11,8 +11,7 @@ export CIBW_MANYLINUX_X86_64_IMAGE=manylinux2014
 
 echo "##[section]Building Python wheel (amd64) for Treelite..."
 python -m cibuildwheel python --output-dir wheelhouse
-mv -v wheelhouse/*.whl python/dist/
-python tests/ci_build/rename_whl.py python/dist ${COMMIT_ID} ${TAG}
+python tests/ci_build/rename_whl.py wheelhouse ${COMMIT_ID} ${TAG}
 
 echo "##[section]Uploading Python wheel (amd64)..."
-python -m awscli s3 cp python/dist/*.whl s3://treelite-wheels/ --acl public-read --region us-west-2 || true
+python -m awscli s3 cp wheelhouse/*.whl s3://treelite-wheels/ --acl public-read --region us-west-2 || true

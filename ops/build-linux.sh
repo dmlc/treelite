@@ -4,10 +4,13 @@ set -euo pipefail
 
 TAG=manylinux2014_x86_64
 
+export CIBW_BUILD=cp38-manylinux_x86_64
+export CIBW_ARCHS=x86_64
+export CIBW_BUILD_VERBOSITY=3
+export CIBW_MANYLINUX_X86_64_IMAGE=manylinux2014
+
 echo "##[section]Building Python wheel (amd64) for Treelite..."
-tests/ci_build/ci_build.sh centos7_amd64 bash -c "cd python/ && pip wheel --no-deps -v . --wheel-dir dist/"
-tests/ci_build/ci_build.sh centos7_amd64 auditwheel repair --only-plat --plat ${TAG} python/dist/*.whl
-rm -v python/dist/*.whl
+python -m cibuildwheel python-package --output-dir wheelhouse
 mv -v wheelhouse/*.whl python/dist/
 python tests/ci_build/rename_whl.py python/dist ${COMMIT_ID} ${TAG}
 

@@ -14,4 +14,4 @@ for file in ./treelite-*.tar.gz
 do
   mv "${file}" "${file%.tar.gz}+${COMMIT_ID}.tar.gz"
 done
-python -m awscli s3 cp treelite-*.tar.gz s3://treelite-wheels/ --acl public-read --region us-west-2
+python -m awscli s3 cp treelite-*.tar.gz s3://treelite-wheels/ --acl public-read --region us-west-2 || true

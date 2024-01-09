@@ -117,6 +117,13 @@ def test_skl_classifier(clazz, dataset, n_estimators, callback):
     clf.fit(X, y)
 
     tl_model = treelite.sklearn.import_model(clf)
+
+    if clazz == GradientBoostingClassifier and kwargs["init"] == "zero":
+        base_scores = tl_model.get_header_accessor().get_field("base_scores")
+        expected_base_scores_shape = (clf.n_classes_ if clf.n_classes_ > 2 else 1,)
+        assert base_scores.shape == expected_base_scores_shape
+        np.testing.assert_equal(base_scores, np.zeros(expected_base_scores_shape))
+
     out_prob = treelite.gtil.predict(tl_model, X)
     expected_prob = clf.predict_proba(X)
     if (

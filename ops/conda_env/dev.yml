@@ -18,6 +18,7 @@ dependencies:
 - llvm-openmp
 - cython
 - lightgbm
+- xgboost
 - cpplint
 - pylint
 - awscli

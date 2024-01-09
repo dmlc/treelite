@@ -291,7 +291,7 @@ def import_model(sklearn_model):
         )
     elif isinstance(sklearn_model, GradientBoostingC):
         if sklearn_model.init_ == "zero":
-            base_scores = np.array([0], dtype=np.float64)
+            base_scores = np.zeros(shape=(sklearn_model.n_classes_,), dtype=np.float64)
         elif isinstance(sklearn_model.init_, (DummyClassifier,)):
             if sklearn_model.init_.strategy != "prior":
                 raise NotImplementedError("Custom init estimator not supported")

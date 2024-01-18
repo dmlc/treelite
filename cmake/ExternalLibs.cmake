@@ -48,7 +48,7 @@ if(BUILD_CPP_TEST)
       GIT_TAG        release-1.11.0
     )
     FetchContent_MakeAvailable(googletest)
-    add_library(GTest::GTest ALIAS gtest)
+    add_library(GTest::gtest ALIAS gtest)
     add_library(GTest::gmock ALIAS gmock)
     if(IS_DIRECTORY "${googletest_SOURCE_DIR}")
       # Do not install gtest

@@ -5,6 +5,8 @@ import pathlib
 import sys
 from typing import List
 
+from .path_config import get_custom_libpath
+
 
 class TreeliteLibraryNotFound(Exception):
     """Error thrown by when Treelite is not found"""
@@ -27,6 +29,9 @@ def find_lib_path() -> List[pathlib.Path]:
         # Use libtreelite from a system prefix, if available. This should be the last option.
         pathlib.Path(sys.base_prefix).expanduser().resolve() / "lib",
     ]
+    custom_libpath = get_custom_libpath()  # pylint: disable=assignment-from-none
+    if custom_libpath:
+        dll_path.insert(0, pathlib.Path(custom_libpath).expanduser().resolve())
 
     if sys.platform == "win32":
         # On Windows, Conda may install libs in different paths

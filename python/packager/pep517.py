@@ -79,6 +79,22 @@ def build_wheel(
         libtreelite = locate_or_build_libtreelite(
             TOPLEVEL_DIR, build_dir=build_dir, build_config=build_config
         )
+        if build_config.system_libtreelite_dir:
+            if not build_config.use_system_libtreelite:
+                raise RuntimeError(
+                    "use_system_libtreelite must be set to True if system_libtreelite_dir "
+                    "is specified"
+                )
+            # Write path_config.py
+            logger.info("Writing path_config.py...")
+            custom_libpath = (
+                pathlib.Path(build_config.system_libtreelite_dir).expanduser().resolve()
+            )
+            with open(pkg_path / "path_config.py", "w", encoding="utf-8") as f:
+                print(
+                    f"def get_custom_libpath():\n    return '{str(custom_libpath)}'",
+                    file=f,
+                )
         if not build_config.use_system_libtreelite:
             copy_with_logging(libtreelite, lib_path, logger=logger)
 

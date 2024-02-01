@@ -133,27 +133,42 @@ def locate_or_build_libtreelite(
     logger = logging.getLogger("treelite.packager.locate_or_build_libtreelite")
 
     if build_config.use_system_libtreelite:
-        # Find libtreelite from system prefix
-        sys_prefix = pathlib.Path(sys.base_prefix)
-        sys_prefix_candidates = [
-            sys_prefix / "lib",
-            # Paths possibly used on Windows
-            sys_prefix / "bin",
-            sys_prefix / "Library",
-            sys_prefix / "Library" / "bin",
-            sys_prefix / "Library" / "lib",
-        ]
-        sys_prefix_candidates = [
-            p.expanduser().resolve() for p in sys_prefix_candidates
-        ]
+        # If the user explicitly specifies the path for libtreelite, use it
+        if build_config.system_libtreelite_dir:
+            p = pathlib.Path(build_config.system_libtreelite_dir)
+            logger.info(
+                "system_libtreelite_dir was specified. Locating %s from path %s...",
+                _lib_name(),
+                str(p),
+            )
+            sys_prefix_candidates = [p.expanduser().resolve()]
+        else:
+            # Find libtreelite from system prefix
+            sys_prefix = pathlib.Path(sys.base_prefix)
+            sys_prefix_candidates = [
+                sys_prefix / "lib",
+                # Paths possibly used on Windows
+                sys_prefix / "bin",
+                sys_prefix / "Library",
+                sys_prefix / "Library" / "bin",
+                sys_prefix / "Library" / "lib",
+            ]
+            sys_prefix_candidates = [
+                p.expanduser().resolve() for p in sys_prefix_candidates
+            ]
         for candidate_dir in sys_prefix_candidates:
             libtreelite_sys = candidate_dir / _lib_name()
             if libtreelite_sys.exists():
                 logger.info("Using system treelite: %s", str(libtreelite_sys))
                 return libtreelite_sys
+        rec_msg = (
+            "Make sure that system_libtreelite_dir is a valid path"
+            if build_config.system_libtreelite_dir
+            else "Consider setting system_libtreelite_dir in the build configuration"
+        )
         raise RuntimeError(
-            f"use_system_libtreelite was specified but {_lib_name()} is "
-            f"not found. Paths searched (in order): \n"
+            f"use_system_libtreelite was specified but {_lib_name()} is not found. {rec_msg}. "
+            "Paths searched (in order): \n"
             + "\n".join([f"* {str(p)}" for p in sys_prefix_candidates])
         )
 

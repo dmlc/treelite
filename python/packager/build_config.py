@@ -13,14 +13,21 @@ class BuildConfiguration:  # pylint: disable=R0902
     hide_cxx_symbols: bool = True
     # Whether to use the Treelite library that's installed in the system prefix
     use_system_libtreelite: bool = False
+    # Manually configure path for the Treelite library.
+    # Only applicable when use_system_libtreelite=True
+    system_libtreelite_dir: str = ""
 
     def _set_config_setting(self, config_settings: Dict[str, Any]) -> None:
         for field_name in config_settings:
-            setattr(
-                self,
-                field_name,
-                (config_settings[field_name].lower() in ["true", "1", "on"]),
-            )
+            config_value = config_settings[field_name]
+            if field_name == "system_libtreelite_dir":
+                setattr(self, field_name, config_value)
+            else:
+                setattr(
+                    self,
+                    field_name,
+                    (config_value.lower() in ["true", "1", "on"]),
+                )
 
     def update(self, config_settings: Optional[Dict[str, Any]]) -> None:
         """Parse config_settings from Pip (or other PEP 517 frontend)"""
@@ -31,7 +38,7 @@ class BuildConfiguration:  # pylint: disable=R0902
         """Convert build configuration to CMake args"""
         cmake_args = []
         for field_name in [x.name for x in dataclasses.fields(self)]:
-            if field_name in ["use_system_libtreelite"]:
+            if field_name in ["use_system_libtreelite", "system_libtreelite_dir"]:
                 continue
             cmake_option = field_name.upper()
             cmake_value = "ON" if getattr(self, field_name) is True else "OFF"

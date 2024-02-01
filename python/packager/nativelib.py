@@ -134,7 +134,7 @@ def locate_or_build_libtreelite(
 
     if build_config.use_system_libtreelite:
         # Find libtreelite from system prefix
-        sys_prefix = pathlib.Path(sys.prefix)
+        sys_prefix = pathlib.Path(sys.base_prefix)
         sys_prefix_candidates = [
             sys_prefix / "lib",
             # Paths possibly used on Windows

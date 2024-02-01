@@ -25,12 +25,12 @@ def find_lib_path() -> List[pathlib.Path]:
         # Editable installation
         curr_path.parent.parent / "build",
         # Use libtreelite from a system prefix, if available. This should be the last option.
-        pathlib.Path(sys.prefix).expanduser().resolve() / "lib",
+        pathlib.Path(sys.base_prefix).expanduser().resolve() / "lib",
     ]
 
     if sys.platform == "win32":
         # On Windows, Conda may install libs in different paths
-        sys_prefix = pathlib.Path(sys.prefix)
+        sys_prefix = pathlib.Path(sys.base_prefix)
         dll_path.extend(
             [
                 sys_prefix / "bin",
@@ -60,8 +60,8 @@ def find_lib_path() -> List[pathlib.Path]:
             + ("\n- ".join(str(x) for x in dll_path))
             + "\nTreelite Python package path: "
             + str(curr_path)
-            + "\nsys.prefix: "
-            + sys.prefix
+            + "\nsys.base_prefix: "
+            + sys.base_prefix
             + "\nSee: "
             + link
             + " for installing Treelite."

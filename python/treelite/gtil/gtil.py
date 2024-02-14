@@ -5,7 +5,6 @@ General Tree Inference Library (GTIL)
 import ctypes
 import json
 from dataclasses import asdict, dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -55,7 +54,7 @@ def predict(
     data: np.ndarray,
     *,
     nthread: int = -1,
-    pred_margin: Optional[bool] = None,
+    pred_margin: bool = False,
 ):
     """
     Predict with a Treelite model using the General Tree Inference Library (GTIL).
@@ -68,7 +67,7 @@ def predict(
         2D NumPy array, with which to run prediction
     nthread : :py:class:`int <python:int>`, optional
         Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
-    pred_margin : bool, optional (defaults to False)
+    pred_margin : bool
         Whether to produce raw margin scores. If pred_margin=True, post-processing
         is no longer applied and raw margin scores are produced.
 
@@ -77,8 +76,6 @@ def predict(
     prediction : :py:class:`numpy.ndarray` array
         Prediction output. TODO(hcho3): Add expected dimensions
     """
-    if pred_margin is None:
-        pred_margin = False
     predict_type = "raw" if pred_margin else "default"
 
     config = GTILConfig(nthread=nthread, predict_type=predict_type)

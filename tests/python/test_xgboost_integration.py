@@ -1,4 +1,5 @@
 """Tests for XGBoost integration"""
+
 # pylint: disable=R0201, R0915, R0913, R0914
 import json
 import pathlib
@@ -565,3 +566,14 @@ def test_xgb_multi_target_regressor(
         expected_pred = xgb_model.predict(xgb.DMatrix(X_pred), validate_features=False)
         expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
+
+
+def test_load_old_xgboost_model():
+    """Ensure that Treelite can load old XGBoost models"""
+    path = (
+        pathlib.Path(__file__).parent.parent
+        / "examples"
+        / "mushroom"
+        / "mushroom.model"
+    )
+    _ = treelite.frontend.load_xgboost_model_legacy_binary(path)  # should not crash

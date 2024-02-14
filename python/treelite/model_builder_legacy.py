@@ -1,4 +1,5 @@
 """Treelite Model builder class (legacy)"""
+
 # pylint: disable=E1135, E1137
 
 from __future__ import annotations

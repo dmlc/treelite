@@ -2,6 +2,7 @@
 Tests for General Tree Inference Library (GTIL). The tests ensure that GTIL produces correct
 prediction results for a variety of tree models.
 """
+
 import numpy as np
 import pytest
 from hypothesis import given, settings

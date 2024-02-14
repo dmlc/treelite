@@ -1,4 +1,5 @@
 """Tests for legacy model builder interface"""
+
 import numpy as np
 
 import treelite

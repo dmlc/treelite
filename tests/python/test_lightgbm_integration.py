@@ -1,4 +1,5 @@
 """Tests for LightGBM integration"""
+
 import pathlib
 
 import numpy as np

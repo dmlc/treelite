@@ -24,7 +24,6 @@ extend-ignore =
     F401
     # redefinition of unused
     F811
-    extend-ignore =
     # E203 whitespace before ':'
     # https://github.com/psf/black/issues/315
     E203

@@ -401,8 +401,11 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   bool const average_tree_output = false;
 
   // XGBoost binary format only supports decision trees with scalar outputs
-  auto const num_target = static_cast<std::int32_t>(mparam_.num_target);
+  auto num_target = static_cast<std::int32_t>(mparam_.num_target);
   TREELITE_CHECK_GE(num_target, 0) << "num_target too big and caused an integer overflow";
+  if (num_target == 0) {
+    num_target = 1;
+  }
   TREELITE_CHECK_GE(num_target, 1) << "num_target must be at least 1";
   std::int32_t const num_class = std::max(mparam_.num_class, static_cast<std::int32_t>(1));
   std::array<std::int32_t, 2> const leaf_vector_shape{1, 1};

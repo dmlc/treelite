@@ -1,6 +1,7 @@
 """
 General Tree Inference Library (GTIL)
 """
+
 import ctypes
 import json
 from dataclasses import asdict, dataclass

@@ -1,6 +1,7 @@
 """
 Miscellaneous utilities
 """
+
 import ctypes
 
 import numpy as np

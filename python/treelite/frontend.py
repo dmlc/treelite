@@ -1,4 +1,5 @@
 """Functions to load and build model objects"""
+
 from __future__ import annotations
 
 import pathlib

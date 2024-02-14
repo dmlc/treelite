@@ -1,6 +1,7 @@
 """
 Functions for building libtreelite
 """
+
 import logging
 import os
 import pathlib

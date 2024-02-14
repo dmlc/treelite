@@ -1,4 +1,5 @@
 """Test for serializer"""
+
 import pathlib
 
 import numpy as np

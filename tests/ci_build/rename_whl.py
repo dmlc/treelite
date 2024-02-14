@@ -1,4 +1,5 @@
 """Rename a Python wheel"""
+
 import argparse
 import glob
 import os

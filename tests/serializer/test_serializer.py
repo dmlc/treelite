@@ -1,4 +1,5 @@
 """Test for serialization, via buffer protocol"""
+
 import ctypes
 from typing import List
 

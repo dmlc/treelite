@@ -1,4 +1,5 @@
 """Treelite module"""
+
 import pathlib
 
 from . import frontend, gtil, model_builder, sklearn

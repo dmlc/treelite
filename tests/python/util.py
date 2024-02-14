@@ -1,4 +1,5 @@
 """Utility functions for tests"""
+
 import ctypes
 import os
 import tempfile

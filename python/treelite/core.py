@@ -1,4 +1,5 @@
 """Interface with native lib"""
+
 import ctypes
 import os
 import sys

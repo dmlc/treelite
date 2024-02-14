@@ -1,4 +1,5 @@
 """Treelite Model builder class"""
+
 import ctypes
 import dataclasses
 import json

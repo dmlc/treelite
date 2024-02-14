@@ -1,4 +1,5 @@
 """Compatibility layer to enable API migration"""
+
 import ctypes
 import json
 from typing import Any, Optional, Union

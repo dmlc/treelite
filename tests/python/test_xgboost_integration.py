@@ -1,4 +1,5 @@
 """Tests for XGBoost integration"""
+
 # pylint: disable=R0201, R0915, R0913, R0914
 import json
 import pathlib

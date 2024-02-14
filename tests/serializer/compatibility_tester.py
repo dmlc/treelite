@@ -1,4 +1,5 @@
 """Script to test backward compatibility of serializer"""
+
 import argparse
 import pickle
 

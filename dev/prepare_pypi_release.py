@@ -2,6 +2,7 @@
 It fetches Python wheels from the CI pipelines.
 tqdm, sh are required to run this script.
 """
+
 # pylint: disable=W0603,C0103,too-many-arguments
 
 import argparse

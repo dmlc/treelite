@@ -2,6 +2,7 @@
 
 import json
 
+import numpy as np
 import pytest
 
 import treelite
@@ -13,7 +14,8 @@ from treelite.model_builder import (
 )
 
 
-def test_model_concat_with_tree_stump():
+@pytest.mark.parametrize("average_tree_output", [False, True])
+def test_model_concat_with_tree_stump(average_tree_output):
     """Test model concatenation with a tree stump"""
     num_model_objs = 5
 
@@ -23,14 +25,14 @@ def test_model_concat_with_tree_stump():
             leaf_output_type="float32",
             metadata=Metadata(
                 num_feature=2,
-                task_type="kBinaryClf",
-                average_tree_output=False,
+                task_type="kRegressor",
+                average_tree_output=average_tree_output,
                 num_target=1,
                 num_class=[1],
                 leaf_vector_shape=[1, 1],
             ),
             tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
-            postprocessor=PostProcessorFunc(name="sigmoid"),
+            postprocessor=PostProcessorFunc(name="identity"),
             base_scores=[0.0],
         )
         builder.start_tree()
@@ -55,6 +57,13 @@ def test_model_concat_with_tree_stump():
 
     model_objs = [make_tree_stump() for _ in range(num_model_objs)]
     concatenated_model = treelite.Model.concatenate(model_objs)
+
+    X = np.array([[-1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+    pred = treelite.gtil.predict(concatenated_model, X)
+    expected_pred = sum(treelite.gtil.predict(obj, X) for obj in model_objs)
+    if average_tree_output:
+        expected_pred /= len(model_objs)
+    np.testing.assert_almost_equal(pred, expected_pred)
 
     ref_tree_stump = make_tree_stump()
     ref_tree_stump_json = json.loads(ref_tree_stump.dump_as_json(pretty_print=False))

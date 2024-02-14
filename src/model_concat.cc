@@ -26,6 +26,7 @@ std::unique_ptr<Model> ConcatenateModelObjects(std::vector<Model const*> const& 
   // Header
   concatenated_model->num_feature = objs[0]->num_feature;
   concatenated_model->task_type = objs[0]->task_type;
+  concatenated_model->average_tree_output = objs[0]->average_tree_output;
   // Task parameters
   concatenated_model->num_target = objs[0]->num_target;
   concatenated_model->num_class = objs[0]->num_class.Clone();

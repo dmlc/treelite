@@ -163,6 +163,9 @@ def test_skl_converter_iforest(dataset):
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
+@pytest.mark.xfail(
+    reason="HistGradientBoostingClassifier parser doesn't work with scikit-learn 1.4.0+"
+)
 def test_skl_hist_gradient_boosting_with_categorical(
     dataset, num_boost_round, use_categorical, callback
 ):

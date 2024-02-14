@@ -90,3 +90,32 @@ jobs:
     - name: Test compatibility
       run: |
         bash ops/test-serializer-compatibility.sh
+  test-custom-libpath:
+    name: Test Treelite with custom libpath
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - uses: mamba-org/provision-with-micromamba@v14
+      with:
+        cache-downloads: true
+        cache-env: true
+        environment-name: dev
+        environment-file: ops/conda_env/dev.yml
+    - name: Display Conda env
+      run: |
+        conda info
+        conda list
+    - name: Test Treelite with custom libpath
+      run: |
+        mkdir build
+        cd build
+        cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/opt/treelite
+        ninja install -v
+        cd ../python
+        pip install -v . --config-settings use_system_libtreelite=True \
+          --config-settings system_libtreelite_dir=/opt/treelite/lib
+        cd ..
+        rm -rf build/
+        python -c "import treelite; print(treelite.core._LIB)"

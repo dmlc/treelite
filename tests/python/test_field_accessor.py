@@ -170,7 +170,7 @@ def test_tree_editing():
         treelite.gtil.predict(
             model, np.array([[-1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
         ),
-        np.array([[[-1.0], [1.0]]], dtype=np.float32),
+        np.array([[[-1.0]], [[1.0]]], dtype=np.float32),
     )
 
     # Change leaf values
@@ -180,7 +180,7 @@ def test_tree_editing():
         treelite.gtil.predict(
             model, np.array([[-1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
         ),
-        np.array([[[-100.0], [100.0]]], dtype=np.float32),
+        np.array([[[-100.0]], [[100.0]]], dtype=np.float32),
     )
 
     # Change numerical test
@@ -190,7 +190,7 @@ def test_tree_editing():
         treelite.gtil.predict(
             model, np.array([[0.0, 0.0], [0.0, 2.0]], dtype=np.float32)
         ),
-        np.array([[[-100.0], [100.0]]], dtype=np.float32),
+        np.array([[[-100.0]], [[100.0]]], dtype=np.float32),
     )
 
     # Add a test node
@@ -222,5 +222,5 @@ def test_tree_editing():
                 dtype=np.float32,
             ),
         ),
-        np.array([[[1.0], [1.0], [2.0], [3.0]]], dtype=np.float32),
+        np.array([[[1.0]], [[1.0]], [[2.0]], [[3.0]]], dtype=np.float32),
     )

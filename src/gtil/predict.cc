@@ -125,7 +125,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, max_num_class);
     for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
       for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-        output_view(target_id, row_id, class_id) += leaf_view(target_id, class_id);
+        output_view(row_id, target_id, class_id) += leaf_view(target_id, class_id);
       }
     }
   } else if (model.target_id[tree_id] == -1) {
@@ -135,7 +135,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, 1);
     auto const class_id = model.class_id[tree_id];
     for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
-      output_view(target_id, row_id, class_id) += leaf_view(target_id, 0);
+      output_view(row_id, target_id, class_id) += leaf_view(target_id, 0);
     }
   } else if (model.class_id[tree_id] == -1) {
     std::vector<std::int32_t> const expected_leaf_shape{1, max_num_class};
@@ -144,7 +144,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), 1, max_num_class);
     auto const target_id = model.target_id[tree_id];
     for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-      output_view(target_id, row_id, class_id) += leaf_view(0, class_id);
+      output_view(row_id, target_id, class_id) += leaf_view(0, class_id);
     }
   } else {
     std::vector<std::int32_t> const expected_leaf_shape{1, 1};
@@ -152,7 +152,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
 
     auto const target_id = model.target_id[tree_id];
     auto const class_id = model.class_id[tree_id];
-    output_view(target_id, row_id, class_id) += leaf_out[0];
+    output_view(row_id, target_id, class_id) += leaf_out[0];
   }
 }
 
@@ -166,7 +166,7 @@ void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tr
   std::vector<std::int32_t> const expected_leaf_shape{1, 1};
   TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
-  output_view(target_id, row_id, class_id) += tree.LeafValue(leaf_id);
+  output_view(row_id, target_id, class_id) += tree.LeafValue(leaf_id);
 }
 
 template <typename InputT>
@@ -175,7 +175,7 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
   auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
-  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  auto output_view = Array3DView<InputT>(output, num_row, model.num_target, max_num_class);
   std::size_t const num_tree = model.GetNumTree();
   std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
   std::visit(
@@ -223,27 +223,27 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
         average_factor_view(model.target_id[tree_id], model.class_id[tree_id]) += 1;
       }
     }
-    for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
-      detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
-          detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+        detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+          for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
             for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-              output_view(target_id, row_id, class_id)
+              output_view(row_id, target_id, class_id)
                   /= static_cast<InputT>(average_factor_view(target_id, class_id));
             }
-          });
-    }
+          }
+        });
   }
   // Apply base scores
   auto base_score_view
       = CArray2DView<double>(model.base_scores.Data(), model.num_target, max_num_class);
-  for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
-    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
-        detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+  detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+      detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
           for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-            output_view(target_id, row_id, class_id) += base_score_view(target_id, class_id);
+            output_view(row_id, target_id, class_id) += base_score_view(target_id, class_id);
           }
-        });
-  }
+        }
+      });
 }
 
 template <typename InputT>
@@ -252,17 +252,16 @@ void ApplyPostProcessor(Model const& model, InputT* output, std::uint64_t num_ro
   auto postprocessor_func = gtil::GetPostProcessorFunc<InputT>(model.postprocessor);
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
-  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  auto output_view = Array3DView<InputT>(output, num_row, model.num_target, max_num_class);
 
-  for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
-    std::int32_t const num_class = model.num_class[target_id];
-    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
-        detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
-          auto row = stdex::submdspan(output_view, target_id, row_id, stdex::full_extent);
+  detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+      detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+          auto row = stdex::submdspan(output_view, row_id, target_id, stdex::full_extent);
           static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>);
-          postprocessor_func(model, num_class, row.data_handle());
-        });
-  }
+          postprocessor_func(model, model.num_class[target_id], row.data_handle());
+        }
+      });
 }
 
 template <typename InputT>

@@ -71,7 +71,7 @@ def test_serialize_as_bytes(clazz, dataset, n_estimators, max_depth, callback):
         )
     clf = clazz(**kwargs)
     clf.fit(X, y)
-    expected_prob = clf.predict_proba(X)[np.newaxis, :, :]
+    expected_prob = clf.predict_proba(X)[:, np.newaxis, :]
     if (
         clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]
         and n_classes == 2
@@ -129,9 +129,9 @@ def test_serialize_as_checkpoint(clazz, n_estimators, max_depth, callback):
     clf = clazz(**kwargs)
     clf.fit(X, y)
     if n_targets > 1:
-        expected_pred = np.transpose(clf.predict(X)[:, :, np.newaxis], axes=(1, 0, 2))
+        expected_pred = clf.predict(X)[:, :, np.newaxis]
     else:
-        expected_pred = clf.predict(X).reshape((1, X.shape[0], -1))
+        expected_pred = clf.predict(X).reshape((X.shape[0], 1, -1))
 
     with TemporaryDirectory() as tmpdir:
         # Prediction should be correct after a round-trip

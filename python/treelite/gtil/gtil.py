@@ -74,7 +74,7 @@ def predict(
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output. Expected dimensions: (num_target, num_row, max(num_class))
+        Prediction output. Expected dimensions: (num_row, num_target, max(num_class))
     """
     predict_type = "raw" if pred_margin else "default"
 

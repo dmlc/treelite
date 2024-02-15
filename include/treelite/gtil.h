@@ -26,12 +26,12 @@ namespace gtil {
 enum class PredictKind : std::int8_t {
   /*!
    * \brief Usual prediction method: sum over trees and apply post-processing.
-   * Expected output dimensions: (num_target, num_row, max_num_class)
+   * Expected output dimensions: (num_row, num_target, max_num_class)
    */
   kPredictDefault = 0,
   /*!
    * \brief Sum over trees, but don't apply post-processing; get raw margin scores instead.
-   * Expected output dimensions: (num_target, num_row, max_num_class)
+   * Expected output dimensions: (num_row, num_target, max_num_class)
    */
   kPredictRaw = 1,
   /*!

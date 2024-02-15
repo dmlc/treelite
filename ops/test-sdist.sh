@@ -6,7 +6,7 @@ echo "##[section]Building a source distribution..."
 python -m build --sdist python/ --outdir .
 
 echo "##[section]Testing the source distribution..."
-python -m pip install -v treelite-*.tar.gz
+python -m pip install --force-reinstall -v treelite-*.tar.gz
 python -m pytest -v -rxXs --fulltrace --durations=0 tests/python/test_sklearn_integration.py
 
 # Deploy source distribution to S3

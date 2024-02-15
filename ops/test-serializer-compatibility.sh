@@ -12,7 +12,7 @@ cd ..
 CURRENT_VERSION=$(cat python/treelite/VERSION)
 
 echo "##[section]Testing serialization: 3.9 -> ${CURRENT_VERSION}"
-pip install treelite==3.9.0 treelite_runtime==3.9.0
+pip install --force-reinstall treelite==3.9.0 treelite_runtime==3.9.0
 python tests/serializer/compatibility_tester.py --task save --checkpoint-path checkpoint.bin \
   --model-pickle-path model.pkl --expected-treelite-version 3.9.0
 PYTHONPATH=./python/ python tests/serializer/compatibility_tester.py --task load \

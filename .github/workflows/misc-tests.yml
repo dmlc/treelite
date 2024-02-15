@@ -114,7 +114,7 @@ jobs:
         cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/opt/treelite
         ninja install -v
         cd ../python
-        pip install -v . --config-settings use_system_libtreelite=True \
+        pip install --force-reinstall -v . --config-settings use_system_libtreelite=True \
           --config-settings system_libtreelite_dir=/opt/treelite/lib
         cd ..
         rm -rf build/

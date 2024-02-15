@@ -77,7 +77,7 @@ def test_skl_regressor(clazz, n_estimators, callback):
     if n_targets > 1:
         expected_pred = np.transpose(clf.predict(X)[:, :, np.newaxis], axes=(1, 0, 2))
     else:
-        expected_pred = clf.predict(X).reshape((X.shape[0], -1))
+        expected_pred = clf.predict(X).reshape((1, X.shape[0], -1))
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
@@ -126,12 +126,12 @@ def test_skl_classifier(clazz, dataset, n_estimators, callback):
         np.testing.assert_equal(base_scores, np.zeros(expected_base_scores_shape))
 
     out_prob = treelite.gtil.predict(tl_model, X)
-    expected_prob = clf.predict_proba(X)
+    expected_prob = clf.predict_proba(X)[np.newaxis, :, :]
     if (
         clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]
         and n_classes == 2
     ):
-        expected_prob = expected_prob[:, 1:]
+        expected_prob = expected_prob[:, :, 1:]
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 
@@ -148,7 +148,7 @@ def test_skl_converter_iforest(dataset):
     )
     clf.fit(X)
     expected_pred = clf._compute_chunked_score_samples(X)  # pylint: disable=W0212
-    expected_pred = expected_pred.reshape((-1, 1))
+    expected_pred = expected_pred.reshape((1, -1, 1))
 
     tl_model = treelite.sklearn.import_model(clf)
     out_pred = treelite.gtil.predict(tl_model, X)
@@ -194,5 +194,5 @@ def test_skl_hist_gradient_boosting_with_categorical(
 
     tl_model = treelite.sklearn.import_model(clf)
     out_pred = treelite.gtil.predict(tl_model, X_pred)
-    expected_pred = clf.predict_proba(X_pred)[:, 1:]
+    expected_pred = clf.predict_proba(X_pred)[np.newaxis, :, 1:]
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)

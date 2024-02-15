@@ -75,10 +75,6 @@ def test_xgb_regressor(
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
 
-    # See https://github.com/dmlc/xgboost/pull/9574
-    if objective == "reg:pseudohubererror":
-        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
-
     if objective == "reg:squaredlogerror":
         X, y = generate_data_for_squared_log_error()
         use_categorical = False
@@ -125,7 +121,7 @@ def test_xgb_regressor(
         out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
         expected_pred = xgb_model.predict(
             xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
-        ).reshape((X.shape[0], -1))
+        ).reshape((1, X.shape[0], -1))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
@@ -202,7 +198,7 @@ def test_xgb_multiclass_classifier(
             out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
             expected_pred = xgb_model.predict(
                 xgb.DMatrix(X_pred), output_margin=pred_margin, validate_features=False
-            )
+            ).reshape((1, -1, num_class))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -282,7 +278,7 @@ def test_xgb_nonlinear_objective(
         out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=True)
         expected_pred = xgb_model.predict(
             xgb.DMatrix(X_pred), output_margin=True, validate_features=False
-        ).reshape((X.shape[0], -1))
+        ).reshape((1, X.shape[0], -1))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -317,10 +313,10 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
-            tl_model = treelite.Model.from_xgboost(xgb_model)
+            tl_model = treelite.frontend.from_xgboost(xgb_model)
         out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
         expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
-            (X.shape[0], -1)
+            (1, X.shape[0], -1)
         )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -508,10 +504,6 @@ def test_xgb_multi_target_regressor(
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
-
-    # See https://github.com/dmlc/xgboost/pull/9574
-    if objective == "reg:pseudohubererror":
-        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
 
     if objective == "reg:squaredlogerror":
         X, y = generate_data_for_squared_log_error(n_targets=n_targets)

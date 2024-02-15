@@ -47,7 +47,7 @@ def test_predict_special_with_regressor(predict_kind, dataset, num_boost_round):
         dtrain,
         num_boost_round=num_boost_round,
     )
-    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
+    model: treelite.Model = treelite.frontend.from_xgboost(xgb_model)
     assert model.num_tree == num_boost_round
 
     if predict_kind == "leaf_id":
@@ -87,7 +87,7 @@ def test_predict_special_with_binary_classifier(predict_kind, dataset, num_boost
         dtrain=dtrain,
         num_boost_round=num_boost_round,
     )
-    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
+    model: treelite.Model = treelite.frontend.from_xgboost(xgb_model)
     assert model.num_tree == num_boost_round
 
     if predict_kind == "leaf_id":
@@ -139,7 +139,7 @@ def test_predict_special_with_multiclass_classifier_grove_per_class(
         dtrain,
         num_boost_round=num_boost_round,
     )
-    model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
+    model: treelite.Model = treelite.frontend.from_xgboost(xgb_model)
     assert model.num_tree == num_boost_round * num_class
 
     X_sample = X[0:sample_size]

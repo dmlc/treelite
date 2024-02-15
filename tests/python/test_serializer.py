@@ -71,12 +71,12 @@ def test_serialize_as_bytes(clazz, dataset, n_estimators, max_depth, callback):
         )
     clf = clazz(**kwargs)
     clf.fit(X, y)
-    expected_prob = clf.predict_proba(X)
+    expected_prob = clf.predict_proba(X)[np.newaxis, :, :]
     if (
         clazz in [GradientBoostingClassifier, HistGradientBoostingClassifier]
         and n_classes == 2
     ):
-        expected_prob = expected_prob[:, 1:]
+        expected_prob = expected_prob[:, :, 1:]
 
     # Prediction should be correct after a round-trip
     tl_model = treelite.sklearn.import_model(clf)
@@ -131,7 +131,7 @@ def test_serialize_as_checkpoint(clazz, n_estimators, max_depth, callback):
     if n_targets > 1:
         expected_pred = np.transpose(clf.predict(X)[:, :, np.newaxis], axes=(1, 0, 2))
     else:
-        expected_pred = clf.predict(X).reshape((X.shape[0], -1))
+        expected_pred = clf.predict(X).reshape((1, X.shape[0], -1))
 
     with TemporaryDirectory() as tmpdir:
         # Prediction should be correct after a round-trip

@@ -74,7 +74,7 @@ def predict(
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output. TODO(hcho3): Add expected dimensions
+        Prediction output. Expected dimensions: (num_target, num_row, max(num_class))
     """
     predict_type = "raw" if pred_margin else "default"
 
@@ -131,11 +131,7 @@ def predict_per_tree(model: Model, data: np.ndarray, *, nthread: int = -1):
     -------
     prediction : :py:class:`numpy.ndarray` array
         Prediction output. Expected output dimensions:
-
-        - (num_row, num_tree) for regressors, binary classifiers,
-          and multi-class classifiers with task_type="MultiClfGrovePerClass"
-        - (num_row, num_tree, num_class) for multi-class classifiers with
-          task_type="kMultiClfProbDistLeaf"
+        (num_row, num_tree, leaf_vector_shape[0] * leaf_vector_shape[1])
     """
 
     config = GTILConfig(nthread=nthread, predict_type="score_per_tree")

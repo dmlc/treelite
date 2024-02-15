@@ -85,10 +85,10 @@ TEST_P(ParametrizedTestSuite, MulticlassClfGrovePerClass) {
   std::vector<std::uint64_t> expected_output_shape;
   std::vector<std::vector<float>> expected_output;
   if (predict_kind == "raw") {
-    expected_output_shape = {1, 3};
+    expected_output_shape = {1, 1, 3};
     expected_output = {{1.3f, -1.8f, 2.5f}, {-1.7f, 1.2f, 1.5f}};
   } else if (predict_kind == "default") {
-    expected_output_shape = {1, 3};
+    expected_output_shape = {1, 1, 3};
     auto softmax = [](float a, float b, float c) {
       float const max = std::max({a, b, c});
       a -= max;
@@ -156,7 +156,7 @@ TEST_P(ParametrizedTestSuite, LeafVectorRF) {
   std::vector<std::uint64_t> expected_output_shape;
   std::vector<std::vector<float>> expected_output;
   if (predict_kind == "raw" || predict_kind == "default") {
-    expected_output_shape = {1, 3};
+    expected_output_shape = {1, 1, 3};
     expected_output = {{100.0f, 200.5f, 300.5f}, {101.0f, 200.0f, 300.0f}};
   } else if (predict_kind == "leaf_id") {
     expected_output_shape = {1, 2};

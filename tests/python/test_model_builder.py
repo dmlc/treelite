@@ -130,10 +130,10 @@ def test_leaf_vector_rf(predict_kind):
     model = builder.commit()
     dmat = np.array([[1.0], [-1.0]], dtype=np.float32)
     if predict_kind in "default":
-        expected_pred = np.array([[[100.0, 200.5, 300.5], [101.0, 200.0, 300.0]]])
+        expected_pred = np.array([[[100.0, 200.5, 300.5]], [[101.0, 200.0, 300.0]]])
         pred = treelite.gtil.predict(model, dmat, pred_margin=False)
     elif predict_kind == "raw":
-        expected_pred = np.array([[[100.0, 200.5, 300.5], [101.0, 200.0, 300.0]]])
+        expected_pred = np.array([[[100.0, 200.5, 300.5]], [[101.0, 200.0, 300.0]]])
         pred = treelite.gtil.predict(model, dmat, pred_margin=True)
     else:
         expected_pred = np.array([[2, 2], [1, 1]])

@@ -77,7 +77,7 @@ def test_lightgbm_regression(
         valid_sets=[dtrain],
         valid_names=["train"],
     )
-    expected_pred = lgb_model.predict(X_pred).reshape((1, -1, 1))
+    expected_pred = lgb_model.predict(X_pred).reshape((-1, 1, 1))
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "lightgbm_model.txt"
@@ -131,7 +131,7 @@ def test_lightgbm_binary_classification(
         valid_sets=[dtrain],
         valid_names=["train"],
     )
-    expected_prob = lgb_model.predict(X_pred).reshape((1, -1, 1))
+    expected_prob = lgb_model.predict(X_pred).reshape((-1, 1, 1))
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "breast_cancer_lightgbm.txt"
@@ -192,7 +192,7 @@ def test_lightgbm_multiclass_classification(
         valid_sets=[dtrain],
         valid_names=["train"],
     )
-    expected_pred = lgb_model.predict(X_pred).reshape((1, -1, num_class))
+    expected_pred = lgb_model.predict(X_pred).reshape((-1, 1, num_class))
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "iris_lightgbm.txt"
@@ -210,7 +210,7 @@ def test_lightgbm_categorical_data():
     tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
-    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((1, -1, 1))
+    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1, 1))
     out_pred = treelite.gtil.predict(tl_model, X.toarray())
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -238,7 +238,7 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
 
     dtrain = lgb.Dataset(X, label=y, group=[X.shape[0]])
     lgb_model = lgb.train(params, dtrain, num_boost_round=1)
-    lgb_out = lgb_model.predict(X).reshape((1, -1, 1))
+    lgb_out = lgb_model.predict(X).reshape((-1, 1, 1))
     lgb_model.save_model(lgb_model_path)
 
     tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
@@ -260,7 +260,7 @@ def test_lightgbm_sparse_categorical_model():
     X, _ = load_svmlight_file(
         dataset_db[dataset].dtest, zero_based=True, n_features=tl_model.num_feature
     )
-    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((1, -1, 1))
+    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1, 1))
     # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
     Xa = X.toarray()
     Xa[Xa == 0] = "nan"

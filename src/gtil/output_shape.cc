@@ -23,9 +23,9 @@ std::vector<std::uint64_t> GetOutputShape(
   case PredictKind::kPredictDefault:
   case PredictKind::kPredictRaw:
     if (model.num_target > 1) {
-      return {static_cast<std::uint64_t>(model.num_target), num_row, max_num_class};
+      return {num_row, static_cast<std::uint64_t>(model.num_target), max_num_class};
     } else {
-      return {1, num_row, max_num_class};
+      return {num_row, 1, max_num_class};
     }
   case PredictKind::kPredictLeafID:
     return {num_row, num_tree};

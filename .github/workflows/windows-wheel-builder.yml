@@ -36,10 +36,6 @@ jobs:
         cache-env: true
         environment-name: dev
         environment-file: ops/conda_env/dev.yml
-    - name: Display Conda env
-      run: |
-        micromamba info
-        micromamba list
     - name: Build wheel
       run: |
         call ops/build-windows.bat

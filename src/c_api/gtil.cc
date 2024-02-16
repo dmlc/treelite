@@ -58,3 +58,22 @@ int TreeliteGTILPredict(TreeliteModelHandle model, void const* input, char const
   }
   API_END();
 }
+
+int TreeliteGTILPredictSparse(TreeliteModelHandle model, void const* data, char const* input_type,
+    std::uint64_t const* col_ind, std::uint64_t const* row_ptr, std::uint64_t num_row, void* output,
+    TreeliteGTILConfigHandle config) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  auto const* config_ = static_cast<treelite::gtil::Configuration const*>(config);
+  std::string input_type_str = std::string(input_type);
+  if (input_type_str == "float32") {
+    treelite::gtil::PredictSparse(*model_, static_cast<float const*>(data), col_ind, row_ptr,
+        num_row, static_cast<float*>(output), *config_);
+  } else if (input_type_str == "float64") {
+    treelite::gtil::PredictSparse(*model_, static_cast<double const*>(data), col_ind, row_ptr,
+        num_row, static_cast<double*>(output), *config_);
+  } else {
+    TREELITE_LOG(FATAL) << "Unexpected type spec: " << input_type_str;
+  }
+  API_END();
+}

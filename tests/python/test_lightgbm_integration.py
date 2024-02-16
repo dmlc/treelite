@@ -242,12 +242,7 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
     lgb_model.save_model(lgb_model_path)
 
     tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
-
-    # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
-    Xa = X.toarray()
-    Xa[Xa == 0] = "nan"
-    out = treelite.gtil.predict(tl_model, Xa)
-
+    out = treelite.gtil.predict(tl_model, X, nthread=1)
     np.testing.assert_almost_equal(out, lgb_out)
 
 
@@ -261,8 +256,5 @@ def test_lightgbm_sparse_categorical_model():
         dataset_db[dataset].dtest, zero_based=True, n_features=tl_model.num_feature
     )
     expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1, 1))
-    # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
-    Xa = X.toarray()
-    Xa[Xa == 0] = "nan"
-    out_pred = treelite.gtil.predict(tl_model, Xa, pred_margin=True)
+    out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

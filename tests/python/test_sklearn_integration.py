@@ -17,6 +17,7 @@ from .hypothesis_util import (
 from .util import has_pandas, to_categorical
 
 try:
+    from sklearn.datasets import make_classification
     from sklearn.dummy import DummyClassifier, DummyRegressor
     from sklearn.ensemble import (
         ExtraTreesClassifier,
@@ -29,6 +30,7 @@ try:
         RandomForestClassifier,
         RandomForestRegressor,
     )
+    from sklearn.utils import shuffle
 except ImportError:
     # Skip this test suite if scikit-learn is not installed
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
@@ -56,7 +58,7 @@ def test_skl_regressor(clazz, n_estimators, callback):
     else:
         n_targets = callback.draw(just(1))
     X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
-    kwargs = {"max_depth": 3, "random_state": 0}
+    kwargs = {"max_depth": 8, "random_state": 0}
     if clazz == HistGradientBoostingRegressor:
         kwargs["max_iter"] = n_estimators
     else:
@@ -101,7 +103,7 @@ def test_skl_classifier(clazz, dataset, n_estimators, callback):
     """Scikit-learn binary classifier"""
     X, y = dataset
     n_classes = len(np.unique(y))
-    kwargs = {"max_depth": 3, "random_state": 0}
+    kwargs = {"max_depth": 8, "random_state": 0}
     if clazz == HistGradientBoostingClassifier:
         kwargs["max_iter"] = n_estimators
     else:
@@ -132,6 +134,36 @@ def test_skl_classifier(clazz, dataset, n_estimators, callback):
         and n_classes == 2
     ):
         expected_prob = expected_prob[:, :, 1:]
+    np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
+
+
+@given(
+    n_classes=integers(min_value=3, max_value=5),
+    n_estimators=integers(min_value=3, max_value=10),
+)
+@settings(**standard_settings())
+def test_skl_multitarget_multiclass_rf(n_classes, n_estimators):
+    """Scikit-learn RF classifier with multiple outputs and classes"""
+    X, y1 = make_classification(
+        n_samples=1000,
+        n_features=100,
+        n_informative=30,
+        n_classes=n_classes,
+        random_state=0,
+    )
+    y2 = shuffle(y1, random_state=1)
+    y3 = shuffle(y1, random_state=2)
+
+    y = np.vstack((y1, y2, y3)).T
+
+    clf = RandomForestClassifier(
+        max_depth=8, n_estimators=n_estimators, n_jobs=-1, random_state=4
+    )
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    out_prob = treelite.gtil.predict(tl_model, X)
+    expected_prob = clf.predict_proba(X)
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 
@@ -188,7 +220,7 @@ def test_skl_hist_gradient_boosting_with_categorical(
         max_iter=num_boost_round,
         categorical_features=categorical_features,
         early_stopping=False,
-        max_depth=1,
+        max_depth=8,
     )
     clf.fit(df, y)
 

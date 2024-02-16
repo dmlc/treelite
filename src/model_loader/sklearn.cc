@@ -86,7 +86,7 @@ class RandomForestClassifierMixIn {
     TREELITE_CHECK_GT(max_num_class_, 0)
         << "max_num_class not yet initialized. Was HandleMetadata() called?";
     std::vector<double> leafvec(&value[tree_id][node_id * n_targets_ * max_num_class_],
-        &value[tree_id][(node_id + 1) * max_num_class_]);
+        &value[tree_id][(node_id + 1) * n_targets_ * max_num_class_]);
     // Compute the probability distribution over label classes
     double const norm_factor = std::accumulate(leafvec.begin(), leafvec.end(), 0.0);
     std::for_each(leafvec.begin(), leafvec.end(), [norm_factor](double& e) { e /= norm_factor; });

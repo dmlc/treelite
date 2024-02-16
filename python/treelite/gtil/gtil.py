@@ -5,8 +5,10 @@ General Tree Inference Library (GTIL)
 import ctypes
 import json
 from dataclasses import asdict, dataclass
+from typing import Union
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
 from ..core import _LIB, _check_call
 from ..frontend import Model
@@ -51,7 +53,7 @@ class GTILConfig:
 
 def predict(
     model: Model,
-    data: np.ndarray,
+    data: Union[np.ndarray, csr_matrix],
     *,
     nthread: int = -1,
     pred_margin: bool = False,
@@ -63,8 +65,8 @@ def predict(
     ----------
     model : :py:class:`Model` object
         Treelite model object
-    data : :py:class:`numpy.ndarray` array
-        2D NumPy array, with which to run prediction
+    data : :py:class:`numpy.ndarray` / :py:class:`scipy.sparse.csr_matrix`
+        Data matrix, with which to run prediction
     nthread : :py:class:`int <python:int>`, optional
         Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
     pred_margin : bool
@@ -82,7 +84,12 @@ def predict(
     return _predict_impl(model, data, config=config)
 
 
-def predict_leaf(model: Model, data: np.ndarray, *, nthread: int = -1):
+def predict_leaf(
+    model: Model,
+    data: Union[np.ndarray, csr_matrix],
+    *,
+    nthread: int = -1,
+):
     """
     Predict with a Treelite model, outputting the leaf node's ID for each row.
 
@@ -90,8 +97,8 @@ def predict_leaf(model: Model, data: np.ndarray, *, nthread: int = -1):
     ----------
     model : :py:class:`Model` object
         Treelite model object
-    data : :py:class:`numpy.ndarray` array
-        2D NumPy array, with which to run prediction
+    data : :py:class:`numpy.ndarray` / :py:class:`scipy.sparse.csr_matrix`
+        Data matrix, with which to run prediction
     nthread : :py:class:`int <python:int>`, optional
         Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
 
@@ -113,7 +120,9 @@ def predict_leaf(model: Model, data: np.ndarray, *, nthread: int = -1):
     return _predict_impl(model, data, config=config)
 
 
-def predict_per_tree(model: Model, data: np.ndarray, *, nthread: int = -1):
+def predict_per_tree(
+    model: Model, data: Union[np.ndarray, csr_matrix], *, nthread: int = -1
+):
     """
     Predict with a Treelite model and output prediction of each tree.
     This function computes one or more margin scores per tree.
@@ -122,8 +131,8 @@ def predict_per_tree(model: Model, data: np.ndarray, *, nthread: int = -1):
     ----------
     model : :py:class:`Model` object
         Treelite model object
-    data : :py:class:`numpy.ndarray` array
-        2D NumPy array, with which to run prediction
+    data : :py:class:`numpy.ndarray` / :py:class:`scipy.sparse.csr_matrix`
+        Data matrix, with which to run prediction
     nthread : :py:class:`int <python:int>`, optional
         Number of CPU cores to use in prediction. If <= 0, use all CPU cores.
 
@@ -138,25 +147,44 @@ def predict_per_tree(model: Model, data: np.ndarray, *, nthread: int = -1):
     return _predict_impl(model, data, config=config)
 
 
-def _predict_impl(model: Model, data: np.ndarray, *, config: GTILConfig) -> np.ndarray:
+def _predict_impl(
+    model: Model, data: Union[np.ndarray, csr_matrix], *, config: GTILConfig
+) -> np.ndarray:
     # Validate parameters
     if not isinstance(model, Model):
         raise ValueError('Argument "model" must be a Model type')
-    if (not isinstance(data, np.ndarray)) or len(data.shape) != 2:
-        raise ValueError('Argument "data" must be a 2D NumPy array')
-
-    data = np.array(
-        data, copy=False, dtype=typestr_to_numpy_type(model.input_type), order="C"
-    )
-    if data.shape[1] < model.num_feature:
-        # Pad missing features with NAs
-        data = np.pad(
-            data,
-            ((0, 0), (0, model.num_feature - data.shape[1])),
-            "constant",
-            constant_values="nan",
+    if not isinstance(data, (np.ndarray, csr_matrix)):
+        raise ValueError(
+            'Argument "data" must be either 2D NumPy array or Scipy CSR matrix'
         )
-        assert data.shape[1] == model.num_feature
+    if len(data.shape) != 2:
+        raise ValueError('Argument "data" must be a 2D array')
+
+    is_dense = isinstance(data, np.ndarray)
+
+    if is_dense:
+        data = np.array(
+            data, copy=False, dtype=typestr_to_numpy_type(model.input_type), order="C"
+        )
+        if data.shape[1] < model.num_feature:
+            # Pad missing features with NAs
+            data = np.pad(
+                data,
+                ((0, 0), (0, model.num_feature - data.shape[1])),
+                "constant",
+                constant_values="nan",
+            )
+            assert data.shape[1] == model.num_feature
+    else:
+        assert isinstance(data, csr_matrix)
+        elems = np.array(
+            data.data,
+            copy=False,
+            dtype=typestr_to_numpy_type(model.input_type),
+            order="C",
+        )
+        col_ind = np.array(data.indices, copy=False, dtype=np.uint64, order="C")
+        row_ptr = np.array(data.indptr, copy=False, dtype=np.uint64, order="C")
     output_shape_ptr = ctypes.POINTER(ctypes.c_uint64)()
     output_ndim = ctypes.c_uint64()
     _check_call(
@@ -169,22 +197,40 @@ def _predict_impl(model: Model, data: np.ndarray, *, config: GTILConfig) -> np.n
         )
     )
     output_shape = np.ctypeslib.as_array(output_shape_ptr, shape=(output_ndim.value,))
-
     out_result = np.zeros(
         shape=output_shape, dtype=typestr_to_numpy_type(model.output_type), order="C"
     )
-    _check_call(
-        _LIB.TreeliteGTILPredict(
-            model.handle,
-            data.ctypes.data_as(
-                ctypes.POINTER(typestr_to_ctypes_type(model.input_type))
-            ),
-            c_str(model.input_type),
-            ctypes.c_size_t(data.shape[0]),
-            out_result.ctypes.data_as(
-                ctypes.POINTER(typestr_to_ctypes_type(model.output_type))
-            ),
-            config.handle,
+
+    if is_dense:
+        _check_call(
+            _LIB.TreeliteGTILPredict(
+                model.handle,
+                data.ctypes.data_as(
+                    ctypes.POINTER(typestr_to_ctypes_type(model.input_type))
+                ),
+                c_str(model.input_type),
+                ctypes.c_uint64(data.shape[0]),
+                out_result.ctypes.data_as(
+                    ctypes.POINTER(typestr_to_ctypes_type(model.output_type))
+                ),
+                config.handle,
+            )
         )
-    )
+    else:
+        _check_call(
+            _LIB.TreeliteGTILPredictSparse(
+                model.handle,
+                elems.ctypes.data_as(
+                    ctypes.POINTER(typestr_to_ctypes_type(model.input_type))
+                ),
+                c_str(model.input_type),
+                col_ind.ctypes.data_as(ctypes.POINTER(ctypes.c_uint64)),
+                row_ptr.ctypes.data_as(ctypes.POINTER(ctypes.c_uint64)),
+                ctypes.c_uint64(data.shape[0]),
+                out_result.ctypes.data_as(
+                    ctypes.POINTER(typestr_to_ctypes_type(model.output_type))
+                ),
+                config.handle,
+            )
+        )
     return out_result

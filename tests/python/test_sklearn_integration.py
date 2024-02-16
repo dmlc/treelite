@@ -163,7 +163,7 @@ def test_skl_multitarget_multiclass_rf(n_classes, n_estimators):
 
     tl_model = treelite.sklearn.import_model(clf)
     out_prob = treelite.gtil.predict(tl_model, X)
-    expected_prob = clf.predict_proba(X)
+    expected_prob = np.transpose(clf.predict_proba(X), axes=(1, 0, 2))
     np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 

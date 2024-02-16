@@ -139,10 +139,14 @@ def import_model(sklearn_model):
         )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         # pylint: disable=C3001
+        try:  # multi-target
+            max_n_classes = max(sklearn_model.n_classes_)
+        except TypeError:  # single-target
+            max_n_classes = sklearn_model.n_classes_
         leaf_value_expected_shape = lambda node_count: (  # noqa: E731
             node_count,
             sklearn_model.n_outputs_,
-            sklearn_model.n_classes_,
+            max_n_classes,
         )
     elif isinstance(
         sklearn_model, (GradientBoostingR, GradientBoostingC, IsolationForest)

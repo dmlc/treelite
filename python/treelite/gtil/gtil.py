@@ -148,6 +148,15 @@ def _predict_impl(model: Model, data: np.ndarray, *, config: GTILConfig) -> np.n
     data = np.array(
         data, copy=False, dtype=typestr_to_numpy_type(model.input_type), order="C"
     )
+    if data.shape[1] < model.num_feature:
+        # Pad missing features with NAs
+        data = np.pad(
+            data,
+            ((0, 0), (0, model.num_feature - data.shape[1])),
+            "constant",
+            constant_values="nan",
+        )
+        assert data.shape[1] == model.num_feature
     output_shape_ptr = ctypes.POINTER(ctypes.c_uint64)()
     output_ndim = ctypes.c_uint64()
     _check_call(

@@ -111,9 +111,11 @@ written to the byte sequence in the exact order they appear in the following lis
    * ``has_categorical_split``: single ``bool`` scalar indicating if categorical splits exist
    * ``node_type``: an array of ``int8_t`` representing enum ``TreeNodeType``. ``node_type[i]`` indicates the type of node ``i``.
    * ``cleft``: an array of ``int32_t``, so that ``cleft[i]`` identifies the left child node of node ``i``.
-     Set to ``-1`` to indicate the lack of the left child.
+     Set to ``-1`` to indicate the lack of the left child. When the tree is traversed, the left child node is chosen whenever
+     the test in the test node evaluates to True. (For missing values, the test's outcome is unknown. See ``default_left`` field.)
    * ``cright``: an array of ``int32_t``, so that ``cright[i]`` identifies the right child node of node ``i``.
-     Set to ``-1`` to indicate the lack of the right child.
+     Set to ``-1`` to indicate the lack of the right child. When the tree is traversed, the right child node is chosen whenever
+     the test in the test node evaluates to False. (For missing values, the test's outcome is unknown. See ``default_left`` field.)
    * ``split_index``: an array of ``int32_t``, where ``split_index[i]`` gives the feature ID used in the test node ``i``.
      If node ``i`` is not a test node, ``split_index[i]`` shall be ``-1``.
    * ``default_left``: an array of ``bool``, where ``default_left[i]`` indicates the default direction for the missing value

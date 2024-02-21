@@ -6,6 +6,7 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import floats, integers, just, sampled_from
+from packaging.version import parse as parse_version
 
 import treelite
 
@@ -17,6 +18,7 @@ from .hypothesis_util import (
 from .util import has_pandas, to_categorical
 
 try:
+    from sklearn import __version__ as sklearn_version
     from sklearn.datasets import make_classification
     from sklearn.dummy import DummyClassifier, DummyRegressor
     from sklearn.ensemble import (
@@ -228,6 +230,10 @@ def test_skl_hist_gradient_boosting_with_categorical(
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
 
 
+@pytest.mark.skipif(
+    parse_version(sklearn_version) < parse_version("1.4.0"),
+    reason="Requires scikit-learn 1.4.0+",
+)
 def test_skl_hist_gradient_boosting_with_string_categorical():
     """Scikit-learn HistGradientBoostingClassifier, with string categorical features"""
     X = np.array([["Male", 1], ["Female", 3], ["Female", 2]])

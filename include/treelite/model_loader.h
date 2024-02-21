@@ -257,6 +257,12 @@ std::unique_ptr<treelite::Model> LoadGradientBoostingClassifier(int n_iter, int 
  *                          feature. Shape: (n_categorical_features, 8)
  * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
  *                                     index in the known_cat_bitsets array. Shape: (n_features,)
+ * \param features_map Mapping to re-order features. This is needed because HistGradientBoosting
+ *                     estimator internally re-orders features using ColumnTransformer so that
+ *                     the categorical features come before the numerical features.
+ * \param categories_map Mapping to transform categorical features. This is needed because
+ *                       HistGradientBoosting estimator embeds an OrdinalEncoder.
+ *                       categories_map[i] represents the mapping for i-th categorical feature.
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,)
@@ -266,6 +272,7 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, i
     std::int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores);
 
 /*!
@@ -287,6 +294,12 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, i
  *                          feature. Shape: (n_categorical_features, 8)
  * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
  *                                     index in the known_cat_bitsets array. Shape: (n_features,)
+ * \param features_map Mapping to re-order features. This is needed because HistGradientBoosting
+ *                     estimator internally re-orders features using ColumnTransformer so that
+ *                     the categorical features come before the numerical features.
+ * \param categories_map Mapping to transform categorical features. This is needed because
+ *                       HistGradientBoosting estimator embeds an OrdinalEncoder.
+ *                       categories_map[i] represents the mapping for i-th categorical feature.
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,) for binary classification;
@@ -295,8 +308,9 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, i
  */
 std::unique_ptr<treelite::Model> LoadHistGradientBoostingClassifier(int n_iter, int n_features,
     int n_classes, int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
-    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
-    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
+    std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
+    std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores);
 
 }  // namespace sklearn

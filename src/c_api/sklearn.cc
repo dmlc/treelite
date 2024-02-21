@@ -85,11 +85,13 @@ int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
     std::int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores, TreeliteModelHandle* out) {
   API_BEGIN();
   auto model = treelite::model_loader::sklearn::LoadHistGradientBoostingRegressor(n_iter,
       n_features, node_count, nodes, expected_sizeof_node_struct, n_categorical_splits,
-      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, base_scores);
+      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, features_map,
+      categories_map, base_scores);
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }
@@ -98,11 +100,13 @@ int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features
     std::int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores, TreeliteModelHandle* out) {
   API_BEGIN();
   auto model = treelite::model_loader::sklearn::LoadHistGradientBoostingClassifier(n_iter,
       n_features, n_classes, node_count, nodes, expected_sizeof_node_struct, n_categorical_splits,
-      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, base_scores);
+      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, features_map,
+      categories_map, base_scores);
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }

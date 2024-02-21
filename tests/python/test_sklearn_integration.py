@@ -3,9 +3,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import floats, integers, just, sampled_from
+from packaging.version import parse as parse_version
 
 import treelite
 
@@ -17,6 +18,7 @@ from .hypothesis_util import (
 from .util import has_pandas, to_categorical
 
 try:
+    from sklearn import __version__ as sklearn_version
     from sklearn.datasets import make_classification
     from sklearn.dummy import DummyClassifier, DummyRegressor
     from sklearn.ensemble import (
@@ -196,16 +198,14 @@ def test_skl_converter_iforest(dataset):
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-@pytest.mark.xfail(
-    reason="HistGradientBoostingClassifier parser doesn't work with scikit-learn 1.4.0+"
-)
 def test_skl_hist_gradient_boosting_with_categorical(
     dataset, num_boost_round, use_categorical, callback
 ):
     """Scikit-learn HistGradientBoostingClassifier, with categorical splits"""
     X, y = dataset
     if use_categorical:
-        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        n_categorical = callback.draw(sampled_from([3, 5, X.shape[1]]))
+        assume(n_categorical <= X.shape[1])
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.0)
         cat_col_bitmap = df.dtypes == "category"
         categorical_features = [
@@ -228,3 +228,25 @@ def test_skl_hist_gradient_boosting_with_categorical(
     out_pred = treelite.gtil.predict(tl_model, X_pred)
     expected_pred = clf.predict_proba(X_pred)[:, np.newaxis, 1:]
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
+
+
+@pytest.mark.skipif(
+    parse_version(sklearn_version) < parse_version("1.4.0"),
+    reason="Requires scikit-learn 1.4.0+",
+)
+def test_skl_hist_gradient_boosting_with_string_categorical():
+    """Scikit-learn HistGradientBoostingClassifier, with string categorical features"""
+    X = np.array([["Male", 1], ["Female", 3], ["Female", 2]])
+    y = [0, 1, 1]
+    clf = HistGradientBoostingClassifier(
+        max_iter=1,
+        categorical_features=[0, 1],
+        early_stopping=False,
+        max_depth=1,
+    )
+    clf.fit(X, y)
+
+    with pytest.raises(
+        NotImplementedError, match=r"String categories are not supported"
+    ):
+        _ = treelite.sklearn.import_model(clf)

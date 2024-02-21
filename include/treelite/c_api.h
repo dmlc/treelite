@@ -323,6 +323,12 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n
  *                          feature. Shape: (n_categorical_features, 8)
  * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
  *                                     index in the known_cat_bitsets array. Shape: (n_features,)
+ * \param features_map Mapping to re-order features. This is needed because HistGradientBoosting
+ *                     estimator internally re-orders features using ColumnTransformer so that
+ *                     the categorical features come before the numerical features.
+ * \param categories_map Mapping to transform categorical features. This is needed because
+ *                       HistGradientBoosting estimator embeds an OrdinalEncoder.
+ *                       categories_map[i] represents the mapping for i-th categorical feature.
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,)
@@ -333,7 +339,8 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, in
     int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
     uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
-    double const* base_scores, TreeliteModelHandle* out);
+    int32_t const* features_map, int64_t const** categories_map, double const* base_scores,
+    TreeliteModelHandle* out);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
@@ -354,6 +361,12 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, in
  *                          feature. Shape: (n_categorical_features, 8)
  * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
  *                                     index in the known_cat_bitsets array. Shape: (n_features,)
+ * \param features_map Mapping to re-order features. This is needed because HistGradientBoosting
+ *                     estimator internally re-orders features using ColumnTransformer so that
+ *                     the categorical features come before the numerical features.
+ * \param categories_map Mapping to transform categorical features. This is needed because
+ *                       HistGradientBoosting estimator embeds an OrdinalEncoder.
+ *                       categories_map[i] represents the mapping for i-th categorical feature.
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,) for binary classification;
@@ -365,7 +378,8 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
     int n_classes, int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
     uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
-    double const* base_scores, TreeliteModelHandle* out);
+    int32_t const* features_map, int64_t const** categories_map, double const* base_scores,
+    TreeliteModelHandle* out);
 /*! \} */
 
 /*!

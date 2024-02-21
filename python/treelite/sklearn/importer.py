@@ -3,6 +3,7 @@
 import ctypes
 
 import numpy as np
+from packaging.version import parse as parse_version
 
 from ..core import _LIB, TreeliteError, _check_call
 from ..frontend import Model
@@ -50,6 +51,8 @@ class ArrayOfArrays:
 
     def as_c_array(self):
         """Prepare the collection to pass as an argument of a C function"""
+        if not self.collection:
+            return None  # return nullptr to represent empty array
         for v in self.collection:
             self.collection_ptr.append(v.ctypes.data_as(self.ptr_type))
         return c_array(self.ptr_type, self.collection_ptr)
@@ -336,7 +339,7 @@ def import_model(sklearn_model):
 
 
 def _import_hist_gradient_boosting(sklearn_model):
-    # pylint: disable=R0914,W0212
+    # pylint: disable=R0914,W0212,too-many-branches
     """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
     from sklearn.ensemble import HistGradientBoostingClassifier as HistGradientBoostingC
     from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
@@ -346,6 +349,42 @@ def _import_hist_gradient_boosting(sklearn_model):
         known_cat_bitsets,
         f_idx_map,
     ) = sklearn_model._bin_mapper.make_known_categories_bitsets()
+
+    cat_remapper = ArrayOfArrays(dtype=np.int64)
+
+    from sklearn import __version__ as sklearn_version
+
+    if (
+        parse_version(sklearn_version) >= parse_version("1.4.0")
+        and getattr(sklearn_model, "_preprocessor", None) is not None
+    ):
+        # Ensure that the model's internals did not change
+        assert len(sklearn_model._preprocessor.transformers_) == 2
+        assert len(sklearn_model._preprocessor.transformers_[0]) == 3
+        assert len(sklearn_model._preprocessor.transformers_[1]) == 3
+        assert sklearn_model._preprocessor.transformers_[0][0] == "encoder"
+        assert sklearn_model._preprocessor.transformers_[1][0] == "numerical"
+
+        for cats in sklearn_model._preprocessor.transformers_[0][1].categories_:
+            if cats.dtype.type is np.str_:
+                raise NotImplementedError("String categories are not supported")
+            cat_remapper.add(cats)
+
+        feat_remapper = np.zeros((sklearn_model.n_features_in_,), dtype=np.int32)
+        n_categorical = sklearn_model.is_categorical_.sum()
+        cat_idx, num_idx = 0, 0
+        for i, e in enumerate(sklearn_model.is_categorical_):
+            if e:
+                feat_remapper[cat_idx] = i
+                cat_idx += 1
+            else:
+                feat_remapper[n_categorical + num_idx] = i
+                num_idx += 1
+    else:
+        feat_remapper = np.arange(
+            start=0, stop=sklearn_model.n_features_in_, dtype=np.int32
+        )
+
     n_categorical_splits = known_cat_bitsets.shape[0]
     n_trees = 0
     nodes = ArrayOfArrays(dtype="void")
@@ -378,6 +417,8 @@ def _import_hist_gradient_boosting(sklearn_model):
                 raw_left_cat_bitsets.as_c_array(),
                 known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+                feat_remapper.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                cat_remapper.as_c_array(),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),
@@ -397,6 +438,8 @@ def _import_hist_gradient_boosting(sklearn_model):
                 raw_left_cat_bitsets.as_c_array(),
                 known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+                feat_remapper.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                cat_remapper.as_c_array(),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ctypes
 import pathlib
+import platform
 import warnings
 from typing import Any, List, Optional, Union
 
@@ -419,17 +420,20 @@ class _PyBuffer(ctypes.Structure):  # pylint: disable=R0902,R0903
     )
 
 
-ctypes.pythonapi.PyMemoryView_FromBuffer.argtypes = [ctypes.POINTER(_PyBuffer)]
-ctypes.pythonapi.PyMemoryView_FromBuffer.restype = ctypes.py_object
-ctypes.pythonapi.PyObject_GetBuffer.argtypes = [
-    ctypes.py_object,
-    ctypes.POINTER(_PyBuffer),
-    ctypes.c_int,
-]
-ctypes.pythonapi.PyObject_GetBuffer.restype = ctypes.c_int
+if platform.python_implementation() == "CPython":
+    ctypes.pythonapi.PyMemoryView_FromBuffer.argtypes = [ctypes.POINTER(_PyBuffer)]
+    ctypes.pythonapi.PyMemoryView_FromBuffer.restype = ctypes.py_object
+    ctypes.pythonapi.PyObject_GetBuffer.argtypes = [
+        ctypes.py_object,
+        ctypes.POINTER(_PyBuffer),
+        ctypes.c_int,
+    ]
+    ctypes.pythonapi.PyObject_GetBuffer.restype = ctypes.c_int
 
 
 def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
+    if platform.python_implementation() != "CPython":
+        raise NotImplementedError("_pybuffer2numpy() not supported on PyPy")
     if not frame.buf:
         if frame.format == b"=l":
             dtype = "int32"
@@ -466,6 +470,8 @@ def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
 
 
 def _numpy2pybuffer(array: np.ndarray) -> _TreelitePyBufferFrame:
+    if platform.python_implementation() != "CPython":
+        raise NotImplementedError("_numpy2pybuffer() not supported on PyPy")
     if len(array.shape) != 1:
         raise ValueError("Cannot handle NumPy array that has more than 1 dimension")
     view: memoryview = array.data
@@ -516,6 +522,8 @@ class HeaderAccessor:
             Value in the field
             (``str`` for a string field, ``np.ndarray`` for other fields)
         """
+        if platform.python_implementation() != "CPython":
+            raise NotImplementedError("get_field() not supported on PyPy")
         obj = _TreelitePyBufferFrame()
         _check_call(
             _LIB.TreeliteGetHeaderField(
@@ -542,6 +550,8 @@ class HeaderAccessor:
             New value for the field
             (``str`` for a string field, ``np.ndarray`` for other fields)
         """
+        if platform.python_implementation() != "CPython":
+            raise NotImplementedError("set_field() not supported on PyPy")
         if isinstance(value, str):
             value = np.frombuffer(value.encode("utf-8"), dtype="S1")
         _check_call(

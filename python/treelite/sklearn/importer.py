@@ -368,6 +368,7 @@ def _import_hist_gradient_boosting(sklearn_model):
         for cats in sklearn_model._preprocessor.transformers_[0][1].categories_:
             if cats.dtype.type is np.str_:
                 raise NotImplementedError("String categories are not supported")
+            cats = cats.astype(np.int64)
             cat_remapper.add(cats)
 
         feat_remapper = np.zeros((sklearn_model.n_features_in_,), dtype=np.int32)

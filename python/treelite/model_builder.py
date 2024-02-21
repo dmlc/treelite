@@ -3,8 +3,7 @@
 import ctypes
 import dataclasses
 import json
-from collections.abc import Sequence
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from .core import _LIB, _check_call
 from .model import Model

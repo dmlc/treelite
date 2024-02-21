@@ -60,7 +60,7 @@ def test_getter_setter():
     expected_values = {
         "major_ver": treelite_ver.major,
         "minor_ver": treelite_ver.minor,
-        "patch_ver": treelite_ver.minor,
+        "patch_ver": treelite_ver.micro,
         "threshold_type": 3,  # kFloat64
         "leaf_output_type": 3,  # kFloat64
         "num_tree": 2,
@@ -80,7 +80,7 @@ def test_getter_setter():
         if isinstance(v, np.ndarray):
             np.testing.assert_equal(header.get_field(k), v)
         else:
-            assert header.get_field(k) == v
+            assert header.get_field(k) == v, f"{k=}"
 
     num_tree = header.get_field("num_tree")[0]
     for tree_id in range(num_tree):

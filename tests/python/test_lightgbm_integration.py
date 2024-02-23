@@ -5,11 +5,25 @@ import pathlib
 import numpy as np
 import pytest
 import scipy
-from hypothesis import given, settings
-from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import integers, just, sampled_from
 
 import treelite
+
+try:
+    from hypothesis import given, settings
+    from hypothesis.strategies import data as hypothesis_callback
+    from hypothesis.strategies import integers, just, sampled_from
+except ImportError:
+    pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
+
+try:
+    import lightgbm as lgb
+except ImportError:
+    pytest.skip("LightGBM not installed; skipping", allow_module_level=True)
+
+try:
+    from sklearn.datasets import load_svmlight_file
+except ImportError:
+    pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
 
 from .hypothesis_util import (
     standard_classification_datasets,
@@ -18,19 +32,6 @@ from .hypothesis_util import (
 )
 from .metadata import dataset_db
 from .util import TemporaryDirectory, load_txt, to_categorical
-
-try:
-    import lightgbm as lgb
-except ImportError:
-    # skip this test suite if LightGBM is not installed
-    pytest.skip("LightGBM not installed; skipping", allow_module_level=True)
-
-
-try:
-    from sklearn.datasets import load_svmlight_file
-except ImportError:
-    # skip this test suite if scikit-learn is not installed
-    pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
 
 
 @given(

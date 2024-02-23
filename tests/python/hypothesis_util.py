@@ -1,7 +1,6 @@
 """Utility functions for hypothesis-based testing"""
 
 from math import ceil
-from sys import platform as _platform
 
 import numpy as np
 from hypothesis import assume

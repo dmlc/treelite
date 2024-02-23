@@ -5,23 +5,27 @@ prediction results for a variety of tree models.
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
-from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import integers, just, sampled_from
 
 import treelite
+
+try:
+    from hypothesis import given, settings
+    from hypothesis.strategies import data as hypothesis_callback
+    from hypothesis.strategies import integers, just, sampled_from
+except ImportError:
+    pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
+
+try:
+    import xgboost as xgb
+except ImportError:
+    pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
+
 
 from .hypothesis_util import (
     standard_classification_datasets,
     standard_regression_datasets,
     standard_settings,
 )
-
-try:
-    import xgboost as xgb
-except ImportError:
-    # skip this test suite if XGBoost is not installed
-    pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
 @given(

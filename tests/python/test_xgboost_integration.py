@@ -6,11 +6,20 @@ import pathlib
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
-from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import integers, just, lists, sampled_from
 
 import treelite
+
+try:
+    from hypothesis import given, settings
+    from hypothesis.strategies import data as hypothesis_callback
+    from hypothesis.strategies import integers, just, lists, sampled_from
+except ImportError:
+    pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
+
+try:
+    import xgboost as xgb
+except ImportError:
+    pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 from .hypothesis_util import (
     standard_classification_datasets,
@@ -19,12 +28,6 @@ from .hypothesis_util import (
     standard_settings,
 )
 from .util import TemporaryDirectory, to_categorical
-
-try:
-    import xgboost as xgb
-except ImportError:
-    # skip this test suite if XGBoost is not installed
-    pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
 def generate_data_for_squared_log_error(n_targets: int = 1):

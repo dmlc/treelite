@@ -1,21 +1,17 @@
 """Tests for scikit-learn integration"""
 
 import numpy as np
-import pandas as pd
 import pytest
-from hypothesis import assume, given, settings
-from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import floats, integers, just, sampled_from
 from packaging.version import parse as parse_version
 
 import treelite
 
-from .hypothesis_util import (
-    standard_classification_datasets,
-    standard_regression_datasets,
-    standard_settings,
-)
-from .util import has_pandas, to_categorical
+try:
+    from hypothesis import assume, given, settings
+    from hypothesis.strategies import data as hypothesis_callback
+    from hypothesis.strategies import floats, integers, just, sampled_from
+except ImportError:
+    pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
 
 try:
     from sklearn import __version__ as sklearn_version
@@ -34,10 +30,20 @@ try:
     )
     from sklearn.utils import shuffle
 except ImportError:
-    # Skip this test suite if scikit-learn is not installed
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
 
-pytestmark = pytest.mark.skipif(not has_pandas(), reason="Pandas required")
+try:
+    import pandas as pd
+except ImportError:
+    pytest.skip("Pandas required", allow_module_level=True)
+
+
+from .hypothesis_util import (
+    standard_classification_datasets,
+    standard_regression_datasets,
+    standard_settings,
+)
+from .util import to_categorical
 
 
 @given(

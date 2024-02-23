@@ -9,6 +9,7 @@ from sys import platform as _platform
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
+import pytest
 
 
 def load_txt(filename):
@@ -76,7 +77,7 @@ def to_categorical(
         Random seed or RandomState object, to control the behavior of randomness
     """
     if not has_pandas():
-        raise RuntimeError("Pandas is required for to_categorical()")
+        pytest.skip(reason="Pandas is required for to_categorical()")
     import pandas as pd
 
     features = features.copy()  # Avoid clobbering source matrix

@@ -4,18 +4,15 @@ import pathlib
 
 import numpy as np
 import pytest
-from hypothesis import given, settings
-from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import floats, integers, just, sampled_from
 
 import treelite
 
-from .hypothesis_util import (
-    standard_classification_datasets,
-    standard_regression_datasets,
-    standard_settings,
-)
-from .util import TemporaryDirectory
+try:
+    from hypothesis import given, settings
+    from hypothesis.strategies import data as hypothesis_callback
+    from hypothesis.strategies import floats, integers, just, sampled_from
+except ImportError:
+    pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
 
 try:
     from sklearn.dummy import DummyClassifier, DummyRegressor
@@ -30,8 +27,15 @@ try:
         RandomForestRegressor,
     )
 except ImportError:
-    # Skip this test suite if scikit-learn is not installed
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
+
+
+from .hypothesis_util import (
+    standard_classification_datasets,
+    standard_regression_datasets,
+    standard_settings,
+)
+from .util import TemporaryDirectory
 
 
 @given(

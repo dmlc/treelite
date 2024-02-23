@@ -503,7 +503,7 @@ def test_xgb_multi_target_regressor(
     callback,
 ):
     # pylint: disable=too-many-locals
-    """Test XGBoost with regression data"""
+    """Test XGBoost with multi-target regression problem"""
 
     if objective == "reg:squaredlogerror":
         X, y = generate_data_for_squared_log_error(n_targets=n_targets)

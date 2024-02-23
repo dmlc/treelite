@@ -147,7 +147,7 @@ def test_xgb_multiclass_classifier(
     callback,
 ):
     # pylint: disable=too-many-locals
-    """Test XGBoost with Iris data (multi-class classification)"""
+    """Test XGBoost with multi-class classification problem"""
     X, y = dataset
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
@@ -430,7 +430,7 @@ def test_xgb_multi_target_binary_classifier(
     in_memory,
     callback,
 ):
-    """Test XGBoost with multi-target classification problem"""
+    """Test XGBoost with multi-target binary classification problem"""
     X, y = dataset
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
@@ -503,7 +503,7 @@ def test_xgb_multi_target_regressor(
     callback,
 ):
     # pylint: disable=too-many-locals
-    """Test XGBoost with regression data"""
+    """Test XGBoost with multi-target regression problem"""
 
     if objective == "reg:squaredlogerror":
         X, y = generate_data_for_squared_log_error(n_targets=n_targets)

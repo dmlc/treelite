@@ -108,7 +108,7 @@ def test_skl_regressor(clazz, n_estimators, callback):
 )
 @settings(**standard_settings())
 def test_skl_classifier(clazz, dataset, n_estimators, callback):
-    """Scikit-learn binary classifier"""
+    """Scikit-learn classifier"""
     X, y = dataset
     n_classes = len(np.unique(y))
     kwargs = {"max_depth": 8, "random_state": 0}

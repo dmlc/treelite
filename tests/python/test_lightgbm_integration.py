@@ -237,7 +237,7 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
 
     lgb_model_path = pathlib.Path(tmpdir) / "sparse_ranking_lightgbm.txt"
 
-    dtrain = lgb.Dataset(X, label=y, group=[X.shape[0]])
+    dtrain = lgb.Dataset(X, label=y, group=np.array([X.shape[0]], dtype=np.int32))
     lgb_model = lgb.train(params, dtrain, num_boost_round=1)
     lgb_out = lgb_model.predict(X).reshape((-1, 1, 1))
     lgb_model.save_model(lgb_model_path)

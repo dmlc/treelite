@@ -46,7 +46,7 @@ class ArrayOfArrays:
             assert (
                 array.shape == expected_shape
             ), f"Expected shape: {expected_shape}, Got shape {array.shape}"
-        v = np.array(array, copy=False, dtype=self.dtype, order="C")
+        v = np.asarray(array, dtype=self.dtype, order="C")
         self.collection.append(v)
 
     def as_c_array(self):

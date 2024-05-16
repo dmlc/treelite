@@ -64,3 +64,8 @@ repos:
   hooks:
     - id: mypy
       additional_dependencies: [types-setuptools, numpy]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.4.4
+  hooks:
+    - id: ruff
+      args: ["--config", "python/pyproject.toml"]

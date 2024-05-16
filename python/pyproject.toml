@@ -43,3 +43,15 @@ testing = ["scikit-learn", "pytest", "hypothesis", "pandas"]
 plugins = "numpy.typing.mypy_plugin"
 
 [tool.hatch.build.targets.wheel.hooks.custom]
+
+[tool.ruff]
+line-length = 120
+
+# this should be set to the oldest version of python treelite supports
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    # numpy 2.0 deprecations/removals
+    "NPY201",
+]

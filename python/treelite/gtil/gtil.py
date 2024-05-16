@@ -163,8 +163,8 @@ def _predict_impl(
     is_dense = isinstance(data, np.ndarray)
 
     if is_dense:
-        data = np.array(
-            data, copy=False, dtype=typestr_to_numpy_type(model.input_type), order="C"
+        data = np.asarray(
+            data, dtype=typestr_to_numpy_type(model.input_type), order="C"
         )
         if data.shape[1] < model.num_feature:
             # Pad missing features with NAs
@@ -177,14 +177,13 @@ def _predict_impl(
             assert data.shape[1] == model.num_feature
     else:
         assert isinstance(data, csr_matrix)
-        elems = np.array(
+        elems = np.asarray(
             data.data,
-            copy=False,
             dtype=typestr_to_numpy_type(model.input_type),
             order="C",
         )
-        col_ind = np.array(data.indices, copy=False, dtype=np.uint64, order="C")
-        row_ptr = np.array(data.indptr, copy=False, dtype=np.uint64, order="C")
+        col_ind = np.asarray(data.indices, dtype=np.uint64, order="C")
+        row_ptr = np.asarray(data.indptr, dtype=np.uint64, order="C")
     output_shape_ptr = ctypes.POINTER(ctypes.c_uint64)()
     output_ndim = ctypes.c_uint64()
     _check_call(

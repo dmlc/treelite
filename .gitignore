@@ -71,4 +71,5 @@ __pycache__
 /python/.idea/
 /tests/python/.idea/
 /.idea/
+/.hypothesis
 /lint.py

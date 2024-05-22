@@ -25,7 +25,7 @@ env:
 jobs:
   macos-wheel-builder:
     name: Build and test Python wheels (MacOS)
-    runs-on: macos-latest
+    runs-on: macos-13
     strategy:
       fail-fast: false
       matrix:

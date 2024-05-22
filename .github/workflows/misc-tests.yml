@@ -29,14 +29,13 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/setup-micromamba@v1.8.1
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        micromamba-version: '1.5.6-0'
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
-        cache-downloads: true
-        cache-environment: true
-        init-shell: bash
+        use-mamba: true
     - name: Display Conda env
       run: |
         conda info
@@ -55,14 +54,13 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/setup-micromamba@v1.8.1
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        micromamba-version: '1.5.6-0'
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
-        cache-downloads: true
-        cache-environment: true
-        init-shell: bash
+        use-mamba: true
     - name: Display Conda env
       run: |
         conda info
@@ -81,14 +79,13 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/setup-micromamba@v1.8.1
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        micromamba-version: '1.5.6-0'
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
-        cache-downloads: true
-        cache-environment: true
-        init-shell: bash
+        use-mamba: true
     - name: Display Conda env
       run: |
         conda info
@@ -103,14 +100,13 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/setup-micromamba@v1.8.1
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        micromamba-version: '1.5.6-0'
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
-        cache-downloads: true
-        cache-environment: true
-        init-shell: bash
+        use-mamba: true
     - name: Display Conda env
       run: |
         conda info

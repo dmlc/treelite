@@ -30,12 +30,14 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/provision-with-micromamba@v14
+    - uses: mamba-org/setup-micromamba@v1.8.1
       with:
-        cache-downloads: true
-        cache-env: true
+        micromamba-version: '1.5.6-0'
         environment-name: dev
         environment-file: ops/conda_env/dev.yml
+        cache-downloads: true
+        cache-environment: true
+        init-shell: cmd.exe
     - name: Build wheel
       run: |
         call ops/build-windows.bat

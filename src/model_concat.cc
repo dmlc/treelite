@@ -59,7 +59,7 @@ std::unique_ptr<Model> ConcatenateModelObjects(std::vector<Model const*> const& 
           auto& casted = std::get<ModelType>(objs[i]->variant_);
           std::transform(casted.trees.begin(), casted.trees.end(),
               std::back_inserter(concatenated_model_concrete.trees),
-              [](const auto& tree) { return tree.Clone(); });
+              [](auto const& tree) { return tree.Clone(); });
           concatenated_model->target_id.Extend(objs[i]->target_id);
           concatenated_model->class_id.Extend(objs[i]->class_id);
         }

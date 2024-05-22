@@ -61,7 +61,7 @@ int TreeliteConcatenateModelObjects(
   API_BEGIN();
   std::vector<treelite::Model const*> model_objs(len, nullptr);
   std::transform(objs, objs + len, model_objs.begin(),
-      [](TreeliteModelHandle e) { return static_cast<const treelite::Model*>(e); });
+      [](TreeliteModelHandle e) { return static_cast<treelite::Model const*>(e); });
   auto concatenated_model = ConcatenateModelObjects(model_objs);
   *out = static_cast<TreeliteModelHandle>(concatenated_model.release());
   API_END();

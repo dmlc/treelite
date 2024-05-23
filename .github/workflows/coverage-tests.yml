@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read  # to fetch code (actions/checkout)
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -24,19 +28,18 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/provision-with-micromamba@v14
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        cache-downloads: true
-        cache-env: true
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
+        use-mamba: true
     - name: Display Conda env
-      shell: bash -l {0}
       run: |
         conda info
         conda list
     - name: Run tests with test coverage computation
-      shell: bash -l {0}
       run: |
         bash ops/cpp-python-coverage.sh
   win-python-coverage:
@@ -46,17 +49,18 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/provision-with-micromamba@v14
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        cache-downloads: true
-        cache-env: true
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
+        use-mamba: true
     - name: Display Conda env
       shell: cmd /C CALL {0}
       run: |
-        micromamba info
-        micromamba list
+        conda info
+        conda list
     - name: Run tests with test coverage computation
       shell: cmd /C CALL {0}
       run: |
@@ -68,18 +72,17 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
-    - uses: mamba-org/provision-with-micromamba@v14
+    - uses: conda-incubator/setup-miniconda@v3
       with:
-        cache-downloads: true
-        cache-env: true
-        environment-name: dev
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
+        activate-environment: dev
         environment-file: ops/conda_env/dev.yml
+        use-mamba: true
     - name: Display Conda env
-      shell: bash -l {0}
       run: |
         conda info
         conda list
     - name: Run tests with test coverage computation
-      shell: bash -l {0}
       run: |
         bash ops/macos-python-coverage.sh

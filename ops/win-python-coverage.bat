@@ -11,8 +11,6 @@ cd ..
 
 echo ##[section]Running Python tests...
 mkdir temp
-call micromamba activate dev
-if %errorlevel% neq 0 exit /b %errorlevel%
 set "PYTHONPATH=./python"
 set "PYTEST_TMPDIR=%USERPROFILE%\AppData\Local\Temp\pytest_temp"
 mkdir "%PYTEST_TMPDIR%"

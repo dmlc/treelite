@@ -13,9 +13,6 @@ echo ##[section]Running C++ tests...
 .\build\treelite_cpp_test.exe
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-echo ##[section]Setting up Python environment...
-call micromamba activate dev
-
 echo ##[section]Packaging Python wheel for Treelite...
 cd python
 pip wheel --no-deps -v . --wheel-dir dist/

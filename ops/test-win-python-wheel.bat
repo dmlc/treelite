@@ -1,6 +1,3 @@
-echo ##[section]Setting up Python environment...
-call micromamba activate dev
-
 echo ##[section]Installing Treelite into Python environment...
 setlocal enabledelayedexpansion
 python tests\ci_build\rename_whl.py python\dist %COMMIT_ID% win_amd64

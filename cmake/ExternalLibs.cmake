@@ -19,7 +19,7 @@ else()
   FetchContent_Declare(
     RapidJSON
     GIT_REPOSITORY      https://github.com/Tencent/rapidjson
-    GIT_TAG             v1.1.0
+    GIT_TAG             ab1842a2dae061284c0a62dca1cc6d5e7e37e346
   )
   FetchContent_Populate(RapidJSON)
   message(STATUS "RapidJSON was downloaded at ${rapidjson_SOURCE_DIR}.")

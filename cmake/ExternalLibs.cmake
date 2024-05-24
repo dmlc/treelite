@@ -5,13 +5,21 @@ add_library(rapidjson INTERFACE)
 target_compile_definitions(rapidjson INTERFACE -DRAPIDJSON_HAS_STDSTRING=1)
 find_package(RapidJSON)
 if(RapidJSON_FOUND)
-  target_include_directories(rapidjson INTERFACE ${RAPIDJSON_INCLUDE_DIRS})
+  if(DEFINED RAPIDJSON_INCLUDE_DIRS)
+    # Compatibility with 1.1.0 stable (circa 2016)
+    set(RapidJSON_include_dir "${RAPIDJSON_INCLUDE_DIRS}")
+  else()
+    # Latest RapidJSON (1.1.0.post*)
+    set(RapidJSON_include_dir "${RapidJSON_INCLUDE_DIRS}")
+  endif()
+  target_include_directories(rapidjson INTERFACE ${RapidJSON_include_dir})
+  message(STATUS "Found RapidJSON: ${RapidJSON_include_dir}")
 else()
   message(STATUS "Did not find RapidJSON in the system root. Fetching RapidJSON now...")
   FetchContent_Declare(
     RapidJSON
     GIT_REPOSITORY      https://github.com/Tencent/rapidjson
-    GIT_TAG             v1.1.0
+    GIT_TAG             ab1842a2dae061284c0a62dca1cc6d5e7e37e346
   )
   FetchContent_Populate(RapidJSON)
   message(STATUS "RapidJSON was downloaded at ${rapidjson_SOURCE_DIR}.")

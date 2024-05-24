@@ -66,7 +66,8 @@ class ModelBuilderImpl : public ModelBuilder {
         current_node_key_{},
         current_node_id_{},
         current_state_{ModelBuilderState::kExpectTree},
-        metadata_initialized_{false} {}
+        metadata_initialized_{false},
+        flag_check_orphaned_nodes_{true} {}
 
   ModelBuilderImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
@@ -79,8 +80,15 @@ class ModelBuilderImpl : public ModelBuilder {
         current_node_key_{},
         current_node_id_{},
         current_state_{ModelBuilderState::kExpectTree},
-        metadata_initialized_{false} {
+        metadata_initialized_{false},
+        flag_check_orphaned_nodes_{true} {
     InitializeMetadataImpl(metadata, tree_annotation, postprocessor, base_scores, attributes);
+  }
+
+  void SetValidationFlag(std::string const& flag, bool value) override {
+    if (flag == "check_orphaned_nodes") {
+      flag_check_orphaned_nodes_ = value;
+    }
   }
 
   void StartTree() override {
@@ -121,17 +129,19 @@ class ModelBuilderImpl : public ModelBuilder {
         orphaned[cright] = false;
       }
     }
-    auto itr = std::find(orphaned.begin(), orphaned.end(), true);
-    if (itr != orphaned.end()) {
-      auto orphaned_node_id = *itr;
-      for (auto [k, v] : node_id_map_) {
-        if (v == orphaned_node_id) {
-          TREELITE_LOG(FATAL) << "Node with key " << k << " is orphaned -- it cannot be reached "
-                              << "from the root node";
+    if (flag_check_orphaned_nodes_) {
+      auto itr = std::find(orphaned.begin(), orphaned.end(), true);
+      if (itr != orphaned.end()) {
+        auto orphaned_node_id = *itr;
+        for (auto [k, v] : node_id_map_) {
+          if (v == orphaned_node_id) {
+            TREELITE_LOG(FATAL) << "Node with key " << k << " is orphaned -- it cannot be reached "
+                                << "from the root node";
+          }
         }
+        TREELITE_LOG(FATAL) << "Node at index " << orphaned_node_id << " is orphaned "
+                            << "-- it cannot be reached from the root node";
       }
-      TREELITE_LOG(FATAL) << "Node at index " << orphaned_node_id << " is orphaned "
-                          << "-- it cannot be reached from the root node";
     }
 
     auto& trees = std::get<ModelPreset<ThresholdT, LeafOutputT>>(model_->variant_).trees;
@@ -292,6 +302,7 @@ class ModelBuilderImpl : public ModelBuilder {
   int current_node_id_;  // current node ID (internal)
   ModelBuilderState current_state_;
   bool metadata_initialized_{false};
+  bool flag_check_orphaned_nodes_{true};
 
   void CheckStateWithDiagnostic(std::string const& func_name,
       std::vector<ModelBuilderState> const& valid_states, ModelBuilderState actual_state) {

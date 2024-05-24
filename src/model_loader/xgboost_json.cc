@@ -377,6 +377,7 @@ bool GBTreeModelHandler::StartArray() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
+  output.builder->SetValidationFlag("check_orphaned_nodes", false);
   return (push_key_handler<RegTreeArrayHandler, std::vector<ParsedRegTreeParams>>(
               "trees", reg_tree_params, *output.builder)
           || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info)

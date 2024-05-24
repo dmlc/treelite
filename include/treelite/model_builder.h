@@ -40,6 +40,13 @@ class PostProcessorFunc;
 class ModelBuilder {
  public:
   /*!
+   * \brief Set a flag to control validation behavior.
+   * Currently, we support "check_orphaned_nodes" (defaults to true).
+   * \param flag Name of the flag
+   * \param value Value to set the flag
+   */
+  virtual void SetValidationFlag(std::string const& flag, bool value) = 0;
+  /*!
    * \brief Start a new tree
    */
   virtual void StartTree() = 0;

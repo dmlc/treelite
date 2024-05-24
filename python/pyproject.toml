@@ -7,7 +7,7 @@ build-backend = "packager.pep517"
 
 [project]
 name = "treelite"
-version = "4.2.0-dev"
+version = "4.3.0-dev"
 authors = [
     {name = "Hyunsu Cho", email = "chohyu01@cs.washington.edu"}
 ]

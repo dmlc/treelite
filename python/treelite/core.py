@@ -36,7 +36,7 @@ def _load_lib():
         os.add_dll_directory(
             os.path.join(os.path.normpath(sys.base_prefix), "Library", "bin")
         )
-    lib = ctypes.CDLL(lib_path[0], mode=ctypes.RTLD_GLOBAL)
+    lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
     lib.log_callback = _log_callback
     lib.warn_callback = _warn_callback

@@ -543,7 +543,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     dfs_index++;
     while (!Q.empty()) {
       auto [old_node_id, new_node_id] = Q.front();
-      Q.pop();
+      Q.pop_front();
       builder->StartNode(new_node_id);
       if (old_node_id < 0) {  // leaf
         builder->LeafScalar(lgb_tree.leaf_value[~old_node_id]);

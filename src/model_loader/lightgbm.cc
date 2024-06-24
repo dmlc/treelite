@@ -526,19 +526,21 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   for (auto const& lgb_tree : lgb_trees_) {
     builder->StartTree();
 
-    // Assign node ID's so that a breadth-wise traversal would yield
+    // Assign node ID's so that a depth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...
     // We re-arrange nodes here, since LightGBM uses negative indices to distinguish leaf nodes
     // from internal nodes.
-    std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
+    std::deque<std::pair<int, int>> Q;  // (old ID, new ID) pair
+    int dfs_index = 1;
     if (lgb_tree.num_leaves == 0) {
       continue;
     } else if (lgb_tree.num_leaves == 1) {
       // A constant-value tree with a single root node that's also a leaf
-      Q.emplace(-1, 0);
+      Q.emplace_front(-1, dfs_index);
     } else {
-      Q.emplace(0, 0);
+      Q.emplace_front(0, dfs_index);
     }
+    dfs_index++;
     while (!Q.empty()) {
       auto [old_node_id, new_node_id] = Q.front();
       Q.pop();
@@ -554,9 +556,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         auto const split_index = static_cast<std::int32_t>(lgb_tree.split_feature[old_node_id]);
         auto const missing_type = GetMissingType(lgb_tree.decision_type[old_node_id]);
         int const left_child_old_id = lgb_tree.left_child[old_node_id];
-        int const left_child_new_id = new_node_id * 2 + 1;
+        int const left_child_new_id = dfs_index++;
         int const right_child_old_id = lgb_tree.right_child[old_node_id];
-        int const right_child_new_id = new_node_id * 2 + 2;
+        int const right_child_new_id = dfs_index++;
 
         if (GetDecisionType(lgb_tree.decision_type[old_node_id], kCategoricalMask)) {
           // Categorical split
@@ -591,8 +593,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         if (!lgb_tree.split_gain.empty()) {
           builder->Gain(lgb_tree.split_gain[old_node_id]);
         }
-        Q.emplace(left_child_old_id, left_child_new_id);
-        Q.emplace(right_child_old_id, right_child_new_id);
+        Q.emplace_front(left_child_old_id, left_child_new_id);
+        Q.emplace_front(right_child_old_id, right_child_new_id);
       }
       builder->EndNode();
     }

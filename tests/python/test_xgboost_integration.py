@@ -112,7 +112,7 @@ def test_xgb_regressor(
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
-            model_name = "model.model"
+            model_name = "model.deprecated"
             model_path = pathlib.Path(tmpdir) / model_name
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
@@ -185,7 +185,7 @@ def test_xgb_multiclass_classifier(
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
-            model_name = "iris.model"
+            model_name = "iris.deprecated"
             model_path = pathlib.Path(tmpdir) / model_name
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
@@ -268,7 +268,7 @@ def test_xgb_nonlinear_objective(
     if model_format == "json":
         model_name = f"nonlinear_{objective_tag}.json"
     else:
-        model_name = f"nonlinear_{objective_tag}.bin"
+        model_name = f"nonlinear_{objective_tag}.deprecated"
     with TemporaryDirectory() as tmpdir:
         model_path = pathlib.Path(tmpdir) / model_name
         xgb_model.save_model(model_path)
@@ -287,7 +287,7 @@ def test_xgb_nonlinear_objective(
 
 @given(
     dataset=standard_classification_datasets(n_classes=just(2)),
-    model_format=sampled_from(["legacy_binary", "json"]),
+    model_format=sampled_from(["in_memory", "json"]),
     num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
@@ -467,7 +467,7 @@ def test_xgb_multi_target_binary_classifier(
                 bst.save_model(model_path)
                 tl_model = treelite.frontend.load_xgboost_model(model_path)
             else:
-                model_path = pathlib.Path(tmpdir) / "multi_target.model"
+                model_path = pathlib.Path(tmpdir) / "multi_target.deprecated"
                 bst.save_model(model_path)
                 tl_model = treelite.frontend.load_xgboost_model_legacy_binary(
                     model_path
@@ -548,7 +548,7 @@ def test_xgb_multi_target_regressor(
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
-            model_name = "model.model"
+            model_name = "model.deprecated"
             model_path = pathlib.Path(tmpdir) / model_name
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)

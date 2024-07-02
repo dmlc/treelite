@@ -183,7 +183,8 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, max_num_class);
     for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
       for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-        output_view(row_id, target_id, class_id) += leaf_view(target_id, class_id);
+        output_view(row_id, target_id, class_id)
+            += static_cast<InputT>(leaf_view(target_id, class_id));
       }
     }
   } else if (model.target_id[tree_id] == -1) {
@@ -193,7 +194,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, 1);
     auto const class_id = model.class_id[tree_id];
     for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
-      output_view(row_id, target_id, class_id) += leaf_view(target_id, 0);
+      output_view(row_id, target_id, class_id) += static_cast<InputT>(leaf_view(target_id, 0));
     }
   } else if (model.class_id[tree_id] == -1) {
     std::vector<std::int32_t> const expected_leaf_shape{1, max_num_class};
@@ -202,7 +203,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), 1, max_num_class);
     auto const target_id = model.target_id[tree_id];
     for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-      output_view(row_id, target_id, class_id) += leaf_view(0, class_id);
+      output_view(row_id, target_id, class_id) += static_cast<InputT>(leaf_view(0, class_id));
     }
   } else {
     std::vector<std::int32_t> const expected_leaf_shape{1, 1};
@@ -210,7 +211,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
 
     auto const target_id = model.target_id[tree_id];
     auto const class_id = model.class_id[tree_id];
-    output_view(row_id, target_id, class_id) += leaf_out[0];
+    output_view(row_id, target_id, class_id) += static_cast<InputT>(leaf_out[0]);
   }
 }
 
@@ -224,7 +225,7 @@ void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tr
   std::vector<std::int32_t> const expected_leaf_shape{1, 1};
   TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
-  output_view(row_id, target_id, class_id) += tree.LeafValue(leaf_id);
+  output_view(row_id, target_id, class_id) += static_cast<InputT>(tree.LeafValue(leaf_id));
 }
 
 template <typename InputT, typename MatrixAccessorT>
@@ -380,17 +381,6 @@ template <typename InputT, typename MatrixAccessorT>
 void PredictImpl(Model const& model, MatrixAccessorT accessor, std::uint64_t num_row,
     InputT* output, Configuration const& config,
     detail::threading_utils::ThreadConfig const& thread_config) {
-  TypeInfo leaf_output_type = model.GetLeafOutputType();
-  TypeInfo input_type = TypeInfoFromType<InputT>();
-  if (leaf_output_type != input_type) {
-    std::string expected = TypeInfoToString(leaf_output_type);
-    std::string got = TypeInfoToString(input_type);
-    if (got == "invalid") {
-      got = typeid(InputT).name();
-    }
-    TREELITE_LOG(FATAL) << "Incorrect input type passed to GTIL predict(). "
-                        << "Expected: " << expected << ", Got: " << got;
-  }
   if (config.pred_kind == PredictKind::kPredictDefault) {
     PredictRaw(model, accessor, num_row, output, thread_config);
     ApplyPostProcessor(model, output, num_row, config, thread_config);

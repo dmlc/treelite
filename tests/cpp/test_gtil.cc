@@ -125,10 +125,10 @@ TEST_P(ParametrizedTestSuite, LeafVectorRF) {
   model_builder::PostProcessorFunc postprocessor{"identity_multiclass"};
   std::vector<double> base_scores{100.0, 200.0, 300.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
           tree_annotation, postprocessor, base_scores);
   auto make_tree_stump
-      = [&](std::vector<float> const& left_child_val, std::vector<float> const& right_child_val) {
+      = [&](std::vector<double> const& left_child_val, std::vector<double> const& right_child_val) {
           builder->StartTree();
           builder->StartNode(0);
           builder->NumericalTest(0, 0.0, false, Operator::kLT, 1, 2);
@@ -141,8 +141,8 @@ TEST_P(ParametrizedTestSuite, LeafVectorRF) {
           builder->EndNode();
           builder->EndTree();
         };
-  make_tree_stump({1.0f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.5f});
-  make_tree_stump({1.0f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.5f});
+  make_tree_stump({1.0, 0.0, 0.0}, {0.0, 0.5, 0.5});
+  make_tree_stump({1.0, 0.0, 0.0}, {0.0, 0.5, 0.5});
 
   auto const predict_kind = GetParam();
 
@@ -154,28 +154,33 @@ TEST_P(ParametrizedTestSuite, LeafVectorRF) {
       predict_kind));
 
   std::vector<std::uint64_t> expected_output_shape;
-  std::vector<std::vector<float>> expected_output;
+  std::vector<float> expected_output_left_child;
+  std::vector<double> expected_output_right_child;
   if (predict_kind == "raw" || predict_kind == "default") {
     expected_output_shape = {1, 1, 3};
-    expected_output = {{100.0f, 200.5f, 300.5f}, {101.0f, 200.0f, 300.0f}};
+    expected_output_left_child = {100.0f, 200.5f, 300.5f};
+    expected_output_right_child = {101.0, 200.0, 300.0};
   } else if (predict_kind == "leaf_id") {
     expected_output_shape = {1, 2};
-    expected_output = {{2, 2}, {1, 1}};
+    expected_output_left_child = {2, 2};
+    expected_output_right_child = {1, 1};
   }
   auto output_shape = gtil::GetOutputShape(*model, 1, config);
   EXPECT_EQ(output_shape, expected_output_shape);
 
-  std::vector<float> output(std::accumulate(
-      output_shape.begin(), output_shape.end(), std::uint64_t(1), std::multiplies<>()));
+  auto output_size = std::accumulate(
+      output_shape.begin(), output_shape.end(), std::uint64_t(1), std::multiplies<>());
   {
     std::vector<float> input{1.0f};
+    std::vector<float> output(output_size);
     gtil::Predict(*model, input.data(), 1, output.data(), config);
-    EXPECT_EQ(output, expected_output[0]);
+    EXPECT_EQ(output, expected_output_left_child);
   }
   {
-    std::vector<float> input{-1.0f};
+    std::vector<double> input{-1.0f};
+    std::vector<double> output(output_size);
     gtil::Predict(*model, input.data(), 1, output.data(), config);
-    EXPECT_EQ(output, expected_output[1]);
+    EXPECT_EQ(output, expected_output_right_child);
   }
 }
 

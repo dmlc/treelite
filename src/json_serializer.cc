@@ -13,6 +13,7 @@
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/tree_node_type.h>
+#include <treelite/enum/typeinfo.h>
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
@@ -180,6 +181,10 @@ template <typename WriterType>
 void DumpModelAsJSON(WriterType& writer, Model const& model) {
   writer.StartObject();
 
+  writer.Key("threshold_type");
+  WriteString(writer, TypeInfoToString(model.GetThresholdType()));
+  writer.Key("leaf_output_type");
+  WriteString(writer, TypeInfoToString(model.GetLeafOutputType()));
   writer.Key("num_feature");
   writer.Int(model.num_feature);
   writer.Key("task_type");

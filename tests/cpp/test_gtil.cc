@@ -177,7 +177,7 @@ TEST_P(ParametrizedTestSuite, LeafVectorRF) {
     EXPECT_EQ(output, expected_output_left_child);
   }
   {
-    std::vector<double> input{-1.0f};
+    std::vector<double> input{-1.0};
     std::vector<double> output(output_size);
     gtil::Predict(*model, input.data(), 1, output.data(), config);
     EXPECT_EQ(output, expected_output_right_child);

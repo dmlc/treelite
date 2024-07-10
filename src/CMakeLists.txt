@@ -128,5 +128,8 @@ target_sources(objtreelite
     model_loader/detail/string_utils.h
     model_loader/detail/xgboost.cc
     model_loader/detail/xgboost.h
-    model_loader/detail/xgboost_json.h
+    model_loader/detail/xgboost_json/sax_adapters.h
+    model_loader/detail/xgboost_json/sax_adapters.cc
+    model_loader/detail/xgboost_json/delegated_handler.h
+    model_loader/detail/xgboost_json/delegated_handler.cc
 )

@@ -27,9 +27,13 @@ def load_xgboost_model_legacy_binary(filename: str) -> Any:
     return handle
 
 
-def load_xgboost_model(filename: str, *, allow_unknown_field: bool) -> Any:
+def load_xgboost_model(
+    filename: str,
+    *,
+    allow_unknown_field: bool,
+) -> Any:
     """
-    Load a tree ensemble model from XGBoost model, stored using the JSON format.
+    Load a tree ensemble model from XGBoost model, stored using JSON or UBJSON format.
 
     TODO(hcho3): Move the implementation to treelite.frontend once
                  Model.load() is removed.

@@ -116,7 +116,10 @@ class Model:
         cls, filename: str, model_format: str, allow_unknown_field: bool = False
     ) -> Model:
         """
-        Deprecated; please use :py:meth:`~treelite.frontend.load_xgboost_model` instead.
+        Deprecated; please use :py:meth:`~treelite.frontend.load_xgboost_model`,
+        :py:meth:`~treelite.frontend.load_xgboost_model_legacy_binary`, or
+        :py:meth:`~treelite.frontend.load_lightgbm_model` instead.
+
         Load a tree ensemble model from a file.
 
         Parameters

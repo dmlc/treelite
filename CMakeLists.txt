@@ -4,7 +4,6 @@ set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 project(treelite LANGUAGES CXX C VERSION 4.3.0)
-message(STATUS "CMAKE_VERSION = ${CMAKE_VERSION}")
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()

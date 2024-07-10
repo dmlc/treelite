@@ -121,7 +121,7 @@ def from_xgboost(booster: Any) -> Any:
         model_json_str = booster.save_raw(raw_format="json")
         return from_xgboost_json(model_json_str)
     if xgb_version >= parse_version("1.0.0"):
-        # Prior to version 1.6.0, XGBoost offer a method to export models as JSON string
+        # Prior to version 1.6.0, XGBoost doesn't offer a method to export models as JSON string
         # in-memory. So use __getstate__ instead.
         model_json_str = booster.__getstate__()["handle"]
         return from_xgboost_json(model_json_str)

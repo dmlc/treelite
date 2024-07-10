@@ -124,6 +124,7 @@ target_sources(objtreelite
     model_loader/sklearn.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
+    model_loader/xgboost_ubjson.cc
     model_loader/detail/lightgbm.h
     model_loader/detail/string_utils.h
     model_loader/detail/xgboost.cc

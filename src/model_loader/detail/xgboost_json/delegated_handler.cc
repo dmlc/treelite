@@ -10,6 +10,8 @@
 
 #include <treelite/logging.h>
 
+#include <string>
+
 #include "../string_utils.h"
 #include "../xgboost.h"
 
@@ -88,7 +90,7 @@ bool BaseHandler::Double(double) {
   return false;
 }
 
-bool BaseHandler::String(char const*, std::size_t, bool) {
+bool BaseHandler::String(std::string const&) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
@@ -102,11 +104,11 @@ bool BaseHandler::StartObject() {
   return false;
 }
 
-bool BaseHandler::Key(char const* str, std::size_t length, bool) {
-  return set_cur_key(str, length);
+bool BaseHandler::Key(std::string const& str) {
+  return set_cur_key(str);
 }
 
-bool BaseHandler::EndObject(std::size_t) {
+bool BaseHandler::EndObject() {
   return pop_handler();
 }
 
@@ -117,7 +119,7 @@ bool BaseHandler::StartArray() {
   return false;
 }
 
-bool BaseHandler::EndArray(std::size_t) {
+bool BaseHandler::EndArray() {
   return pop_handler();
 }
 
@@ -130,16 +132,16 @@ bool BaseHandler::pop_handler() {
   }
 }
 
-bool BaseHandler::set_cur_key(char const* str, std::size_t length) {
-  if (is_recognized_key(str)) {
-    cur_key = std::string{str, length};
+bool BaseHandler::set_cur_key(std::string const& key) {
+  if (is_recognized_key(key)) {
+    cur_key = key;
   } else if (allow_unknown_field_) {
-    TREELITE_LOG(WARNING) << "Warning: Encountered unknown key \"" << str << "\"";
+    TREELITE_LOG(WARNING) << "Warning: Encountered unknown key \"" << key << "\"";
     cur_key = "";
     state_next_field_ignore_ = true;
   } else {
     // Extra field with unknown key is a fatal error if allow_unknown_field_ is not set
-    TREELITE_LOG(ERROR) << "Error: key \"" << str << "\" is not recognized!";
+    TREELITE_LOG(ERROR) << "Error: key \"" << key << "\" is not recognized!";
     return false;
   }
   return true;
@@ -231,28 +233,28 @@ bool DelegatedHandler::Double(double d) {
   return delegates.top()->Double(d);
 }
 
-bool DelegatedHandler::String(char const* str, std::size_t length, bool copy) {
-  return delegates.top()->String(str, length, copy);
+bool DelegatedHandler::String(std::string const& str) {
+  return delegates.top()->String(str);
 }
 
 bool DelegatedHandler::StartObject() {
   return delegates.top()->StartObject();
 }
 
-bool DelegatedHandler::Key(char const* str, std::size_t length, bool copy) {
-  return delegates.top()->Key(str, length, copy);
+bool DelegatedHandler::Key(std::string const& key) {
+  return delegates.top()->Key(key);
 }
 
-bool DelegatedHandler::EndObject(std::size_t memberCount) {
-  return delegates.top()->EndObject(memberCount);
+bool DelegatedHandler::EndObject() {
+  return delegates.top()->EndObject();
 }
 
 bool DelegatedHandler::StartArray() {
   return delegates.top()->StartArray();
 }
 
-bool DelegatedHandler::EndArray(std::size_t elementCount) {
-  return delegates.top()->EndArray(elementCount);
+bool DelegatedHandler::EndArray() {
+  return delegates.top()->EndArray();
 }
 
 /******************************************************************************
@@ -279,7 +281,7 @@ bool IgnoreHandler::Double(double) {
   return true;
 }
 
-bool IgnoreHandler::String(char const*, std::size_t, bool) {
+bool IgnoreHandler::String(std::string const&) {
   return true;
 }
 
@@ -287,7 +289,7 @@ bool IgnoreHandler::StartObject() {
   return push_handler<IgnoreHandler>();
 }
 
-bool IgnoreHandler::Key(char const*, std::size_t, bool) {
+bool IgnoreHandler::Key(std::string const&) {
   return true;
 }
 
@@ -298,7 +300,7 @@ bool IgnoreHandler::StartArray() {
 /******************************************************************************
  * TreeParamHandler
  * ***************************************************************************/
-bool TreeParamHandler::String(char const* str, std::size_t, bool) {
+bool TreeParamHandler::String(std::string const& str) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
@@ -357,7 +359,7 @@ bool RegTreeHandler::Uint64(std::uint64_t) {
   return check_cur_key("id");
 }
 
-bool RegTreeHandler::EndObject(std::size_t) {
+bool RegTreeHandler::EndObject() {
   auto const num_nodes = output.num_nodes;
   if (split_type.empty()) {
     split_type.resize(num_nodes, xgboost::FeatureType::kNumerical);
@@ -504,7 +506,7 @@ bool GBTreeModelHandler::StartObject() {
   return push_key_handler<IgnoreHandler>("gbtree_model_param");
 }
 
-bool GBTreeModelHandler::EndObject(std::size_t) {
+bool GBTreeModelHandler::EndObject() {
   if (!reg_tree_params.empty()) {
     TREELITE_CHECK_LE(
         reg_tree_params.size(), static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
@@ -528,11 +530,11 @@ bool GBTreeModelHandler::is_recognized_key(std::string const& key) {
  * GradientBoosterHandler
  * ***************************************************************************/
 
-bool GradientBoosterHandler::String(char const* str, std::size_t length, bool) {
+bool GradientBoosterHandler::String(std::string const& str) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
-  if (assign_value("name", std::string{str, length}, name)) {
+  if (assign_value("name", str, name)) {
     if (name == "gbtree" || name == "dart") {
       return true;
     } else {
@@ -567,7 +569,7 @@ bool GradientBoosterHandler::StartArray() {
   return push_key_handler<ArrayHandler<float>, std::vector<float>>("weight_drop", weight_drop);
 }
 
-bool GradientBoosterHandler::EndObject([[maybe_unused]] std::size_t memberCount) {
+bool GradientBoosterHandler::EndObject() {
   if (name == "dart" && !weight_drop.empty()) {
     TREELITE_CHECK_EQ(output.size_leaf_vector, 1)
         << "Dart with vector-leaf output is not yet supported";
@@ -601,11 +603,11 @@ bool ObjectiveHandler::StartObject() {
           || push_key_handler<IgnoreHandler>("lambdarank_param"));
 }
 
-bool ObjectiveHandler::String(char const* str, std::size_t length, bool) {
+bool ObjectiveHandler::String(std::string const& str) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
-  return assign_value("name", std::string{str, length}, output);
+  return assign_value("name", str, output);
 }
 
 bool ObjectiveHandler::is_recognized_key(std::string const& key) {
@@ -619,13 +621,13 @@ bool ObjectiveHandler::is_recognized_key(std::string const& key) {
  * LearnerParamHandler
  * ***************************************************************************/
 
-bool LearnerParamHandler::String(char const* str, std::size_t, bool) {
+bool LearnerParamHandler::String(std::string const& str) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
   // For now, XGBoost always outputs a scalar base_score
   return (
-      assign_value("base_score", static_cast<float>(std::strtod(str, nullptr)), output.base_score)
+      assign_value("base_score", static_cast<float>(std::stof(str)), output.base_score)
       || assign_value("num_class", std::max(std::stoi(str), 1), output.num_class)
       || assign_value("num_target", static_cast<std::int32_t>(std::stoi(str)), output.num_target)
       || assign_value("num_feature", std::stoi(str), output.num_feature)
@@ -655,7 +657,7 @@ bool LearnerHandler::StartObject() {
       || push_key_handler<IgnoreHandler>("attributes"));
 }
 
-bool LearnerHandler::EndObject(std::size_t) {
+bool LearnerHandler::EndObject() {
   /* Set metadata */
   auto const num_tree = output.num_tree;
   auto const num_feature = learner_params.num_feature;

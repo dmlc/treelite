@@ -77,12 +77,12 @@ class BaseHandler {
   virtual bool Int64(std::int64_t);
   virtual bool Uint64(std::uint64_t);
   virtual bool Double(double);
-  virtual bool String(char const*, std::size_t, bool);
+  virtual bool String(std::string const&);
   virtual bool StartObject();
-  virtual bool Key(char const* str, std::size_t length, bool);
-  virtual bool EndObject(std::size_t);
+  virtual bool Key(std::string const&);
+  virtual bool EndObject();
   virtual bool StartArray();
-  virtual bool EndArray(std::size_t);
+  virtual bool EndArray();
 
  protected:
   /* \brief Build handler of indicated type and push it onto delegator's stack
@@ -117,10 +117,9 @@ class BaseHandler {
   bool pop_handler();
   /* \brief Store current JSON key
    * \param str Key to store
-   * \param length Length of the str char array
    * \return Whether the key is acceptable
    */
-  bool set_cur_key(char const* str, std::size_t length);
+  bool set_cur_key(std::string const& key);
   /* \brief Retrieve current JSON key */
   std::string const& get_cur_key();
   /* \brief Check if current JSON key is indicated key
@@ -202,12 +201,12 @@ class DelegatedHandler : public Delegator {
   bool Int64(std::int64_t i);
   bool Uint64(std::uint64_t u);
   bool Double(double d);
-  bool String(char const* str, std::size_t length, bool copy);
+  bool String(std::string const& str);
   bool StartObject();
-  bool Key(char const* str, std::size_t length, bool copy);
-  bool EndObject(std::size_t memberCount);
+  bool Key(std::string const& key);
+  bool EndObject();
   bool StartArray();
-  bool EndArray(std::size_t elementCount);
+  bool EndArray();
 
  private:
   explicit DelegatedHandler(HandlerConfig const& handler_config);
@@ -226,9 +225,9 @@ class IgnoreHandler : public BaseHandler {
   bool Int64(std::int64_t i) override;
   bool Uint64(std::uint64_t u) override;
   bool Double(double d) override;
-  bool String(char const* str, std::size_t length, bool copy) override;
+  bool String(std::string const& str) override;
   bool StartObject() override;
-  bool Key(char const* str, std::size_t length, bool copy) override;
+  bool Key(std::string const& str) override;
   bool StartArray() override;
 };
 
@@ -305,22 +304,22 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
   template <typename StringType = ElemType>
   typename std::enable_if_t<std::is_same_v<StringType, std::string>, bool> store_string(
-      char const* str, std::size_t length, bool copy) {
-    this->output.push_back(ElemType{str, length});
+      std::string const& str) {
+    this->output.push_back(str);
     return true;
   }
 
   template <typename StringType = ElemType>
   typename std::enable_if_t<!std::is_same_v<StringType, std::string>, bool> store_string(
-      char const*, std::size_t, bool) {
+      std::string const&) {
     return false;
   }
 
-  bool String(char const* str, std::size_t length, bool copy) override {
+  bool String(std::string const& str) override {
     if (this->should_ignore_upcoming_value()) {
       return true;
     }
-    return store_string(str, length, copy);
+    return store_string(str);
   }
 
   bool StartObject(std::true_type) {
@@ -346,7 +345,7 @@ class TreeParamHandler : public OutputHandler<ParsedRegTreeParams> {
  public:
   using OutputHandler<ParsedRegTreeParams>::OutputHandler;
 
-  bool String(char const* str, std::size_t length, bool copy) override;
+  bool String(std::string const& str) override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -362,7 +361,7 @@ class RegTreeHandler : public OutputHandler<ParsedRegTreeParams> {
   bool StartArray() override;
   bool StartObject() override;
   bool Uint64(std::uint64_t) override;
-  bool EndObject(std::size_t) override;
+  bool EndObject() override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -406,7 +405,7 @@ class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
-  bool EndObject(std::size_t memberCount) override;
+  bool EndObject() override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -419,10 +418,10 @@ class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
 class GradientBoosterHandler : public OutputHandler<ParsedXGBoostModel> {
  public:
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
-  bool String(char const* str, std::size_t length, bool copy) override;
+  bool String(std::string const& str) override;
   bool StartArray() override;
   bool StartObject() override;
-  bool EndObject(std::size_t memberCount) override;
+  bool EndObject() override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -437,7 +436,7 @@ class ObjectiveHandler : public OutputHandler<std::string> {
  public:
   using OutputHandler<std::string>::OutputHandler;
   bool StartObject() override;
-  bool String(char const* str, std::size_t length, bool copy) override;
+  bool String(std::string const& str) override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -447,7 +446,7 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 class LearnerParamHandler : public OutputHandler<ParsedLearnerParams> {
  public:
   using OutputHandler<ParsedLearnerParams>::OutputHandler;
-  bool String(char const* str, std::size_t length, bool copy) override;
+  bool String(std::string const& str) override;
 
  protected:
   bool is_recognized_key(std::string const& key) override;
@@ -458,7 +457,7 @@ class LearnerHandler : public OutputHandler<ParsedXGBoostModel> {
  public:
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
   bool StartObject() override;
-  bool EndObject(std::size_t memberCount) override;
+  bool EndObject() override;
   bool StartArray() override;
 
  protected:

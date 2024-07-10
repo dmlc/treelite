@@ -110,16 +110,16 @@ namespace {
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
     ErrorHandlerFunc error_handler, rapidjson::Document const& parsed_config) {
-  treelite::model_loader::detail::xgboost::HandlerConfig hanlder_config;
+  treelite::model_loader::detail::xgboost::HandlerConfig handler_config;
   if (parsed_config.IsObject()) {
     auto itr = parsed_config.FindMember("allow_unknown_field");
     if (itr != parsed_config.MemberEnd() && itr->value.IsBool()) {
-      hanlder_config.allow_unknown_field = itr->value.GetBool();
+      handler_config.allow_unknown_field = itr->value.GetBool();
     }
   }
 
   std::shared_ptr<treelite::model_loader::detail::xgboost::DelegatedHandler> handler
-      = treelite::model_loader::detail::xgboost::DelegatedHandler::create(hanlder_config);
+      = treelite::model_loader::detail::xgboost::DelegatedHandler::create(handler_config);
   auto adapter
       = std::make_unique<treelite::model_loader::detail::xgboost::RapidJSONAdapter>(handler);
   rapidjson::Reader reader;

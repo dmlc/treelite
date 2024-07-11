@@ -42,7 +42,7 @@ std::unique_ptr<treelite::Model> LoadLightGBMModel(std::string const& filename) 
   return ParseStream(fi);
 }
 
-std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(char const* model_str) {
+std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(std::string const& model_str) {
   std::istringstream is(model_str);
   return ParseStream(is);
 }

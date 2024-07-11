@@ -20,6 +20,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 
@@ -36,8 +37,8 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
 
 namespace treelite::model_loader {
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(
-    std::string const& filename, char const* config_json) {
+std::unique_ptr<treelite::Model> LoadXGBoostModelJSON(
+    std::string const& filename, std::string const& config_json) {
   char read_buffer[65536];
 
   FILE* fp = treelite::detail::OpenFileForReadAsFilePtr(filename);
@@ -75,9 +76,9 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(
   return parsed_model;
 }
 
-std::unique_ptr<treelite::Model> LoadXGBoostModelFromString(
-    char const* json_str, std::size_t length, char const* config_json) {
-  auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str, length);
+std::unique_ptr<treelite::Model> LoadXGBoostModelFromJSONString(
+    std::string_view json_str, std::string const& config_json) {
+  auto input_stream = std::make_unique<rapidjson::MemoryStream>(json_str.data(), json_str.length());
   auto error_handler = [json_str](std::size_t offset) -> std::string {
     std::size_t cur = (offset >= 50 ? (offset - 50) : 0);
     std::ostringstream oss, oss2;

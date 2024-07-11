@@ -12,47 +12,42 @@
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <string_view>
 
 #include "detail/xgboost_json/delegated_handler.h"
 #include "detail/xgboost_json/sax_adapters.h"
 
 namespace {
 
-template <typename ParseFun>
+template <typename InputType>
 std::unique_ptr<treelite::Model> ParseStream(
-    nlohmann::json const& parsed_config, ParseFun&& parse_fun);
+    InputType&& input_stream, nlohmann::json const& parsed_config);
 
 }  // anonymous namespace
 
 namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelUBJSON(
-    std::string const& filename, char const* config_json) {
+    std::string const& filename, std::string const& config_json) {
   nlohmann::json parsed_config = nlohmann::json::parse(config_json);
   std::ifstream ifs = treelite::detail::OpenFileForReadAsStream(filename);
-  return ParseStream(
-      parsed_config, [&ifs](model_loader::detail::xgboost::NlohmannJSONAdapter* adapter) {
-        nlohmann::json::sax_parse(ifs, adapter, nlohmann::json::input_format_t::ubjson);
-      });
+  return ParseStream(ifs, parsed_config);
 }
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelFromUBJSONString(
-    std::uint8_t const* ubjson_str, std::size_t length, char const* config_json) {
+    std::basic_string_view<std::uint8_t> ubjson_str, std::string const& config_json) {
   nlohmann::json parsed_config = nlohmann::json::parse(config_json);
-  return ParseStream(parsed_config,
-      [ubjson_str, length](model_loader::detail::xgboost::NlohmannJSONAdapter* adapter) {
-        nlohmann::json::sax_parse(
-            ubjson_str, ubjson_str + length, adapter, nlohmann::json::input_format_t::ubjson);
-      });
+  return ParseStream(ubjson_str, parsed_config);
 }
 
 }  // namespace treelite::model_loader
 
 namespace {
 
-template <typename ParseFun>
+template <typename InputType>
 std::unique_ptr<treelite::Model> ParseStream(
-    nlohmann::json const& parsed_config, ParseFun&& parse_fun) {
+    InputType&& input_stream, nlohmann::json const& parsed_config) {
   treelite::model_loader::detail::xgboost::HandlerConfig handler_config;
   if (parsed_config.is_object()) {
     auto itr = parsed_config.find("allow_unknown_field");
@@ -65,8 +60,7 @@ std::unique_ptr<treelite::Model> ParseStream(
       = treelite::model_loader::detail::xgboost::DelegatedHandler::create(handler_config);
   auto adapter
       = std::make_unique<treelite::model_loader::detail::xgboost::NlohmannJSONAdapter>(handler);
-
-  parse_fun(adapter.get());
+  nlohmann::json::sax_parse(input_stream, adapter.get(), nlohmann::json::input_format_t::ubjson);
 
   treelite::model_loader::detail::xgboost::ParsedXGBoostModel parsed = handler->get_result();
   auto model = parsed.builder->CommitModel();

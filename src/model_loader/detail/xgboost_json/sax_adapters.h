@@ -8,8 +8,6 @@
 #ifndef SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_SAX_ADAPTERS_H_
 #define SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_SAX_ADAPTERS_H_
 
-#include <rapidjson/reader.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -17,6 +15,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <rapidjson/reader.h>
 
 namespace treelite::model_loader::detail::xgboost {
 

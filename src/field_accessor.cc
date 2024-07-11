@@ -4,12 +4,12 @@
  * \author Hyunsu Cho
  * \brief Methods for accessing fields in Treelite model
  */
-#include <treelite/detail/serializer.h>
-#include <treelite/tree.h>
-
 #include <cstdint>
 #include <string>
 #include <variant>
+
+#include <treelite/detail/serializer.h>
+#include <treelite/tree.h>
 
 namespace treelite {
 

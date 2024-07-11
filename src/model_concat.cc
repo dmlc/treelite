@@ -5,14 +5,14 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/logging.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <iterator>
 #include <memory>
 #include <type_traits>
 #include <variant>
+
+#include <treelite/logging.h>
+#include <treelite/tree.h>
 
 namespace treelite {
 

@@ -6,11 +6,11 @@
  */
 #include "./xgboost.h"
 
-#include <treelite/logging.h>
-#include <treelite/tree.h>
-
 #include <string>
 #include <vector>
+
+#include <treelite/logging.h>
+#include <treelite/tree.h>
 
 namespace treelite::model_loader::detail::xgboost {
 

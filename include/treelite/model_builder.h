@@ -8,11 +8,6 @@
 #ifndef TREELITE_MODEL_BUILDER_H_
 #define TREELITE_MODEL_BUILDER_H_
 
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/tree_node_type.h>
-#include <treelite/enum/typeinfo.h>
-
 #include <array>
 #include <cstdint>
 #include <map>
@@ -21,6 +16,11 @@
 #include <string>
 #include <variant>
 #include <vector>
+
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/tree_node_type.h>
+#include <treelite/enum/typeinfo.h>
 
 namespace treelite {
 

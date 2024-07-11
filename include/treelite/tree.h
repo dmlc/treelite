@@ -7,15 +7,6 @@
 #ifndef TREELITE_TREE_H_
 #define TREELITE_TREE_H_
 
-#include <treelite/contiguous_array.h>
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/tree_node_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/pybuffer_frame.h>
-#include <treelite/version.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +21,15 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+#include <treelite/contiguous_array.h>
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/tree_node_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/pybuffer_frame.h>
+#include <treelite/version.h>
 
 /* Indicator that certain functions should be visible from a library (Windows only) */
 #if defined(_MSC_VER) || defined(_WIN32)

@@ -5,9 +5,13 @@
  * \brief C++ tests for GTIL
  */
 
-#include <gtest/gtest.h>
-#include <model_builder/detail/json_parsing.h>
-#include <rapidjson/document.h>
+#include <array>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <treelite/detail/threading_utils.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
@@ -15,12 +19,10 @@
 #include <treelite/model_builder.h>
 #include <treelite/tree.h>
 
-#include <array>
-#include <cstdint>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#include <gtest/gtest.h>
+#include <rapidjson/document.h>
+
+#include "model_builder/detail/json_parsing.h"
 
 namespace {
 

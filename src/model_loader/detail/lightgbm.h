@@ -7,9 +7,9 @@
 #ifndef SRC_MODEL_LOADER_DETAIL_LIGHTGBM_H_
 #define SRC_MODEL_LOADER_DETAIL_LIGHTGBM_H_
 
-#include <treelite/logging.h>
-
 #include <string>
+
+#include <treelite/logging.h>
 
 #include "./string_utils.h"
 

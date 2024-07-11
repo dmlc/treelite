@@ -7,12 +7,12 @@
 #ifndef TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 #define TREELITE_DETAIL_CONTIGUOUS_ARRAY_H_
 
-#include <treelite/logging.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <vector>
+
+#include <treelite/logging.h>
 
 namespace treelite {
 

@@ -8,9 +8,9 @@
 
 #include "./delegated_handler.h"
 
-#include <treelite/logging.h>
-
 #include <string>
+
+#include <treelite/logging.h>
 
 #include "../string_utils.h"
 #include "../xgboost.h"

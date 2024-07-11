@@ -5,15 +5,15 @@
  * \brief C API for functions to serialize model objects
  */
 
-#include <treelite/c_api.h>
-#include <treelite/c_api_error.h>
-#include <treelite/detail/file_utils.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <memory>
 #include <sstream>
 #include <string>
+
+#include <treelite/c_api.h>
+#include <treelite/c_api_error.h>
+#include <treelite/detail/file_utils.h>
+#include <treelite/tree.h>
 
 #include "./c_api_utils.h"
 

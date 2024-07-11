@@ -4,14 +4,6 @@
  * \brief Model loader for scikit-learn models
  * \author Hyunsu Cho
  */
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/model_builder.h>
-#include <treelite/model_loader.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <experimental/mdspan>
@@ -20,6 +12,14 @@
 #include <memory>
 #include <numeric>
 #include <optional>
+
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/model_builder.h>
+#include <treelite/model_loader.h>
+#include <treelite/tree.h>
 
 namespace treelite::model_loader::sklearn {
 

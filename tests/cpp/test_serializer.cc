@@ -4,18 +4,6 @@
  * \author Hyunsu Cho
  * \brief C++ tests for model serializer
  */
-#include <fmt/format.h>
-#include <gtest/gtest.h>
-#include <rapidjson/document.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
-#include <treelite/detail/file_utils.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/error.h>
-#include <treelite/model_builder.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -24,6 +12,19 @@
 #include <sstream>
 #include <string>
 #include <utility>
+
+#include <treelite/detail/file_utils.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/error.h>
+#include <treelite/model_builder.h>
+#include <treelite/tree.h>
+
+#include <fmt/format.h>
+#include <gtest/gtest.h>
+#include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 
 using namespace fmt::literals;
 

@@ -8,9 +8,6 @@
 #ifndef TREELITE_DETAIL_THREADING_UTILS_H_
 #define TREELITE_DETAIL_THREADING_UTILS_H_
 
-#include <treelite/detail/omp_exception.h>
-#include <treelite/logging.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -18,6 +15,9 @@
 #include <limits>
 #include <mutex>
 #include <type_traits>
+
+#include <treelite/detail/omp_exception.h>
+#include <treelite/logging.h>
 
 #if TREELITE_OPENMP_SUPPORT
 #include <omp.h>

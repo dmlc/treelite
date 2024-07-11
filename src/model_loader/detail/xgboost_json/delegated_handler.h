@@ -9,8 +9,6 @@
 #ifndef SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_DELEGATED_HANDLER_H_
 #define SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_DELEGATED_HANDLER_H_
 
-#include <treelite/model_builder.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -18,6 +16,8 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <treelite/model_builder.h>
 
 namespace treelite::model_loader::detail::xgboost {
 

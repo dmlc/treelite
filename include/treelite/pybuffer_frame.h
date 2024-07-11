@@ -8,10 +8,10 @@
 #ifndef TREELITE_PYBUFFER_FRAME_H_
 #define TREELITE_PYBUFFER_FRAME_H_
 
-#include <treelite/c_api.h>
-
 #include <cstddef>
 #include <type_traits>
+
+#include <treelite/c_api.h>
 
 namespace treelite {
 

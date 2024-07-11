@@ -5,15 +5,16 @@
  * \author Hyunsu Cho
  */
 
+#include <fstream>
+#include <memory>
+#include <string>
+#include <string_view>
+
 #include <treelite/detail/file_utils.h>
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
-#include <fstream>
-#include <memory>
 #include <nlohmann/json.hpp>
-#include <string>
-#include <string_view>
 
 #include "detail/xgboost_json/delegated_handler.h"
 #include "detail/xgboost_json/sax_adapters.h"

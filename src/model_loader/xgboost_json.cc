@@ -5,14 +5,6 @@
  * \author Hyunsu Cho, William Hicks
  */
 
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/filereadstream.h>
-#include <treelite/detail/file_utils.h>
-#include <treelite/logging.h>
-#include <treelite/model_loader.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -23,6 +15,15 @@
 #include <string_view>
 #include <utility>
 #include <variant>
+
+#include <treelite/detail/file_utils.h>
+#include <treelite/logging.h>
+#include <treelite/model_loader.h>
+#include <treelite/tree.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/filereadstream.h>
 
 #include "detail/xgboost_json/delegated_handler.h"
 #include "detail/xgboost_json/sax_adapters.h"

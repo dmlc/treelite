@@ -7,10 +7,10 @@
 #ifndef TREELITE_DETAIL_OMP_EXCEPTION_H_
 #define TREELITE_DETAIL_OMP_EXCEPTION_H_
 
-#include <treelite/error.h>
-
 #include <exception>
 #include <mutex>
+
+#include <treelite/error.h>
 
 namespace treelite {
 

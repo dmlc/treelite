@@ -5,10 +5,11 @@
  * \brief C++ tests for model loader
  */
 
-#include <gtest/gtest.h>
-#include <model_loader/detail/string_utils.h>
-
 #include <string>
+
+#include <gtest/gtest.h>
+
+#include "model_loader/detail/string_utils.h"
 
 TEST(ModelLoader, StringTrim) {
   std::string s{"foobar\r\n"};

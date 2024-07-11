@@ -5,15 +5,6 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/detail/file_utils.h>
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/model_builder.h>
-#include <treelite/model_loader.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -24,6 +15,15 @@
 #include <queue>
 #include <sstream>
 #include <variant>
+
+#include <treelite/detail/file_utils.h>
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/model_builder.h>
+#include <treelite/model_loader.h>
+#include <treelite/tree.h>
 
 #include "./detail/xgboost.h"
 #include "detail/string_utils.h"

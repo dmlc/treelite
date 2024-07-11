@@ -8,12 +8,12 @@
 #ifndef TREELITE_DETAIL_FILE_UTILS_H_
 #define TREELITE_DETAIL_FILE_UTILS_H_
 
-#include <treelite/logging.h>
-
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <string>
+
+#include <treelite/logging.h>
 
 namespace treelite::detail {
 

@@ -3,16 +3,16 @@
  * \file example.cc
  * \brief Test using Treelite as a C++ library
  */
+#include <iostream>
+#include <memory>
+#include <vector>
+
 #include <treelite/c_api.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
 #include <treelite/model_builder.h>
 #include <treelite/tree.h>
-
-#include <iostream>
-#include <memory>
-#include <vector>
 
 int main(void) {
   std::cout << "TREELITE_VERSION = " << TREELITE_VERSION << std::endl;

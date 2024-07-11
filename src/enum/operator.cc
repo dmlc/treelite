@@ -5,10 +5,10 @@
  * \brief Utilities for Operator enum
  */
 
+#include <string>
+
 #include <treelite/enum/operator.h>
 #include <treelite/logging.h>
-
-#include <string>
 
 namespace treelite {
 

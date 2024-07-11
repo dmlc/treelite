@@ -5,15 +5,15 @@
  * \brief C API for frontend functions
  */
 
-#include <treelite/c_api.h>
-#include <treelite/c_api_error.h>
-#include <treelite/model_loader.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
+
+#include <treelite/c_api.h>
+#include <treelite/c_api_error.h>
+#include <treelite/model_loader.h>
+#include <treelite/tree.h>
 
 int TreeliteLoadXGBoostModelLegacyBinary(
     char const* filename, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {

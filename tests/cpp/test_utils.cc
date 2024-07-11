@@ -5,13 +5,14 @@
  * \brief C++ tests for utility functions
  */
 
-#include <gtest/gtest.h>
-#include <treelite/detail/file_utils.h>
-
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <string>
+
+#include <treelite/detail/file_utils.h>
+
+#include <gtest/gtest.h>
 
 TEST(FileUtils, StreamIO) {
   std::string s{"Hello world"};

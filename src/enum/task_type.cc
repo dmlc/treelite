@@ -5,10 +5,10 @@
  * \brief Utilities for TaskType enum
  */
 
+#include <string>
+
 #include <treelite/enum/task_type.h>
 #include <treelite/logging.h>
-
-#include <string>
 
 namespace treelite {
 

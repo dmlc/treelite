@@ -5,14 +5,14 @@
  * \brief C API for frontend functions
  */
 
+#include <cstddef>
+#include <cstdint>
+
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
 #include <treelite/enum/operator.h>
 #include <treelite/model_builder.h>
 #include <treelite/tree.h>
-
-#include <cstddef>
-#include <cstdint>
 
 int TreeliteGetModelBuilder(char const* json_str, TreeliteModelBuilderHandle* out) {
   API_BEGIN();

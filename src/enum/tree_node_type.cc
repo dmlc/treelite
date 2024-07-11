@@ -5,10 +5,10 @@
  * \brief Utilities for NodeType enum
  */
 
+#include <string>
+
 #include <treelite/enum/tree_node_type.h>
 #include <treelite/logging.h>
-
-#include <string>
 
 namespace treelite {
 

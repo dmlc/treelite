@@ -4,16 +4,16 @@
  * \brief C++ API for constructing Model metadata
  * \author Hyunsu Cho
  */
-#include <treelite/enum/task_type.h>
-#include <treelite/logging.h>
-#include <treelite/model_builder.h>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include <treelite/enum/task_type.h>
+#include <treelite/logging.h>
+#include <treelite/model_builder.h>
 
 namespace treelite::model_builder {
 

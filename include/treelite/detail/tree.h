@@ -7,10 +7,6 @@
 #ifndef TREELITE_DETAIL_TREE_H_
 #define TREELITE_DETAIL_TREE_H_
 
-#include <treelite/error.h>
-#include <treelite/logging.h>
-#include <treelite/version.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -26,6 +22,10 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#include <treelite/error.h>
+#include <treelite/logging.h>
+#include <treelite/version.h>
 
 namespace treelite {
 

@@ -8,15 +8,6 @@
 #ifndef SRC_MODEL_BUILDER_DETAIL_JSON_PARSING_H_
 #define SRC_MODEL_BUILDER_DETAIL_JSON_PARSING_H_
 
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/stringbuffer.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/model_builder.h>
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -24,6 +15,16 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/model_builder.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
 
 namespace treelite::model_builder::detail::json_parse {
 

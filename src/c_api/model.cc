@@ -5,13 +5,13 @@
  * \brief C API for functions to query and modify model objects
  */
 
-#include <treelite/c_api.h>
-#include <treelite/c_api_error.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <string>
+
+#include <treelite/c_api.h>
+#include <treelite/c_api_error.h>
+#include <treelite/tree.h>
 
 #include "./c_api_utils.h"
 

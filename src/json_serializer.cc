@@ -6,9 +6,11 @@
  * \author Hyunsu Cho
  */
 
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/writer.h>
+#include <cstddef>
+#include <cstdint>
+#include <ostream>
+#include <type_traits>
+
 #include <treelite/contiguous_array.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
@@ -17,10 +19,9 @@
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
-#include <cstddef>
-#include <cstdint>
-#include <ostream>
-#include <type_traits>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 
 namespace {
 

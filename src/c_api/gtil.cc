@@ -5,14 +5,14 @@
  * \brief C API for functions for GTIL
  */
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
-
-#include <cstddef>
-#include <cstdint>
-#include <memory>
 
 #include "./c_api_utils.h"
 

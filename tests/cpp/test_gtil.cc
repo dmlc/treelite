@@ -5,15 +5,6 @@
  * \brief C++ tests for GTIL
  */
 
-#include <fmt/format.h>
-#include <gtest/gtest.h>
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/gtil.h>
-#include <treelite/model_builder.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -24,6 +15,16 @@
 #include <numeric>
 #include <string>
 #include <vector>
+
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/gtil.h>
+#include <treelite/model_builder.h>
+#include <treelite/tree.h>
+
+#include <fmt/format.h>
+#include <gtest/gtest.h>
 
 namespace treelite {
 

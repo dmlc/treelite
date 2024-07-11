@@ -5,11 +5,6 @@
  * \brief General Tree Inference Library (GTIL), providing a reference implementation for
  *        predicting with decision trees.
  */
-#include <treelite/detail/threading_utils.h>
-#include <treelite/gtil.h>
-#include <treelite/logging.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -19,6 +14,11 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
+
+#include <treelite/detail/threading_utils.h>
+#include <treelite/gtil.h>
+#include <treelite/logging.h>
+#include <treelite/tree.h>
 
 #include "./postprocessor.h"
 

@@ -6,11 +6,11 @@
  */
 #include "./postprocessor.h"
 
-#include <treelite/tree.h>
-
 #include <cmath>
 #include <cstddef>
 #include <unordered_map>
+
+#include <treelite/tree.h>
 
 namespace treelite::gtil {
 

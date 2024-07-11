@@ -42,7 +42,7 @@ def load_xgboost_model(
     parser_config_str = json.dumps(parser_config)
     handle = ctypes.c_void_p()
     _check_call(
-        _LIB.TreeliteLoadXGBoostModel(
+        _LIB.TreeliteLoadXGBoostModelJSON(
             c_str(filename), c_str(parser_config_str), ctypes.byref(handle)
         )
     )
@@ -84,7 +84,7 @@ def from_xgboost_json(
     if isinstance(model_json_str, (bytes, bytearray)):
         json_buffer = ctypes.create_string_buffer(bytes(model_json_str), length)
         _check_call(
-            _LIB.TreeliteLoadXGBoostModelFromString(
+            _LIB.TreeliteLoadXGBoostModelFromJSONString(
                 json_buffer,
                 ctypes.c_size_t(length),
                 c_str(parser_config_str),
@@ -93,13 +93,40 @@ def from_xgboost_json(
         )
     else:
         _check_call(
-            _LIB.TreeliteLoadXGBoostModelFromString(
+            _LIB.TreeliteLoadXGBoostModelFromJSONString(
                 c_str(model_json_str),
                 ctypes.c_size_t(length),
                 c_str(parser_config_str),
                 ctypes.byref(handle),
             )
         )
+    return handle
+
+
+def from_xgboost_ubjson(
+    model_ubjson_str: Union[bytes, bytearray],
+    *,
+    allow_unknown_field: bool = False,
+) -> Any:
+    """
+    Load a XGBoost model from a byte sequence containing UBJSON
+    """
+
+    parser_config = {"allow_unknown_field": allow_unknown_field}
+    parser_config_str = json.dumps(parser_config)
+
+    length = len(model_ubjson_str)
+    ubjson_buffer = ctypes.create_string_buffer(bytes(model_ubjson_str), length)
+
+    handle = ctypes.c_void_p()
+    _check_call(
+        _LIB.TreeliteLoadXGBoostModelFromUBJSONString(
+            ubjson_buffer,
+            ctypes.c_size_t(length),
+            c_str(parser_config_str),
+            ctypes.byref(handle),
+        )
+    )
     return handle
 
 
@@ -120,6 +147,10 @@ def from_xgboost(booster: Any) -> Any:
     if not isinstance(booster, xgboost.Booster):
         raise ValueError("booster must be of type `xgboost.Booster`")
     xgb_version = parse_version(xgboost.__version__)
+    if xgb_version >= parse_version("2.1.0"):
+        # For XGBoost version 2.1.0 and later, use save_raw() to export models as UBJSON string
+        model_ubjson_str = booster.save_raw(raw_format="ubj")
+        return from_xgboost_ubjson(model_ubjson_str)
     if xgb_version > parse_version("1.5.2"):
         # For XGBoost version 1.6.0 and later, use save_raw() to export models as JSON string
         model_json_str = booster.save_raw(raw_format="json")

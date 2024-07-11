@@ -15,6 +15,8 @@
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
+#include "./c_api_utils.h"
+
 int TreeliteLoadXGBoostModelLegacyBinary(
     char const* filename, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
   // config_json is unused for now
@@ -82,6 +84,14 @@ int TreeliteLoadXGBoostModelFromUBJSONString(std::uint8_t const* ubjson_str, std
   std::unique_ptr<treelite::Model> model = treelite::model_loader::LoadXGBoostModelFromUBJSONString(
       std::basic_string_view<std::uint8_t>{ubjson_str, length}, config_json);
   *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteDetectXGBoostFormat(char const* filename, char const** out_str) {
+  API_BEGIN();
+  std::string& ret_str = treelite::c_api::ReturnValueStore::Get()->ret_str;
+  ret_str = treelite::model_loader::DetectXGBoostFormat(filename);
+  *out_str = ret_str.c_str();
   API_END();
 }
 

@@ -567,6 +567,47 @@ def test_xgb_multi_target_regressor(
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
+@given(
+    model_format=sampled_from(["json", "ubjson"]),
+    dataset=standard_regression_datasets(),
+    num_boost_round=integers(min_value=3, max_value=10),
+)
+@settings(**standard_settings())
+def test_xgb_detect_format(
+    model_format,
+    dataset,
+    num_boost_round,
+):
+    # pylint: disable=protected-access
+    """Test functionality to detect the format of XGBoost (JSON vs. UBJSON)"""
+    X, y = dataset
+    params = {
+        "max_depth": 6,
+        "eta": 0.1,
+        "verbosity": 0,
+        "objective": "reg:squarederror",
+    }
+    dtrain = xgb.DMatrix(X, label=y)
+    xgb_model = xgb.train(
+        params,
+        dtrain,
+        num_boost_round=num_boost_round,
+    )
+    expected_pred = xgb_model.predict(xgb.DMatrix(X)).reshape((X.shape[0], 1, -1))
+
+    with TemporaryDirectory() as tmpdir:
+        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        xgb_model.save_model(model_path)
+        detected_format = treelite.frontend._detect_xgboost_format(model_path)
+        assert detected_format == model_format
+        tl_model = treelite.frontend.load_xgboost_model(
+            model_path, format_choice="inspect"
+        )
+        np.testing.assert_almost_equal(
+            treelite.gtil.predict(tl_model, X), expected_pred, decimal=3
+        )
+
+
 def test_load_old_xgboost_model():
     """Ensure that Treelite can load old XGBoost models"""
     path = (

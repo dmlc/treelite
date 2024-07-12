@@ -121,9 +121,9 @@ def load_xgboost_model(
         if detected_format == "json":
             return parse_as_json()
         if detected_format == "ubjson":
-            parse_as_ubjson()
+            return parse_as_ubjson()
         raise ValueError(
-            "Could not detect whether the given XGBoost model is JSON or UBJSON."
+            "Could not detect whether the given XGBoost model is JSON or UBJSON. "
             "Please explicitly set format_choice='json' or format_choice='ubjson'"
         )
     if format_choice == "ubjson":

@@ -10,8 +10,9 @@ import treelite
 
 try:
     from hypothesis import given, settings
+    from hypothesis.extra.numpy import arrays
     from hypothesis.strategies import data as hypothesis_callback
-    from hypothesis.strategies import integers, just, sampled_from
+    from hypothesis.strategies import integers, just, sampled_from, tuples
 except ImportError:
     pytest.skip("hypothesis not installed; skipping", allow_module_level=True)
 
@@ -258,4 +259,26 @@ def test_lightgbm_sparse_categorical_model():
     )
     expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1, 1))
     out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@given(
+    X=arrays(
+        dtype=sampled_from([np.float32, np.float64]),
+        shape=tuples(integers(min_value=10, max_value=100), just(1)),
+    )
+)
+def test_lightgbm_deep_tree(X):
+    """Test LightGBM model with depth 32+"""
+    path = (
+        pathlib.Path(__file__).parent.parent
+        / "examples"
+        / "deep_lightgbm"
+        / "model.txt"
+    )
+    bst = lgb.Booster(model_file=path)
+    expected_pred = bst.predict(X).reshape((X.shape[0], 1, -1))
+
+    tl_model = treelite.frontend.load_lightgbm_model(path)
+    out_pred = treelite.gtil.predict(tl_model, X)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

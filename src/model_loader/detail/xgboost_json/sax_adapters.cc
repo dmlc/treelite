@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "./delegated_handler.h"
 
 namespace treelite::model_loader::detail::xgboost {
@@ -103,7 +105,7 @@ bool NlohmannJSONAdapter::string(std::string& val) {
   return handler_->String(val);
 }
 
-bool NlohmannJSONAdapter::binary(std::vector<std::uint8_t>& val) {
+bool NlohmannJSONAdapter::binary(nlohmann::json::binary_t& val) {
   static_assert(sizeof(char) == sizeof(std::uint8_t), "char must be 1 byte");
   std::string s;
   s.resize(val.size());
@@ -133,7 +135,7 @@ bool NlohmannJSONAdapter::key(std::string& val) {
 }
 
 bool NlohmannJSONAdapter::parse_error(
-    std::size_t position, std::string const& last_token, std::exception const& ex) {
+    std::size_t position, std::string const& last_token, nlohmann::json::exception const& ex) {
   TREELITE_LOG(ERROR) << "Parsing error at token " << position << ": " << ex.what();
   return false;
 }

@@ -360,6 +360,7 @@ class RegTreeHandler : public OutputHandler<ParsedRegTreeParams> {
 
   bool StartArray() override;
   bool StartObject() override;
+  bool Int64(std::int64_t) override;
   bool Uint64(std::uint64_t) override;
   bool EndObject() override;
 

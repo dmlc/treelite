@@ -61,7 +61,8 @@ std::unique_ptr<treelite::Model> ParseStream(
       = treelite::model_loader::detail::xgboost::DelegatedHandler::create(handler_config);
   auto adapter
       = std::make_unique<treelite::model_loader::detail::xgboost::NlohmannJSONAdapter>(handler);
-  nlohmann::json::sax_parse(input_stream, adapter.get(), nlohmann::json::input_format_t::ubjson);
+  TREELITE_CHECK(nlohmann::json::sax_parse(
+      input_stream, adapter.get(), nlohmann::json::input_format_t::ubjson));
 
   treelite::model_loader::detail::xgboost::ParsedXGBoostModel parsed = handler->get_result();
   auto model = parsed.builder->CommitModel();

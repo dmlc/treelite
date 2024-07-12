@@ -92,7 +92,7 @@ def test_xgb_regressor(
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
     param = {
         "max_depth": 8,
         "eta": 0.1,
@@ -106,14 +106,14 @@ def test_xgb_regressor(
         num_boost_round=num_boost_round,
     )
     with TemporaryDirectory() as tmpdir:
-        if model_format == "json":
-            model_name = "model.json"
-            model_path = pathlib.Path(tmpdir) / model_name
+        if model_format in ["json", "ubjson"]:
+            model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
             xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(
+                model_path, format_choice=model_format
+            )
         else:
-            model_name = "model.deprecated"
-            model_path = pathlib.Path(tmpdir) / model_name
+            model_path = pathlib.Path(tmpdir) / "model.deprecated"
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
         assert (
@@ -156,11 +156,11 @@ def test_xgb_multiclass_classifier(
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
-        model_format = "json"
+        model_format = callback.draw(sampled_from(["json", "ubjson"]))
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
 
     num_class = np.max(y) + 1
     param = {
@@ -179,14 +179,14 @@ def test_xgb_multiclass_classifier(
     )
 
     with TemporaryDirectory() as tmpdir:
-        if model_format == "json":
-            model_name = "iris.json"
-            model_path = pathlib.Path(tmpdir) / model_name
+        if model_format in ["json", "ubjson"]:
+            model_path = pathlib.Path(tmpdir) / f"iris.{model_format}"
             xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(
+                model_path, format_choice=model_format
+            )
         else:
-            model_name = "iris.deprecated"
-            model_path = pathlib.Path(tmpdir) / model_name
+            model_path = pathlib.Path(tmpdir) / "iris.deprecated"
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
         expected_num_tree = num_class * num_boost_round * num_parallel_tree
@@ -242,11 +242,11 @@ def test_xgb_nonlinear_objective(
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
-        model_format = "json"
+        model_format = callback.draw(sampled_from(["json", "ubjson"]))
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
 
     assert np.min(y) == 0
     assert np.max(y) == num_class - 1
@@ -265,16 +265,18 @@ def test_xgb_nonlinear_objective(
     )
 
     objective_tag = objective.replace(":", "_")
-    if model_format == "json":
-        model_name = f"nonlinear_{objective_tag}.json"
+    if model_format in ["json", "ubjson"]:
+        model_name = f"nonlinear_{objective_tag}.{model_format}"
     else:
         model_name = f"nonlinear_{objective_tag}.deprecated"
     with TemporaryDirectory() as tmpdir:
         model_path = pathlib.Path(tmpdir) / model_name
         xgb_model.save_model(model_path)
 
-        if model_format == "json":
-            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        if model_format in ["json", "ubjson"]:
+            tl_model = treelite.frontend.load_xgboost_model(
+                model_path, format_choice=model_format
+            )
         else:
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
 
@@ -444,9 +446,9 @@ def test_xgb_multi_target_binary_classifier(
         X_pred = X.copy()
 
     if use_categorical or multi_strategy == "multi_output_tree" or in_memory:
-        model_format = "json"
+        model_format = callback.draw(sampled_from(["ubjson", "json"]))
     else:
-        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+        model_format = callback.draw(sampled_from(["legacy_binary", "ubjson", "json"]))
 
     params = {
         "tree_method": "hist",
@@ -462,10 +464,12 @@ def test_xgb_multi_target_binary_classifier(
         tl_model = treelite.frontend.from_xgboost(bst)
     else:
         with TemporaryDirectory() as tmpdir:
-            if model_format == "json":
-                model_path = pathlib.Path(tmpdir) / "multi_target.json"
+            if model_format in ["json", "ubjson"]:
+                model_path = pathlib.Path(tmpdir) / f"multi_target.{model_format}"
                 bst.save_model(model_path)
-                tl_model = treelite.frontend.load_xgboost_model(model_path)
+                tl_model = treelite.frontend.load_xgboost_model(
+                    model_path, format_choice=model_format
+                )
             else:
                 model_path = pathlib.Path(tmpdir) / "multi_target.deprecated"
                 bst.save_model(model_path)
@@ -515,9 +519,9 @@ def test_xgb_multi_target_regressor(
         X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
         use_categorical = callback.draw(sampled_from([True, False]))
     if multi_strategy == "multi_output_tree" or use_categorical:
-        model_format = "json"
+        model_format = callback.draw(sampled_from(["ubjson", "json"]))
     else:
-        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+        model_format = callback.draw(sampled_from(["legacy_binary", "ubjson", "json"]))
 
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
@@ -542,14 +546,14 @@ def test_xgb_multi_target_regressor(
     )
 
     with TemporaryDirectory() as tmpdir:
-        if model_format == "json":
-            model_name = "model.json"
-            model_path = pathlib.Path(tmpdir) / model_name
+        if model_format in ["json", "ubjson"]:
+            model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
             xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(
+                model_path, format_choice=model_format
+            )
         else:
-            model_name = "model.deprecated"
-            model_path = pathlib.Path(tmpdir) / model_name
+            model_path = pathlib.Path(tmpdir) / "model.deprecated"
             xgb_model.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
         expected_n_trees = num_boost_round * num_parallel_tree

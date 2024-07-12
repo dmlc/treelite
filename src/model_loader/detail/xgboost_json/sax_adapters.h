@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-#include <rapidjson/reader.h>
+#include <nlohmann/json.hpp>
 
 namespace treelite::model_loader::detail::xgboost {
 
@@ -61,13 +61,14 @@ class NlohmannJSONAdapter {
   bool number_unsigned(std::uint64_t val);
   bool number_float(double val, std::string const&);
   bool string(std::string& val);
-  bool binary(std::vector<std::uint8_t>& val);
+  bool binary(nlohmann::json::binary_t& val);
   bool start_object(std::size_t);
   bool end_object();
   bool start_array(std::size_t);
   bool end_array();
   bool key(std::string& val);
-  bool parse_error(std::size_t position, std::string const& last_token, std::exception const& ex);
+  bool parse_error(
+      std::size_t position, std::string const& last_token, nlohmann::json::exception const& ex);
 
  private:
   std::shared_ptr<DelegatedHandler> handler_;

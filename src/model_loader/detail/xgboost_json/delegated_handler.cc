@@ -59,6 +59,8 @@ bool BaseHandler::Null() {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR)
+      << "Reached a dummy handler BaseHandler::Null(). There is likely a bug in the model parser.";
   return false;
 }
 
@@ -66,6 +68,8 @@ bool BaseHandler::Bool(bool) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR)
+      << "Reached a dummy handler BaseHandler::Bool(). There is likely a bug in the model parser.";
   return false;
 }
 
@@ -73,6 +77,8 @@ bool BaseHandler::Int64(std::int64_t) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR)
+      << "Reached a dummy handler BaseHandler::Int64(). There is likely a bug in the model parser.";
   return false;
 }
 
@@ -80,6 +86,8 @@ bool BaseHandler::Uint64(std::uint64_t) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR) << "Reached a dummy handler BaseHandler::Uint64(). "
+                      << "There is likely a bug in the model parser.";
   return false;
 }
 
@@ -87,6 +95,8 @@ bool BaseHandler::Double(double) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR) << "Reached a dummy handler BaseHandler::Double(). "
+                      << "There is likely a bug in the model parser.";
   return false;
 }
 
@@ -94,6 +104,8 @@ bool BaseHandler::String(std::string const&) {
   if (should_ignore_upcoming_value()) {
     return true;
   }
+  TREELITE_LOG(ERROR) << "Reached a dummy handler BaseHandler::String(). "
+                      << "There is likely a bug in the model parser.";
   return false;
 }
 
@@ -101,6 +113,8 @@ bool BaseHandler::StartObject() {
   if (should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
+  TREELITE_LOG(ERROR) << "Reached a dummy handler BaseHandler::StartObject(). "
+                      << "There is likely a bug in the model parser.";
   return false;
 }
 
@@ -116,6 +130,8 @@ bool BaseHandler::StartArray() {
   if (should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
+  TREELITE_LOG(ERROR) << "Reached a dummy handler BaseHandler::StartArray(). "
+                      << "There is likely a bug in the model parser.";
   return false;
 }
 
@@ -350,6 +366,12 @@ bool RegTreeHandler::StartObject() {
     return push_handler<IgnoreHandler>();
   }
   return push_key_handler<TreeParamHandler, ParsedRegTreeParams>("tree_param", output);
+}
+
+bool RegTreeHandler::Int64(std::int64_t x) {
+  // The "id" field can be int64 or uint64
+  // Just defer to the uint64 handler
+  return Uint64(static_cast<std::uint64_t>(x));
 }
 
 bool RegTreeHandler::Uint64(std::uint64_t) {

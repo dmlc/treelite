@@ -7,14 +7,6 @@
 
 #include "./detail/lightgbm.h"
 
-#include <treelite/detail/file_utils.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/model_builder.h>
-#include <treelite/model_loader.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -26,6 +18,14 @@
 #include <unordered_map>
 #include <utility>
 #include <variant>
+
+#include <treelite/detail/file_utils.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/model_builder.h>
+#include <treelite/model_loader.h>
+#include <treelite/tree.h>
 
 #include "./detail/string_utils.h"
 
@@ -42,7 +42,7 @@ std::unique_ptr<treelite::Model> LoadLightGBMModel(std::string const& filename) 
   return ParseStream(fi);
 }
 
-std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(char const* model_str) {
+std::unique_ptr<treelite::Model> LoadLightGBMModelFromString(std::string const& model_str) {
   std::istringstream is(model_str);
   return ParseStream(is);
 }

@@ -41,7 +41,23 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 NamespaceIndentation: None
 PointerAlignment: Left
 ReflowComments: true
+
 SortIncludes: CaseInsensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Headers in <> without extension.
+  - Regex:           '<([A-Za-z0-9\Q/-_\E])+>'
+    Priority:        1
+  # Headers in <> from Treelite
+  - Regex:           '<(treelite)\/'
+    Priority:        2
+  # Headers in <> from external libraries.
+  - Regex:           '<(rapidjson|nlohmann|gtest|fmt)\/'
+    Priority:        3
+  # Headers in "" with extension.
+  - Regex:           '"([A-Za-z0-9.\Q/-_\E])+"'
+    Priority:        4
+
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true

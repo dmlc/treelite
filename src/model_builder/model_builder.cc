@@ -4,12 +4,6 @@
  * \brief C++ API for constructing Model objects
  * \author Hyunsu Cho
  */
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/model_builder.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -23,6 +17,13 @@
 #include <typeinfo>
 #include <variant>
 #include <vector>
+
+#include <treelite/enum/typeinfo.h>
+#include <treelite/model_builder.h>
+#include <treelite/tree.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 
 #include "./detail/json_parsing.h"
 

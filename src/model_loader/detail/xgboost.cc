@@ -6,13 +6,18 @@
  */
 #include "./xgboost.h"
 
-#include <treelite/logging.h>
-#include <treelite/tree.h>
-
+#include <cstddef>
+#include <fstream>
 #include <string>
 #include <vector>
 
-namespace treelite::model_loader::detail::xgboost {
+#include <treelite/detail/file_utils.h>
+#include <treelite/logging.h>
+#include <treelite/model_loader.h>
+
+namespace treelite::model_loader {
+
+namespace detail::xgboost {
 
 // Get correct postprocessor for prediction, depending on objective function
 std::string GetPostProcessor(std::string const& objective_name) {
@@ -49,4 +54,40 @@ double TransformBaseScoreToMargin(std::string const& postprocessor, double base_
   }
 }
 
-}  // namespace treelite::model_loader::detail::xgboost
+}  // namespace detail::xgboost
+
+std::string DetectXGBoostFormat(std::string const& filename) {
+  constexpr std::size_t nbytes = 2;
+  char buf[nbytes] = {0};
+
+  std::ifstream ifs = treelite::detail::OpenFileForReadAsStream(filename);
+  ifs.read(buf, nbytes);
+
+  auto is_space = [](char c) -> bool { return c == ' ' || c == '\n' || c == '\r' || c == '\t'; };
+
+  // First look at the first character
+  if (buf[0] == 'N') {
+    // The no-op code is only used in UBJSON
+    return "ubjson";
+  } else if (is_space(buf[0])) {
+    // White-spaces are only present in JSON
+    return "json";
+  } else if (buf[0] != '{') {
+    // Otherwise, should have '{' if the file is JSON or UBJSON.
+    return "unknown";
+  }
+
+  // First character is '{'. Now look at the second character.
+  if (is_space(buf[1]) || buf[1] == '"') {
+    // White-spaces and double quotation marks are only present in JSON
+    return "json";
+  } else if (buf[1] == 'N' || buf[1] == '$' || buf[1] == '#' || buf[1] == 'i' || buf[1] == 'U'
+             || buf[1] == 'I' || buf[1] == 'l' || buf[1] == 'L') {
+    // The no-op code and type markers are only present in UBJSON
+    return "ubjson";
+  }
+
+  return "unknown";
+}
+
+}  // namespace treelite::model_loader

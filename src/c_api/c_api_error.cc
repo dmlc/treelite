@@ -4,12 +4,12 @@
  * \author Hyunsu Cho
  * \brief C error handling
  */
+#include <string>
+
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
 #include <treelite/thread_local.h>
 #include <treelite/version.h>
-
-#include <string>
 
 namespace treelite::c_api {
 

@@ -5,13 +5,6 @@
  * \author Hyunsu Cho
  */
 
-#include <treelite/detail/serializer_mixins.h>
-#include <treelite/enum/operator.h>
-#include <treelite/enum/tree_node_type.h>
-#include <treelite/logging.h>
-#include <treelite/tree.h>
-#include <treelite/version.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -19,6 +12,13 @@
 #include <string>
 #include <variant>
 #include <vector>
+
+#include <treelite/detail/serializer_mixins.h>
+#include <treelite/enum/operator.h>
+#include <treelite/enum/tree_node_type.h>
+#include <treelite/logging.h>
+#include <treelite/tree.h>
+#include <treelite/version.h>
 
 namespace treelite {
 

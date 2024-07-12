@@ -8,12 +8,12 @@
 #ifndef TREELITE_ENUM_TYPEINFO_H_
 #define TREELITE_ENUM_TYPEINFO_H_
 
-#include <treelite/logging.h>
-
 #include <cstdint>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
+
+#include <treelite/logging.h>
 
 namespace treelite {
 

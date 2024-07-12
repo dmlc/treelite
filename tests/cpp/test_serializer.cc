@@ -4,18 +4,6 @@
  * \author Hyunsu Cho
  * \brief C++ tests for model serializer
  */
-#include <fmt/format.h>
-#include <gtest/gtest.h>
-#include <rapidjson/document.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
-#include <treelite/detail/file_utils.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/error.h>
-#include <treelite/model_builder.h>
-#include <treelite/tree.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -24,6 +12,19 @@
 #include <sstream>
 #include <string>
 #include <utility>
+
+#include <treelite/detail/file_utils.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/error.h>
+#include <treelite/model_builder.h>
+#include <treelite/tree.h>
+
+#include <fmt/format.h>
+#include <gtest/gtest.h>
+#include <rapidjson/document.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/writer.h>
 
 using namespace fmt::literals;
 
@@ -108,6 +109,8 @@ void SerializerRoundTrip_TreeStump() {
   /* Test correctness of JSON dump */
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
+    "threshold_type": "{threshold_type}",
+    "leaf_output_type": "{leaf_output_type}",
     "num_feature": 2,
     "task_type": "kRegressor",
     "average_tree_output": false,
@@ -145,7 +148,9 @@ void SerializerRoundTrip_TreeStump() {
   )JSON",
       "threshold"_a = static_cast<ThresholdType>(0),
       "leaf_value0"_a = static_cast<LeafOutputType>(1),
-      "leaf_value1"_a = static_cast<LeafOutputType>(2));
+      "leaf_value1"_a = static_cast<LeafOutputType>(2),
+      "threshold_type"_a = TypeInfoToString(TypeInfoFromType<ThresholdType>()),
+      "leaf_output_type"_a = TypeInfoToString(TypeInfoFromType<LeafOutputType>()));
 
   rapidjson::Document json_dump;
   json_dump.Parse(model->DumpAsJSON(false).c_str());
@@ -193,6 +198,8 @@ void SerializerRoundTrip_TreeStumpLeafVec() {
   /* Test correctness of JSON dump */
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
+    "threshold_type": "{threshold_type}",
+    "leaf_output_type": "{leaf_output_type}",
     "num_feature": 2,
     "task_type": "kMultiClf",
     "average_tree_output": true,
@@ -232,7 +239,9 @@ void SerializerRoundTrip_TreeStumpLeafVec() {
       "leaf_value0"_a = static_cast<LeafOutputType>(1),
       "leaf_value1"_a = static_cast<LeafOutputType>(2),
       "leaf_value2"_a = static_cast<LeafOutputType>(2),
-      "leaf_value3"_a = static_cast<LeafOutputType>(1));
+      "leaf_value3"_a = static_cast<LeafOutputType>(1),
+      "threshold_type"_a = TypeInfoToString(TypeInfoFromType<ThresholdType>()),
+      "leaf_output_type"_a = TypeInfoToString(TypeInfoFromType<LeafOutputType>()));
   rapidjson::Document json_dump;
   json_dump.Parse(model->DumpAsJSON(false).c_str());
 
@@ -290,6 +299,8 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
   }
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
+    "threshold_type": "{threshold_type}",
+    "leaf_output_type": "{leaf_output_type}",
     "num_feature": 2,
     "task_type": "kRegressor",
     "average_tree_output": false,
@@ -326,7 +337,9 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
   }}
   )JSON",
       "leaf_value0"_a = static_cast<LeafOutputType>(2),
-      "leaf_value1"_a = static_cast<LeafOutputType>(3), "category_list"_a = category_list_str);
+      "leaf_value1"_a = static_cast<LeafOutputType>(3), "category_list"_a = category_list_str,
+      "threshold_type"_a = TypeInfoToString(TypeInfoFromType<ThresholdType>()),
+      "leaf_output_type"_a = TypeInfoToString(TypeInfoFromType<LeafOutputType>()));
 
   rapidjson::Document json_dump;
   json_dump.Parse(model->DumpAsJSON(false).c_str());
@@ -396,6 +409,8 @@ void SerializerRoundTrip_TreeDepth2() {
 
   std::string expected_json_dump_str = fmt::format(R"JSON(
   {{
+    "threshold_type": "{threshold_type}",
+    "leaf_output_type": "{leaf_output_type}",
     "num_feature": 2,
     "task_type": "kBinaryClf",
     "average_tree_output": false,
@@ -553,7 +568,9 @@ void SerializerRoundTrip_TreeDepth2() {
       "tree2_leaf3"_a = static_cast<LeafOutputType>(3 + 2),
       "tree2_leaf4"_a = static_cast<LeafOutputType>(1 + 2),
       "tree2_leaf5"_a = static_cast<LeafOutputType>(4 + 2),
-      "tree2_leaf6"_a = static_cast<LeafOutputType>(2 + 2));
+      "tree2_leaf6"_a = static_cast<LeafOutputType>(2 + 2),
+      "threshold_type"_a = TypeInfoToString(TypeInfoFromType<ThresholdType>()),
+      "leaf_output_type"_a = TypeInfoToString(TypeInfoFromType<LeafOutputType>()));
 
   rapidjson::Document json_dump;
   json_dump.Parse(model->DumpAsJSON(false).c_str());

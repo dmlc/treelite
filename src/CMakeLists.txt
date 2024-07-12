@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
+target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson nlohmann_json::nlohmann_json std::mdspan)
 
 if(USE_OPENMP)
   if(APPLE)
@@ -124,9 +124,13 @@ target_sources(objtreelite
     model_loader/sklearn.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
+    model_loader/xgboost_ubjson.cc
     model_loader/detail/lightgbm.h
     model_loader/detail/string_utils.h
     model_loader/detail/xgboost.cc
     model_loader/detail/xgboost.h
-    model_loader/detail/xgboost_json.h
+    model_loader/detail/xgboost_json/sax_adapters.h
+    model_loader/detail/xgboost_json/sax_adapters.cc
+    model_loader/detail/xgboost_json/delegated_handler.h
+    model_loader/detail/xgboost_json/delegated_handler.cc
 )

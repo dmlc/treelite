@@ -4,11 +4,12 @@
  * \author Hyunsu Cho
  * \brief Configuration handling logic for GTIL
  */
-#include <rapidjson/document.h>
+#include <string>
+
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
 
-#include <string>
+#include <rapidjson/document.h>
 
 namespace treelite::gtil {
 

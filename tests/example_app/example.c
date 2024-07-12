@@ -3,10 +3,11 @@
  * \file example.c
  * \brief Test using Treelite as a C++ library
  */
+#include <treelite/c_api.h>
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <treelite/c_api.h>
 
 #define safe_treelite(call)                                                                       \
   {                                                                                               \

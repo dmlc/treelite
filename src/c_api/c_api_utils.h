@@ -7,12 +7,12 @@
 #ifndef SRC_C_API_C_API_UTILS_H_
 #define SRC_C_API_C_API_UTILS_H_
 
-#include <treelite/pybuffer_frame.h>
-#include <treelite/thread_local.h>
-
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#include <treelite/pybuffer_frame.h>
+#include <treelite/thread_local.h>
 
 namespace treelite::c_api {
 

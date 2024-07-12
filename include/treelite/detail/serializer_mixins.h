@@ -8,14 +8,14 @@
 #ifndef TREELITE_DETAIL_SERIALIZER_MIXINS_H_
 #define TREELITE_DETAIL_SERIALIZER_MIXINS_H_
 
-#include <treelite/contiguous_array.h>
-#include <treelite/detail/serializer.h>
-#include <treelite/pybuffer_frame.h>
-
 #include <istream>
 #include <ostream>
 #include <string>
 #include <vector>
+
+#include <treelite/contiguous_array.h>
+#include <treelite/detail/serializer.h>
+#include <treelite/pybuffer_frame.h>
 
 namespace treelite::detail::serializer {
 

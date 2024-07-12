@@ -98,6 +98,7 @@ Make sure to follow the rules below to prevent errors and silent crashes:
     builder.end_tree()
 
     model = builder.commit()
+    tree = model.get_tree_accessor(0)
 
     # Add a test node. The tree now has 5 nodes total
     tree.set_field("num_nodes", np.array([5], dtype=np.int32))

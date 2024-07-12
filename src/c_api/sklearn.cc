@@ -5,12 +5,12 @@
  * \brief C API for scikit-learn loader functions
  */
 
+#include <cstdint>
+
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
-
-#include <cstdint>
 
 int TreeliteLoadSKLearnRandomForestRegressor(int n_estimators, int n_features, int n_targets,
     std::int64_t const* node_count, std::int64_t const** children_left,

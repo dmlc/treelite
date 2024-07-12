@@ -7,9 +7,6 @@
 #ifndef TREELITE_LOGGING_H_
 #define TREELITE_LOGGING_H_
 
-#include <treelite/error.h>
-#include <treelite/thread_local.h>
-
 #include <cstdio>
 #include <ctime>
 #include <functional>
@@ -17,6 +14,9 @@
 #include <memory>
 #include <sstream>
 #include <string>
+
+#include <treelite/error.h>
+#include <treelite/thread_local.h>
 
 namespace treelite {
 

@@ -4,6 +4,9 @@ set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 project(treelite LANGUAGES CXX C VERSION 4.3.0)
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
 
 # Check compiler versions
 # Use latest compilers to ensure that std::filesystem is available
@@ -118,6 +121,9 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
+if(NOT nlohmann_json_FOUND)  # Fetched nlohmann/json via FetchContent
+  list(APPEND INSTALL_TARGETS nlohmann_json)
+endif()
 install(TARGETS ${INSTALL_TARGETS}
     EXPORT TreeliteTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"

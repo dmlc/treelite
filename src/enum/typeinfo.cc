@@ -5,10 +5,10 @@
  * \brief Utilities for TypeInfo enum
  */
 
+#include <string>
+
 #include <treelite/enum/typeinfo.h>
 #include <treelite/logging.h>
-
-#include <string>
 
 namespace treelite {
 

@@ -4,15 +4,16 @@
  * \author Hyunsu Cho
  * \brief C++ tests for model concatenation
  */
-#include <gtest/gtest.h>
-#include <treelite/model_builder.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <memory>
 #include <sstream>
 #include <variant>
 #include <vector>
+
+#include <treelite/model_builder.h>
+#include <treelite/tree.h>
+
+#include <gtest/gtest.h>
 
 namespace {
 

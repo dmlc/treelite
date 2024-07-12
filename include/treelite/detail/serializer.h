@@ -8,14 +8,6 @@
 #ifndef TREELITE_DETAIL_SERIALIZER_H_
 #define TREELITE_DETAIL_SERIALIZER_H_
 
-#include <treelite/contiguous_array.h>
-#include <treelite/enum/operator.h>
-#include <treelite/enum/task_type.h>
-#include <treelite/enum/tree_node_type.h>
-#include <treelite/enum/typeinfo.h>
-#include <treelite/logging.h>
-#include <treelite/pybuffer_frame.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <istream>
@@ -24,6 +16,14 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+
+#include <treelite/contiguous_array.h>
+#include <treelite/enum/operator.h>
+#include <treelite/enum/task_type.h>
+#include <treelite/enum/tree_node_type.h>
+#include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/pybuffer_frame.h>
 
 namespace treelite::detail::serializer {
 

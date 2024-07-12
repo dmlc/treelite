@@ -5,12 +5,12 @@
  * \brief Compute output shape for GTIL, so that callers can allocate sufficient space
  *        to hold outputs.
  */
-#include <treelite/gtil.h>
-#include <treelite/tree.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <vector>
+
+#include <treelite/gtil.h>
+#include <treelite/tree.h>
 
 namespace treelite::gtil {
 

@@ -3,7 +3,7 @@ cmake_policy(SET CMP0091 NEW)
 set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
-project(treelite LANGUAGES CXX C VERSION 4.3.0)
+project(treelite LANGUAGES CXX C VERSION 4.4.0)
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()

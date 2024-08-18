@@ -8,6 +8,7 @@
 #ifndef SRC_GTIL_POSTPROCESSOR_H_
 #define SRC_GTIL_POSTPROCESSOR_H_
 
+#include <cstdint>
 #include <string>
 
 namespace treelite {

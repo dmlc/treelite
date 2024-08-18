@@ -6,6 +6,7 @@
  */
 #include "./xgboost.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <string>

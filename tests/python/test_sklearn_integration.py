@@ -187,7 +187,7 @@ def test_skl_converter_iforest(dataset):
         random_state=0,
     )
     clf.fit(X)
-    expected_pred = clf._compute_chunked_score_samples(X)  # pylint: disable=W0212
+    expected_pred = -clf.score_samples(X)
     expected_pred = expected_pred.reshape((-1, 1, 1))
 
     tl_model = treelite.sklearn.import_model(clf)

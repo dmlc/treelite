@@ -67,8 +67,16 @@ def import_model(sklearn_model):
     ----
     For :py:class:`~sklearn.ensemble.IsolationForest`, the loaded model will calculate the outlier
     score using the standardized ratio as proposed in the original reference,
-    which matches with :py:meth:`~sklearn.ensemble.IsolationForest._compute_chunked_score_samples`
+    which matches with :py:meth:`~sklearn.ensemble.IsolationForest.score_samples`
     but is a bit different from :py:meth:`~sklearn.ensemble.IsolationForest.decision_function`.
+
+    More precisely, the following relation holds:
+
+    .. code-block:: python
+
+        treelite.gtil.predict(tl_model, X) == -clf.score_samples(X)
+        # clf is an IsolationForest
+        # tl_model is a Treelite representation of clf
 
     Parameters
     ----------

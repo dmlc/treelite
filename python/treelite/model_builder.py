@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from .core import _LIB, _check_call
 from .model import Model
-from .util import c_array, c_str
+from .util import c_array, c_str, deprecate_positional_args
 
 
 @dataclasses.dataclass
@@ -151,7 +151,7 @@ class ModelBuilder:
         postprocessor: PostProcessorFunc,
         base_scores: List[float],
         attributes: Optional[Dict[Any, Any]] = None,
-    ):  # pylint: disable=R0913
+    ):
         self._handle = None
 
         handle = ctypes.c_void_p()
@@ -211,15 +211,17 @@ class ModelBuilder:
         """End the current node"""
         _check_call(_LIB.TreeliteModelBuilderEndNode(self.handle))
 
+    @deprecate_positional_args
     def numerical_test(
         self,
         feature_id: int,
         threshold: float,
+        *,
         default_left: bool,
         opname: str,
         left_child_key: int,
         right_child_key: int,
-    ):  # pylint: disable=R0913
+    ):
         """
         Declare the current node as a numerical test node, where the test is of form
         [feature value] [op] [threshold]. Data points for which the test evaluates to True
@@ -253,15 +255,17 @@ class ModelBuilder:
             )
         )
 
+    @deprecate_positional_args
     def categorical_test(
         self,
         feature_id: int,
+        *,
         default_left: bool,
         category_list: List[int],
         category_list_right_child: bool,
         left_child_key: int,
         right_child_key: int,
-    ):  # pylint: disable=R0913
+    ):
         """
         Declare the current node as a categorical test node, where the test is of form
         [feature value] \\in [category list].

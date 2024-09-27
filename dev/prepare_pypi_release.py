@@ -3,7 +3,7 @@ It fetches Python wheels from the CI pipelines.
 tqdm, sh are required to run this script.
 """
 
-# pylint: disable=W0603,C0103,too-many-arguments
+# pylint: disable=W0603,C0103
 
 import argparse
 import os
@@ -51,6 +51,7 @@ def latest_hash() -> str:
 
 
 def download_wheels(
+    *,
     platforms: List[str],
     url_prefix: str,
     dest_dir: str,
@@ -93,7 +94,11 @@ def download_py_packages(version_str: str, commit_hash: str) -> None:
         src_filename_prefix = f"{pkg}-{version_str}%2B{commit_hash}-py3-none-"
         target_filename_prefix = f"{pkg}-{version_str}-py3-none-"
         filenames = download_wheels(
-            platforms, PREFIX, dest_dir, src_filename_prefix, target_filename_prefix
+            platforms=platforms,
+            url_prefix=PREFIX,
+            dest_dir=dest_dir,
+            src_filename_prefix=src_filename_prefix,
+            target_filename_prefix=target_filename_prefix,
         )
         print(f"List of downloaded wheels: {filenames}\n")
 
@@ -102,12 +107,12 @@ def download_py_packages(version_str: str, commit_hash: str) -> None:
         src_filename_prefix = f"{pkg}-{version_str}%2B{commit_hash}"
         target_filename_prefix = f"{pkg}-{version_str}"
         filenames = download_wheels(
-            [""],
-            PREFIX,
-            dest_dir,
-            src_filename_prefix,
-            target_filename_prefix,
-            "tar.gz",
+            platforms=[""],
+            url_prefix=PREFIX,
+            dest_dir=dest_dir,
+            src_filename_prefix=src_filename_prefix,
+            target_filename_prefix=target_filename_prefix,
+            ext="tar.gz",
         )
         print(f"List of downloaded sdist: {filenames}\n")
     print(

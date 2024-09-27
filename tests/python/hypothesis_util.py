@@ -49,7 +49,7 @@ def standard_classification_datasets(
     shuffle=just(True),
     random_state=None,
 ):
-    # pylint: disable=too-many-locals, too-many-arguments
+    # pylint: disable=too-many-locals
     """
     Returns a strategy to generate classification problem input datasets.
     Note:
@@ -246,7 +246,6 @@ def standard_regression_datasets(
         A tuple of search strategies for arrays subject to the constraints of
         the provided parameters.
     """
-    # pylint: disable=too-many-arguments
     n_features_ = draw(n_features)
     if n_informative is None:
         n_informative = just(max(min(n_features_, 1), int(0.1 * n_features_)))

@@ -13,6 +13,7 @@ from .model import Model
 from .model_builder import Metadata
 from .model_builder import ModelBuilder as ModelBuilderNew
 from .model_builder import PostProcessorFunc, TreeAnnotation
+from .util import deprecate_positional_args
 
 
 @dataclasses.dataclass
@@ -138,12 +139,13 @@ class ModelBuilder:
                 )
             self.node = _LeafNode(leaf_value=leaf_value)
 
-        # pylint: disable=R0913
+        @deprecate_positional_args
         def set_numerical_test_node(
             self,
             feature_id: int,
             opname: str,
             threshold: float,
+            *,
             default_left: bool,
             left_child_key: int,
             right_child_key: int,
@@ -204,11 +206,12 @@ class ModelBuilder:
             )
             self.empty = False
 
-        # pylint: disable=R0913
+        @deprecate_positional_args
         def set_categorical_test_node(
             self,
             feature_id: int,
             left_categories: List[int],
+            *,
             default_left: bool,
             left_child_key: int,
             right_child_key: int,
@@ -332,19 +335,20 @@ class ModelBuilder:
             assert node_key is not None
             self.root_key = node_key
 
+    @deprecate_positional_args
     def __init__(
         self,
+        *,
         num_feature: int,
         num_class: int = 1,
         average_tree_output: bool = False,
         threshold_type: str = "float32",
         leaf_output_type: str = "float32",
-        *,
         pred_transform: str = "identity",
         sigmoid_alpha: float = 1.0,
         ratio_c: float = 1.0,
         global_bias: float = 0.0,
-    ):  # pylint: disable=R0913
+    ):
         warnings.warn(
             "treelite.ModelBuilder is deprecated and will be removed in Treelite 4.1. "
             "Please use treelite.model_builder.ModelBuilder class instead. The new model builder "

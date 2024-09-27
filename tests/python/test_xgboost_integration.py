@@ -1,6 +1,6 @@
 """Tests for XGBoost integration"""
 
-# pylint: disable=R0201, R0915, R0913, R0914
+# pylint: disable=R0201, R0915, R0914
 import json
 import pathlib
 
@@ -141,6 +141,7 @@ def test_xgb_regressor(
 )
 @settings(**standard_settings())
 def test_xgb_multiclass_classifier(
+    *,
     dataset,
     objective,
     pred_margin,
@@ -335,7 +336,7 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
 )
 @settings(print_blob=True, deadline=None)
 def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempfile):
-    # pylint: disable=too-many-locals,too-many-arguments
+    # pylint: disable=too-many-locals
     """
     Test if we can handle extra fields in XGBoost JSON model file
     Insert an extra field at a random place and then load the model into Treelite,
@@ -426,6 +427,7 @@ def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempf
 )
 @settings(**standard_settings())
 def test_xgb_multi_target_binary_classifier(
+    *,
     dataset,
     num_boost_round,
     num_parallel_tree,
@@ -502,6 +504,7 @@ def test_xgb_multi_target_binary_classifier(
 )
 @settings(**standard_settings())
 def test_xgb_multi_target_regressor(
+    *,
     n_targets,
     objective,
     num_boost_round,

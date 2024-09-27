@@ -156,6 +156,7 @@ def test_lightgbm_binary_classification(
 )
 @settings(**standard_settings())
 def test_lightgbm_multiclass_classification(
+    *,
     dataset,
     objective,
     boosting_type,
@@ -163,7 +164,7 @@ def test_lightgbm_multiclass_classification(
     use_categorical,
     callback,
 ):
-    # pylint: disable=too-many-locals,too-many-arguments
+    # pylint: disable=too-many-locals
     """Test LightGBM multi-class classifier"""
     X, y = dataset
     num_class = np.max(y) + 1

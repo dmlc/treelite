@@ -111,14 +111,6 @@ def import_model(sklearn_model):
 
       import treelite.sklearn
       model = treelite.sklearn.import_model(clf)
-
-    Note
-    ----
-    This function does not yet support categorical splits in
-    :py:class:`~sklearn.ensemble.HistGradientBoostingRegressor` and
-    :py:class:`~sklearn.ensemble.HistGradientBoostingClassifier`.
-    If you are using either estimator types, make sure that all
-    test nodes have numerical test conditions.
     """
     try:
         from sklearn.dummy import DummyClassifier, DummyRegressor

@@ -274,6 +274,21 @@ class Model:
         )
         return py_str(json_str.value)
 
+    def get_tree_depth(self) -> np.ndarray:
+        """
+        Query the depth of each tree.
+        """
+        depth_array_ptr = ctypes.POINTER(ctypes.c_uint32)()
+        depth_array_len = ctypes.c_size_t()
+        _check_call(
+            _LIB.TreeliteGetTreeDepth(
+                self.handle,
+                ctypes.byref(depth_array_ptr),
+                ctypes.byref(depth_array_len),
+            )
+        )
+        return np.ctypeslib.as_array(depth_array_ptr, shape=(depth_array_len.value,))
+
     def get_header_accessor(self) -> HeaderAccessor:
         """
         Obtain accessor for fields in the header.
@@ -331,6 +346,7 @@ class Model:
         n_targets = header_accessor.get_field("num_target").tolist()[0]
         n_classes = header_accessor.get_field("num_class")
         leaf_vector_shape = header_accessor.get_field("leaf_vector_shape")
+        tree_depths = self.get_tree_depth()
 
         assert n_targets == 1
         assert n_classes[0] == 1
@@ -359,13 +375,17 @@ class Model:
             nodes["weighted_n_node_samples"] = np.nan
             nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
 
+            leaf_value = (
+                tree_accessor.get_field("leaf_value")
+                .astype("float64")
+                .reshape((-1, 1, 1))
+            )
+
             state = {
-                "max_depth": 10,
+                "max_depth": tree_depths[tree_id],
                 "node_count": n_nodes,
                 "nodes": nodes,
-                "values": tree_accessor.get_field("leaf_value")
-                .astype("float64")
-                .reshape((-1, 1, 1)),
+                "values": leaf_value,
             }
             tree.__setstate__(state)
 

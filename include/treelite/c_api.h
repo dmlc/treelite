@@ -833,6 +833,21 @@ TREELITE_DLL int TreeliteSetTreeField(
 /*! \} */
 
 /*!
+ * \defgroup model_query C API: Model query functions
+ * Query various properties of tree models
+ * \{
+ */
+/*!
+ * \brief Query the depth of each tree.
+ * \param model Treelite Model object
+ * \param out Pointer to array holding depth of each tree
+ * \param out_len Number of trees
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetTreeDepth(TreeliteModelHandle model, uint32_t** out, size_t* out_len);
+/*! \} */
+
+/*!
  * \brief Display last error; can be called by multiple threads
  * Note. Each thread will get the last error occured in its own context.
  * \return Error string

@@ -467,7 +467,6 @@ class Model {
   inline TypeInfo GetLeafOutputType() const {
     return std::visit([](auto&& inner) { return inner.GetLeafOutputType(); }, variant_);
   }
-
   inline std::size_t GetNumTree() const {
     return std::visit([](auto&& inner) { return inner.GetNumTree(); }, variant_);
   }
@@ -513,6 +512,10 @@ class Model {
   void SetHeaderField(std::string const& name, PyBufferFrame frame);
   /*! \brief Set a field in a tree */
   void SetTreeField(std::uint64_t tree_id, std::string const& name, PyBufferFrame frame);
+
+  /* Model query functions */
+  /*! \brief Query the depth of each tree */
+  std::vector<std::uint32_t> GetTreeDepth() const;
 
   /*!
    * \brief Number of features used for the model.

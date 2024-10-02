@@ -72,3 +72,13 @@ int TreeliteFreeModel(TreeliteModelHandle handle) {
   delete static_cast<treelite::Model*>(handle);
   API_END();
 }
+
+int TreeliteGetTreeDepth(TreeliteModelHandle model, std::uint32_t** out, std::size_t* out_len) {
+  API_BEGIN();
+  auto* model_ = static_cast<treelite::Model*>(model);
+  auto& ret_depth = treelite::c_api::ReturnValueStore::Get()->ret_uint32_vec;
+  ret_depth = model_->GetTreeDepth();
+  *out = ret_depth.data();
+  *out_len = ret_depth.size();
+  API_END();
+}

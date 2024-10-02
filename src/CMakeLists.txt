@@ -97,6 +97,7 @@ target_sources(objtreelite
     json_serializer.cc
     logging.cc
     model_concat.cc
+    model_query.cc
     serializer.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h

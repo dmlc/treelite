@@ -34,7 +34,7 @@ int TreeliteGTILGetOutputShape(TreeliteModelHandle model, std::uint64_t num_row,
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   auto const* config_ = static_cast<treelite::gtil::Configuration const*>(config);
-  auto& shape = treelite::c_api::ReturnValueStore::Get()->ret_shape;
+  auto& shape = treelite::c_api::ReturnValueStore::Get()->ret_uint64_vec;
   shape = treelite::gtil::GetOutputShape(*model_, num_row, *config_);
   *out = shape.data();
   *out_ndim = shape.size();

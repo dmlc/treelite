@@ -259,16 +259,20 @@ def test_skl_hist_gradient_boosting_with_string_categorical():
 
 
 @given(
+    max_depth=integers(min_value=3, max_value=15),
+    n_estimators=integers(min_value=5, max_value=10),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_skl_export(callback):
-    """Scikit-learn regressor"""
+def test_skl_export_regressor(max_depth, n_estimators, callback):
+    """Round trip with scikit-learn regressor"""
     X, y = callback.draw(standard_regression_datasets(n_targets=just(1)))
-    kwargs = {"max_depth": 8, "random_state": 0, "n_estimators": 10, "n_jobs": -1}
-    clf = RandomForestRegressor(**kwargs)
+    clf = RandomForestRegressor(
+        max_depth=max_depth, random_state=0, n_estimators=n_estimators, n_jobs=-1
+    )
     clf.fit(X, y)
 
     tl_model = treelite.sklearn.import_model(clf)
     clf2 = tl_model.export_as_sklearn()
+    assert isinstance(clf2, RandomForestRegressor)
     np.testing.assert_almost_equal(clf2.predict(X), clf.predict(X))

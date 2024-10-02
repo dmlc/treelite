@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Union
 import numpy as np
 
 from . import compat
-from .core import _LIB, _check_call
+from .core import _LIB, TreeliteError, _check_call
 from .util import c_array, c_str, py_str
 
 
@@ -293,6 +293,104 @@ class Model:
         """
         return TreeAccessor(self, tree_id=tree_id)
 
+    def export_as_sklearn(self):
+        """Export as scikit-learn RandomForest"""
+        # pylint: disable=too-many-locals
+        try:
+            from sklearn import __version__ as sklearn_version
+            from sklearn.ensemble import RandomForestRegressor
+            from sklearn.tree import DecisionTreeRegressor
+            from sklearn.tree._tree import Tree as SKLearnTree
+        except ImportError as e:
+            raise TreeliteError("This function requires scikit-learn package") from e
+
+        node_dtype = np.dtype(
+            {
+                "names": [
+                    "left_child",
+                    "right_child",
+                    "feature",
+                    "threshold",
+                    "impurity",
+                    "n_node_samples",
+                    "weighted_n_node_samples",
+                    "missing_go_to_left",
+                ],
+                "formats": ["<i8", "<i8", "<i8", "<f8", "<f8", "<i8", "<f8", "u1"],
+                "offsets": [0, 8, 16, 24, 32, 40, 48, 56],
+                "itemsize": 64,
+            }
+        )
+
+        header_accessor = self.get_header_accessor()
+        # average_tree_output = (
+        #    header_accessor.get_field("average_tree_output").tolist()[0] == 1
+        # )
+        n_features = header_accessor.get_field("num_feature").tolist()[0]
+        n_trees = header_accessor.get_field("num_tree").tolist()[0]
+        n_targets = header_accessor.get_field("num_target").tolist()[0]
+        n_classes = header_accessor.get_field("num_class")
+        leaf_vector_shape = header_accessor.get_field("leaf_vector_shape")
+
+        assert n_targets == 1
+        assert n_classes[0] == 1
+        assert np.array_equal(leaf_vector_shape, [1, 1])
+
+        estimators = []
+
+        for tree_id in range(n_trees):
+            tree_accessor = self.get_tree_accessor(tree_id)
+            has_categorical_split = tree_accessor.get_field(
+                "has_categorical_split"
+            ).tolist()[0]
+            assert not has_categorical_split
+
+            tree = SKLearnTree(n_features, n_classes, n_targets)
+
+            n_nodes = tree_accessor.get_field("num_nodes").tolist()[0]
+            nodes = np.empty(n_nodes, dtype=node_dtype)
+
+            nodes["left_child"] = tree_accessor.get_field("cleft")
+            nodes["right_child"] = tree_accessor.get_field("cright")
+            nodes["feature"] = tree_accessor.get_field("split_index")
+            nodes["threshold"] = tree_accessor.get_field("threshold")
+            nodes["impurity"] = np.nan
+            nodes["n_node_samples"] = -1
+            nodes["weighted_n_node_samples"] = np.nan
+            nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
+
+            state = {
+                "max_depth": 10,
+                "node_count": n_nodes,
+                "nodes": nodes,
+                "values": tree_accessor.get_field("leaf_value")
+                .astype("float64")
+                .reshape((-1, 1, 1)),
+            }
+            tree.__setstate__(state)
+
+            reg = DecisionTreeRegressor()
+            reg.__setstate__(
+                {
+                    "tree_": tree,
+                    "n_outputs_": n_targets,
+                    "_sklearn_version": sklearn_version,
+                }
+            )
+
+            estimators.append(reg)
+
+        clf = RandomForestRegressor()
+        clf.__setstate__(
+            {
+                "estimators_": estimators,
+                "n_outputs_": n_targets,
+                "_sklearn_version": sklearn_version,
+            }
+        )
+
+        return clf
+
     def serialize(self, filename: Union[str, pathlib.Path]):
         """
         Serialize (persist) the model to a checkpoint file in the disk, using a fast binary
@@ -483,7 +581,7 @@ def _numpy2pybuffer(array: np.ndarray) -> _TreelitePyBufferFrame:
         ctypes.pythonapi.PyObject_GetBuffer(
             ctypes.py_object(view),
             ctypes.byref(buffer),
-            ctypes.c_int(0),  # PyBUF_SIMPLE
+            ctypes.c_int(28),  # PyBUF_RECORDS_RO
         )
         != 0
     ):

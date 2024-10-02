@@ -256,3 +256,19 @@ def test_skl_hist_gradient_boosting_with_string_categorical():
         NotImplementedError, match=r"String categories are not supported"
     ):
         _ = treelite.sklearn.import_model(clf)
+
+
+@given(
+    callback=hypothesis_callback(),
+)
+@settings(**standard_settings())
+def test_skl_export(callback):
+    """Scikit-learn regressor"""
+    X, y = callback.draw(standard_regression_datasets(n_targets=just(1)))
+    kwargs = {"max_depth": 8, "random_state": 0, "n_estimators": 10, "n_jobs": -1}
+    clf = RandomForestRegressor(**kwargs)
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    clf2 = tl_model.export_as_sklearn()
+    np.testing.assert_almost_equal(clf2.predict(X), clf.predict(X))

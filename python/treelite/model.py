@@ -348,9 +348,8 @@ class Model:
         leaf_vector_shape = header_accessor.get_field("leaf_vector_shape")
         tree_depths = self.get_tree_depth()
 
-        assert n_targets == 1
-        assert n_classes[0] == 1
-        assert np.array_equal(leaf_vector_shape, [1, 1])
+        assert np.all(n_classes == 1)
+        assert np.array_equal(leaf_vector_shape, [n_targets, 1])
 
         estimators = []
 
@@ -375,11 +374,26 @@ class Model:
             nodes["weighted_n_node_samples"] = np.nan
             nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
 
-            leaf_value = (
-                tree_accessor.get_field("leaf_value")
-                .astype("float64")
-                .reshape((-1, 1, 1))
-            )
+            if n_targets == 1:
+                leaf_value = (
+                    tree_accessor.get_field("leaf_value")
+                    .astype("float64")
+                    .reshape((-1, 1, 1))
+                )
+            else:
+                # Need to map leaf values to correct layout
+                leaf_value = np.zeros((n_nodes, n_targets, 1), dtype="float64")
+                leaf_value_raw = tree_accessor.get_field("leaf_vector").astype(
+                    "float64"
+                )
+                leaf_vec_begin = tree_accessor.get_field("leaf_vector_begin")
+                leaf_vec_end = tree_accessor.get_field("leaf_vector_end")
+                for node_id in range(n_nodes):
+                    if leaf_vec_begin[node_id] != leaf_vec_end[node_id]:
+                        # This node is a leaf node and outputs a vector
+                        leaf_value[node_id, :, :] = leaf_value_raw[
+                            leaf_vec_begin[node_id] : leaf_vec_end[node_id]
+                        ].reshape((n_targets, 1))
 
             state = {
                 "max_depth": tree_depths[tree_id],

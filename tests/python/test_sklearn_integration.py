@@ -259,15 +259,16 @@ def test_skl_hist_gradient_boosting_with_string_categorical():
 
 
 @given(
-    n_targets=integers(min_value=1, max_value=3),
+    dataset=standard_regression_datasets(
+        n_targets=integers(min_value=1, max_value=3),
+    ),
     max_depth=integers(min_value=3, max_value=15),
     n_estimators=integers(min_value=5, max_value=10),
-    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_skl_export_regressor(n_targets, max_depth, n_estimators, callback):
-    """Round trip with scikit-learn regressor"""
-    X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
+def test_skl_export_rf_regressor(dataset, max_depth, n_estimators):
+    """Round trip with scikit-learn RF regressor"""
+    X, y = dataset
     clf = RandomForestRegressor(
         max_depth=max_depth, random_state=0, n_estimators=n_estimators, n_jobs=-1
     )
@@ -277,3 +278,55 @@ def test_skl_export_regressor(n_targets, max_depth, n_estimators, callback):
     clf2 = treelite.sklearn.export_model(tl_model)
     assert isinstance(clf2, RandomForestRegressor)
     np.testing.assert_almost_equal(clf2.predict(X), clf.predict(X))
+
+
+@given(
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=2, max_value=4),
+    ),
+    max_depth=integers(min_value=3, max_value=15),
+    n_estimators=integers(min_value=5, max_value=10),
+)
+@settings(**standard_settings())
+def test_skl_export_rf_classifier(dataset, max_depth, n_estimators):
+    """Round trip with scikit-learn RF classifier"""
+    X, y = dataset
+    clf = RandomForestClassifier(
+        max_depth=max_depth, random_state=0, n_estimators=n_estimators, n_jobs=-1
+    )
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    clf2 = treelite.sklearn.export_model(tl_model)
+    assert isinstance(clf2, RandomForestClassifier)
+    np.testing.assert_almost_equal(clf2.predict(X), clf.predict(X))
+
+
+@given(
+    n_classes=integers(min_value=3, max_value=5),
+    n_estimators=integers(min_value=3, max_value=10),
+)
+@settings(**standard_settings())
+def test_skl_export_rf_multitarget_multiclass(n_classes, n_estimators):
+    """Round trip with scikit-learn RF classifier, with multiple outputs and classes"""
+    X, y1 = make_classification(
+        n_samples=1000,
+        n_features=100,
+        n_informative=30,
+        n_classes=n_classes,
+        random_state=0,
+    )
+    y2 = shuffle(y1, random_state=1)
+    y3 = shuffle(y1, random_state=2)
+
+    y = np.vstack((y1, y2, y3)).T
+
+    clf = RandomForestClassifier(
+        max_depth=8, n_estimators=n_estimators, n_jobs=-1, random_state=4
+    )
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    clf2 = treelite.sklearn.export_model(tl_model)
+    assert isinstance(clf2, RandomForestClassifier)
+    np.testing.assert_almost_equal(clf2.predict_proba(X), clf.predict_proba(X))

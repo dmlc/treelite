@@ -1,4 +1,4 @@
-"""Model loader ingest scikit-learn models into Treelite"""
+"""Model loader to ingest scikit-learn models into Treelite"""
 
 from .exporter import export_model
 from .importer import import_model

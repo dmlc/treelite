@@ -118,11 +118,17 @@ def _export_tree(
 
 def export_model(model: Model):
     """
-    Export as scikit-learn RandomForest or GradientBoosting
+    Export as scikit-learn RandomForest or GradientBoosting.
+
+    Note
+    ----
+    Currently only random forests can be exported as scikit-learn model objects.
+    Support for gradient boosted trees and other kinds of tree models will be
+    added in the future.
 
     Parameters
     ----------
-    model :py:class:`Model`
+    model : :py:class:`Model`
         Treelite mobel to export
 
     Returns

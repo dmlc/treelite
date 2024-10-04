@@ -1,5 +1,6 @@
 """Model loader ingest scikit-learn models into Treelite"""
 
+from .exporter import export_model
 from .importer import import_model
 
 
@@ -14,4 +15,4 @@ def import_model_with_model_builder(sklearn_model):
     )
 
 
-__all__ = ["import_model", "import_model_with_model_builder"]
+__all__ = ["import_model", "export_model", "import_model_with_model_builder"]

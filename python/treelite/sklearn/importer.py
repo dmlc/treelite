@@ -1,12 +1,13 @@
 """Converter to ingest scikit-learn models into Treelite"""
 
 import ctypes
+from typing import Optional
 
 import numpy as np
 from packaging.version import parse as parse_version
 
 from ..core import _LIB, TreeliteError, _check_call
-from ..frontend import Model
+from ..model import Model
 from ..util import c_array
 from .isolation_forest import calculate_depths, expected_depth
 
@@ -58,7 +59,7 @@ class ArrayOfArrays:
         return c_array(self.ptr_type, self.collection_ptr)
 
 
-def import_model(sklearn_model):
+def import_model(sklearn_model) -> Model:
     # pylint: disable=R0914,R0912,R0915
     """
     Load a tree ensemble model from a scikit-learn model object
@@ -338,7 +339,7 @@ def import_model(sklearn_model):
     return Model(handle=handle)
 
 
-def _import_hist_gradient_boosting(sklearn_model):
+def _import_hist_gradient_boosting(sklearn_model) -> Model:
     # pylint: disable=R0914,W0212,too-many-branches
     """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
     from sklearn.ensemble import HistGradientBoostingClassifier as HistGradientBoostingC
@@ -391,7 +392,7 @@ def _import_hist_gradient_boosting(sklearn_model):
     nodes = ArrayOfArrays(dtype="void")
     raw_left_cat_bitsets = ArrayOfArrays(dtype=np.uint32)
     node_count = []
-    itemsize = None
+    itemsize: Optional[int] = None
 
     for estimator in sklearn_model._predictors:
         estimator_range = estimator
@@ -404,6 +405,7 @@ def _import_hist_gradient_boosting(sklearn_model):
                 itemsize = sub_estimator.nodes.itemsize
             elif itemsize != sub_estimator.nodes.itemsize:
                 raise RuntimeError("itemsize mismatch")
+    assert itemsize is not None
 
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):

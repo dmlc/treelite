@@ -274,6 +274,6 @@ def test_skl_export_regressor(n_targets, max_depth, n_estimators, callback):
     clf.fit(X, y)
 
     tl_model = treelite.sklearn.import_model(clf)
-    clf2 = tl_model.export_as_sklearn()
+    clf2 = treelite.sklearn.export_model(tl_model)
     assert isinstance(clf2, RandomForestRegressor)
     np.testing.assert_almost_equal(clf2.predict(X), clf.predict(X))

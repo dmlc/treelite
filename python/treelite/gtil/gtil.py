@@ -11,7 +11,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from ..core import _LIB, _check_call
-from ..frontend import Model
+from ..model import Model
 from ..util import c_str, typestr_to_ctypes_type, typestr_to_numpy_type
 
 

@@ -1,5 +1,6 @@
 """Converter to export Treelite models as scikit-learn models (EXPERIMENTAL)"""
 
+from enum import IntEnum
 from typing import Any
 
 import numpy as np
@@ -43,6 +44,15 @@ _node_dtype = np.dtype(
         "itemsize": 64,
     }
 )
+
+
+class _TaskType(IntEnum):
+    # pylint: disable=invalid-name
+    kBinaryClf = 0
+    kRegressor = 1
+    kMultiClf = 2
+    kLearningToRank = 3
+    kIsolationForest = 4
 
 
 def _export_tree(
@@ -118,7 +128,7 @@ def _export_tree(
 
 def export_model(model: Model):
     """
-    Export as scikit-learn RandomForest or GradientBoosting.
+    Export a model as a scikit-learn RandomForest.
 
     Note
     ----
@@ -151,6 +161,7 @@ def export_model(model: Model):
     average_tree_output = (
         _ensure_scalar_int(header_accessor.get_field("average_tree_output")) == 1
     )
+    task_type = _ensure_scalar_int(header_accessor.get_field("task_type"))
     n_features = _ensure_scalar_int(header_accessor.get_field("num_feature"))
     n_trees = _ensure_scalar_int(header_accessor.get_field("num_tree"))
     n_targets = _ensure_scalar_int(header_accessor.get_field("num_target"))
@@ -166,31 +177,34 @@ def export_model(model: Model):
     # 3. Each leaf must yield an output of shape (n_targets, n_classes)
     # 4. target_id[i] must be either 0 or -1
     # 5. class_id[i] must be either 0 or -1
-    def raise_not_rf_error():
+    def raise_not_rf_error(reason):
         raise NotImplementedError(
-            "Currently only random forests can be exported as scikit-learn model objects. "
-            "Gradient boosting models and other kinds of decision tree models are not yet "
-            "supported."
+            "This Treelite model cannot be represented as scikit-learn random forest. "
+            f"Condition unmet: {reason}"
+            "Other kinds of tree models in scikit-learn are not yet supported."
         )
 
     if not average_tree_output:
-        raise_not_rf_error()
+        raise_not_rf_error(
+            "Outputs of tree outputs must be averaged to produce the final output"
+        )
     if not np.all(n_classes == n_classes[0]):
-        raise_not_rf_error()
+        raise_not_rf_error("n_classes must be identical for all trees")
     if not np.array_equal(leaf_vector_shape, [n_targets, n_classes.max()]):
-        raise_not_rf_error()
+        raise_not_rf_error(
+            "Each tree must produce output of dimensions (n_targets, n_classes)"
+        )
     if not np.all((target_id == 0) | (target_id == -1)):
-        raise_not_rf_error()
+        raise_not_rf_error("target_id field must be either 0 or -1")
     if not np.all((class_id == 0) | (class_id == -1)):
-        raise_not_rf_error()
+        raise_not_rf_error("class_id field must be either 0 or -1")
 
-    # Heuristics for determining whether the model is a regressor or a classifier
-    if n_classes[0] == 1:
-        estimator_class = RandomForestRegressor
-        subestimator_class = DecisionTreeRegressor
-    else:
+    if task_type in [_TaskType.kBinaryClf, _TaskType.kMultiClf]:
         estimator_class = RandomForestClassifier
         subestimator_class = DecisionTreeClassifier
+    else:
+        estimator_class = RandomForestRegressor
+        subestimator_class = DecisionTreeRegressor
 
     estimators = []
 

@@ -225,6 +225,7 @@ def export_model(model: Model):
     state = {
         "estimators_": estimators,
         "n_outputs_": n_targets,
+        "n_features_in_": n_features,
         "_sklearn_version": sklearn_version,
     }
     if estimator_class is RandomForestClassifier:

@@ -5,7 +5,7 @@
  * \brief Methods for querying various properties of tree models
  */
 #include <cstdint>
-#include <queue>
+#include <stack>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -16,22 +16,24 @@ namespace {
 
 template <typename ThresholdType, typename LeafOutputType>
 std::uint32_t GetDepth(treelite::Tree<ThresholdType, LeafOutputType> const& tree) {
-  // Visit all trees nodes in breath-first order
-  std::queue<std::pair<int, std::uint32_t>> q;
-  // {current node visiting, depth level of the node}
-  q.emplace(0, 0);
-  std::uint32_t tree_depth = 0;
-  while (!q.empty()) {
-    auto [node_id, level] = q.front();
-    q.pop();
+  // Visit all trees nodes in depth-first order
+  std::stack<int> st;
+  st.push(0);
+  std::uint32_t max_depth = 0;
+  std::uint32_t depth = 1;
+  while (!st.empty()) {
+    int node_id = st.top();
+    st.pop();
     if (tree.IsLeaf(node_id)) {
-      tree_depth = std::max(tree_depth, level);
+      --depth;
     } else {
-      q.emplace(tree.LeftChild(node_id), level + 1);
-      q.emplace(tree.RightChild(node_id), level + 1);
+      st.push(tree.LeftChild(node_id));
+      st.push(tree.RightChild(node_id));
+      ++depth;
     }
+    max_depth = std::max(max_depth, depth);
   }
-  return tree_depth;
+  return max_depth;
 }
 
 }  // anonymous namespace

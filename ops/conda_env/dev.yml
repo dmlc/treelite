@@ -18,7 +18,7 @@ dependencies:
 - llvm-openmp
 - cython
 - lightgbm
-- cpplint=1.6.1
+- cpplint=1.6.0
 - pylint
 - awscli
 - python-build

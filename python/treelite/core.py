@@ -33,9 +33,10 @@ def _load_lib():
         return None  # type: ignore
     if sys.version_info >= (3, 8) and sys.platform == "win32":
         # pylint: disable=no-member
-        os.add_dll_directory(
-            os.path.join(os.path.normpath(sys.base_prefix), "Library", "bin")
-        )
+        lib_bin_path = os.path.join(os.path.normpath(sys.base_prefix), "Library", "bin")
+        if os.path.isdir(lib_bin_path):
+            os.add_dll_directory(lib_bin_path)
+
     lib = ctypes.cdll.LoadLibrary(lib_path[0])
     lib.TreeliteGetLastError.restype = ctypes.c_char_p
     lib.log_callback = _log_callback

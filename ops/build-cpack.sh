@@ -18,6 +18,7 @@ python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --r
 rm -rf build/
 
 echo "##[section] Building Treelite for aarch64..."
+export DOCKER_DEFAULT_PLATFORM=linux/arm64/v8
 tests/ci_build/ci_build.sh ubuntu20_aarch64 tests/ci_build/build_via_cmake.sh
 
 echo "##[section] Packing CPack for aarch64..."

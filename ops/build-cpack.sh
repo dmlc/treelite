@@ -18,11 +18,9 @@ python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --r
 rm -rf build/
 
 echo "##[section] Building Treelite for aarch64..."
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 tests/ci_build/ci_build.sh ubuntu20_aarch64 tests/ci_build/build_via_cmake.sh
 
 echo "##[section] Packing CPack for aarch64..."
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 tests/ci_build/ci_build.sh ubuntu20_aarch64 bash -c "cd build/ && cpack -G TGZ"
 for tgz in build/treelite-*-Linux.tar.gz
 do

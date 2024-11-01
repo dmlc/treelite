@@ -86,6 +86,9 @@ jobs:
         activate-environment: dev
         environment-file: ops/conda_env/dev.yml
         use-mamba: true
+    - uses: dbhi/qus/action@main
+      with:
+        targets: aarch64
     - name: Build CPack
       run: |
         bash ops/build-cpack.sh

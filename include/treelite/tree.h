@@ -429,7 +429,7 @@ class ModelPreset {
 using ModelPresetVariant = std::variant<ModelPreset<float, float>, ModelPreset<double, double>>;
 
 template <std::size_t variant_index>
-ModelPresetVariant SetModelPresetVariant(int target_variant_index) {
+ModelPresetVariant SetModelPresetVariant(std::size_t target_variant_index) {
   ModelPresetVariant result;
   if constexpr (variant_index != std::variant_size_v<ModelPresetVariant>) {
     if (variant_index == target_variant_index) {

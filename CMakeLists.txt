@@ -49,11 +49,12 @@ SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
 if(MSVC)
   if(Treelite_USE_DYNAMIC_MSVC_RUNTIME)
     message(STATUS "Using dynamically linked MSVC runtime...")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(Treelite_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
   else()
     message(STATUS "Using statically linked MSVC runtime...")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(Treelite_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
 endif()
 
 if(USE_SANITIZER)
@@ -111,6 +112,8 @@ endif()
 
 foreach(lib ${TREELITE_TARGETS})
   set_output_directory(${lib} ${PROJECT_BINARY_DIR})
+  set_target_properties(${lib} PROPERTIES
+    MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
 endforeach()
 
 # Export install targets

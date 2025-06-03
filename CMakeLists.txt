@@ -112,8 +112,10 @@ endif()
 
 foreach(lib ${TREELITE_TARGETS})
   set_output_directory(${lib} ${PROJECT_BINARY_DIR})
-  set_target_properties(${lib} PROPERTIES
-    MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
+  if(MSVC)
+    set_target_properties(${lib} PROPERTIES
+      MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
+  endif()
 endforeach()
 
 # Export install targets

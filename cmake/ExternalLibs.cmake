@@ -60,17 +60,27 @@ endif()
 
 # Google C++ tests
 if(BUILD_CPP_TEST)
-  find_package(GTest 1.11.0)
+  find_package(GTest 1.14.0)
   if(NOT GTest_FOUND)
     message(STATUS "Did not find Google Test in the system root. Fetching Google Test now...")
     FetchContent_Declare(
       googletest
-      GIT_REPOSITORY https://github.com/google/googletest.git
-      GIT_TAG        release-1.11.0
+      URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
     )
+    set(gtest_force_shared_crt ${DMLC_FORCE_SHARED_CRT} CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
+
     add_library(GTest::gtest ALIAS gtest)
     add_library(GTest::gmock ALIAS gmock)
+    target_compile_definitions(gtest PRIVATE ${ENABLE_GNU_EXTENSION_FLAGS})
+    target_compile_definitions(gmock PRIVATE ${ENABLE_GNU_EXTENSION_FLAGS})
+    foreach(target gtest gmock)
+      target_compile_features(${target} PUBLIC cxx_std_14)
+      if(MSVC)
+        set_target_properties(${target} PROPERTIES
+          MSVC_RUNTIME_LIBRARY "${Treelite_USE_DYNAMIC_MSVC_RUNTIME}")
+      endif()
+    endforeach()
     if(IS_DIRECTORY "${googletest_SOURCE_DIR}")
       # Do not install gtest
       set_property(DIRECTORY ${googletest_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)

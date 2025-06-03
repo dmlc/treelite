@@ -78,7 +78,7 @@ if(BUILD_CPP_TEST)
       target_compile_features(${target} PUBLIC cxx_std_14)
       if(MSVC)
         set_target_properties(${target} PROPERTIES
-          MSVC_RUNTIME_LIBRARY "${Treelite_USE_DYNAMIC_MSVC_RUNTIME}")
+          MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
       endif()
     endforeach()
     if(IS_DIRECTORY "${googletest_SOURCE_DIR}")

@@ -59,24 +59,3 @@ jobs:
       - name: Test wheel
         run: |
           bash ops/test-linux-python-wheel.sh
-
-  cpack-builder:
-    name: Build CPack
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniforge-variant: Miniforge3
-        miniforge-version: latest
-        activate-environment: dev
-        environment-file: ops/conda_env/dev.yml
-        use-mamba: true
-    - uses: dbhi/qus/action@main
-      with:
-        targets: aarch64
-    - name: Build CPack
-      run: |
-        bash ops/build-cpack.sh

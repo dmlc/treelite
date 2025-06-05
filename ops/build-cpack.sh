@@ -2,31 +2,29 @@
 
 set -euo pipefail
 
-echo "##[section] Building Treelite for amd64..."
-tests/ci_build/ci_build.sh ubuntu20 tests/ci_build/build_via_cmake.sh
+if [[ -z "${COMMIT_ID:-}" ]]
+then
+  echo "Make sure to set environment variable COMMIT_ID"
+  exit 1
+fi
 
-echo "##[section] Packing CPack for amd64..."
-tests/ci_build/ci_build.sh ubuntu20 bash -c "cd build/ && cpack -G TGZ"
+if [[ "$#" -lt 1 ]]
+then
+  echo "Usage: $0 {amd64,aarch64}"
+  exit 2
+fi
+
+arch="$1"
+
+echo "##[section] Building Treelite for ${arch}..."
+tests/ci_build/ci_build.sh ubuntu20_${arch} tests/ci_build/build_via_cmake.sh
+
+echo "##[section] Packing CPack for ${arch}..."
+tests/ci_build/ci_build.sh ubuntu20_${arch} bash -c "cd build/ && cpack -G TGZ"
 for tgz in build/treelite-*-Linux.tar.gz
 do
-  mv -v "${tgz}" "${tgz%-Linux.tar.gz}+${COMMIT_ID}-Linux-amd64.tar.gz"
+  mv -v "${tgz}" "${tgz%-Linux.tar.gz}+${COMMIT_ID}-Linux-${arch}.tar.gz"
 done
 
-echo "##[section]Uploading CPack for amd64..."
-python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2 || true
-
-rm -rf build/
-
-echo "##[section] Building Treelite for aarch64..."
-export DOCKER_DEFAULT_PLATFORM=linux/arm64/v8
-tests/ci_build/ci_build.sh ubuntu20_aarch64 tests/ci_build/build_via_cmake.sh
-
-echo "##[section] Packing CPack for aarch64..."
-tests/ci_build/ci_build.sh ubuntu20_aarch64 bash -c "cd build/ && cpack -G TGZ"
-for tgz in build/treelite-*-Linux.tar.gz
-do
-  mv -v "${tgz}" "${tgz%-Linux.tar.gz}+${COMMIT_ID}-Linux-aarch64.tar.gz"
-done
-
-echo "##[section]Uploading CPack for aarch64..."
+echo "##[section]Uploading CPack for ${arch}..."
 python -m awscli s3 cp build/*.tar.gz s3://treelite-cpack/ --acl public-read --region us-west-2 || true

@@ -125,7 +125,9 @@ def import_model(sklearn_model) -> Model:
         from sklearn.ensemble import (
             HistGradientBoostingRegressor as HistGradientBoostingR,
         )
-        from sklearn.ensemble import IsolationForest
+        from sklearn.ensemble import (
+            IsolationForest,
+        )
         from sklearn.ensemble import RandomForestClassifier as RandomForestC
         from sklearn.ensemble import RandomForestRegressor as RandomForestR
     except ImportError as e:

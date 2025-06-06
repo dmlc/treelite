@@ -32,4 +32,4 @@ jobs:
       - name: Update pre-commit hooks
         run: |
           pre-commit install
-          pre-commit run --all-files
+          pre-commit run --all-files --color always

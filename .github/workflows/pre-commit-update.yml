@@ -1,0 +1,50 @@
+name: update-rapids-update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 20 * * 1"  # Run once weekly
+
+permissions:
+  pull-requests: write
+  contents: write
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit-update:
+    name: Auto-update pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: generate-token
+        with:
+          app-id: ${{ secrets.TOKEN_GENERATOR_APP_ID }}
+          private-key: ${{ secrets.TOKEN_GENERATOR_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Miniforge3
+          miniforge-version: latest
+          activate-environment: dev
+          environment-file: ops/conda_env/pre-commit.yml
+          use-mamba: true
+      - name: Update pre-commit hooks
+        run: |
+          pre-commit install
+          pre-commit autoupdate
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        if: github.ref == 'refs/heads/main'
+        with:
+          branch: create-pull-request/pre-commit-update
+          base: main
+          title: "[CI] Update pre-commit hooks"
+          commit-message: "[CI] Update pre-commit hooks"
+          token: ${{ steps.generate-token.outputs.token }}

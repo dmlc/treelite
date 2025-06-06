@@ -33,9 +33,7 @@ jobs:
     env:
       CIBW_PLATFORM_ID: ${{ matrix.cibw_platform_id }}
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3

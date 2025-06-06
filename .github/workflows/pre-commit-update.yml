@@ -33,7 +33,7 @@ jobs:
           miniforge-variant: Miniforge3
           miniforge-version: latest
           conda-remove-defaults: "true"
-          activate-environment: dev
+          activate-environment: precommit
           environment-file: ops/conda_env/pre-commit.yml
           use-mamba: true
       - name: Update pre-commit hooks

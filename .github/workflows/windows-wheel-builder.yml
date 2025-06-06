@@ -3,6 +3,9 @@ name: windows-wheel-builder
 on:
   pull_request:
   push:
+    branches:
+      - mainline
+      - 'release_*'
   schedule:
     - cron: "0 7 * * *"  # Run once daily
 
@@ -32,7 +35,8 @@ jobs:
       with:
         miniforge-variant: Miniforge3
         miniforge-version: latest
-        activate-environment: dev
+        conda-remove-defaults: "true"
+        activate-environment: precommit
         environment-file: ops/conda_env/dev.yml
         use-mamba: true
     - name: Build wheel

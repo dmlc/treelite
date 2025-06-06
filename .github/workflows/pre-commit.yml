@@ -1,6 +1,11 @@
 name: pre-commit
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - mainline
+      - 'release_*'
 
 permissions:
   contents: read  # to fetch code (actions/checkout)
@@ -22,7 +27,8 @@ jobs:
         with:
           miniforge-variant: Miniforge3
           miniforge-version: latest
-          activate-environment: dev
+          conda-remove-defaults: "true"
+          activate-environment: precommit
           environment-file: ops/conda_env/pre-commit.yml
           use-mamba: true
       - name: Update pre-commit hooks

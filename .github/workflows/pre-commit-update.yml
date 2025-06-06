@@ -32,19 +32,19 @@ jobs:
         with:
           miniforge-variant: Miniforge3
           miniforge-version: latest
+          conda-remove-defaults: "true"
           activate-environment: dev
           environment-file: ops/conda_env/pre-commit.yml
           use-mamba: true
       - name: Update pre-commit hooks
         run: |
-          pre-commit install
           pre-commit autoupdate
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         if: github.ref == 'refs/heads/mainline'
         with:
           branch: create-pull-request/pre-commit-update
-          base: main
+          base: mainline
           title: "[CI] Update pre-commit hooks"
           commit-message: "[CI] Update pre-commit hooks"
           token: ${{ steps.generate-token.outputs.token }}

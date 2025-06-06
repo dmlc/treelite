@@ -342,7 +342,7 @@ def import_model(sklearn_model) -> Model:
 
 
 def _import_hist_gradient_boosting(sklearn_model) -> Model:
-    # pylint: disable=R0914,W0212,too-many-branches
+    # pylint: disable=R0914,W0212,too-many-branches,too-many-statements
     """Load HistGradientBoostingClassifier / HistGradientBoostingRegressor"""
     from sklearn.ensemble import HistGradientBoostingClassifier as HistGradientBoostingC
     from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
@@ -362,11 +362,20 @@ def _import_hist_gradient_boosting(sklearn_model) -> Model:
         and getattr(sklearn_model, "_preprocessor", None) is not None
     ):
         # Ensure that the model's internals did not change
-        assert len(sklearn_model._preprocessor.transformers_) == 2
+        assert len(sklearn_model._preprocessor.transformers_) >= 2
         assert len(sklearn_model._preprocessor.transformers_[0]) == 3
         assert len(sklearn_model._preprocessor.transformers_[1]) == 3
         assert sklearn_model._preprocessor.transformers_[0][0] == "encoder"
         assert sklearn_model._preprocessor.transformers_[1][0] == "numerical"
+
+        if parse_version(sklearn_version) >= parse_version("1.7.0"):
+            assert len(sklearn_model._preprocessor.transformers_) == 3
+            assert len(sklearn_model._preprocessor.transformers_[2]) == 3
+            assert sklearn_model._preprocessor.transformers_[2][0] == "remainder"
+            assert sklearn_model._preprocessor.transformers_[2][1] == "drop"
+            assert all(
+                e is False for e in sklearn_model._preprocessor.transformers_[2][2]
+            )
 
         for cats in sklearn_model._preprocessor.transformers_[0][1].categories_:
             if cats.dtype.type is np.str_:

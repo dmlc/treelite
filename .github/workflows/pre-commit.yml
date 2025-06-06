@@ -1,11 +1,35 @@
 name: pre-commit
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "0 7 * * *"  # Run once daily
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v3
-      - uses: pre-commit/action@v3
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Miniforge3
+          miniforge-version: latest
+          activate-environment: dev
+          environment-file: ops/conda_env/pre-commit.yml
+          use-mamba: true
+      - name: Update pre-commit hooks
+        run: |
+          pre-commit install
+          pre-commit run --all-files

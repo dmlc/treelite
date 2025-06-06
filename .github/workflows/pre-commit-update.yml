@@ -41,7 +41,7 @@ jobs:
           pre-commit autoupdate
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/mainline'
         with:
           branch: create-pull-request/pre-commit-update
           base: main

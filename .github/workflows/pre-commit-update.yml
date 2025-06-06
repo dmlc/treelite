@@ -1,4 +1,4 @@
-name: update-rapids-update
+name: pre-commit-update
 
 on:
   workflow_dispatch:

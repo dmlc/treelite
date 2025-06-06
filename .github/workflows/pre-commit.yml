@@ -31,7 +31,7 @@ jobs:
           activate-environment: precommit
           environment-file: ops/conda_env/pre-commit.yml
           use-mamba: true
-      - name: Update pre-commit hooks
+      - name: Run pre-commit checks
         run: |
           pre-commit install
           pre-commit run --all-files --color always

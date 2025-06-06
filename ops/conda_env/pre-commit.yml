@@ -1,4 +1,4 @@
-name: dev
+name: precommit
 channels:
 - conda-forge
 dependencies:

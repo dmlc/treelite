@@ -50,7 +50,7 @@ repos:
       args: ["-i", "--style=file:.clang-format"]
       language: python
       additional_dependencies: [clang-format>=15.0]
-      types_or: [c, c++]
+      types_or: [c++]
     - id: cpplint
       language: python
       args: [

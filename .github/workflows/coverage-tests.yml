@@ -33,6 +33,7 @@ jobs:
       with:
         miniforge-variant: Miniforge3
         miniforge-version: latest
+        conda-remove-defaults: "true"
         activate-environment: dev
         environment-file: ops/conda_env/dev.yml
         use-mamba: true
@@ -52,6 +53,7 @@ jobs:
       with:
         miniforge-variant: Miniforge3
         miniforge-version: latest
+        conda-remove-defaults: "true"
         activate-environment: dev
         environment-file: ops/conda_env/dev.yml
         use-mamba: true
@@ -73,6 +75,7 @@ jobs:
       with:
         miniforge-variant: Miniforge3
         miniforge-version: latest
+        conda-remove-defaults: "true"
         activate-environment: dev
         environment-file: ops/conda_env/dev.yml
         use-mamba: true

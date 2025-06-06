@@ -25,9 +25,7 @@ jobs:
     name: Run Python and C++ tests with test coverage (Linux)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
@@ -46,9 +44,7 @@ jobs:
     name: Run Python and C++ tests with test coverage (Windows)
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
@@ -69,9 +65,7 @@ jobs:
     name: Run Python and C++ tests with test coverage (MacOS)
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3

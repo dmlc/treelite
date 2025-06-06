@@ -26,9 +26,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_IAM_S3_UPLOADER }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_IAM_S3_UPLOADER }}
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
@@ -51,9 +49,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
@@ -76,9 +72,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
@@ -97,9 +91,7 @@ jobs:
     name: Test Treelite with custom libpath
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: 'true'
+    - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3

@@ -6,7 +6,7 @@ from scipy.special import psi
 
 def harmonic(number):
     """Calculates the n-th harmonic number"""
-    return psi(number + 1) + np.euler_gamma
+    return np.log(number) + np.euler_gamma
 
 
 def expected_depth(n_remainder):
@@ -15,7 +15,7 @@ def expected_depth(n_remainder):
         return 0.0
     if n_remainder == 2:
         return 1.0
-    return float(2 * (harmonic(n_remainder) - 1))
+    return float(2 * harmonic(n_remainder - 1) - 2 * (n_remainder - 1) / n_remainder)
 
 
 def calculate_depths(isolation_depths, tree, curr_node, curr_depth):

@@ -1,7 +1,6 @@
 """Utility functions for loading IsolationForest models"""
 
 import numpy as np
-from scipy.special import psi
 
 
 def harmonic(number):

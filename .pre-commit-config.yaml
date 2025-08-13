@@ -63,7 +63,7 @@ repos:
   rev: v1.17.1
   hooks:
     - id: mypy
-      additional_dependencies: [types-setuptools, numpy]
+      additional_dependencies: [types-setuptools]
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.12.8
   hooks:

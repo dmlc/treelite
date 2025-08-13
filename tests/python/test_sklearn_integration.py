@@ -192,7 +192,7 @@ def test_skl_converter_iforest(dataset):
 
     tl_model = treelite.sklearn.import_model(clf)
     out_pred = treelite.gtil.predict(tl_model, X)
-    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=2)
+    np.testing.assert_almost_equal(out_pred, expected_pred)
 
 
 @given(

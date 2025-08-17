@@ -180,7 +180,7 @@ def import_model(sklearn_model) -> Model:
     n_node_samples = ArrayOfArrays(dtype=np.int64)
     weighted_n_node_samples = ArrayOfArrays(dtype=np.float64)
     impurity = ArrayOfArrays(dtype=np.float64)
-    for estimator in sklearn_model.estimators_:
+    for tree_idx, estimator in enumerate(sklearn_model.estimators_):
         if isinstance(sklearn_model, (GradientBoostingR, GradientBoostingC)):
             estimator_range = estimator
             learning_rate = sklearn_model.learning_rate
@@ -197,13 +197,18 @@ def import_model(sklearn_model) -> Model:
             node_count.append(tree.node_count)
             children_left.add(tree.children_left, expected_shape=(tree.node_count,))
             children_right.add(tree.children_right, expected_shape=(tree.node_count,))
-            feature.add(tree.feature, expected_shape=(tree.node_count,))
             threshold.add(tree.threshold, expected_shape=(tree.node_count,))
             if isinstance(sklearn_model, IsolationForest):
                 value.add(
                     isolation_depths.reshape((-1, 1, 1)),
                     expected_shape=leaf_value_expected_shape(tree.node_count),
                 )
+                # Note: for isolation forest, if max_features != 1.0
+            	# the feature index will be subsampled
+                feature_subsample = np.full(tree.feature.shape, -2, dtype=np.int64)
+                mask = tree.feature != -2
+                feature_subsample[mask] = np.array(sklearn_model.estimators_features_[tree_idx])[tree.feature[mask]]
+                feature.add(feature_subsample.astype(np.int64), expected_shape=(tree.node_count,))
             else:
                 # Note: for gradient boosted trees, we shrink each leaf output by the
                 # learning rate
@@ -211,6 +216,7 @@ def import_model(sklearn_model) -> Model:
                     tree.value * learning_rate,
                     expected_shape=leaf_value_expected_shape(tree.node_count),
                 )
+                feature.add(tree.feature, expected_shape=(tree.node_count,))
             n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
             weighted_n_node_samples.add(
                 tree.weighted_n_node_samples, expected_shape=(tree.node_count,)

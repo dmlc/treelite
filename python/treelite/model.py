@@ -12,7 +12,7 @@ import numpy as np
 
 from . import compat
 from .core import _LIB, _check_call
-from .util import c_array, c_str, py_str
+from .util import bytes_from_string_and_size, c_array, c_str, py_str
 
 
 class Model:
@@ -345,7 +345,7 @@ class Model:
                 self.handle, ctypes.byref(out_bytes), ctypes.byref(out_bytes_len)
             )
         )
-        return ctypes.string_at(out_bytes, out_bytes_len.value)
+        return bytes_from_string_and_size(out_bytes, out_bytes_len)
 
     @classmethod
     def deserialize(cls, filename: Union[str, pathlib.Path]) -> Model:

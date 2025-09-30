@@ -194,9 +194,10 @@ def test_skl_converter_iforest(dataset):
     out_pred = treelite.gtil.predict(tl_model, X)
     np.testing.assert_almost_equal(out_pred, expected_pred)
 
+
 @given(
     dataset=standard_regression_datasets(),
-    max_feat=floats(min_value=0.2, max_value=0.8)
+    max_feat=floats(min_value=0.2, max_value=0.8),
 )
 @settings(**standard_settings())
 def test_skl_converter_iforest_feature_subsampling(dataset, max_feat):
@@ -216,6 +217,7 @@ def test_skl_converter_iforest_feature_subsampling(dataset, max_feat):
     out_pred = treelite.gtil.predict(tl_model, X)
 
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
 
 @given(
     dataset=standard_classification_datasets(

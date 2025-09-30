@@ -204,11 +204,16 @@ def import_model(sklearn_model) -> Model:
                     expected_shape=leaf_value_expected_shape(tree.node_count),
                 )
                 # Note: for isolation forest, if max_features != 1.0
-            	# the feature index will be subsampled
+                # the feature index will be subsampled
                 feature_subsample = np.full(tree.feature.shape, -2, dtype=np.int64)
                 mask = tree.feature != -2
-                feature_subsample[mask] = np.array(sklearn_model.estimators_features_[tree_idx])[tree.feature[mask]]
-                feature.add(feature_subsample.astype(np.int64), expected_shape=(tree.node_count,))
+                feature_subsample[mask] = np.array(
+                    sklearn_model.estimators_features_[tree_idx]
+                )[tree.feature[mask]]
+                feature.add(
+                    feature_subsample.astype(np.int64),
+                    expected_shape=(tree.node_count,),
+                )
             else:
                 # Note: for gradient boosted trees, we shrink each leaf output by the
                 # learning rate

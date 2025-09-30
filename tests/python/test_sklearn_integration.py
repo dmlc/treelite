@@ -196,6 +196,30 @@ def test_skl_converter_iforest(dataset):
 
 
 @given(
+    dataset=standard_regression_datasets(),
+    max_feat=floats(min_value=0.2, max_value=0.8),
+)
+@settings(**standard_settings())
+def test_skl_converter_iforest_feature_subsampling(dataset, max_feat):
+    """Scikit-learn isolation forest with feature subsampling"""
+    X, _ = dataset
+    clf = IsolationForest(
+        max_samples=64,
+        max_features=max_feat,
+        n_estimators=10,
+        n_jobs=-1,
+        random_state=0,
+    )
+    clf.fit(X)
+    expected_pred = -clf.score_samples(X).reshape((-1, 1, 1))
+
+    tl_model = treelite.sklearn.import_model(clf)
+    out_pred = treelite.gtil.predict(tl_model, X)
+
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@given(
     dataset=standard_classification_datasets(
         n_classes=integers(min_value=2, max_value=4),
     ),

@@ -345,7 +345,7 @@ class Model:
                 self.handle, ctypes.byref(out_bytes), ctypes.byref(out_bytes_len)
             )
         )
-        return bytes_from_string_and_size(out_bytes, out_bytes_len)
+        return bytes_from_string_and_size(out_bytes, out_bytes_len.value)
 
     @classmethod
     def deserialize(cls, filename: Union[str, pathlib.Path]) -> Model:

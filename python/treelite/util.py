@@ -20,6 +20,11 @@ _CTYPES_TYPE_TABLE = {
 _NUMPY_TYPE_TABLE = {"uint32": np.uint32, "float32": np.float32, "float64": np.float64}
 
 
+_PyBytes_FromStringAndSize = ctypes.pythonapi.PyBytes_FromStringAndSize
+_PyBytes_FromStringAndSize.argtypes = (ctypes.c_char_p, ctypes.c_ssize_t)
+_PyBytes_FromStringAndSize.restype = ctypes.py_object
+
+
 def typestr_to_ctypes_type(type_info):
     """Obtain ctypes type corresponding to a given Type str"""
     return _CTYPES_TYPE_TABLE[type_info]
@@ -33,6 +38,14 @@ def typestr_to_numpy_type(type_info):
 def c_str(string):
     """Convert a Python string to C string"""
     return ctypes.c_char_p(string.encode("utf-8"))
+
+
+def bytes_from_string_and_size(ptr, size):
+    """Copy `size` bytes from `ptr` to create a new python `bytes` object"""
+    # Theoretically `ctypes.string_at` does this, but the `size` argument
+    # there only takes an `int`, while python bytes object can support up to a
+    # `ssize_t` in size.
+    return _PyBytes_FromStringAndSize(ptr, size)
 
 
 def py_str(string):

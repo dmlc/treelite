@@ -14,12 +14,12 @@ repos:
   hooks:
   - id: black
 - repo: https://github.com/pycqa/isort
-  rev: 6.0.1
+  rev: 6.1.0
   hooks:
   - id: isort
     args: ["--profile", "black", "--filter-files"]
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.16.7
+  rev: v0.17.0
   hooks:
   - id: cython-lint
   - id: double-quote-cython-strings
@@ -65,7 +65,7 @@ repos:
     - id: mypy
       additional_dependencies: [types-setuptools]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.13.2
+  rev: v0.13.3
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

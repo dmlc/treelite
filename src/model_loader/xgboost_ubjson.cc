@@ -37,7 +37,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelUBJSON(
 }
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelFromUBJSONString(
-    std::basic_string_view<std::uint8_t> ubjson_str, std::string const& config_json) {
+    std::string_view ubjson_str, std::string const& config_json) {
   nlohmann::json parsed_config = nlohmann::json::parse(config_json);
   return ParseStream(ubjson_str, parsed_config);
 }

@@ -78,11 +78,11 @@ int TreeliteLoadXGBoostModelUBJSON(
   API_END();
 }
 
-int TreeliteLoadXGBoostModelFromUBJSONString(std::uint8_t const* ubjson_str, std::size_t length,
-    char const* config_json, TreeliteModelHandle* out) {
+int TreeliteLoadXGBoostModelFromUBJSONString(
+    char const* ubjson_str, std::size_t length, char const* config_json, TreeliteModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<treelite::Model> model = treelite::model_loader::LoadXGBoostModelFromUBJSONString(
-      std::basic_string_view<std::uint8_t>{ubjson_str, length}, config_json);
+      std::string_view{ubjson_str, length}, config_json);
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }

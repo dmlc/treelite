@@ -72,7 +72,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelUBJSON(
  * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadXGBoostModelFromUBJSONString(
-    std::basic_string_view<std::uint8_t> ubjson_str, std::string const& config_json);
+    std::string_view ubjson_str, std::string const& config_json);
 
 /*!
  * \brief Inspect the first few bytes of an XGBoost model and heuristically determine whether

@@ -139,7 +139,7 @@ TREELITE_DLL int TreeliteLoadXGBoostModelUBJSON(
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadXGBoostModelFromUBJSONString(
-    uint8_t const* ubjson_str, size_t length, char const* config_json, TreeliteModelHandle* out);
+    char const* ubjson_str, size_t length, char const* config_json, TreeliteModelHandle* out);
 /*!
  * \brief Inspect the first few bytes of an XGBoost model and heuristically determine whether
  *        it's using the JSON or UBJSON format.

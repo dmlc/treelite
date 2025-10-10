@@ -40,7 +40,7 @@ def update_pypkg(
         assert rc_ver
         version = version + f"rc{rc_ver}"
     if is_dev:
-        version = version + "-dev"
+        version = version + ".dev0"
 
     pyver_path = PY_PACKAGE / "treelite" / "VERSION"
     with open(pyver_path, "w", encoding="utf-8") as fd:

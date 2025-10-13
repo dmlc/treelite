@@ -52,11 +52,11 @@ def _load_lib():
 # (do not load if called by Sphinx)
 if "sphinx" in sys.modules:
     try:
-        _LIB = _load_lib()
+        _LIB = _load_lib()  # pylint: disable=invalid-name
     except TreeliteLibraryNotFound:
-        _LIB = None
+        _LIB = None  # pylint: disable=invalid-name
 else:
-    _LIB = _load_lib()
+    _LIB = _load_lib()  # pylint: disable=invalid-name
 
 
 def _check_call(ret: int) -> None:

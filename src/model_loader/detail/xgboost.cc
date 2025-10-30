@@ -16,6 +16,10 @@
 #include <treelite/logging.h>
 #include <treelite/model_loader.h>
 
+#include <rapidjson/document.h>
+
+#include "./string_utils.h"
+
 namespace treelite::model_loader {
 
 namespace detail::xgboost {
@@ -53,6 +57,25 @@ double TransformBaseScoreToMargin(std::string const& postprocessor, double base_
   } else {
     return base_score;
   }
+}
+
+std::vector<float> ParseBaseScore(std::string const& str) {
+  std::vector<float> parsed_base_score;
+  if (StringStartsWith(str, "[")) {
+    // Vector base_score (from XGBoost 3.1+)
+    rapidjson::Document doc;
+    doc.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(str);
+    TREELITE_CHECK(doc.IsArray()) << "Expected an array for base_score";
+    parsed_base_score.clear();
+    for (auto const& e : doc.GetArray()) {
+      TREELITE_CHECK(e.IsFloat()) << "Expected a float array for base_score";
+      parsed_base_score.push_back(e.GetFloat());
+    }
+  } else {
+    // Scalar base_score (from XGBoost <3.1)
+    parsed_base_score = {std::stof(str)};
+  }
+  return parsed_base_score;
 }
 
 }  // namespace detail::xgboost

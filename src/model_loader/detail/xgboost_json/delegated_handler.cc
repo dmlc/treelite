@@ -8,6 +8,7 @@
 
 #include "./delegated_handler.h"
 
+#include <algorithm>
 #include <string>
 
 #include <treelite/logging.h>
@@ -647,14 +648,17 @@ bool LearnerParamHandler::String(std::string const& str) {
   if (this->should_ignore_upcoming_value()) {
     return true;
   }
-  // For now, XGBoost always outputs a scalar base_score
-  return (
-      assign_value("base_score", static_cast<float>(std::stof(str)), output.base_score)
-      || assign_value("num_class", std::max(std::stoi(str), 1), output.num_class)
-      || assign_value("num_target", static_cast<std::int32_t>(std::stoi(str)), output.num_target)
-      || assign_value("num_feature", std::stoi(str), output.num_feature)
-      || assign_value(
-          "boost_from_average", static_cast<bool>(std::stoi(str)), output.boost_from_average));
+
+  // Special handling logic for base_score
+  bool got_base_score = check_cur_key("base_score");
+  if (got_base_score) {
+    output.base_score = ParseBaseScore(str);
+  }
+  return got_base_score || assign_value("num_class", std::max(std::stoi(str), 1), output.num_class)
+         || assign_value("num_target", static_cast<std::int32_t>(std::stoi(str)), output.num_target)
+         || assign_value("num_feature", std::stoi(str), output.num_feature)
+         || assign_value(
+             "boost_from_average", static_cast<bool>(std::stoi(str)), output.boost_from_average);
 }
 
 bool LearnerParamHandler::is_recognized_key(std::string const& key) {
@@ -743,18 +747,30 @@ bool LearnerHandler::EndObject() {
       leaf_vector_shape[1] = 1;
     }
   }
-  // Set base scores. For now, XGBoost only supports a scalar base score for all targets / classes.
-  auto base_score = static_cast<double>(learner_params.base_score);
+  // Set base scores
+  // Assume: Either num_target or num_class must be 1
+  TREELITE_CHECK(learner_params.num_target == 1 || learner_params.num_class == 1);
+  std::vector<double> base_scores(learner_params.num_target * learner_params.num_class);
+  if (learner_params.base_score.size() == 1) {
+    // Scalar base_score (XGBoost <3.1)
+    // Starting from 3.1, the base score is a vector.
+    std::fill(base_scores.begin(), base_scores.end(),
+        static_cast<double>(learner_params.base_score.at(0)));
+  } else {
+    // Vector base_score (XGBoost 3.1+)
+    // Assume: If base_score is a vector, then its length should be num_target * num_class.
+    TREELITE_CHECK(base_scores.size() == learner_params.base_score.size());
+    std::transform(learner_params.base_score.begin(), learner_params.base_score.end(),
+        base_scores.begin(), [](float e) { return static_cast<double>(e); });
+  }
+
   // Before XGBoost 1.0.0, the base score saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
-    base_score = xgboost::TransformBaseScoreToMargin(postprocessor.name, base_score);
+    std::for_each(base_scores.begin(), base_scores.end(),
+        [&](auto& e) { e = xgboost::TransformBaseScoreToMargin(postprocessor.name, e); });
   }
-  // For now, XGBoost produces a scalar base_score
-  // Assume: Either num_target or num_class must be 1
-  TREELITE_CHECK(learner_params.num_target == 1 || learner_params.num_class == 1);
-  std::vector<double> base_scores(learner_params.num_target * learner_params.num_class, base_score);
 
   model_builder::Metadata metadata{
       num_feature, task_type, average_tree_output, num_target, num_class, leaf_vector_shape};

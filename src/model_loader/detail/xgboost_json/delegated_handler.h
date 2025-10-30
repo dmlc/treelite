@@ -42,7 +42,7 @@ struct ParsedRegTreeParams {
 };
 
 struct ParsedLearnerParams {
-  float base_score{0.0};
+  std::vector<float> base_score;
   std::int32_t num_class{1};
   std::int32_t num_feature{0};
   std::int32_t num_target{1};

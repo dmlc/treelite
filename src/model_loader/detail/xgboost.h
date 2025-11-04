@@ -28,6 +28,9 @@ std::string GetPostProcessor(std::string const& objective_name);
 // Transform base score from probability into margin score
 double TransformBaseScoreToMargin(std::string const& postprocessor, double base_score);
 
+// Parse base score
+std::vector<float> ParseBaseScore(std::string const& str);
+
 enum FeatureType { kNumerical = 0, kCategorical = 1 };
 
 }  // namespace treelite::model_loader::detail::xgboost

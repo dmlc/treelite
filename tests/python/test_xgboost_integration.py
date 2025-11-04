@@ -27,7 +27,7 @@ from .hypothesis_util import (
     standard_regression_datasets,
     standard_settings,
 )
-from .util import TemporaryDirectory, to_categorical
+from .util import TemporaryDirectory, has_pandas, to_categorical
 
 
 def generate_data_for_squared_log_error(n_targets: int = 1):
@@ -84,6 +84,8 @@ def test_xgb_regressor(
     else:
         X, y = callback.draw(standard_regression_datasets())
         use_categorical = callback.draw(sampled_from([True, False]))
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -92,7 +94,7 @@ def test_xgb_regressor(
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson"]))
     param = {
         "max_depth": 8,
         "eta": 0.1,
@@ -106,16 +108,11 @@ def test_xgb_regressor(
         num_boost_round=num_boost_round,
     )
     with TemporaryDirectory() as tmpdir:
-        if model_format in ["json", "ubjson"]:
-            model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(
-                model_path, format_choice=model_format
-            )
-        else:
-            model_path = pathlib.Path(tmpdir) / "model.deprecated"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        xgb_model.save_model(model_path)
+        tl_model = treelite.frontend.load_xgboost_model(
+            model_path, format_choice=model_format
+        )
         assert (
             len(json.loads(tl_model.dump_as_json())["trees"])
             == num_boost_round * num_parallel_tree
@@ -153,6 +150,8 @@ def test_xgb_multiclass_classifier(
     # pylint: disable=too-many-locals
     """Test XGBoost with multi-class classification problem"""
     X, y = dataset
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -161,7 +160,7 @@ def test_xgb_multiclass_classifier(
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson"]))
 
     num_class = np.max(y) + 1
     param = {
@@ -180,16 +179,11 @@ def test_xgb_multiclass_classifier(
     )
 
     with TemporaryDirectory() as tmpdir:
-        if model_format in ["json", "ubjson"]:
-            model_path = pathlib.Path(tmpdir) / f"iris.{model_format}"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(
-                model_path, format_choice=model_format
-            )
-        else:
-            model_path = pathlib.Path(tmpdir) / "iris.deprecated"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        model_path = pathlib.Path(tmpdir) / f"iris.{model_format}"
+        xgb_model.save_model(model_path)
+        tl_model = treelite.frontend.load_xgboost_model(
+            model_path, format_choice=model_format
+        )
         expected_num_tree = num_class * num_boost_round * num_parallel_tree
         assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
@@ -239,6 +233,8 @@ def test_xgb_nonlinear_objective(
             n_classes=just(num_class), n_informative=just(5)
         )
     )
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -247,7 +243,7 @@ def test_xgb_nonlinear_objective(
     else:
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
-        model_format = callback.draw(sampled_from(["json", "ubjson", "legacy_binary"]))
+        model_format = callback.draw(sampled_from(["json", "ubjson"]))
 
     assert np.min(y) == 0
     assert np.max(y) == num_class - 1
@@ -274,12 +270,9 @@ def test_xgb_nonlinear_objective(
         model_path = pathlib.Path(tmpdir) / model_name
         xgb_model.save_model(model_path)
 
-        if model_format in ["json", "ubjson"]:
-            tl_model = treelite.frontend.load_xgboost_model(
-                model_path, format_choice=model_format
-            )
-        else:
-            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        tl_model = treelite.frontend.load_xgboost_model(
+            model_path, format_choice=model_format
+        )
 
         out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=True)
         expected_pred = xgb_model.predict(
@@ -439,6 +432,8 @@ def test_xgb_multi_target_binary_classifier(
 ):
     """Test XGBoost with multi-target binary classification problem"""
     X, y = dataset
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -447,10 +442,7 @@ def test_xgb_multi_target_binary_classifier(
         dtrain = xgb.DMatrix(X, label=y)
         X_pred = X.copy()
 
-    if use_categorical or multi_strategy == "multi_output_tree" or in_memory:
-        model_format = callback.draw(sampled_from(["ubjson", "json"]))
-    else:
-        model_format = callback.draw(sampled_from(["legacy_binary", "ubjson", "json"]))
+    model_format = callback.draw(sampled_from(["ubjson", "json"]))
 
     params = {
         "tree_method": "hist",
@@ -466,18 +458,11 @@ def test_xgb_multi_target_binary_classifier(
         tl_model = treelite.frontend.from_xgboost(bst)
     else:
         with TemporaryDirectory() as tmpdir:
-            if model_format in ["json", "ubjson"]:
-                model_path = pathlib.Path(tmpdir) / f"multi_target.{model_format}"
-                bst.save_model(model_path)
-                tl_model = treelite.frontend.load_xgboost_model(
-                    model_path, format_choice=model_format
-                )
-            else:
-                model_path = pathlib.Path(tmpdir) / "multi_target.deprecated"
-                bst.save_model(model_path)
-                tl_model = treelite.frontend.load_xgboost_model_legacy_binary(
-                    model_path
-                )
+            model_path = pathlib.Path(tmpdir) / f"multi_target.{model_format}"
+            bst.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(
+                model_path, format_choice=model_format
+            )
 
     out_pred = treelite.gtil.predict(tl_model, X_pred, pred_margin=pred_margin)
     expected_pred = bst.predict(
@@ -521,10 +506,9 @@ def test_xgb_multi_target_regressor(
     else:
         X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
         use_categorical = callback.draw(sampled_from([True, False]))
-    if multi_strategy == "multi_output_tree" or use_categorical:
-        model_format = callback.draw(sampled_from(["ubjson", "json"]))
-    else:
-        model_format = callback.draw(sampled_from(["legacy_binary", "ubjson", "json"]))
+    model_format = callback.draw(sampled_from(["ubjson", "json"]))
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
 
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
@@ -549,16 +533,11 @@ def test_xgb_multi_target_regressor(
     )
 
     with TemporaryDirectory() as tmpdir:
-        if model_format in ["json", "ubjson"]:
-            model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(
-                model_path, format_choice=model_format
-            )
-        else:
-            model_path = pathlib.Path(tmpdir) / "model.deprecated"
-            xgb_model.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        xgb_model.save_model(model_path)
+        tl_model = treelite.frontend.load_xgboost_model(
+            model_path, format_choice=model_format
+        )
         expected_n_trees = num_boost_round * num_parallel_tree
         if multi_strategy == "one_output_per_tree":
             expected_n_trees *= n_targets
@@ -620,3 +599,22 @@ def test_load_old_xgboost_model():
         / "mushroom.model"
     )
     _ = treelite.frontend.load_xgboost_model_legacy_binary(path)  # should not crash
+
+
+# TODO(hcho3): Remove this unit test once categorical encoding is added
+@pytest.mark.skipif(not has_pandas(), reason="Pandas is not installed")
+def test_categorical_encoding():
+    """Treelite should throw an exception when XGBoost model uses categorical encoding"""
+    import pandas as pd
+
+    df = pd.DataFrame({"c": ["a", "b", "c"], "a": [-1, 1, 2]}, dtype="category")
+    y = np.array([0, 0, 1])
+
+    Xy = xgb.DMatrix(df, y, enable_categorical=True)
+    bst = xgb.train({"max_depth": 1, "base_score": 0}, Xy, num_boost_round=1)
+
+    with pytest.raises(
+        treelite.TreeliteError,
+        match=r".*Treelite does not yet support XGBoost models with categorical encoder.*",
+    ):
+        _ = treelite.frontend.from_xgboost(bst)

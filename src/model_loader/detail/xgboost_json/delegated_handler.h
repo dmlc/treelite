@@ -12,18 +12,60 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <stack>
 #include <string>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 #include <treelite/model_builder.h>
 
 namespace treelite::model_loader::detail::xgboost {
 
+enum class ValueKind : std::int64_t {
+  kString = 0,
+  kNumber = 1,
+  kInteger = 2,
+  kObject = 3,
+  kArray = 4,
+  kBoolean = 5,
+  kNull = 6,
+  kF32Array = 7,
+  kF64Array = 8,
+  kI8Array = 9,
+  kU8Array = 10,
+  kI16Array = 11,
+  kU16Array = 12,
+  kI32Array = 13,
+  kU32Array = 14,
+  kI64Array = 15,
+  kU64Array = 16,
+};
+
 class HandlerConfig {
  public:
   bool allow_unknown_field{false};
+};
+
+struct ParsedStringCategorical {
+  std::vector<std::int32_t> offsets;
+  std::vector<std::int8_t> values;
+};
+
+using ParsedCategoryValuesArray = std::variant<std::monostate, std::vector<std::int8_t>,
+    std::vector<std::int64_t>, std::vector<std::uint64_t>, std::vector<double>>;
+
+struct ParsedCategoryInfo {
+  std::optional<std::int64_t> type{};
+  std::optional<std::vector<std::int32_t>> offsets{};
+  ParsedCategoryValuesArray values{std::monostate{}};
+};
+
+struct ParsedCategoryContainer {
+  std::vector<ParsedCategoryInfo> enc;
+  std::vector<std::int32_t> feature_segments;
+  std::vector<std::int32_t> sorted_idx;
 };
 
 struct ParsedXGBoostModel {
@@ -34,6 +76,7 @@ struct ParsedXGBoostModel {
   std::string objective_name{};
   std::int32_t size_leaf_vector{0};
   std::vector<float> weight_drop{};
+  ParsedCategoryContainer category_container;
 };
 
 struct ParsedRegTreeParams {
@@ -42,7 +85,7 @@ struct ParsedRegTreeParams {
 };
 
 struct ParsedLearnerParams {
-  float base_score{0.0};
+  std::vector<float> base_score;
   std::int32_t num_class{1};
   std::int32_t num_feature{0};
   std::int32_t num_target{1};
@@ -413,6 +456,35 @@ class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
 
  private:
   std::vector<ParsedRegTreeParams> reg_tree_params;
+};
+
+/*! \brief Handler for CategoryContainer objects from XGBoost schema */
+class CategoryContainerHandler : public OutputHandler<ParsedCategoryContainer> {
+ public:
+  using OutputHandler::OutputHandler;
+  bool StartArray() override;
+
+ protected:
+  bool is_recognized_key(std::string const& key) override;
+};
+
+/*! \brief Handler for array of objects of CategoryInfo type */
+class CategoryInfoArrayHandler : public OutputHandler<std::vector<ParsedCategoryInfo>> {
+ public:
+  using OutputHandler::OutputHandler;
+  bool StartObject() override;
+};
+
+/*! \brief Handler for CategoryInfo objects */
+class CategoryInfoHandler : public OutputHandler<ParsedCategoryInfo> {
+ public:
+  using OutputHandler::OutputHandler;
+  bool Int64(std::int64_t i) override;
+  bool Uint64(std::uint64_t u) override;
+  bool StartArray() override;
+
+ protected:
+  bool is_recognized_key(std::string const& key) override;
 };
 
 /*! \brief Handler for GradientBoosterHandler objects from XGBoost schema */

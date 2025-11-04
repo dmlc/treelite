@@ -49,14 +49,6 @@ def build_libtreelite(
         ]
         cmake_cmd.extend(build_config.get_cmake_args())
 
-        # Flag for cross-compiling for Apple Silicon
-        # We use environment variable because it's the only way to pass down custom flags
-        # through the cibuildwheel package, which calls `pip wheel` command.
-        if "CIBW_TARGET_OSX_ARM64" in os.environ:
-            cmake_cmd.extend(
-                ["-DCMAKE_OSX_ARCHITECTURES=arm64", "-DDETECT_CONDA_ENV=OFF"]
-            )
-
         logger.info("CMake args: %s", str(cmake_cmd))
         subprocess.check_call(cmake_cmd, cwd=build_dir)
 

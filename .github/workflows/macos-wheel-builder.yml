@@ -28,11 +28,15 @@ env:
 jobs:
   macos-wheel-builder:
     name: Build and test Python wheels (MacOS)
-    runs-on: macos-13
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        cibw_platform_id: [macosx_x86_64, macosx_arm64]
+        include:
+        - os: macos-15-intel
+          platform_id: macosx_x86_64
+        - os: macos-14
+          platform_id: macosx_arm64
     env:
       CIBW_PLATFORM_ID: ${{ matrix.cibw_platform_id }}
     steps:
@@ -51,8 +55,7 @@ jobs:
         conda list
     - name: Build wheel
       run: |
-        bash ops/build-macos.sh
+        bash ops/build-macos.sh ${{ matrix.platform_id }} ${{ github.sha }}
     - name: Test wheel
-      if: matrix.cibw_platform_id == 'macosx_x86_64'
       run: |
         bash ops/test-macos-python-wheel.sh

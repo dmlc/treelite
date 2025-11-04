@@ -500,11 +500,10 @@ RegTreeArrayHandler::RegTreeArrayHandler(std::weak_ptr<Delegator> parent_delegat
 
 bool RegTreeArrayHandler::StartObject() {
   if (this->should_ignore_upcoming_value()) {
-    return this->template push_handler<IgnoreHandler>();
+    return push_handler<IgnoreHandler>();
   }
-  this->output.emplace_back();
-  return this->template push_handler<RegTreeHandler, ParsedRegTreeParams>(
-      this->output.back(), model_builder);
+  output.emplace_back();
+  return push_handler<RegTreeHandler, ParsedRegTreeParams>(output.back(), model_builder);
 }
 
 /******************************************************************************
@@ -526,7 +525,9 @@ bool GBTreeModelHandler::StartObject() {
   if (this->should_ignore_upcoming_value()) {
     return push_handler<IgnoreHandler>();
   }
-  return push_key_handler<IgnoreHandler>("gbtree_model_param");
+  return push_key_handler<IgnoreHandler>("gbtree_model_param")
+         || push_key_handler<CategoryContainerHandler, ParsedCategoryContainer>(
+             "cats", output.category_container);
 }
 
 bool GBTreeModelHandler::EndObject() {
@@ -545,8 +546,124 @@ bool GBTreeModelHandler::EndObject() {
 }
 
 bool GBTreeModelHandler::is_recognized_key(std::string const& key) {
-  return (key == "trees" || key == "tree_info" || key == "gbtree_model_param"
-          || key == "iteration_indptr");
+  return key == "trees" || key == "tree_info" || key == "gbtree_model_param"
+         || key == "iteration_indptr" || key == "cats";
+}
+
+/******************************************************************************
+ * CategoryContainerHandler
+ * ***************************************************************************/
+
+bool CategoryContainerHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
+  return push_key_handler<CategoryInfoArrayHandler>("enc", output.enc)
+         || push_key_handler<ArrayHandler<std::int32_t>, std::vector<std::int32_t>>(
+             "feature_segments", output.feature_segments)
+         || push_key_handler<ArrayHandler<std::int32_t>, std::vector<std::int32_t>>(
+             "sorted_idx", output.sorted_idx);
+}
+
+bool CategoryContainerHandler::is_recognized_key(std::string const& key) {
+  return key == "enc" || key == "feature_segments" || key == "sorted_idx";
+}
+
+/******************************************************************************
+ * CategoryInfoArrayHandler
+ * ***************************************************************************/
+bool CategoryInfoArrayHandler::StartObject() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
+  output.emplace_back();
+  return push_handler<CategoryInfoHandler, ParsedCategoryInfo>(output.back());
+}
+
+/******************************************************************************
+ * CategoryInfoHandler
+ * ***************************************************************************/
+bool CategoryInfoHandler::Int64(std::int64_t i) {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
+  bool got_type = check_cur_key("type");
+  if (got_type) {
+    output.type = i;
+  }
+  return got_type;
+}
+
+bool CategoryInfoHandler::Uint64(std::uint64_t u) {
+  // The "type" field can be int64 or uint64
+  // Just defer to the int64 handler
+  return Int64(static_cast<std::int64_t>(u));
+}
+
+bool CategoryInfoHandler::StartArray() {
+  if (this->should_ignore_upcoming_value()) {
+    return push_handler<IgnoreHandler>();
+  }
+
+  bool got_offsets = check_cur_key("offsets");
+  if (got_offsets) {
+    output.offsets = std::vector<std::int32_t>{};
+    push_handler<ArrayHandler<std::int32_t>, std::vector<std::int32_t>>(output.offsets.value());
+  }
+
+  // Assumption: Either "offsets" or "type" fields have been given before "values" field.
+  // Only with this assumption can we infer the type of the "values" field.
+  bool got_values = check_cur_key("values");
+  if (got_values) {
+    if (output.offsets.has_value()) {
+      // String categories
+      output.values = std::vector<std::int8_t>{};
+      push_handler<ArrayHandler<std::int8_t>, std::vector<std::int8_t>>(
+          std::get<std::vector<std::int8_t>>(output.values));
+    } else if (output.type.has_value()) {
+      // Numerical categories
+      switch (static_cast<ValueKind>(output.type.value())) {
+      case ValueKind::kU8Array:
+      case ValueKind::kU16Array:
+      case ValueKind::kU32Array:
+      case ValueKind::kU64Array: {
+        output.values = std::vector<std::uint64_t>{};
+        push_handler<ArrayHandler<std::uint64_t>, std::vector<std::uint64_t>>(
+            std::get<std::vector<std::uint64_t>>(output.values));
+        break;
+      }
+      case ValueKind::kI8Array:
+      case ValueKind::kI16Array:
+      case ValueKind::kI32Array:
+      case ValueKind::kI64Array: {
+        output.values = std::vector<std::int64_t>{};
+        push_handler<ArrayHandler<std::int64_t>, std::vector<std::int64_t>>(
+            std::get<std::vector<std::int64_t>>(output.values));
+        break;
+      }
+      case ValueKind::kF32Array:
+      case ValueKind::kF64Array: {
+        output.values = std::vector<double>{};
+        push_handler<ArrayHandler<double>, std::vector<double>>(
+            std::get<std::vector<double>>(output.values));
+        break;
+      }
+      default:
+        TREELITE_LOG(ERROR) << "Got invalid type for `values` array";
+        return false;
+      }
+    } else {
+      TREELITE_LOG(ERROR) << "Cannot determine the type of `values` array, since neither"
+                          << "`type` or `offsets` fields are present";
+      return false;
+    }
+  }
+
+  return got_values || got_offsets;
+}
+
+bool CategoryInfoHandler::is_recognized_key(std::string const& key) {
+  return key == "type" || key == "offsets" || key == "values";
 }
 
 /******************************************************************************
@@ -684,6 +801,13 @@ bool LearnerHandler::StartObject() {
 }
 
 bool LearnerHandler::EndObject() {
+  /* Throw an exception if category encoding is required.
+   * TODO(hcho3): Implement categorical encoding */
+  TREELITE_CHECK(output.category_container.enc.empty()
+                 && output.category_container.feature_segments.empty()
+                 && output.category_container.sorted_idx.empty())
+      << "Treelite does not yet support XGBoost models with categorical encoder";
+
   /* Set metadata */
   auto const num_tree = output.num_tree;
   auto const num_feature = learner_params.num_feature;

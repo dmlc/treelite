@@ -5,6 +5,7 @@ import pickle
 
 import lightgbm as lgb
 import numpy as np
+from packaging.version import parse as parse_version
 from sklearn.datasets import load_iris
 
 import treelite
@@ -27,7 +28,10 @@ def save(args):
     clf = _train_model(X, y)
     with open(args.model_pickle_path, "wb") as f:
         pickle.dump(clf, f)
-    tl_model = treelite.Model.from_lightgbm(clf.booster_)
+    if parse_version(treelite.__version__) >= parse_version("4.0"):
+        tl_model = treelite.frontend.from_lightgbm(clf.booster_)
+    else:
+        tl_model = treelite.Model.from_lightgbm(clf.booster_)
     tl_model.serialize(args.checkpoint_path)
 
 

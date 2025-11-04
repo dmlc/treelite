@@ -27,7 +27,7 @@ from .hypothesis_util import (
     standard_regression_datasets,
     standard_settings,
 )
-from .util import TemporaryDirectory, to_categorical
+from .util import TemporaryDirectory, has_pandas, to_categorical
 
 
 def generate_data_for_squared_log_error(n_targets: int = 1):
@@ -599,3 +599,22 @@ def test_load_old_xgboost_model():
         / "mushroom.model"
     )
     _ = treelite.frontend.load_xgboost_model_legacy_binary(path)  # should not crash
+
+
+# TODO(hcho3): Remove this unit test once categorical encoding is added
+@pytest.mark.skipif(not has_pandas(), reason="Pandas is not installed")
+def test_categorical_encoding():
+    """Treelite should throw an exception when XGBoost model uses categorical encoding"""
+    import pandas as pd
+
+    df = pd.DataFrame({"c": ["a", "b", "c"], "a": [-1, 1, 2]}, dtype="category")
+    y = np.array([0, 0, 1])
+
+    Xy = xgb.DMatrix(df, y, enable_categorical=True)
+    bst = xgb.train({"max_depth": 1, "base_score": 0}, Xy, num_boost_round=1)
+
+    with pytest.raises(
+        treelite.TreeliteError,
+        match=r".*Treelite does not yet support XGBoost models with categorical encoder.*",
+    ):
+        _ = treelite.frontend.from_xgboost(bst)

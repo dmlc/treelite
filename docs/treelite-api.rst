@@ -28,13 +28,6 @@ Model builder
     :members:
     :member-order: bysource
 
-Model builder (Legacy)
-----------------------
-
-.. autoclass:: treelite.ModelBuilder
-    :members:
-    :member-order: bysource
-
 Model class
 -----------
 

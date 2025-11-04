@@ -5,12 +5,10 @@ from __future__ import annotations
 import ctypes
 import pathlib
 import platform
-import warnings
 from typing import Any, List, Optional, Union
 
 import numpy as np
 
-from . import compat
 from .core import _LIB, _check_call
 from .util import bytes_from_string_and_size, c_array, c_str, py_str
 
@@ -112,81 +110,38 @@ class Model:
         return Model(handle=concatenated_model_handle)
 
     @classmethod
-    def load(
-        cls, filename: str, model_format: str, allow_unknown_field: bool = False
-    ) -> Model:
+    def load(cls, filename: str, model_format: str, allow_unknown_field: bool = False):
+        # pylint: disable=unused-argument
         """
         Deprecated; please use :py:meth:`~treelite.frontend.load_xgboost_model`,
         :py:meth:`~treelite.frontend.load_xgboost_model_legacy_binary`, or
         :py:meth:`~treelite.frontend.load_lightgbm_model` instead.
-
-        Load a tree ensemble model from a file.
-
-        Parameters
-        ----------
-        filename :
-            Path to model file
-        model_format :
-            Model file format. Must be "xgboost", "xgboost_json", or "lightgbm"
-        allow_unknown_field:
-            Whether to allow extra fields with unrecognized keys. This flag is only
-            applicable if model_format="xgboost_json"
-
-        Returns
-        -------
-        model : :py:class:`Model`
-            Loaded model
         """
         model_format = model_format.lower()
 
-        def deprecation_warning(alt: str):
-            warnings.warn(
-                (
-                    "treelite.Model.load() is deprecated. "
-                    f"Use treelite.frontend.{alt}() instead."
-                ),
-                FutureWarning,
+        def deprecation_error(alt: str):
+            raise RuntimeError(
+                "treelite.Model.load() has been removed. "
+                f"Use treelite.frontend.{alt}() instead."
             )
 
         if model_format == "xgboost":
-            deprecation_warning("load_xgboost_model_legacy_binary")
-            return Model(handle=compat.load_xgboost_model_legacy_binary(filename))
+            deprecation_error("load_xgboost_model_legacy_binary")
         if model_format == "xgboost_json":
-            deprecation_warning("load_xgboost_model")
-            return Model(
-                handle=compat.load_xgboost_model(
-                    filename, allow_unknown_field=allow_unknown_field
-                )
-            )
+            deprecation_error("load_xgboost_model")
         if model_format == "lightgbm":
-            deprecation_warning("load_lightgbm_model")
-            return Model(handle=compat.load_lightgbm_model(filename))
+            deprecation_error("load_lightgbm_model")
         raise ValueError(f"Unknown model format {model_format}")
 
     @classmethod
-    def from_xgboost(cls, booster: Any) -> Model:
+    def from_xgboost(cls, booster: Any):
         """
         Deprecated; please use :py:meth:`~treelite.frontend.from_xgboost` instead.
-        Load a tree ensemble model from an XGBoost Booster object.
-
-        Parameters
-        ----------
-        booster : Object of type :py:class:`xgboost.Booster`
-            Python handle to XGBoost model
-
-        Returns
-        -------
-        model : :py:class:`Model`
-            Loaded model
         """
-        warnings.warn(
-            (
-                "treelite.Model.from_xgboost() is deprecated. "
-                "Use treelite.frontend.from_xgboost() instead."
-            ),
-            FutureWarning,
+        raise RuntimeError(
+            "treelite.Model.from_xgboost() has been removed. "
+            "Use treelite.frontend.from_xgboost() instead."
         )
-        return Model(handle=compat.from_xgboost(booster))
 
     @classmethod
     def from_xgboost_json(
@@ -194,60 +149,24 @@ class Model:
         model_json_str: Union[bytes, bytearray, str],
         *,
         allow_unknown_field: bool = False,
-    ) -> Model:
+    ):
         """
         Deprecated; please use :py:meth:`~treelite.frontend.from_xgboost_json` instead.
-        Load a tree ensemble model from a string containing XGBoost JSON.
-
-        Parameters
-        ----------
-        model_json_str :
-            A string specifying an XGBoost model in the XGBoost JSON format
-        allow_unknown_field:
-            Whether to allow extra fields with unrecognized keys
-
-        Returns
-        -------
-        model : :py:class:`Model`
-            Loaded model
         """
-        warnings.warn(
-            (
-                "treelite.Model.from_xgboost_json() is deprecated. "
-                "Use treelite.frontend.from_xgboost_json() instead."
-            ),
-            FutureWarning,
-        )
-        return Model(
-            handle=compat.from_xgboost_json(
-                model_json_str, allow_unknown_field=allow_unknown_field
-            )
+        raise RuntimeError(
+            "treelite.Model.from_xgboost_json() has been removed. "
+            "Use treelite.frontend.from_xgboost_json() instead."
         )
 
     @classmethod
     def from_lightgbm(cls, booster):
         """
         Deprecated; please use :py:meth:`~treelite.frontend.from_lightgbm` instead.
-        Load a tree ensemble model from a LightGBM Booster object.
-
-        Parameters
-        ----------
-        booster : object of type :py:class:`lightgbm.Booster`
-            Python handle to LightGBM model
-
-        Returns
-        -------
-        model : :py:class:`Model`
-            loaded model
         """
-        warnings.warn(
-            (
-                "treelite.Model.from_lightgbm() is deprecated. "
-                "Use treelite.frontend.from_lightgbm() instead."
-            ),
-            FutureWarning,
+        raise RuntimeError(
+            "treelite.Model.from_lightgbm() has been removed. "
+            "Use treelite.frontend.from_lightgbm() instead."
         )
-        return Model(handle=compat.from_lightgbm(booster))
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:
         """

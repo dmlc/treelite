@@ -84,6 +84,8 @@ def test_xgb_regressor(
     else:
         X, y = callback.draw(standard_regression_datasets())
         use_categorical = callback.draw(sampled_from([True, False]))
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -148,6 +150,8 @@ def test_xgb_multiclass_classifier(
     # pylint: disable=too-many-locals
     """Test XGBoost with multi-class classification problem"""
     X, y = dataset
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -229,6 +233,8 @@ def test_xgb_nonlinear_objective(
             n_classes=just(num_class), n_informative=just(5)
         )
     )
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -426,6 +432,8 @@ def test_xgb_multi_target_binary_classifier(
 ):
     """Test XGBoost with multi-target binary classification problem"""
     X, y = dataset
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
         df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
@@ -499,6 +507,8 @@ def test_xgb_multi_target_regressor(
         X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
         use_categorical = callback.draw(sampled_from([True, False]))
     model_format = callback.draw(sampled_from(["ubjson", "json"]))
+    # TODO(hcho3): Remove this once Treelite supports categorical encoding
+    use_categorical = False
 
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))

@@ -7,8 +7,9 @@ import json
 import pathlib
 from typing import Any, Union
 
-from . import compat
-from .core import _LIB, _check_call
+from packaging.version import parse as parse_version
+
+from .core import _LIB, TreeliteError, _check_call
 from .model import Model
 from .util import c_str, py_str
 
@@ -47,7 +48,13 @@ def load_xgboost_model_legacy_binary(filename: Union[str, pathlib.Path]) -> Mode
            "xgboost_model.model")
     """
     path = _normalize_path(filename)
-    return Model(handle=compat.load_xgboost_model_legacy_binary(str(path)))
+    handle = ctypes.c_void_p()
+    _check_call(
+        _LIB.TreeliteLoadXGBoostModelLegacyBinary(
+            c_str(str(path)), c_str("{}"), ctypes.byref(handle)
+        )
+    )
+    return Model(handle=handle)
 
 
 def load_xgboost_model(
@@ -95,11 +102,13 @@ def load_xgboost_model(
     path = _normalize_path(filename)
 
     def parse_as_json() -> Model:
-        return Model(
-            handle=compat.load_xgboost_model(
-                str(path), allow_unknown_field=allow_unknown_field
+        handle = ctypes.c_void_p()
+        _check_call(
+            _LIB.TreeliteLoadXGBoostModelJSON(
+                c_str(str(path)), c_str(parser_config_str), ctypes.byref(handle)
             )
         )
+        return Model(handle=handle)
 
     def parse_as_ubjson() -> Model:
         handle = ctypes.c_void_p()
@@ -157,7 +166,13 @@ def load_lightgbm_model(filename: Union[str, pathlib.Path]) -> Model:
        lgb_model = treelite.frontend.load_lightgbm_model("lightgbm_model.txt")
     """
     path = _normalize_path(filename)
-    return Model(handle=compat.load_lightgbm_model(str(path)))
+    handle = ctypes.c_void_p()
+    _check_call(
+        _LIB.TreeliteLoadLightGBMModel(
+            c_str(str(path)), c_str("{}"), ctypes.byref(handle)
+        )
+    )
+    return Model(handle=handle)
 
 
 def from_xgboost(booster: Any) -> Model:
@@ -174,7 +189,40 @@ def from_xgboost(booster: Any) -> Model:
     model : :py:class:`Model`
         Loaded model
     """
-    return Model(handle=compat.from_xgboost(booster))
+    try:
+        import xgboost
+    except ImportError as e:
+        raise TreeliteError(
+            "xgboost module must be installed to read from "
+            + "`xgboost.Booster` object"
+        ) from e
+    if not isinstance(booster, xgboost.Booster):
+        raise ValueError("booster must be of type `xgboost.Booster`")
+    xgb_version = parse_version(xgboost.__version__)
+    if xgb_version >= parse_version("2.1.0"):
+        # For XGBoost version 2.1.0 and later, use save_raw() to export models as UBJSON string
+        model_ubjson_str = booster.save_raw(raw_format="ubj")
+        return from_xgboost_ubjson(model_ubjson_str)
+    if xgb_version > parse_version("1.5.2"):
+        # For XGBoost version 1.6.0 and later, use save_raw() to export models as JSON string
+        model_json_str = booster.save_raw(raw_format="json")
+        return from_xgboost_json(model_json_str)
+    if xgb_version >= parse_version("1.0.0"):
+        # Prior to version 1.6.0, XGBoost doesn't offer a method to export models as JSON string
+        # in-memory. So use __getstate__ instead.
+        model_json_str = booster.__getstate__()["handle"]
+        return from_xgboost_json(model_json_str)
+    # If pre-1.0.0 version of XGBoost is used, use legacy serialization
+    handle = ctypes.c_void_p()
+    buffer = booster.save_raw()
+    ptr = (ctypes.c_char * len(buffer)).from_buffer(buffer)
+    length = ctypes.c_size_t(len(buffer))
+    _check_call(
+        _LIB.TreeliteLoadXGBoostModelLegacyBinaryFromMemoryBuffer(
+            ptr, length, ctypes.byref(handle)
+        )
+    )
+    return Model(handle=handle)
 
 
 def from_xgboost_json(
@@ -197,11 +245,31 @@ def from_xgboost_json(
     model: :py:class:`Model`
         Loaded model
     """
-    return Model(
-        handle=compat.from_xgboost_json(
-            model_json_str, allow_unknown_field=allow_unknown_field
+    parser_config = {"allow_unknown_field": allow_unknown_field}
+    parser_config_str = json.dumps(parser_config)
+
+    handle = ctypes.c_void_p()
+    length = len(model_json_str)
+    if isinstance(model_json_str, (bytes, bytearray)):
+        json_buffer = ctypes.create_string_buffer(bytes(model_json_str), length)
+        _check_call(
+            _LIB.TreeliteLoadXGBoostModelFromJSONString(
+                json_buffer,
+                ctypes.c_size_t(length),
+                c_str(parser_config_str),
+                ctypes.byref(handle),
+            )
         )
-    )
+    else:
+        _check_call(
+            _LIB.TreeliteLoadXGBoostModelFromJSONString(
+                c_str(model_json_str),
+                ctypes.c_size_t(length),
+                c_str(parser_config_str),
+                ctypes.byref(handle),
+            )
+        )
+    return Model(handle=handle)
 
 
 def from_xgboost_ubjson(
@@ -224,11 +292,23 @@ def from_xgboost_ubjson(
     model: :py:class:`Model`
         Loaded model
     """
-    return Model(
-        handle=compat.from_xgboost_ubjson(
-            model_ubjson_str, allow_unknown_field=allow_unknown_field
+    parser_config = {"allow_unknown_field": allow_unknown_field}
+    parser_config_str = json.dumps(parser_config)
+
+    length = len(model_ubjson_str)
+    ubjson_buffer = ctypes.create_string_buffer(bytes(model_ubjson_str), length)
+
+    handle = ctypes.c_void_p()
+    _check_call(
+        _LIB.TreeliteLoadXGBoostModelFromUBJSONString(
+            ubjson_buffer,
+            ctypes.c_size_t(length),
+            c_str(parser_config_str),
+            ctypes.byref(handle),
         )
     )
+
+    return Model(handle=handle)
 
 
 def from_lightgbm(booster: Any) -> Model:
@@ -245,7 +325,24 @@ def from_lightgbm(booster: Any) -> Model:
     model : :py:class:`Model`
         Loaded model
     """
-    return Model(handle=compat.from_lightgbm(booster))
+    handle = ctypes.c_void_p()
+    # Attempt to import lightgbm
+    try:
+        import lightgbm
+    except ImportError as e:
+        raise TreeliteError(
+            "lightgbm module must be installed to read from `lightgbm.Booster` object"
+        ) from e
+    if not isinstance(booster, lightgbm.Booster):
+        raise ValueError("booster must be of type `lightgbm.Booster`")
+    model_str = booster.model_to_string()
+    _check_call(
+        _LIB.TreeliteLoadLightGBMModelFromString(
+            c_str(model_str), c_str("{}"), ctypes.byref(handle)
+        )
+    )
+
+    return Model(handle=handle)
 
 
 def _detect_xgboost_format(path: pathlib.Path) -> str:

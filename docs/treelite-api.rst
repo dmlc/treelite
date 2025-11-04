@@ -41,6 +41,7 @@ Model class
 .. autoclass:: treelite.Model
    :members:
    :member-order: bysource
+   :exclude-members: load, from_xgboost, from_xgboost_json, from_lightgbm
 
 
 .. _field_accessors:

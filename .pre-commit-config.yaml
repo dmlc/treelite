@@ -10,7 +10,7 @@ repos:
   - id: check-added-large-files
     args: ["--maxkb=4000"]
 - repo: https://github.com/psf/black
-  rev: 25.9.0
+  rev: 25.11.0
   hooks:
   - id: black
 - repo: https://github.com/pycqa/isort
@@ -65,7 +65,7 @@ repos:
     - id: mypy
       additional_dependencies: [types-setuptools]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.3
+  rev: v0.14.4
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

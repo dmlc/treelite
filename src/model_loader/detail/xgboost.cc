@@ -73,7 +73,7 @@ std::vector<float> ParseBaseScore(std::string const& str) {
     }
   } else {
     // Scalar base_score (from XGBoost <3.1)
-    parsed_base_score = {std::stof(str)};
+    parsed_base_score = std::vector<float>{std::stof(str)};
   }
   return parsed_base_score;
 }

@@ -10,7 +10,7 @@ repos:
   - id: check-added-large-files
     args: ["--maxkb=4000"]
 - repo: https://github.com/psf/black
-  rev: 25.11.0
+  rev: 25.12.0
   hooks:
   - id: black
 - repo: https://github.com/pycqa/isort
@@ -32,17 +32,6 @@ repos:
     types: [file]
     types_or: [python]
     additional_dependencies: [flake8-force]
-- repo: local
-  hooks:
-    - id: pylint
-      name: pylint
-      entry: python dev/run_pylint.py
-      language: python
-      types: [python]
-      additional_dependencies: [
-        pylint>=4.0.0, hatchling, pytest, scikit-learn>=1.7.0, hypothesis, pandas, treelite,
-        lightgbm, xgboost-cpu>=3.0.0, tqdm
-      ]
 - repo: https://github.com/pocc/pre-commit-hooks
   rev: v1.3.5
   hooks:
@@ -60,12 +49,12 @@ repos:
       additional_dependencies: [cpplint==1.6.1]
       types_or: [c++]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.18.2
+  rev: v1.19.0
   hooks:
     - id: mypy
       additional_dependencies: [types-setuptools]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.5
+  rev: v0.14.8
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

@@ -421,6 +421,57 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
     uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
     int32_t const* features_map, int64_t const** categories_map, double const* base_scores,
     TreeliteModelHandle* out);
+
+/*!
+ * \brief Load a scikit-learn RandomForestClassifier model using bulk construction (optimized).
+ *        This function provides significant speedup for large forests by bypassing the
+ *        node-by-node ModelBuilder interface and directly constructing trees in bulk.
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param n_classes n_classes[i] stores the number of classes in the i-th target
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples at node k
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the weighted sample count
+ * \param impurity impurity[i][k] stores the impurity measure at node k
+ * \param out Loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadSKLearnRandomForestClassifierBulk(int n_estimators, int n_features,
+    int n_targets, int32_t const* n_classes, int64_t const* node_count,
+    int64_t const** children_left, int64_t const** children_right, int64_t const** feature,
+    double const** threshold, double const** value, int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, TreeliteModelHandle* out);
+
+/*!
+ * \brief Load a scikit-learn RandomForestRegressor model using bulk construction (optimized).
+ *        This function provides significant speedup for large forests by bypassing the
+ *        node-by-node ModelBuilder interface and directly constructing trees in bulk.
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples at node k
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the weighted sample count
+ * \param impurity impurity[i][k] stores the impurity measure at node k
+ * \param out Loaded model
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteLoadSKLearnRandomForestRegressorBulk(int n_estimators, int n_features,
+    int n_targets, int64_t const* node_count, int64_t const** children_left,
+    int64_t const** children_right, int64_t const** feature, double const** threshold,
+    double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    double const** impurity, TreeliteModelHandle* out);
 /*! \} */
 
 /*!

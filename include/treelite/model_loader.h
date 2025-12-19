@@ -342,6 +342,62 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingClassifier(int n_iter, 
     std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores);
 
+/*!
+ * \brief Load a RandomForestClassifier using bulk construction (optimized)
+ *
+ * This is an optimized version that constructs trees in bulk rather than
+ * going through the ModelBuilder node-by-node. This provides significant
+ * speedup for large forests with many trees and nodes.
+ *
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param n_classes n_classes[i] stores the number of classes in the i-th target
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k
+ * \param feature feature[i][k] stores the ID of the feature used in the split at node k
+ * \param threshold threshold[i][k] stores the threshold used in the split at node k
+ * \param value value[i][k] stores the leaf output of node k
+ * \param n_node_samples n_node_samples[i][k] stores the number of samples at node k
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores weighted sample count
+ * \param impurity impurity[i][k] stores the impurity measure at node k
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadRandomForestClassifierBulk(int n_estimators, int n_features,
+    int n_targets, std::int32_t const* n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    double const** impurity);
+
+/*!
+ * \brief Load a RandomForestRegressor using bulk construction (optimized)
+ *
+ * This is an optimized version that constructs trees in bulk rather than
+ * going through the ModelBuilder node-by-node. This provides significant
+ * speedup for large forests with many trees and nodes.
+ *
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k
+ * \param feature feature[i][k] stores the ID of the feature used in the split at node k
+ * \param threshold threshold[i][k] stores the threshold used in the split at node k
+ * \param value value[i][k] stores the leaf output of node k
+ * \param n_node_samples n_node_samples[i][k] stores the number of samples at node k
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores weighted sample count
+ * \param impurity impurity[i][k] stores the impurity measure at node k
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadRandomForestRegressorBulk(int n_estimators, int n_features,
+    int n_targets, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
+
 }  // namespace sklearn
 
 }  // namespace model_loader

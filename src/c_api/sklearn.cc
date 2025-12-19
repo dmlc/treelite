@@ -110,3 +110,30 @@ int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }
+
+int TreeliteLoadSKLearnRandomForestClassifierBulk(int n_estimators, int n_features, int n_targets,
+    std::int32_t const* n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    double const** impurity, TreeliteModelHandle* out) {
+  API_BEGIN();
+  auto model = treelite::model_loader::sklearn::LoadRandomForestClassifierBulk(n_estimators,
+      n_features, n_targets, n_classes, node_count, children_left, children_right, feature,
+      threshold, value, n_node_samples, weighted_n_node_samples, impurity);
+  *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}
+
+int TreeliteLoadSKLearnRandomForestRegressorBulk(int n_estimators, int n_features, int n_targets,
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, TreeliteModelHandle* out) {
+  API_BEGIN();
+  auto model = treelite::model_loader::sklearn::LoadRandomForestRegressorBulk(n_estimators,
+      n_features, n_targets, node_count, children_left, children_right, feature, threshold, value,
+      n_node_samples, weighted_n_node_samples, impurity);
+  *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}

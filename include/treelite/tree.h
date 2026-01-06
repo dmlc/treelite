@@ -508,6 +508,9 @@ class Model {
   /* Serialization to a file stream */
   void SerializeToStream(std::ostream& os);
   static std::unique_ptr<Model> DeserializeFromStream(std::istream& is);
+
+  /* Optimized serialization to a pre-allocated buffer (avoids ostringstream overhead) */
+  TREELITE_DLL_EXPORT std::vector<char> SerializeToBuffer();
   /*! \brief Return the Treelite version that produced this Model object. */
   inline Version GetVersion() const {
     return {major_ver_, minor_ver_, patch_ver_};

@@ -7,8 +7,8 @@
 
 #include <cstddef>
 #include <memory>
-#include <sstream>
 #include <string>
+#include <vector>
 
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
@@ -36,15 +36,14 @@ int TreeliteDeserializeModelFromFile(char const* filename, TreeliteModelHandle* 
 int TreeliteSerializeModelToBytes(
     TreeliteModelHandle handle, char const** out_bytes, std::size_t* out_bytes_len) {
   API_BEGIN();
-  std::ostringstream oss;
-  oss.exceptions(std::ios::failbit | std::ios::badbit);  // Throw exception on failure
   auto* model_ = static_cast<treelite::Model*>(handle);
-  model_->SerializeToStream(oss);
 
-  std::string& ret_str = treelite::c_api::ReturnValueStore::Get()->ret_str;
-  ret_str = oss.str();
-  *out_bytes = ret_str.data();
-  *out_bytes_len = ret_str.length();
+  // Use buffer serialization (avoids ostringstream overhead)
+  std::vector<char>& ret_buffer = treelite::c_api::ReturnValueStore::Get()->ret_buffer;
+  ret_buffer = model_->SerializeToBuffer();
+
+  *out_bytes = ret_buffer.data();
+  *out_bytes_len = ret_buffer.size();
   API_END();
 }
 

@@ -479,6 +479,26 @@ void Model::SerializeToStream(std::ostream& os) {
   serializer.SerializeTrees(*this);
 }
 
+std::vector<char> Model::SerializeToBuffer() {
+  // First pass: calculate total size needed
+  auto size_mixin = std::make_shared<detail::serializer::SizeCalculatorMixIn>();
+  detail::serializer::Serializer<detail::serializer::SizeCalculatorMixIn> size_calc{size_mixin};
+  size_calc.SerializeHeader(*this);
+  size_calc.SerializeTrees(*this);
+  std::size_t const total_size = size_mixin->GetTotalSize();
+
+  // Pre-allocate buffer
+  std::vector<char> buffer(total_size);
+
+  // Second pass: write to pre-allocated buffer
+  auto buffer_mixin = std::make_shared<detail::serializer::BufferSerializerMixIn>(buffer);
+  detail::serializer::Serializer<detail::serializer::BufferSerializerMixIn> serializer{buffer_mixin};
+  serializer.SerializeHeader(*this);
+  serializer.SerializeTrees(*this);
+
+  return buffer;
+}
+
 std::unique_ptr<Model> Model::DeserializeFromStream(std::istream& is) {
   auto mixin = std::make_shared<detail::serializer::StreamDeserializerMixIn>(is);
   detail::serializer::Deserializer<detail::serializer::StreamDeserializerMixIn> deserializer{mixin};

@@ -21,6 +21,7 @@ namespace treelite::c_api {
  *         storage is thread-local static storage. */
 struct ReturnValueEntry {
   std::string ret_str;
+  std::vector<char> ret_buffer;  // Used by optimized SerializeToBuffer
   std::vector<std::uint32_t> ret_uint32_vec;
   std::vector<std::uint64_t> ret_uint64_vec;
   std::vector<treelite::PyBufferFrame> ret_frames;

@@ -49,12 +49,12 @@ repos:
       additional_dependencies: [cpplint==1.6.1]
       types_or: [c++]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.0
+  rev: v1.19.1
   hooks:
     - id: mypy
       additional_dependencies: [types-setuptools]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.8
+  rev: v0.14.11
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

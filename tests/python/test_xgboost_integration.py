@@ -30,6 +30,12 @@ from .hypothesis_util import (
 from .util import TemporaryDirectory, has_pandas, to_categorical
 
 
+def _get_model_filename(name, model_format):
+    if model_format == "ubjson":
+        model_format = "ubj"
+    return f"{name}.{model_format}"
+
+
 def generate_data_for_squared_log_error(n_targets: int = 1):
     """Generate data containing outliers."""
     n_rows = 4096
@@ -108,7 +114,7 @@ def test_xgb_regressor(
         num_boost_round=num_boost_round,
     )
     with TemporaryDirectory() as tmpdir:
-        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        model_path = pathlib.Path(tmpdir) / _get_model_filename("model", model_format)
         xgb_model.save_model(model_path)
         tl_model = treelite.frontend.load_xgboost_model(
             model_path, format_choice=model_format
@@ -179,7 +185,7 @@ def test_xgb_multiclass_classifier(
     )
 
     with TemporaryDirectory() as tmpdir:
-        model_path = pathlib.Path(tmpdir) / f"iris.{model_format}"
+        model_path = pathlib.Path(tmpdir) / _get_model_filename("iris", model_format)
         xgb_model.save_model(model_path)
         tl_model = treelite.frontend.load_xgboost_model(
             model_path, format_choice=model_format
@@ -262,10 +268,7 @@ def test_xgb_nonlinear_objective(
     )
 
     objective_tag = objective.replace(":", "_")
-    if model_format in ["json", "ubjson"]:
-        model_name = f"nonlinear_{objective_tag}.{model_format}"
-    else:
-        model_name = f"nonlinear_{objective_tag}.deprecated"
+    model_name = _get_model_filename(f"nonlinear_{objective_tag}", model_format)
     with TemporaryDirectory() as tmpdir:
         model_path = pathlib.Path(tmpdir) / model_name
         xgb_model.save_model(model_path)
@@ -458,7 +461,9 @@ def test_xgb_multi_target_binary_classifier(
         tl_model = treelite.frontend.from_xgboost(bst)
     else:
         with TemporaryDirectory() as tmpdir:
-            model_path = pathlib.Path(tmpdir) / f"multi_target.{model_format}"
+            model_path = pathlib.Path(tmpdir) / _get_model_filename(
+                "multi_target", model_format
+            )
             bst.save_model(model_path)
             tl_model = treelite.frontend.load_xgboost_model(
                 model_path, format_choice=model_format
@@ -533,7 +538,7 @@ def test_xgb_multi_target_regressor(
     )
 
     with TemporaryDirectory() as tmpdir:
-        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        model_path = pathlib.Path(tmpdir) / _get_model_filename("model", model_format)
         xgb_model.save_model(model_path)
         tl_model = treelite.frontend.load_xgboost_model(
             model_path, format_choice=model_format
@@ -578,7 +583,7 @@ def test_xgb_detect_format(
     expected_pred = xgb_model.predict(xgb.DMatrix(X)).reshape((X.shape[0], 1, -1))
 
     with TemporaryDirectory() as tmpdir:
-        model_path = pathlib.Path(tmpdir) / f"model.{model_format}"
+        model_path = pathlib.Path(tmpdir) / _get_model_filename("model", model_format)
         xgb_model.save_model(model_path)
         detected_format = treelite.frontend._detect_xgboost_format(model_path)
         assert detected_format == model_format

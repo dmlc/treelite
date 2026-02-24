@@ -125,7 +125,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
+set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson)
+if(NOT mdspan_FOUND) # Found mdspan via FetchContent
+  list(APPEND INSTALL_TARGETS mdspan)
+endif()
 if(NOT nlohmann_json_FOUND)  # Fetched nlohmann/json via FetchContent
   list(APPEND INSTALL_TARGETS nlohmann_json)
 endif()

@@ -348,6 +348,7 @@ bool RegTreeHandler::StartArray() {
   return (push_key_handler<ArrayHandler<float>>("loss_changes", loss_changes)
           || push_key_handler<ArrayHandler<float>>("sum_hessian", sum_hessian)
           || push_key_handler<ArrayHandler<float>>("base_weights", base_weights)
+          || push_key_handler<ArrayHandler<float>>("leaf_weights", leaf_weights)
           || push_key_handler<ArrayHandler<int>>("categories_segments", categories_segments)
           || push_key_handler<ArrayHandler<int>>("categories_sizes", categories_sizes)
           || push_key_handler<ArrayHandler<int>>("categories_nodes", categories_nodes)
@@ -389,12 +390,6 @@ bool RegTreeHandler::EndObject() {
   }
   if (output.size_leaf_vector == 0) {
     output.size_leaf_vector = 1;  // In XGBoost, size_leaf_vector=0 indicates a scalar output
-  }
-  if (num_nodes * output.size_leaf_vector != base_weights.size()) {
-    TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: "
-                        << (num_nodes * output.size_leaf_vector)
-                        << ", Actual: " << base_weights.size();
-    return false;
   }
   if (static_cast<std::size_t>(num_nodes) != left_children.size()) {
     TREELITE_LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
@@ -440,9 +435,10 @@ bool RegTreeHandler::EndObject() {
       if (size_leaf_vector > 1) {
         // Vector output
         std::vector<float> leafvec(size_leaf_vector);
-        std::transform(&base_weights[node_id * size_leaf_vector],
-            &base_weights[(node_id + 1) * size_leaf_vector], leafvec.begin(),
-            [](float e) { return static_cast<float>(e); });
+        auto leaf_id = right_children[node_id];
+        TREELITE_CHECK_NE(leaf_id, -1) << "Expected a leaf node at index " << node_id;
+        std::copy(&leaf_weights[leaf_id * size_leaf_vector],
+            &leaf_weights[(leaf_id + 1) * size_leaf_vector], leafvec.begin());
         model_builder.LeafVector(leafvec);
       } else {
         // Scalar leaf output
@@ -487,7 +483,7 @@ bool RegTreeHandler::is_recognized_key(std::string const& key) {
           || key == "categories" || key == "leaf_child_counts" || key == "left_children"
           || key == "right_children" || key == "parents" || key == "split_indices"
           || key == "split_type" || key == "split_conditions" || key == "default_left"
-          || key == "tree_param" || key == "id");
+          || key == "tree_param" || key == "id" || key == "leaf_weights");
 }
 
 /******************************************************************************

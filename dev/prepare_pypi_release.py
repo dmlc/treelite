@@ -115,13 +115,11 @@ def download_py_packages(version_str: str, commit_hash: str) -> None:
             ext="tar.gz",
         )
         print(f"List of downloaded sdist: {filenames}\n")
-    print(
-        """
+    print("""
 Following steps should be done manually:
 - Upload pypi package by `python -m twine upload python/dist/* for all wheels.
 - Check the uploaded files on `https://pypi.org/project/treelite/<VERSION>/#files` and `pip
-  install treelite==<VERSION>` """
-    )
+  install treelite==<VERSION>` """)
 
 
 def check_path():

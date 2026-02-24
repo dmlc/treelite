@@ -391,6 +391,10 @@ bool RegTreeHandler::EndObject() {
   if (output.size_leaf_vector == 0) {
     output.size_leaf_vector = 1;  // In XGBoost, size_leaf_vector=0 indicates a scalar output
   }
+  if (output.size_leaf_vector != 1 && leaf_weights.empty()) {
+    TREELITE_LOG(ERROR) << "Field leaf_weights must be provided for multi-target trees.";
+    return false;
+  }
   if (static_cast<std::size_t>(num_nodes) != left_children.size()) {
     TREELITE_LOG(ERROR) << "Field left_children has an incorrect dimension. Expected: " << num_nodes
                         << ", Actual: " << left_children.size();

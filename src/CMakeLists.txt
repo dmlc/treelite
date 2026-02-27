@@ -123,6 +123,7 @@ target_sources(objtreelite
     model_builder/detail/json_parsing.h
     model_loader/lightgbm.cc
     model_loader/sklearn.cc
+    model_loader/sklearn_bulk.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
     model_loader/xgboost_ubjson.cc

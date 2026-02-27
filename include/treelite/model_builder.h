@@ -78,8 +78,7 @@ class ModelBuilder {
    * \param right_child_key  Integer key that unique identifies the right child node.
    */
   virtual void NumericalTest(std::int32_t split_index, double threshold, bool default_left,
-      Operator cmp, int left_child_key, int right_child_key)
-      = 0;
+      Operator cmp, int left_child_key, int right_child_key) = 0;
   /*!
    * \brief Declare the current node as a categorical test node, where the test is of form
    *        [feature value] \\in [category list].
@@ -93,8 +92,7 @@ class ModelBuilder {
    */
   virtual void CategoricalTest(std::int32_t split_index, bool default_left,
       std::vector<std::uint32_t> const& category_list, bool category_list_right_child,
-      int left_child_key, int right_child_key)
-      = 0;
+      int left_child_key, int right_child_key) = 0;
 
   /*!
    * \brief Declare the current node as a leaf node with a scalar output
@@ -141,8 +139,7 @@ class ModelBuilder {
    */
   virtual void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
-      std::optional<std::string> const& attributes)
-      = 0;
+      std::optional<std::string> const& attributes) = 0;
   /*!
    * \brief Conclude model building and obtain the final model object.
    * \return Final model object

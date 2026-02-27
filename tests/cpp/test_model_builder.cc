@@ -378,8 +378,7 @@ TEST(ModelBuilderJSONParsing, Combined) {
   std::vector<std::int32_t> const expected_target_id{0, 0};
   std::vector<std::int32_t> const expected_class_id{0, 1};
   std::map<std::string, treelite::model_builder::PostProcessorConfigParam> const
-      expected_postprocessor_config
-      = {{"sigmoid_alpha", 2.0}};
+      expected_postprocessor_config = {{"sigmoid_alpha", 2.0}};
   std::vector<double> const expected_base_scores{0.5};
   std::string const expected_attributes_str = R"(
     {

@@ -145,6 +145,14 @@ class Tree {
   friend void detail::field_accessor::SetTreeFieldImpl(
       ModelPreset<X, Y>&, std::uint64_t, std::string const&, PyBufferFrame);
 
+  // Friend function for bulk tree construction from sklearn arrays
+  template <typename X, typename Y>
+  friend void BulkConstructTree(Tree<X, Y>& tree, int n_nodes, std::int64_t const* children_left,
+      std::int64_t const* children_right, std::int64_t const* feature, double const* threshold,
+      double const* value, std::int64_t const* n_node_samples,
+      double const* weighted_n_node_samples, double const* impurity, std::int64_t total_sample_cnt,
+      int n_targets, int max_num_class, bool is_classifier);
+
  public:
   /*! \brief Number of nodes */
   std::int32_t num_nodes{0};
@@ -499,6 +507,9 @@ class Model {
   /* Serialization to a file stream */
   void SerializeToStream(std::ostream& os);
   static std::unique_ptr<Model> DeserializeFromStream(std::istream& is);
+
+  /* Optimized serialization to a pre-allocated buffer (avoids ostringstream overhead) */
+  TREELITE_DLL_EXPORT std::vector<char> SerializeToBuffer();
   /*! \brief Return the Treelite version that produced this Model object. */
   inline Version GetVersion() const {
     return {major_ver_, minor_ver_, patch_ver_};

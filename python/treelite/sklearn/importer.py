@@ -229,45 +229,24 @@ def import_model(sklearn_model) -> Model:
             impurity.add(tree.impurity, expected_shape=(tree.node_count,))
 
     handle = ctypes.c_void_p()
-    # Use bulk loading API for better performance with large forests
-    use_bulk_api = True
     if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
-        if use_bulk_api:
-            _check_call(
-                _LIB.TreeliteLoadSKLearnRandomForestRegressorBulk(
-                    ctypes.c_int(sklearn_model.n_estimators),
-                    ctypes.c_int(sklearn_model.n_features_in_),
-                    ctypes.c_int(sklearn_model.n_outputs_),
-                    c_array(ctypes.c_int64, node_count),
-                    children_left.as_c_array(),
-                    children_right.as_c_array(),
-                    feature.as_c_array(),
-                    threshold.as_c_array(),
-                    value.as_c_array(),
-                    n_node_samples.as_c_array(),
-                    weighted_n_node_samples.as_c_array(),
-                    impurity.as_c_array(),
-                    ctypes.byref(handle),
-                )
+        _check_call(
+            _LIB.TreeliteLoadSKLearnRandomForestRegressor(
+                ctypes.c_int(sklearn_model.n_estimators),
+                ctypes.c_int(sklearn_model.n_features_in_),
+                ctypes.c_int(sklearn_model.n_outputs_),
+                c_array(ctypes.c_int64, node_count),
+                children_left.as_c_array(),
+                children_right.as_c_array(),
+                feature.as_c_array(),
+                threshold.as_c_array(),
+                value.as_c_array(),
+                n_node_samples.as_c_array(),
+                weighted_n_node_samples.as_c_array(),
+                impurity.as_c_array(),
+                ctypes.byref(handle),
             )
-        else:
-            _check_call(
-                _LIB.TreeliteLoadSKLearnRandomForestRegressor(
-                    ctypes.c_int(sklearn_model.n_estimators),
-                    ctypes.c_int(sklearn_model.n_features_in_),
-                    ctypes.c_int(sklearn_model.n_outputs_),
-                    c_array(ctypes.c_int64, node_count),
-                    children_left.as_c_array(),
-                    children_right.as_c_array(),
-                    feature.as_c_array(),
-                    threshold.as_c_array(),
-                    value.as_c_array(),
-                    n_node_samples.as_c_array(),
-                    weighted_n_node_samples.as_c_array(),
-                    impurity.as_c_array(),
-                    ctypes.byref(handle),
-                )
-            )
+        )
     elif isinstance(sklearn_model, IsolationForest):
         _check_call(
             _LIB.TreeliteLoadSKLearnIsolationForest(
@@ -288,44 +267,24 @@ def import_model(sklearn_model) -> Model:
         )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         n_classes = np.array(sklearn_model.n_classes_, dtype=np.int32)
-        if use_bulk_api:
-            _check_call(
-                _LIB.TreeliteLoadSKLearnRandomForestClassifierBulk(
-                    ctypes.c_int(sklearn_model.n_estimators),
-                    ctypes.c_int(sklearn_model.n_features_in_),
-                    ctypes.c_int(sklearn_model.n_outputs_),
-                    n_classes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                    c_array(ctypes.c_int64, node_count),
-                    children_left.as_c_array(),
-                    children_right.as_c_array(),
-                    feature.as_c_array(),
-                    threshold.as_c_array(),
-                    value.as_c_array(),
-                    n_node_samples.as_c_array(),
-                    weighted_n_node_samples.as_c_array(),
-                    impurity.as_c_array(),
-                    ctypes.byref(handle),
-                )
+        _check_call(
+            _LIB.TreeliteLoadSKLearnRandomForestClassifier(
+                ctypes.c_int(sklearn_model.n_estimators),
+                ctypes.c_int(sklearn_model.n_features_in_),
+                ctypes.c_int(sklearn_model.n_outputs_),
+                n_classes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                c_array(ctypes.c_int64, node_count),
+                children_left.as_c_array(),
+                children_right.as_c_array(),
+                feature.as_c_array(),
+                threshold.as_c_array(),
+                value.as_c_array(),
+                n_node_samples.as_c_array(),
+                weighted_n_node_samples.as_c_array(),
+                impurity.as_c_array(),
+                ctypes.byref(handle),
             )
-        else:
-            _check_call(
-                _LIB.TreeliteLoadSKLearnRandomForestClassifier(
-                    ctypes.c_int(sklearn_model.n_estimators),
-                    ctypes.c_int(sklearn_model.n_features_in_),
-                    ctypes.c_int(sklearn_model.n_outputs_),
-                    n_classes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                    c_array(ctypes.c_int64, node_count),
-                    children_left.as_c_array(),
-                    children_right.as_c_array(),
-                    feature.as_c_array(),
-                    threshold.as_c_array(),
-                    value.as_c_array(),
-                    n_node_samples.as_c_array(),
-                    weighted_n_node_samples.as_c_array(),
-                    impurity.as_c_array(),
-                    ctypes.byref(handle),
-                )
-            )
+        )
     elif isinstance(sklearn_model, GradientBoostingR):
         if sklearn_model.init_ == "zero":
             base_scores = np.array([0], dtype=np.float64)

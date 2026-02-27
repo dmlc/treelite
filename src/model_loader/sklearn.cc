@@ -30,89 +30,6 @@ namespace stdex = std::experimental;
 template <typename ElemT>
 using Array2DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
 
-class RandomForestRegressorMixIn {
- public:
-  void HandleMetadata(model_builder::ModelBuilder& builder, int n_trees, int n_features,
-      int n_targets, [[maybe_unused]] std::int32_t const* n_classes) {
-    n_targets_ = n_targets;
-    model_builder::Metadata metadata{n_features, TaskType::kRegressor, true,
-        static_cast<std::int32_t>(n_targets), std::vector<std::int32_t>(n_targets, 1),
-        {n_targets, 1}};
-    std::vector<std::int32_t> const target_id(n_trees, (n_targets > 1 ? -1 : 0));
-    model_builder::TreeAnnotation tree_annotation{
-        n_trees, target_id, std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PostProcessorFunc postprocessor{"identity"};
-    std::vector<double> base_scores(n_targets, 0.0);
-    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
-  }
-
-  void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
-      double const** value, [[maybe_unused]] std::int32_t const* n_classes) const {
-    TREELITE_CHECK_GT(n_targets_, 0)
-        << "n_targets not yet initialized. Was HandleMetadata() called?";
-    if (n_targets_ == 1) {
-      builder.LeafScalar(value[tree_id][node_id]);
-    } else {
-      std::vector<double> leafvec(
-          &value[tree_id][node_id * n_targets_], &value[tree_id][(node_id + 1) * n_targets_]);
-      builder.LeafVector(leafvec);
-    }
-  }
-
- private:
-  int n_targets_{-1};
-};
-
-// Note: Here, we will treat binary classifiers as if they are multi-class classifiers with
-// n_classes=2.
-class RandomForestClassifierMixIn {
- public:
-  void HandleMetadata(model_builder::ModelBuilder& builder, int n_trees, int n_features,
-      int n_targets, std::int32_t const* n_classes) {
-    n_targets_ = n_targets;
-    std::vector<std::int32_t> n_classes_(n_classes, n_classes + n_targets);
-    if (!std::all_of(n_classes_.begin(), n_classes_.end(), [](auto e) { return e >= 2; })) {
-      TREELITE_LOG(FATAL)
-          << "All elements in n_classes must be at least 2. "
-          << "Note: For sklearn RandomForestClassifier, binary classifiers will have n_classes=2.";
-    }
-    max_num_class_ = *std::max_element(n_classes_.begin(), n_classes_.end());
-    model_builder::Metadata metadata{n_features, TaskType::kMultiClf, true,
-        static_cast<std::int32_t>(n_targets), n_classes_, {n_targets, max_num_class_}};
-    model_builder::TreeAnnotation tree_annotation{
-        n_trees, std::vector<std::int32_t>(n_trees, -1), std::vector<std::int32_t>(n_trees, -1)};
-    model_builder::PostProcessorFunc postprocessor{"identity_multiclass"};
-    std::vector<double> base_scores(n_targets * max_num_class_, 0.0);
-    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
-  }
-
-  void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
-      double const** value, std::int32_t const* n_classes) const {
-    TREELITE_CHECK_GT(n_targets_, 0)
-        << "n_targets not yet initialized. Was HandleMetadata() called?";
-    TREELITE_CHECK_GT(max_num_class_, 0)
-        << "max_num_class not yet initialized. Was HandleMetadata() called?";
-    std::vector<double> leafvec(&value[tree_id][node_id * n_targets_ * max_num_class_],
-        &value[tree_id][(node_id + 1) * n_targets_ * max_num_class_]);
-    // Compute the probability distribution over label classes
-    auto leaf_view = Array2DView<double>(leafvec.data(), n_targets_, max_num_class_);
-    for (int target_id = 0; target_id < n_targets_; ++target_id) {
-      double norm_factor = 0.0;
-      for (std::int32_t class_id = 0; class_id < n_classes[target_id]; ++class_id) {
-        norm_factor += leaf_view(target_id, class_id);
-      }
-      for (std::int32_t class_id = 0; class_id < n_classes[target_id]; ++class_id) {
-        leaf_view(target_id, class_id) /= norm_factor;
-      }
-    }
-    builder.LeafVector(leafvec);
-  }
-
- private:
-  int n_targets_{-1};
-  std::int32_t max_num_class_{-1};
-};
-
 class IsolationForestMixIn {
  public:
   explicit IsolationForestMixIn(double ratio_c) : ratio_c_{ratio_c} {}
@@ -453,17 +370,6 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoosting(MixIn& mixin, int n_tr
 
 }  // namespace detail
 
-std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int n_features,
-    int n_targets, std::int64_t const* node_count, std::int64_t const** children_left,
-    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    double const** value, std::int64_t const** n_node_samples,
-    double const** weighted_n_node_samples, double const** impurity) {
-  detail::RandomForestRegressorMixIn mixin{};
-  return detail::LoadSKLearnModel(mixin, n_estimators, n_features, n_targets, nullptr, node_count,
-      children_left, children_right, feature, threshold, value, n_node_samples,
-      weighted_n_node_samples, impurity);
-}
-
 std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_features,
     std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
@@ -472,18 +378,6 @@ std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_fea
   detail::IsolationForestMixIn mixin{ratio_c};
   std::vector<std::int32_t> n_classes{1};
   return detail::LoadSKLearnModel(mixin, n_estimators, n_features, 1, n_classes.data(), node_count,
-      children_left, children_right, feature, threshold, value, n_node_samples,
-      weighted_n_node_samples, impurity);
-}
-
-std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, int n_features,
-    int n_targets, int32_t const* n_classes, std::int64_t const* node_count,
-    std::int64_t const** children_left, std::int64_t const** children_right,
-    std::int64_t const** feature, double const** threshold, double const** value,
-    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
-    double const** impurity) {
-  detail::RandomForestClassifierMixIn mixin{};
-  return detail::LoadSKLearnModel(mixin, n_estimators, n_features, n_targets, n_classes, node_count,
       children_left, children_right, feature, threshold, value, n_node_samples,
       weighted_n_node_samples, impurity);
 }

@@ -223,13 +223,13 @@ template void BulkConstructTree<float, float>(Tree<float, float>&, int, std::int
 
 namespace treelite::model_loader::sklearn {
 
-/*!
- * \brief Load a RandomForestClassifier using bulk construction
+/**
+ * Load a RandomForestClassifier using bulk construction
  *
  * This is an optimized version that constructs trees in bulk rather than
  * going through the ModelBuilder node-by-node.
  */
-std::unique_ptr<treelite::Model> LoadRandomForestClassifierBulk(int n_estimators, int n_features,
+std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, int n_features,
     int n_targets, std::int32_t const* n_classes, std::int64_t const* node_count,
     std::int64_t const** children_left, std::int64_t const** children_right,
     std::int64_t const** feature, double const** threshold, double const** value,
@@ -242,6 +242,8 @@ std::unique_ptr<treelite::Model> LoadRandomForestClassifierBulk(int n_estimators
   auto model = Model::Create<double, double>();
 
   // Set up model metadata
+  // Note: Here, we will treat binary classifiers as if they are multi-class classifiers with
+  // n_classes=2.
   model->num_feature = n_features;
   model->task_type = TaskType::kMultiClf;
   model->average_tree_output = true;
@@ -286,10 +288,13 @@ std::unique_ptr<treelite::Model> LoadRandomForestClassifierBulk(int n_estimators
   return model;
 }
 
-/*!
- * \brief Load a RandomForestRegressor using bulk construction
+/**
+ * Load a RandomForestRegressor using bulk construction
+ *
+ * This is an optimized version that constructs trees in bulk rather than
+ * going through the ModelBuilder node-by-node.
  */
-std::unique_ptr<treelite::Model> LoadRandomForestRegressorBulk(int n_estimators, int n_features,
+std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int n_features,
     int n_targets, std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
     double const** value, std::int64_t const** n_node_samples,

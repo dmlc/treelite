@@ -492,7 +492,8 @@ std::vector<char> Model::SerializeToBuffer() {
 
   // Second pass: write to pre-allocated buffer
   auto buffer_mixin = std::make_shared<detail::serializer::BufferSerializerMixIn>(buffer);
-  detail::serializer::Serializer<detail::serializer::BufferSerializerMixIn> serializer{buffer_mixin};
+  detail::serializer::Serializer<detail::serializer::BufferSerializerMixIn> serializer{
+      buffer_mixin};
   serializer.SerializeHeader(*this);
   serializer.SerializeTrees(*this);
 

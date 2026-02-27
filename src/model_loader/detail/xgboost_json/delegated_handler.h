@@ -434,9 +434,8 @@ class RegTreeArrayHandler : public OutputHandler<std::vector<ParsedRegTreeParams
  public:
   RegTreeArrayHandler(std::weak_ptr<Delegator> parent_delegator,
       std::vector<ParsedRegTreeParams>& output, model_builder::ModelBuilder& model_builder);
-  RegTreeArrayHandler(
-      std::weak_ptr<Delegator> parent_delegator, std::vector<ParsedRegTreeParams>&& output)
-      = delete;
+  RegTreeArrayHandler(std::weak_ptr<Delegator> parent_delegator,
+      std::vector<ParsedRegTreeParams>&& output) = delete;
 
   bool StartObject() override;
 

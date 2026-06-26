@@ -2,7 +2,7 @@ name: dev
 channels:
 - conda-forge
 dependencies:
-- python=3.11
+- python=3.12
 - numpy
 - scipy
 - pandas
@@ -25,4 +25,4 @@ dependencies:
 - pip
 - pip:
   - cibuildwheel
-  - xgboost>=2.1.0
+  - xgboost>=3.3.0

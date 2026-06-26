@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-TAG=manylinux2014_x86_64
+TAG=manylinux_2_28_x86_64
 
-export CIBW_BUILD=cp38-manylinux_x86_64
+export CIBW_BUILD=cp312-manylinux_x86_64
 export CIBW_ARCHS=x86_64
 export CIBW_BUILD_VERBOSITY=3
-export CIBW_MANYLINUX_X86_64_IMAGE=manylinux2014
+export CIBW_MANYLINUX_X86_64_IMAGE=manylinux_2_28
 
 echo "##[section]Building Python wheel (amd64) for Treelite..."
 python -m cibuildwheel python --output-dir wheelhouse

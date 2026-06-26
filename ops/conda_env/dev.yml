@@ -25,4 +25,4 @@ dependencies:
 - pip
 - pip:
   - cibuildwheel
-  - xgboost>=2.1.0
+  - xgboost>=3.3.0

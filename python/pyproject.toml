@@ -1,9 +1,6 @@
 [build-system]
-requires = [
-    "hatchling>=1.12.1"
-]
-backend-path = ["."]
-build-backend = "packager.pep517"
+requires = ["scikit-build-core>=1.0.0"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "treelite"
@@ -43,7 +40,20 @@ testing = ["scikit-learn", "pytest", "hypothesis", "pandas"]
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
 
-[tool.hatch.build.targets.wheel.hooks.custom]
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"
+minimum-version = "build-system.requires"
+ninja.make-fallback = true
+wheel.py-api = "py3"
+wheel.packages = ["treelite"]
+install.components = ["TreelitePython"]
+sdist.include = ["cpp_src/**"]
+sdist.exclude = ["build/", "dist/", "wheelhouse/", "*.pyc", "__pycache__"]
+sdist.reproducible = true
+
+[tool.scikit-build.cmake]
+version = "CMakeLists.txt"
+build-type = "Release"
 
 [tool.ruff]
 line-length = 120

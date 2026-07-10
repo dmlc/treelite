@@ -112,11 +112,10 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/opt/treelite
+        cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DCMAKE_INSTALL_LIBDIR=lib
         ninja install -v
         cd ../python
-        pip install --force-reinstall -v . --config-settings use_system_libtreelite=True \
-          --config-settings system_libtreelite_dir=/opt/treelite/lib
+        pip install --force-reinstall -v . --config-settings=cmake.define.USE_SYSTEM_LIBTREELITE=ON
         cd ..
         rm -rf build/
         python -c "import treelite; print(treelite.core._LIB)"

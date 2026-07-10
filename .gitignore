@@ -44,9 +44,11 @@
 /python/dist/
 /python/build/
 /python/treelite.egg-info/
+python/cpp_src/
 /runtime/python/dist/
 /runtime/python/build/
 /runtime/python/treelite_runtime.egg-info/
+/runtime/python/cpp_src/
 
 # Executables
 *.exe
@@ -59,6 +61,7 @@
 
 # Python wheel binaries
 /python/dist/
+**/wheelhouse/
 
 # Python cache
 __pycache__

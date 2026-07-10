@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+echo "##[section]Preparing source distribution..."
+python ops/prepare_sdist.py
+
 echo "##[section]Building a source distribution..."
 python -m build --sdist python/ --outdir .
 

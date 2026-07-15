@@ -20,16 +20,35 @@ else()
     set(_TL_LIBNAME "libtreelite.so")
 endif()
 
-option(USE_SYSTEM_LIBTREELITE
-        "Don't bundle pre-existing libtreelite into thw wheel; the runtime loader will find it on the host"
+option(TREELITE_USE_SYSTEM_LIBTREELITE
+        "Don't bundle pre-existing libtreelite into the wheel; the runtime loader will find it on the host"
          OFF)
+set(TREELITE_SYSTEM_LIBTREELITE_DIR "" CACHE PATH
+        "Directory where pre-existing libtreelite library exists")
+# ensure valid configuration for pre-existing lib
+if(TREELITE_SYSTEM_LIBTREELITE_DIR AND NOT TREELITE_USE_SYSTEM_LIBTREELITE)
+    message(FATAL_ERROR
+        "'TREELITE_SYSTEM_LIBTREELITE_DIR' was set but 'TREELITE_USE_SYSTEM_LIBTREELITE' was not;
+        'TREELITE_USE_SYSTEM_LIBTREELITE' must be set if using 'TREELITE_SYSTEM_LIBTREELITE_DIR'")
+endif()
 set(TREELITE_PREBUILT_LIB_DIR "${_TL_CPP_SRC}/build" CACHE PATH
     "Directory holding prebuild libtreelite to place in wheel")
 
-if(USE_SYSTEM_LIBTREELITE)
+if(TREELITE_USE_SYSTEM_LIBTREELITE)
+    # if using the systems libtreelite library at a specified path then configure the path at build time
+    if(TREELITE_SYSTEM_LIBTREELITE_DIR)
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/path_config.py.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/treelite/path_config.py"
+            @ONLY
+        )
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/treelite/path_config.py"
+                DESTINATION treelite
+                COMPONENT TreelitePython)
+    endif()
     message(STATUS
-        "treelite-python: USE_SYSTEM_LIBTREELITE=ON, not bundling libtreelite; "
-        "runtime will fall back to sys.base_prefix/lib"
+        "treelite-python: TREELITE_USE_SYSTEM_LIBTREELITE=ON, not bundling libtreelite; "
+        "runtime will use the specified path if set, else fall back to sys.base_prefix/lib"
     )
     return()
 endif()

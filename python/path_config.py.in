@@ -1,0 +1,10 @@
+"""
+Custom hook to customize path for libtreelite.so
+"""
+
+
+def get_custom_libpath():
+    """
+    Get custom path for libtreelite.so.
+    """
+    return "@TREELITE_SYSTEM_LIBTREELITE_DIR@"

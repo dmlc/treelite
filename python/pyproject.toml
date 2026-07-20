@@ -58,6 +58,7 @@ build-type = "Release"
 [tool.cibuildwheel]
 build = ["cp312-*"]
 archs = ["auto64"] # so win32 is excluded
+skip = ["*musllinux*"]
 build-verbosity = 3
 test-command = "python -m pytest -v -rxXs --fulltrace --durations=0 {project}/tests/python/test_sklearn_integration.py"
 test-extras = ["testing"]

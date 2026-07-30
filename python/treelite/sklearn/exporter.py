@@ -90,7 +90,7 @@ def _export_tree(
         )
 
     n_nodes = tree_accessor.get_field("num_nodes").tolist()[0]
-    if parse_version(sklearn_version) > parse_version("1.9"):
+    if parse_version(sklearn_version) >= parse_version("1.10.0.dev0"):
         n_categories = np.full(n_features, -1, dtype=np.intp)
         tree = SKLearnTree(n_features, n_classes, n_targets, n_categories)
         nodes = np.empty(n_nodes, dtype=_node_dtype_sklearn1_10)

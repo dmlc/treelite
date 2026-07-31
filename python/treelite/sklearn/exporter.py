@@ -4,6 +4,7 @@ from enum import IntEnum
 from typing import Any
 
 import numpy as np
+from packaging.version import parse as parse_version
 
 from ..core import TreeliteError
 from ..model import Model
@@ -25,7 +26,9 @@ def _ensure_numpy(x: Any) -> np.ndarray:
     raise ValueError(f"x is not a valid NumPy array. {x.type=}")
 
 
-_node_dtype = np.dtype(
+BITSET_LENGTH = 8
+
+_node_dtype_old = np.dtype(
     {
         "names": [
             "left_child",
@@ -41,6 +44,21 @@ _node_dtype = np.dtype(
         "offsets": [0, 8, 16, 24, 32, 40, 48, 56],
         "itemsize": 64,
     }
+)
+
+_node_dtype_sklearn1_10 = np.dtype(
+    [
+        ("left_child", np.intp),  # 8 bytes  (offset 0)
+        ("right_child", np.intp),  # 8 bytes  (offset 8)
+        ("feature", np.intp),  # 8 bytes  (offset 16)
+        ("threshold", np.float64),  # 8 bytes  (offset 24)
+        ("left_cat_bitset", (np.uint32, BITSET_LENGTH)),  # 32 bytes (offset 32)
+        ("impurity", np.float64),  # 8 bytes  (offset 64)
+        ("n_node_samples", np.intp),  # 8 bytes  (offset 72)
+        ("weighted_n_node_samples", np.float64),  # 8 bytes  (offset 80)
+        ("missing_go_to_left", np.uint8),  # 1 byte   (offset 88)
+    ],
+    align=True,
 )
 
 
@@ -71,10 +89,14 @@ def _export_tree(
             "Trees with categorical splits cannot yet be exported as scikit-learn"
         )
 
-    tree = SKLearnTree(n_features, n_classes, n_targets)
-
     n_nodes = tree_accessor.get_field("num_nodes").tolist()[0]
-    nodes = np.empty(n_nodes, dtype=_node_dtype)
+    if parse_version(sklearn_version) >= parse_version("1.10.0.dev0"):
+        n_categories = np.full(n_features, -1, dtype=np.intp)
+        tree = SKLearnTree(n_features, n_classes, n_targets, n_categories)
+        nodes = np.empty(n_nodes, dtype=_node_dtype_sklearn1_10)
+    else:
+        tree = SKLearnTree(n_features, n_classes, n_targets)
+        nodes = np.empty(n_nodes, dtype=_node_dtype_old)
 
     nodes["left_child"] = tree_accessor.get_field("cleft")
     nodes["right_child"] = tree_accessor.get_field("cright")
@@ -114,6 +136,7 @@ def _export_tree(
     subestimator_state = {
         "tree_": tree,
         "n_outputs_": n_targets,
+        "is_categorical_": None,
         "_sklearn_version": sklearn_version,
     }
     if subestimator_class is DecisionTreeClassifier:

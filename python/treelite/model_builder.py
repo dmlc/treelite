@@ -361,7 +361,7 @@ class ModelBuilder:
             Number of data points
         """
         _check_call(
-            _LIB.TreeliteModelBuilderGain(
+            _LIB.TreeliteModelBuilderDataCount(
                 self.handle,
                 ctypes.c_uint64(data_count),
             )

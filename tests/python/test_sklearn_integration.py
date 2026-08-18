@@ -195,6 +195,44 @@ def test_skl_converter_iforest(dataset):
     np.testing.assert_almost_equal(out_pred, expected_pred)
 
 
+def test_iforest_round_trip():
+    """
+    Ensure that Treelite preserve important attributes when importing
+    and exporting isolation forests.
+    """
+
+    n_samples, n_outliers = 120, 40
+    rng = np.random.RandomState(0)
+    covariance = np.array([[0.5, -0.1], [0.7, 0.4]])
+    cluster_1 = 0.4 * rng.randn(n_samples, 2) @ covariance + np.array([2, 2])
+    cluster_2 = 0.3 * rng.randn(n_samples, 2) + np.array([-2, -2])
+    outliers = rng.uniform(low=-4, high=4, size=(n_outliers, 2))
+
+    X = np.concatenate([cluster_1, cluster_2, outliers])
+
+    clf = IsolationForest(
+        max_samples=100,
+        n_estimators=100,
+        n_jobs=-1,
+        random_state=0,
+    )
+    clf.fit(X)
+    tl_model = treelite.sklearn.import_model(clf)
+    exported_model = treelite.sklearn.export_model(tl_model)
+    assert type(exported_model) is type(clf)
+    assert len(clf.estimators_) == len(exported_model.estimators_)
+    for old_tree, new_tree in zip(clf.estimators_, exported_model.estimators_):
+        assert type(old_tree) is type(new_tree)
+        np.testing.assert_almost_equal(
+            old_tree.tree_.n_node_samples, new_tree.tree_.n_node_samples, decimal=5
+        )
+        np.testing.assert_almost_equal(
+            old_tree.tree_.weighted_n_node_samples,
+            new_tree.tree_.weighted_n_node_samples,
+            decimal=5,
+        )
+
+
 @given(
     dataset=standard_regression_datasets(),
     max_feat=floats(min_value=0.2, max_value=0.8),

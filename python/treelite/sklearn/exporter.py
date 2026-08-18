@@ -103,8 +103,25 @@ def _export_tree(
     nodes["feature"] = tree_accessor.get_field("split_index")
     nodes["threshold"] = tree_accessor.get_field("threshold")
     nodes["impurity"] = np.nan
-    nodes["n_node_samples"] = -1
-    nodes["weighted_n_node_samples"] = np.nan
+    data_count = tree_accessor.get_field("data_count").astype(np.intp)
+    data_count_mask = tree_accessor.get_field("data_count_present").astype(np.bool)
+    if data_count.size == 0:
+        nodes["n_node_samples"] = np.full((n_nodes,), fill_value=-1, dtype=np.intp)
+    else:
+        data_count[~data_count_mask] = -1
+        nodes["n_node_samples"] = data_count
+    # TODO(chyunsu3): Rename field sum_hess -> weighted_data_count
+    weighted_data_count = tree_accessor.get_field("sum_hess").astype(np.float64)
+    weighted_data_count_mask = tree_accessor.get_field("sum_hess_present").astype(
+        np.bool
+    )
+    if weighted_data_count.size == 0:
+        nodes["weighted_n_node_samples"] = np.full(
+            (n_nodes,), fill_value=np.nan, dtype=np.float64
+        )
+    else:
+        weighted_data_count[~weighted_data_count_mask] = np.nan
+        nodes["weighted_n_node_samples"] = weighted_data_count
     nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
 
     if n_targets == 1 and n_classes[0] == 1:
@@ -175,8 +192,16 @@ def export_model(model: Model) -> Any:
     # pylint: disable=too-many-locals
     try:
         from sklearn import __version__ as sklearn_version
-        from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-        from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+        from sklearn.ensemble import (
+            IsolationForest,
+            RandomForestClassifier,
+            RandomForestRegressor,
+        )
+        from sklearn.tree import (
+            DecisionTreeClassifier,
+            DecisionTreeRegressor,
+            ExtraTreeRegressor,
+        )
     except ImportError as e:
         raise TreeliteError("This function requires scikit-learn package") from e
 
@@ -225,6 +250,9 @@ def export_model(model: Model) -> Any:
     if task_type in [_TaskType.kBinaryClf, _TaskType.kMultiClf]:
         estimator_class = RandomForestClassifier
         subestimator_class = DecisionTreeClassifier
+    elif task_type == _TaskType.kIsolationForest:
+        estimator_class = IsolationForest
+        subestimator_class = ExtraTreeRegressor
     else:
         estimator_class = RandomForestRegressor
         subestimator_class = DecisionTreeRegressor

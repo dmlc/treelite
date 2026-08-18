@@ -223,8 +223,8 @@ def test_iforest_round_trip():
     assert len(clf.estimators_) == len(exported_model.estimators_)
     for old_tree, new_tree in zip(clf.estimators_, exported_model.estimators_):
         assert type(old_tree) is type(new_tree)
-        np.testing.assert_almost_equal(
-            old_tree.tree_.n_node_samples, new_tree.tree_.n_node_samples, decimal=5
+        np.testing.assert_array_equal(
+            old_tree.tree_.n_node_samples, new_tree.tree_.n_node_samples
         )
         np.testing.assert_almost_equal(
             old_tree.tree_.weighted_n_node_samples,

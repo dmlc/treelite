@@ -74,11 +74,11 @@ repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_x86_64"
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15", LDFLAGS = "-Wl,-rpath,/opt/homebrew/opt/libomp/lib" }
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx_arm64"
-environment = { MACOSX_DEPLOYMENT_TARGET = "12.0" }
+environment = { MACOSX_DEPLOYMENT_TARGET = "12.0", LDFLAGS = "-Wl,-rpath,/usr/local/opt/libomp/lib" }
 
 [tool.ruff]
 line-length = 120

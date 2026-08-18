@@ -63,6 +63,17 @@ if(USE_SANITIZER)
   enable_sanitizers("${ENABLED_SANITIZERS}")
 endif()
 
+include(cmake/FindOpenMPMacOS.cmake)
+if(USE_OPENMP)
+  if(APPLE)
+    find_openmp_macos()
+  else()
+    find_package(OpenMP REQUIRED)
+  endif()
+else()
+  message(STATUS "Disabling OpenMP")
+endif()
+
 if(ENABLE_ALL_WARNINGS)
   if((NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
     message(SEND_ERROR "ENABLE_ALL_WARNINGS is only available for Clang and GCC.")
@@ -118,6 +129,10 @@ foreach(lib ${TREELITE_TARGETS})
       MSVC_RUNTIME_LIBRARY "${Treelite_MSVC_RUNTIME_LIBRARY}")
   endif()
 endforeach()
+
+if(USE_OPENMP AND APPLE AND NOT Treelite_BUILD_STATIC_LIBS)
+  patch_openmp_path_macos(treelite)
+endif()
 
 # Export install targets
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

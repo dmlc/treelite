@@ -3,31 +3,6 @@
 add_library(objtreelite OBJECT)
 target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson nlohmann_json::nlohmann_json std::mdspan)
 
-if(USE_OPENMP)
-  if(APPLE)
-    find_package(OpenMP)
-    if (NOT OpenMP_FOUND)
-      # Try again with extra path info; required for libomp 15+ from Homebrew
-      message(STATUS "OpenMP not found; attempting to locate libomp from Homebrew...")
-      execute_process(COMMAND brew --prefix libomp
-          OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
-          OUTPUT_STRIP_TRAILING_WHITESPACE)
-      set(OpenMP_C_FLAGS
-          "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
-      set(OpenMP_CXX_FLAGS
-          "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
-      set(OpenMP_C_LIB_NAMES omp)
-      set(OpenMP_CXX_LIB_NAMES omp)
-      set(OpenMP_omp_LIBRARY ${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib)
-      find_package(OpenMP REQUIRED)
-    endif()
-  else()
-    find_package(OpenMP REQUIRED)
-  endif()
-else()
-  message(STATUS "Disabling OpenMP")
-endif()
-
 if(ENABLE_ALL_WARNINGS)
   target_compile_options(objtreelite PRIVATE -Wall -Wextra)
 endif()

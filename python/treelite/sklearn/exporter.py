@@ -105,7 +105,7 @@ def _export_tree(
     nodes["threshold"] = tree_accessor.get_field("threshold")
     nodes["impurity"] = np.nan
     data_count = tree_accessor.get_field("data_count").astype(np.intp)
-    data_count_mask = tree_accessor.get_field("data_count_present").astype(np.bool)
+    data_count_mask = tree_accessor.get_field("data_count_present").astype(np.bool_)
     if data_count.size == 0:
         nodes["n_node_samples"] = np.full((n_nodes,), fill_value=-1, dtype=np.intp)
     else:
@@ -114,7 +114,7 @@ def _export_tree(
     # TODO(chyunsu3): In Treelite 5.0, rename field sum_hess -> weighted_data_count
     weighted_data_count = tree_accessor.get_field("sum_hess").astype(np.float64)
     weighted_data_count_mask = tree_accessor.get_field("sum_hess_present").astype(
-        np.bool
+        np.bool_
     )
     if weighted_data_count.size == 0:
         nodes["weighted_n_node_samples"] = np.full(

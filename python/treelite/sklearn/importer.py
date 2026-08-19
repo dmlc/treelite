@@ -1,14 +1,15 @@
 """Converter to ingest scikit-learn models into Treelite"""
 
 import ctypes
+import json
 from typing import Optional
 
 import numpy as np
 from packaging.version import parse as parse_version
 
 from ..core import _LIB, TreeliteError, _check_call
-from ..model import Model
-from ..util import c_array
+from ..model import Model, _numpy2pybuffer
+from ..util import c_array, c_str
 from .isolation_forest import calculate_depths, expected_depth
 
 
@@ -78,6 +79,21 @@ def import_model(sklearn_model) -> Model:
         treelite.gtil.predict(tl_model, X) == -clf.score_samples(X)
         # clf is an IsolationForest
         # tl_model is a Treelite representation of clf
+
+    To reproduce the output of :py:meth:`~sklearn.ensemble.IsolationForest.decision_function`,
+    retrieve the value of :py:attr:`~sklearn.ensemble.IsolationForest.offset_` and apply it,
+    as follows:
+
+    .. code-block:: python
+
+        # Get model attributes from the Treelite model, which is a JSON string
+        attributes = json.loads(
+            tl_model.get_header_accessor().get_field("attributes")
+        )
+        # Retrieve offset_
+        offset = attributes.get("sklearn_iforest_offset", -0.5)
+        # Apply offset_ to compute the decision function.
+        decision_function = -treelite.gtil.predict(tl_model, X) - offset
 
     Parameters
     ----------
@@ -246,6 +262,7 @@ def import_model(sklearn_model) -> Model:
             )
         )
     elif isinstance(sklearn_model, IsolationForest):
+        # TODO(chyunsu3): In Treelite 5.0, pass offset_ field via TreeliteLoadSKLearnIsolationForest()
         _check_call(
             _LIB.TreeliteLoadSKLearnIsolationForest(
                 ctypes.c_int(sklearn_model.n_estimators),
@@ -261,6 +278,20 @@ def import_model(sklearn_model) -> Model:
                 impurity.as_c_array(),
                 ctypes.c_double(ratio_c),
                 ctypes.byref(handle),
+            )
+        )
+        # Store `offset_` field as a model attribute
+        attributes = {
+            "sklearn_iforest_offset": float(sklearn_model.offset_),
+        }
+        attributes_serialized = json.dumps(attributes)
+        _check_call(
+            _LIB.TreeliteSetHeaderField(
+                handle,
+                c_str("attributes"),
+                _numpy2pybuffer(
+                    np.frombuffer(attributes_serialized.encode("utf-8"), dtype="S1")
+                ),
             )
         )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):

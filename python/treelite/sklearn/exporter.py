@@ -1,5 +1,7 @@
 """Converter to export Treelite models as scikit-learn models (EXPERIMENTAL)"""
 
+import json
+import warnings
 from enum import IntEnum
 from typing import Any
 
@@ -110,7 +112,7 @@ def _export_tree(
     else:
         data_count[~data_count_mask] = -1
         nodes["n_node_samples"] = data_count
-    # TODO(chyunsu3): Rename field sum_hess -> weighted_data_count
+    # TODO(chyunsu3): In Treelite 5.0, rename field sum_hess -> weighted_data_count
     weighted_data_count = tree_accessor.get_field("sum_hess").astype(np.float64)
     weighted_data_count_mask = tree_accessor.get_field("sum_hess_present").astype(
         np.bool
@@ -197,6 +199,7 @@ def export_model(model: Model) -> Any:
             RandomForestClassifier,
             RandomForestRegressor,
         )
+        from sklearn.ensemble._iforest import _average_path_length
         from sklearn.tree import (
             DecisionTreeClassifier,
             DecisionTreeRegressor,
@@ -294,6 +297,39 @@ def export_model(model: Model) -> Any:
                     "classes_": [np.arange(n_classes[i]) for i in range(n_targets)],
                 }
             )
+    elif estimator_class is IsolationForest:
+        # Recover the `offset_` field; if missing, set to -0.5
+        attributes = json.loads(header_accessor.get_field("attributes"))
+        try:
+            offset = attributes["sklearn_iforest_offset"]
+        except KeyError:
+            warnings.warn(
+                "Treelite model does not store attribute 'sklearn_iforest_offset'; "
+                "setting it to the default value of -0.5...",
+                UserWarning,
+            )
+            offset = -0.5
+
+        # Compute max_samples by computing max over n_node_samples from each tree
+        max_samples = max(estimator.tree_.n_node_samples[0] for estimator in estimators)
+        state.update(
+            {
+                "_max_samples": max_samples,
+                "offset_": offset,
+                "_average_path_length_per_tree": tuple(
+                    _average_path_length(est.tree_.n_node_samples) for est in estimators
+                ),
+                "_decision_path_lengths": tuple(
+                    est.tree_.compute_node_depths() for est in estimators
+                ),
+                # The exported trees reference features globally, so scoring uses
+                # the full feature set for every tree.
+                "_max_features": n_features,
+                "estimators_features_": [
+                    np.arange(n_features, dtype=np.int64) for _ in estimators
+                ],
+            }
+        )
     clf.__setstate__(state)
 
     return clf

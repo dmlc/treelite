@@ -1,5 +1,7 @@
 """Tests for scikit-learn integration"""
 
+import json
+
 import numpy as np
 import pytest
 from packaging.version import parse as parse_version
@@ -187,12 +189,22 @@ def test_skl_converter_iforest(dataset):
         random_state=0,
     )
     clf.fit(X)
-    expected_pred = -clf.score_samples(X)
-    expected_pred = expected_pred.reshape((-1, 1, 1))
-
     tl_model = treelite.sklearn.import_model(clf)
-    out_pred = treelite.gtil.predict(tl_model, X)
-    np.testing.assert_almost_equal(out_pred, expected_pred)
+
+    # 1. Compare raw anomaly scores
+    np.testing.assert_almost_equal(
+        -treelite.gtil.predict(tl_model, X),
+        clf.score_samples(X).reshape((-1, 1, 1)),
+    )
+
+    # 2. Compare decision_function
+    # (decision_function = score_samples - offset)
+    attributes = json.loads(tl_model.get_header_accessor().get_field("attributes"))
+    offset = attributes["sklearn_iforest_offset"]
+    np.testing.assert_almost_equal(
+        -treelite.gtil.predict(tl_model, X) - offset,
+        clf.decision_function(X).reshape((-1, 1, 1)),
+    )
 
 
 def test_iforest_round_trip():
@@ -231,6 +243,14 @@ def test_iforest_round_trip():
             new_tree.tree_.weighted_n_node_samples,
             decimal=5,
         )
+
+    expected_pred = clf.score_samples(X)
+    out_pred = exported_model.score_samples(X)
+    np.testing.assert_almost_equal(out_pred, expected_pred)
+
+    expected_pred = clf.decision_function(X)
+    out_pred = exported_model.decision_function(X)
+    np.testing.assert_almost_equal(out_pred, expected_pred)
 
 
 @given(

@@ -1,6 +1,5 @@
 """Converter to export Treelite models as scikit-learn models (EXPERIMENTAL)"""
 
-import json
 import warnings
 from enum import IntEnum
 from typing import Any
@@ -299,9 +298,8 @@ def export_model(model: Model) -> Any:
             )
     elif estimator_class is IsolationForest:
         # Recover the `offset_` field; if missing, set to -0.5
-        attributes = json.loads(header_accessor.get_field("attributes"))
         try:
-            offset = attributes["sklearn_iforest_offset"]
+            offset = model.attributes["sklearn_iforest_offset"]
         except KeyError:
             warnings.warn(
                 "Treelite model does not store attribute 'sklearn_iforest_offset'; "

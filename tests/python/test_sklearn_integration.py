@@ -1,7 +1,5 @@
 """Tests for scikit-learn integration"""
 
-import json
-
 import numpy as np
 import pytest
 from packaging.version import parse as parse_version
@@ -199,8 +197,7 @@ def test_skl_converter_iforest(dataset):
 
     # 2. Compare decision_function
     # (decision_function = score_samples - offset)
-    attributes = json.loads(tl_model.get_header_accessor().get_field("attributes"))
-    offset = attributes["sklearn_iforest_offset"]
+    offset = tl_model.attributes["sklearn_iforest_offset"]
     np.testing.assert_almost_equal(
         -treelite.gtil.predict(tl_model, X) - offset,
         clf.decision_function(X).reshape((-1, 1, 1)),

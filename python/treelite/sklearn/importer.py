@@ -86,12 +86,9 @@ def import_model(sklearn_model) -> Model:
 
     .. code-block:: python
 
-        # Get model attributes from the Treelite model, which is a JSON string
-        attributes = json.loads(
-            tl_model.get_header_accessor().get_field("attributes")
-        )
-        # Retrieve offset_
-        offset = attributes.get("sklearn_iforest_offset", -0.5)
+        # Treelite model stores an optional list of attributes (as a JSON string).
+        # We can retieve `offset_` from it.
+        offset = tl_model.attributes.get("sklearn_iforest_offset", -0.5)
         # Apply offset_ to compute the decision function.
         decision_function = -treelite.gtil.predict(tl_model, X) - offset
 

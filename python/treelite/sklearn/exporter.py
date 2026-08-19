@@ -173,7 +173,8 @@ def export_model(model: Model) -> Any:
 
     Note
     ----
-    Currently only random forests can be exported as scikit-learn model objects.
+    Currently only random forests and isolation forests can be exported as
+    scikit-learn model objects.
     Support for gradient boosted trees and other kinds of tree models will be
     added in the future.
 
@@ -187,8 +188,7 @@ def export_model(model: Model) -> Any:
     sklearn_model : object of type \
                     :py:class:`~sklearn.ensemble.RandomForestRegressor` / \
                     :py:class:`~sklearn.ensemble.RandomForestClassifier` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
+                    :py:class:`~sklearn.ensemble.IsolationForest`
         Scikit-learn model
     """
     # pylint: disable=too-many-locals

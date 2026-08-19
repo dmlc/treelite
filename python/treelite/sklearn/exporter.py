@@ -308,8 +308,11 @@ def export_model(model: Model) -> Any:
             )
             offset = -0.5
 
-        # Compute max_samples by computing max over n_node_samples from each tree
-        max_samples = max(estimator.tree_.n_node_samples[0] for estimator in estimators)
+        # Compute max_samples by taking the max over the weighted root counts
+        # (with bootstrap=True the unweighted root only counts distinct rows)
+        max_samples = int(
+            max(estimator.tree_.weighted_n_node_samples[0] for estimator in estimators)
+        )
         state.update(
             {
                 "_max_samples": max_samples,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import pathlib
 import platform
 from typing import Any, List, Optional, Union
@@ -71,6 +72,24 @@ class Model:
         out = ctypes.c_char_p()
         _check_call(_LIB.TreeliteGetOutputType(self.handle, ctypes.byref(out)))
         return py_str(out.value)
+
+    @property
+    def attributes(self) -> dict[Any, Any]:
+        """Optional model attributes (JSON string)"""
+        if self.handle is None:
+            raise AttributeError("Model not loaded yet")
+
+        obj = _TreelitePyBufferFrame()
+        _check_call(
+            _LIB.TreeliteGetHeaderField(
+                self.handle,
+                c_str("attributes"),
+                ctypes.byref(obj),
+            )
+        )
+        array = _pybuffer2numpy(obj)
+        attributes_str = array.tobytes().decode("utf-8")
+        return json.loads(attributes_str)
 
     @classmethod
     def concatenate(cls, model_objs: List[Model]) -> Model:

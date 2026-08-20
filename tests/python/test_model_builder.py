@@ -139,3 +139,48 @@ def test_leaf_vector_rf(predict_kind):
         expected_pred = np.array([[2, 2], [1, 1]])
         pred = treelite.gtil.predict_leaf(model, dmat)
     np.testing.assert_almost_equal(pred, expected_pred, decimal=5)
+
+
+def test_data_count_setter():
+    """Test whether data count can be specified as part of model builder"""
+    # Tree stump with 3 nodes
+    builder = ModelBuilder(
+        threshold_type="float32",
+        leaf_output_type="float32",
+        metadata=Metadata(
+            num_feature=2,
+            task_type="kRegressor",
+            average_tree_output=False,
+            num_target=1,
+            num_class=[1],
+            leaf_vector_shape=(1, 1),
+        ),
+        tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
+        postprocessor=PostProcessorFunc(name="identity"),
+        base_scores=[0.0],
+    )
+    builder.start_tree()
+    builder.start_node(0)
+    builder.numerical_test(
+        feature_id=0,
+        threshold=0.0,
+        default_left=False,
+        opname="<=",
+        left_child_key=1,
+        right_child_key=2,
+    )
+    builder.data_count(100)
+    builder.end_node()
+    builder.start_node(1)
+    builder.leaf(-1.0)
+    builder.data_count(10)
+    builder.end_node()
+    builder.start_node(2)
+    builder.leaf(1.0)
+    builder.data_count(90)
+    builder.end_node()
+    builder.end_tree()
+
+    model = builder.commit()
+    data_count = model.get_tree_accessor(0).get_field("data_count")
+    np.testing.assert_array_equal(data_count, np.array([100, 10, 90], dtype=np.int32))

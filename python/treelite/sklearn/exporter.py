@@ -1,5 +1,6 @@
 """Converter to export Treelite models as scikit-learn models (EXPERIMENTAL)"""
 
+import warnings
 from enum import IntEnum
 from typing import Any
 
@@ -103,8 +104,25 @@ def _export_tree(
     nodes["feature"] = tree_accessor.get_field("split_index")
     nodes["threshold"] = tree_accessor.get_field("threshold")
     nodes["impurity"] = np.nan
-    nodes["n_node_samples"] = -1
-    nodes["weighted_n_node_samples"] = np.nan
+    data_count = tree_accessor.get_field("data_count").astype(np.intp)
+    data_count_mask = tree_accessor.get_field("data_count_present").astype(np.bool_)
+    if data_count.size == 0:
+        nodes["n_node_samples"] = np.full((n_nodes,), fill_value=-1, dtype=np.intp)
+    else:
+        data_count[~data_count_mask] = -1
+        nodes["n_node_samples"] = data_count
+    # TODO(chyunsu3): In Treelite 5.0, rename field sum_hess -> weighted_data_count
+    weighted_data_count = tree_accessor.get_field("sum_hess").astype(np.float64)
+    weighted_data_count_mask = tree_accessor.get_field("sum_hess_present").astype(
+        np.bool_
+    )
+    if weighted_data_count.size == 0:
+        nodes["weighted_n_node_samples"] = np.full(
+            (n_nodes,), fill_value=np.nan, dtype=np.float64
+        )
+    else:
+        weighted_data_count[~weighted_data_count_mask] = np.nan
+        nodes["weighted_n_node_samples"] = weighted_data_count
     nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
 
     if n_targets == 1 and n_classes[0] == 1:
@@ -154,7 +172,8 @@ def export_model(model: Model) -> Any:
 
     Note
     ----
-    Currently only random forests can be exported as scikit-learn model objects.
+    Currently only random forests and isolation forests can be exported as
+    scikit-learn model objects.
     Support for gradient boosted trees and other kinds of tree models will be
     added in the future.
 
@@ -168,15 +187,23 @@ def export_model(model: Model) -> Any:
     sklearn_model : object of type \
                     :py:class:`~sklearn.ensemble.RandomForestRegressor` / \
                     :py:class:`~sklearn.ensemble.RandomForestClassifier` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingRegressor` / \
-                    :py:class:`~sklearn.ensemble.GradientBoostingClassifier`
+                    :py:class:`~sklearn.ensemble.IsolationForest`
         Scikit-learn model
     """
     # pylint: disable=too-many-locals
     try:
         from sklearn import __version__ as sklearn_version
-        from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-        from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+        from sklearn.ensemble import (
+            IsolationForest,
+            RandomForestClassifier,
+            RandomForestRegressor,
+        )
+        from sklearn.ensemble._iforest import _average_path_length
+        from sklearn.tree import (
+            DecisionTreeClassifier,
+            DecisionTreeRegressor,
+            ExtraTreeRegressor,
+        )
     except ImportError as e:
         raise TreeliteError("This function requires scikit-learn package") from e
 
@@ -225,6 +252,9 @@ def export_model(model: Model) -> Any:
     if task_type in [_TaskType.kBinaryClf, _TaskType.kMultiClf]:
         estimator_class = RandomForestClassifier
         subestimator_class = DecisionTreeClassifier
+    elif task_type == _TaskType.kIsolationForest:
+        estimator_class = IsolationForest
+        subestimator_class = ExtraTreeRegressor
     else:
         estimator_class = RandomForestRegressor
         subestimator_class = DecisionTreeRegressor
@@ -266,6 +296,42 @@ def export_model(model: Model) -> Any:
                     "classes_": [np.arange(n_classes[i]) for i in range(n_targets)],
                 }
             )
+    elif estimator_class is IsolationForest:
+        # Recover the `offset_` field; if missing, set to -0.5
+        try:
+            offset = model.attributes["sklearn_iforest_offset"]
+        except KeyError:
+            warnings.warn(
+                "Treelite model does not store attribute 'sklearn_iforest_offset'; "
+                "setting it to the default value of -0.5...",
+                UserWarning,
+            )
+            offset = -0.5
+
+        # Compute max_samples by taking the max over the weighted root counts
+        # (with bootstrap=True the unweighted root only counts distinct rows)
+        max_samples = int(
+            max(estimator.tree_.weighted_n_node_samples[0] for estimator in estimators)
+        )
+        state.update(
+            {
+                "_max_samples": max_samples,
+                "max_samples_": max_samples,
+                "offset_": offset,
+                "_average_path_length_per_tree": tuple(
+                    _average_path_length(est.tree_.n_node_samples) for est in estimators
+                ),
+                "_decision_path_lengths": tuple(
+                    est.tree_.compute_node_depths() for est in estimators
+                ),
+                # The exported trees reference features globally, so scoring uses
+                # the full feature set for every tree.
+                "_max_features": n_features,
+                "estimators_features_": [
+                    np.arange(n_features, dtype=np.int64) for _ in estimators
+                ],
+            }
+        )
     clf.__setstate__(state)
 
     return clf

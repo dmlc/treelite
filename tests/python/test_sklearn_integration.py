@@ -204,7 +204,9 @@ def test_skl_converter_iforest(dataset):
     )
 
 
-def test_iforest_round_trip():
+@pytest.mark.parametrize("bootstrap", [True, False])
+@pytest.mark.parametrize("use_sample_weights", [True, False])
+def test_iforest_round_trip(bootstrap, use_sample_weights):
     """
     Ensure that Treelite preserve important attributes when importing
     and exporting isolation forests.
@@ -224,8 +226,12 @@ def test_iforest_round_trip():
         n_estimators=100,
         n_jobs=-1,
         random_state=0,
+        bootstrap=bootstrap,
     )
-    clf.fit(X)
+    if use_sample_weights:
+        clf.fit(X, sample_weight=rng.uniform(low=0.2, high=0.8, size=(X.shape[0],)))
+    else:
+        clf.fit(X)
     tl_model = treelite.sklearn.import_model(clf)
     exported_model = treelite.sklearn.export_model(tl_model)
     assert type(exported_model) is type(clf)

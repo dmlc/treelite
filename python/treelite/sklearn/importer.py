@@ -81,7 +81,7 @@ def import_model(sklearn_model) -> Model:
         # tl_model is a Treelite representation of clf
 
     To reproduce the output of :py:meth:`~sklearn.ensemble.IsolationForest.decision_function`,
-    retrieve the value of :py:attr:`~sklearn.ensemble.IsolationForest.offset_` and apply it,
+    retrieve the value of ``IsolationForest.offset_`` and apply it,
     as follows:
 
     .. code-block:: python

@@ -246,6 +246,8 @@ def test_iforest_round_trip(bootstrap, use_sample_weights):
             new_tree.tree_.weighted_n_node_samples,
             decimal=5,
         )
+    np.testing.assert_almost_equal(clf.offset_, exported_model.offset_)
+    np.testing.assert_almost_equal(clf.max_samples_, exported_model.max_samples_)
 
     expected_pred = clf.score_samples(X)
     out_pred = exported_model.score_samples(X)

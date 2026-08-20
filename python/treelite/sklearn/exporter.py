@@ -316,6 +316,7 @@ def export_model(model: Model) -> Any:
         state.update(
             {
                 "_max_samples": max_samples,
+                "max_samples_": max_samples,
                 "offset_": offset,
                 "_average_path_length_per_tree": tuple(
                     _average_path_length(est.tree_.n_node_samples) for est in estimators

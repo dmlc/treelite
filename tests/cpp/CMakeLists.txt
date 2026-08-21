@@ -7,6 +7,11 @@ target_link_libraries(treelite_cpp_test
     PRIVATE objtreelite rapidjson
     GTest::gtest GTest::gmock fmt::fmt-header-only std::mdspan)
 set_output_directory(treelite_cpp_test ${PROJECT_BINARY_DIR})
+add_test(
+    NAME TestTreeliteLib
+    COMMAND treelite_cpp_test
+    WORKING_DIRECTORY ${treelite_BINARY_DIR}
+)
 
 if(MSVC)
   target_compile_options(treelite_cpp_test PRIVATE

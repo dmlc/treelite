@@ -108,6 +108,7 @@ include(cmake/Version.cmake)
 add_subdirectory(src)
 
 if(BUILD_CPP_TEST)
+  enable_testing()
   add_subdirectory(tests/cpp)
 endif()
 

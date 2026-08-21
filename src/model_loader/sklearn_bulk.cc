@@ -349,4 +349,65 @@ std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int
   return model;
 }
 
+/**
+ * Load an IsolationForest using bulk construction
+ *
+ * This is an optimized version that constructs trees in bulk rather than
+ * going through the ModelBuilder node-by-node.
+ */
+std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_features,
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, double ratio_c) {
+  TREELITE_CHECK_GT(n_estimators, 0) << "n_estimators must be at least 1";
+  TREELITE_CHECK_GT(n_features, 0) << "n_features must be at least 1";
+
+  // Create model with double precision
+  auto model = Model::Create<double, double>();
+
+  // Set up model metadata
+  std::int32_t const n_targets = 1;
+  model->num_feature = n_features;
+  model->task_type = TaskType::kIsolationForest;
+  model->average_tree_output = true;
+  model->num_target = n_targets;
+
+  // For isolation forests, num_class is always 1
+  model->num_class = std::vector<std::int32_t>(n_targets, 1);
+
+  // Set leaf vector shape
+  model->leaf_vector_shape = std::vector<std::int32_t>{n_targets, 1};
+
+  // Set up tree annotation arrays
+  model->target_id = std::vector<std::int32_t>(n_estimators, 0);
+  model->class_id = std::vector<std::int32_t>(n_estimators, 0);
+
+  // Set postprocessor
+  model->postprocessor = "exponential_standard_ratio";
+  model->ratio_c = static_cast<float>(ratio_c);
+
+  // Set base scores
+  model->base_scores = std::vector<double>{0.0};
+
+  // Get the typed model preset
+  auto& preset = std::get<ModelPreset<double, double>>(model->variant_);
+  preset.trees.resize(n_estimators);
+
+  // Construct each tree using bulk operations
+  for (int tree_id = 0; tree_id < n_estimators; ++tree_id) {
+    int const n_nodes = static_cast<int>(node_count[tree_id]);
+    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
+
+    BulkConstructTree<double, double>(preset.trees[tree_id], n_nodes, children_left[tree_id],
+        children_right[tree_id], feature[tree_id], threshold[tree_id], value[tree_id],
+        n_node_samples[tree_id], weighted_n_node_samples[tree_id], impurity[tree_id],
+        total_sample_cnt, n_targets,
+        1,  // max_num_class = 1 for isolation forests
+        false);  // is_classifier
+  }
+
+  return model;
+}
+
 }  // namespace treelite::model_loader::sklearn

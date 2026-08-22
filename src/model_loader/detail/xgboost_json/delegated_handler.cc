@@ -712,7 +712,7 @@ bool GradientBoosterHandler::StartArray() {
 }
 
 bool GradientBoosterHandler::EndObject() {
-  if (name == "dart" && !weight_drop.empty()) {
+  if (!weight_drop.empty()) {
     TREELITE_CHECK_EQ(output.size_leaf_vector, 1)
         << "Dart with vector-leaf output is not yet supported";
     output.weight_drop = weight_drop;

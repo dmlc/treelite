@@ -290,7 +290,6 @@ def test_xgb_nonlinear_objective(
     num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
-@pytest.mark.xfail(reason="https://github.com/dmlc/treelite/issues/668")
 def test_xgb_dart(dataset, model_format, num_boost_round):
     # pylint: disable=too-many-locals
     """Test XGBoost DART model with dummy data"""

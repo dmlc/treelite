@@ -518,6 +518,8 @@ bool GBTreeModelHandler::StartArray() {
   return (push_key_handler<RegTreeArrayHandler, std::vector<ParsedRegTreeParams>>(
               "trees", reg_tree_params, *output.builder)
           || push_key_handler<ArrayHandler<int>, std::vector<int>>("tree_info", output.tree_info)
+          || push_key_handler<ArrayHandler<float>, std::vector<float>>(
+              "weight_drop", output.weight_drop)
           || push_key_handler<IgnoreHandler>("iteration_indptr"));
 }
 
@@ -546,7 +548,7 @@ bool GBTreeModelHandler::EndObject() {
 }
 
 bool GBTreeModelHandler::is_recognized_key(std::string const& key) {
-  return key == "trees" || key == "tree_info" || key == "gbtree_model_param"
+  return key == "trees" || key == "tree_info" || key == "gbtree_model_param" || key == "weight_drop"
          || key == "iteration_indptr" || key == "cats";
 }
 

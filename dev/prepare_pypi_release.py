@@ -80,9 +80,9 @@ def download_py_packages(version_str: str, commit_hash: str) -> None:
     """Download Python package files"""
     platforms = [
         "win_amd64",
-        "manylinux2014_x86_64",
-        "manylinux2014_aarch64",
-        "macosx_10_15_x86_64.macosx_11_0_x86_64.macosx_12_0_x86_64",
+        "manylinux_2_28_x86_64",
+        "manylinux_2_28_aarch64",
+        "macosx_10_15_x86_64",
         "macosx_12_0_arm64",
     ]
 

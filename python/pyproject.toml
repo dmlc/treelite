@@ -1,19 +1,16 @@
 [build-system]
-requires = [
-    "hatchling>=1.12.1"
-]
-backend-path = ["."]
-build-backend = "packager.pep517"
+requires = ["scikit-build-core>=1.0.0"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "treelite"
-version = "4.7.0"
+version = "4.7.1"
 authors = [
     {name = "Hyunsu Cho", email = "chohyu01@cs.washington.edu"}
 ]
 description = "Treelite: Universal model exchange format for decision tree forests"
 readme = {file = "README.rst", content-type = "text/x-rst"}
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -21,9 +18,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
 ]
 dependencies = [
     "numpy",
@@ -42,7 +40,46 @@ testing = ["scikit-learn", "pytest", "hypothesis", "pandas"]
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
 
-[tool.hatch.build.targets.wheel.hooks.custom]
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"
+minimum-version = "build-system.requires"
+ninja.make-fallback = true
+wheel.py-api = "py3"
+wheel.packages = ["treelite"]
+install.components = ["TreelitePython"]
+sdist.include = ["cpp_src/**"]
+sdist.exclude = ["build/", "dist/", "wheelhouse/", "*.pyc", "__pycache__"]
+sdist.reproducible = true
+
+[tool.scikit-build.cmake]
+version = "CMakeLists.txt"
+build-type = "Release"
+
+[tool.cibuildwheel]
+build = ["cp312-*"]
+archs = ["auto64"] # so win32 is excluded
+skip = ["*musllinux*"]
+build-verbosity = 3
+test-command = "python -m pytest -v -rxXs --fulltrace --durations=0 {project}/tests/python/test_sklearn_integration.py"
+test-extras = ["testing"]
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+
+[tool.cibuildwheel.macos]
+# Install required libraries pre-build
+before-all = "brew install libomp"
+# Do not include libomp.dylib in the wheel; users provide OpenMP at runtime
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} --exclude libomp.dylib"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_x86_64"
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15", LDFLAGS = "-Wl,-rpath,/opt/homebrew/opt/libomp/lib" }
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_arm64"
+environment = { MACOSX_DEPLOYMENT_TARGET = "12.0", LDFLAGS = "-Wl,-rpath,/usr/local/opt/libomp/lib" }
 
 [tool.ruff]
 line-length = 120

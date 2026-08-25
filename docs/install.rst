@@ -139,3 +139,21 @@ package. The Python package will re-use the native library built in Step 1.
 
   cd python
   pip install .  # will re-use libtreelite.so
+
+.. note:: Build backend
+
+  The Python package is built with `scikit-build-core
+  <https://scikit-build-core.readthedocs.io/>`_. When a prebuilt library is
+  present in the ``build/`` directory from Step 1, it is bundled directly into
+  the wheel; otherwise scikit-build-core compiles the C++ from sources.
+
+.. note:: Using a system-provided libtreelite
+
+  If ``libtreelite`` is already installed under your Python environment's
+  prefix (``sys.base_prefix/lib``), you can install the Python package without
+  bundling another copy of the library:
+
+  .. code-block:: bash
+
+    cd python
+    pip install . --config-settings=cmake.define.USE_SYSTEM_LIBTREELITE=ON

@@ -3,9 +3,14 @@
 import os
 import pathlib
 import sys
-from typing import List
+from typing import List, Union
 
-from .path_config import get_custom_libpath
+try:
+    from .path_config import get_custom_libpath
+except ImportError:
+
+    def get_custom_libpath() -> Union[str, None]:
+        return None
 
 
 class TreeliteLibraryNotFound(Exception):
@@ -29,7 +34,8 @@ def find_lib_path() -> List[pathlib.Path]:
         # Use libtreelite from a system prefix, if available. This should be the last option.
         pathlib.Path(sys.base_prefix).expanduser().resolve() / "lib",
     ]
-    custom_libpath = get_custom_libpath()  # pylint: disable=assignment-from-none
+
+    custom_libpath = get_custom_libpath()
     if custom_libpath:
         dll_path.insert(0, pathlib.Path(custom_libpath).expanduser().resolve())
 

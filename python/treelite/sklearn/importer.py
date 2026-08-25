@@ -125,9 +125,7 @@ def import_model(sklearn_model) -> Model:
         from sklearn.ensemble import (
             HistGradientBoostingRegressor as HistGradientBoostingR,
         )
-        from sklearn.ensemble import (
-            IsolationForest,
-        )
+        from sklearn.ensemble import IsolationForest
         from sklearn.ensemble import RandomForestClassifier as RandomForestC
         from sklearn.ensemble import RandomForestRegressor as RandomForestR
     except ImportError as e:
@@ -405,9 +403,7 @@ def _import_hist_gradient_boosting(sklearn_model) -> Model:
                 feat_remapper[n_categorical + num_idx] = i
                 num_idx += 1
     else:
-        feat_remapper = np.arange(
-            start=0, stop=sklearn_model.n_features_in_, dtype=np.int32
-        )
+        feat_remapper = np.arange(0, stop=sklearn_model.n_features_in_, dtype=np.int32)
 
     n_categorical_splits = known_cat_bitsets.shape[0]
     n_trees = 0

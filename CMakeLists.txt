@@ -3,7 +3,7 @@ cmake_policy(SET CMP0091 NEW)
 set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE FORCE)
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
-project(treelite LANGUAGES CXX C VERSION 4.7.0)
+project(treelite LANGUAGES CXX C VERSION 4.7.1)
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -42,6 +42,7 @@ option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
 option(HIDE_CXX_SYMBOLS "Hide all C++ symbols. Useful when building Pip package" OFF)
 option(ENABLE_ALL_WARNINGS "Enable all compiler warnings. Only effective for GCC/Clang" OFF)
+option(_TREELITE_FOR_PYTHON_WHEEL "Building libtreelite embedded inside the Python wheel; skips default installs" OFF)
 option(USE_SANITIZER "Use sanitizer flags" OFF)
 SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
     "Semicolon separated list of sanitizer names. E.g 'address;leak'.")
@@ -60,6 +61,17 @@ endif()
 if(USE_SANITIZER)
   include(cmake/Sanitizer.cmake)
   enable_sanitizers("${ENABLED_SANITIZERS}")
+endif()
+
+include(cmake/FindOpenMPMacOS.cmake)
+if(USE_OPENMP)
+  if(APPLE)
+    find_openmp_macos()
+  else()
+    find_package(OpenMP REQUIRED)
+  endif()
+else()
+  message(STATUS "Disabling OpenMP")
 endif()
 
 if(ENABLE_ALL_WARNINGS)
@@ -118,44 +130,51 @@ foreach(lib ${TREELITE_TARGETS})
   endif()
 endforeach()
 
+if(USE_OPENMP AND APPLE AND NOT Treelite_BUILD_STATIC_LIBS)
+  patch_openmp_path_macos(treelite)
+endif()
+
 # Export install targets
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # Include CPack only if the current project is top level.
   include(CPack)
 endif()
 include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
-set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson)
-if(NOT mdspan_FOUND) # Found mdspan via FetchContent
-  list(APPEND INSTALL_TARGETS mdspan)
+
+if(NOT _TREELITE_FOR_PYTHON_WHEEL)
+    include(CMakePackageConfigHelpers)
+    set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson)
+    if(NOT mdspan_FOUND) # Found mdspan via FetchContent
+      list(APPEND INSTALL_TARGETS mdspan)
+    endif()
+    if(NOT nlohmann_json_FOUND)  # Fetched nlohmann/json via FetchContent
+      list(APPEND INSTALL_TARGETS nlohmann_json)
+    endif()
+    install(TARGETS ${INSTALL_TARGETS}
+        EXPORT TreeliteTargets
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        INCLUDES DESTINATION include)
+    install(DIRECTORY include/treelite "${PROJECT_BINARY_DIR}/include/treelite"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    install(EXPORT TreeliteTargets
+        FILE TreeliteTargets.cmake
+        NAMESPACE treelite::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
+    configure_package_config_file(
+        cmake/TreeliteConfig.cmake.in
+        "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
+    write_basic_package_version_file(
+        "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion)
+    install(FILES
+        "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+        "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
 endif()
-if(NOT nlohmann_json_FOUND)  # Fetched nlohmann/json via FetchContent
-  list(APPEND INSTALL_TARGETS nlohmann_json)
-endif()
-install(TARGETS ${INSTALL_TARGETS}
-    EXPORT TreeliteTargets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION include)
-install(DIRECTORY include/treelite "${PROJECT_BINARY_DIR}/include/treelite"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-install(EXPORT TreeliteTargets
-    FILE TreeliteTargets.cmake
-    NAMESPACE treelite::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
-configure_package_config_file(
-    cmake/TreeliteConfig.cmake.in
-    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
-write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
-install(FILES
-    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
-    "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
 
 write_version()
 set_default_configuration_release()

@@ -1,0 +1,59 @@
+name: wheel-builder
+
+on:
+  pull_request:
+  push:
+    branches:
+      - mainline
+      - 'release_*'
+  schedule:
+    - cron: "0 7 * * *"  # Run once daily
+
+permissions:
+  contents: read  # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMMIT_ID: ${{ github.sha }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_IAM_S3_UPLOADER }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_IAM_S3_UPLOADER }}
+
+jobs:
+  wheel-builder:
+    name: Build and test Python wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            wheel-tag: manylinux_2_28_x86_64
+          - os: ubuntu-24.04-arm
+            wheel-tag: manylinux_2_28_aarch64
+          - os: macos-15-intel
+            wheel-tag: macosx_10_15_x86_64 # should match MACOSX_DEPLOYMENT_TARGET in pyproject.toml overrides
+          - os: macos-14
+            wheel-tag: macosx_12_0_arm64
+          - os: windows-latest
+            wheel-tag: win_amd64
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and test wheel
+        uses: pypa/cibuildwheel@v4.1.0
+        with:
+          package-dir: python
+          output-dir: wheelhouse
+
+      - name: Rename wheel with commit ID
+        shell: bash
+        run: |
+          python3 tests/ci_build/rename_whl.py wheelhouse "${COMMIT_ID}" ${{ matrix.wheel-tag }}
+
+      - name: Upload wheel to S3
+        shell: bash
+        run: |
+          aws s3 cp wheelhouse/treelite-*.whl s3://treelite-wheels/ --acl public-read --region us-west-2 || true

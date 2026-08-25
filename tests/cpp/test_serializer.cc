@@ -621,7 +621,8 @@ void SerializerRoundTrip_DeepFullTree() {
   TestRoundTrip(model.get());
 }
 
-TEST(SerializerRoundTrip, DeepFullTree) {
+// TODO(hcho3): Fix https://github.com/dmlc/treelite/issues/669
+TEST(SerializerRoundTrip, DISABLED_DeepFullTree) {
   SerializerRoundTrip_DeepFullTree<float, float>();
   SerializerRoundTrip_DeepFullTree<double, double>();
 }

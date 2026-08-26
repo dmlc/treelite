@@ -149,9 +149,10 @@ class Tree {
   template <typename X, typename Y>
   friend void BulkConstructTree(Tree<X, Y>& tree, int n_nodes, std::int64_t const* children_left,
       std::int64_t const* children_right, std::int64_t const* feature, double const* threshold,
-      double const* value, std::int64_t const* n_node_samples,
-      double const* weighted_n_node_samples, double const* impurity, std::int64_t total_sample_cnt,
-      int n_targets, int max_num_class, bool is_classifier);
+      double const* value, std::uint8_t const* missing_go_to_left,
+      std::int64_t const* n_node_samples, double const* weighted_n_node_samples,
+      double const* impurity, std::int64_t total_sample_cnt, int n_targets, int max_num_class,
+      bool is_classifier);
 
  public:
   /*! \brief Number of nodes */

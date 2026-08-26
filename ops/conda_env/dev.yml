@@ -2,7 +2,7 @@ name: dev
 channels:
 - conda-forge
 dependencies:
-- python=3.12
+- python=3.13
 - numpy
 - scipy
 - pandas
@@ -13,7 +13,7 @@ dependencies:
 - coverage
 - codecov
 - ninja
-- lcov
+- lcov<2.0
 - cmake
 - llvm-openmp
 - cython

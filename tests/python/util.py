@@ -94,7 +94,9 @@ def to_categorical(
     cat_cols = (cat_cols * rough_n_categories).astype(int)
 
     # Mix categorical and numerical columns in a random order
-    new_col_idx = rng.choice(n_features, n_features, replace=False, shuffle=True)
+    new_col_idx = np.asarray(
+        rng.choice(n_features, n_features, replace=False, shuffle=True)
+    )
     df_cols = {}
     for icol in range(n_categorical):
         col = cat_cols[:, icol]

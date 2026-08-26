@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-echo "##[section]Installing lcov and Ninja..."
-sudo apt-get install lcov ninja-build
-
 echo "##[section]Building Treelite..."
 mkdir build/
 cd build/

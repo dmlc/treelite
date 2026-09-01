@@ -27,42 +27,6 @@ def _ensure_numpy(x: Any) -> np.ndarray:
     raise ValueError(f"x is not a valid NumPy array. {x.type=}")
 
 
-BITSET_LENGTH = 8
-
-_node_dtype_old = np.dtype(
-    {
-        "names": [
-            "left_child",
-            "right_child",
-            "feature",
-            "threshold",
-            "impurity",
-            "n_node_samples",
-            "weighted_n_node_samples",
-            "missing_go_to_left",
-        ],
-        "formats": ["<i8", "<i8", "<i8", "<f8", "<f8", "<i8", "<f8", "u1"],
-        "offsets": [0, 8, 16, 24, 32, 40, 48, 56],
-        "itemsize": 64,
-    }
-)
-
-_node_dtype_sklearn1_10 = np.dtype(
-    [
-        ("left_child", np.intp),  # 8 bytes  (offset 0)
-        ("right_child", np.intp),  # 8 bytes  (offset 8)
-        ("feature", np.intp),  # 8 bytes  (offset 16)
-        ("threshold", np.float64),  # 8 bytes  (offset 24)
-        ("left_cat_bitset", (np.uint32, BITSET_LENGTH)),  # 32 bytes (offset 32)
-        ("impurity", np.float64),  # 8 bytes  (offset 64)
-        ("n_node_samples", np.intp),  # 8 bytes  (offset 72)
-        ("weighted_n_node_samples", np.float64),  # 8 bytes  (offset 80)
-        ("missing_go_to_left", np.uint8),  # 1 byte   (offset 88)
-    ],
-    align=True,
-)
-
-
 class _TaskType(IntEnum):
     # pylint: disable=invalid-name
     kBinaryClf = 0
@@ -79,6 +43,7 @@ def _export_tree(
     try:
         from sklearn import __version__ as sklearn_version
         from sklearn.tree import DecisionTreeClassifier
+        from sklearn.tree._tree import NODE_DTYPE, TREE_LEAF
         from sklearn.tree._tree import Tree as SKLearnTree
     except ImportError as e:
         raise TreeliteError("This function requires scikit-learn package") from e
@@ -94,10 +59,11 @@ def _export_tree(
     if parse_version(sklearn_version) >= parse_version("1.10.0.dev0"):
         n_categories = np.full(n_features, -1, dtype=np.intp)
         tree = SKLearnTree(n_features, n_classes, n_targets, n_categories)
-        nodes = np.empty(n_nodes, dtype=_node_dtype_sklearn1_10)
     else:
         tree = SKLearnTree(n_features, n_classes, n_targets)
-        nodes = np.empty(n_nodes, dtype=_node_dtype_old)
+    # Use scikit-learn's runtime node layout, since its private ABI can change
+    # independently of the package version.
+    nodes = np.zeros(n_nodes, dtype=NODE_DTYPE)
 
     nodes["left_child"] = tree_accessor.get_field("cleft")
     nodes["right_child"] = tree_accessor.get_field("cright")
@@ -124,6 +90,11 @@ def _export_tree(
         weighted_data_count[~weighted_data_count_mask] = np.nan
         nodes["weighted_n_node_samples"] = weighted_data_count
     nodes["missing_go_to_left"] = tree_accessor.get_field("default_left")
+    if "split_kind" in nodes.dtype.names:
+        from sklearn.tree._utils import SPLIT_LEAF, SPLIT_NUMERIC
+
+        nodes["split_kind"] = SPLIT_NUMERIC
+        nodes["split_kind"][nodes["left_child"] == TREE_LEAF] = SPLIT_LEAF
 
     if n_targets == 1 and n_classes[0] == 1:
         leaf_value = (

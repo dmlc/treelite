@@ -27,6 +27,28 @@ def _ensure_numpy(x: Any) -> np.ndarray:
     raise ValueError(f"x is not a valid NumPy array. {x.type=}")
 
 
+# Fields of scikit-learn's private Node struct that this exporter knows how to
+# handle. If scikit-learn grows a field outside this set we cannot populate it,
+# and since we now allocate with scikit-learn's own NODE_DTYPE the dtype check in
+# Tree.__setstate__ will no longer catch it -- the field would silently keep its
+# zero value. `left_cat_bitset` is knowingly left zeroed: trees with categorical
+# splits are rejected before we allocate.
+_KNOWN_NODE_FIELDS = frozenset(
+    {
+        "left_child",
+        "right_child",
+        "feature",
+        "threshold",
+        "left_cat_bitset",
+        "impurity",
+        "n_node_samples",
+        "weighted_n_node_samples",
+        "missing_go_to_left",
+        "split_kind",
+    }
+)
+
+
 class _TaskType(IntEnum):
     # pylint: disable=invalid-name
     kBinaryClf = 0
@@ -53,6 +75,14 @@ def _export_tree(
     if has_categorical_split:
         raise NotImplementedError(
             "Trees with categorical splits cannot yet be exported as scikit-learn"
+        )
+    unknown_fields = sorted(set(NODE_DTYPE.names) - _KNOWN_NODE_FIELDS)
+    if unknown_fields:
+        raise NotImplementedError(
+            f"scikit-learn {sklearn_version} stores tree node fields that this "
+            f"version of Treelite does not know how to populate: {unknown_fields}. "
+            "Exporting would produce a model that predicts incorrectly. "
+            "Please upgrade Treelite."
         )
 
     n_nodes = tree_accessor.get_field("num_nodes").tolist()[0]

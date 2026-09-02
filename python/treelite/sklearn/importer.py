@@ -20,6 +20,7 @@ class ArrayOfArrays:
 
     def __init__(self, *, dtype):
         int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
+        uint8_ptr_type = ctypes.POINTER(ctypes.c_uint8)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
         uint32_ptr_type = ctypes.POINTER(ctypes.c_uint32)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
@@ -32,6 +33,8 @@ class ArrayOfArrays:
             self.ptr_type = uint32_ptr_type
         elif dtype == np.int8:
             self.ptr_type = int8_ptr_type
+        elif dtype == np.uint8:
+            self.ptr_type = uint8_ptr_type
         elif dtype == "void":
             self.ptr_type = void_ptr_type
         else:
@@ -188,6 +191,7 @@ def import_model(sklearn_model) -> Model:
     feature = ArrayOfArrays(dtype=np.int64)
     threshold = ArrayOfArrays(dtype=np.float64)
     value = ArrayOfArrays(dtype=np.float64)
+    missing_go_to_left = ArrayOfArrays(dtype=np.uint8)
     n_node_samples = ArrayOfArrays(dtype=np.int64)
     weighted_n_node_samples = ArrayOfArrays(dtype=np.float64)
     impurity = ArrayOfArrays(dtype=np.float64)
@@ -233,6 +237,9 @@ def import_model(sklearn_model) -> Model:
                     expected_shape=leaf_value_expected_shape(tree.node_count),
                 )
                 feature.add(tree.feature, expected_shape=(tree.node_count,))
+            missing_go_to_left.add(
+                tree.missing_go_to_left, expected_shape=(tree.node_count,)
+            )
             n_node_samples.add(tree.n_node_samples, expected_shape=(tree.node_count,))
             weighted_n_node_samples.add(
                 tree.weighted_n_node_samples, expected_shape=(tree.node_count,)
@@ -242,7 +249,7 @@ def import_model(sklearn_model) -> Model:
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (RandomForestR, ExtraTreesR)):
         _check_call(
-            _LIB.TreeliteLoadSKLearnRandomForestRegressor(
+            _LIB.TreeliteLoadSKLearnRandomForestRegressorEx(
                 ctypes.c_int(sklearn_model.n_estimators),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 ctypes.c_int(sklearn_model.n_outputs_),
@@ -252,6 +259,7 @@ def import_model(sklearn_model) -> Model:
                 feature.as_c_array(),
                 threshold.as_c_array(),
                 value.as_c_array(),
+                missing_go_to_left.as_c_array(),
                 n_node_samples.as_c_array(),
                 weighted_n_node_samples.as_c_array(),
                 impurity.as_c_array(),
@@ -259,9 +267,8 @@ def import_model(sklearn_model) -> Model:
             )
         )
     elif isinstance(sklearn_model, IsolationForest):
-        # TODO(chyunsu3): In Treelite 5.0, pass offset_ field via TreeliteLoadSKLearnIsolationForest()
         _check_call(
-            _LIB.TreeliteLoadSKLearnIsolationForest(
+            _LIB.TreeliteLoadSKLearnIsolationForestEx(
                 ctypes.c_int(sklearn_model.n_estimators),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 c_array(ctypes.c_int64, node_count),
@@ -270,31 +277,19 @@ def import_model(sklearn_model) -> Model:
                 feature.as_c_array(),
                 threshold.as_c_array(),
                 value.as_c_array(),
+                missing_go_to_left.as_c_array(),
                 n_node_samples.as_c_array(),
                 weighted_n_node_samples.as_c_array(),
                 impurity.as_c_array(),
                 ctypes.c_double(ratio_c),
+                ctypes.c_double(sklearn_model.offset_),
                 ctypes.byref(handle),
-            )
-        )
-        # Store `offset_` field as a model attribute
-        attributes = {
-            "sklearn_iforest_offset": float(sklearn_model.offset_),
-        }
-        attributes_serialized = json.dumps(attributes)
-        _check_call(
-            _LIB.TreeliteSetHeaderField(
-                handle,
-                c_str("attributes"),
-                _numpy2pybuffer(
-                    np.frombuffer(attributes_serialized.encode("utf-8"), dtype="S1")
-                ),
             )
         )
     elif isinstance(sklearn_model, (RandomForestC, ExtraTreesC)):
         n_classes = np.array(sklearn_model.n_classes_, dtype=np.int32)
         _check_call(
-            _LIB.TreeliteLoadSKLearnRandomForestClassifier(
+            _LIB.TreeliteLoadSKLearnRandomForestClassifierEx(
                 ctypes.c_int(sklearn_model.n_estimators),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 ctypes.c_int(sklearn_model.n_outputs_),
@@ -305,6 +300,7 @@ def import_model(sklearn_model) -> Model:
                 feature.as_c_array(),
                 threshold.as_c_array(),
                 value.as_c_array(),
+                missing_go_to_left.as_c_array(),
                 n_node_samples.as_c_array(),
                 weighted_n_node_samples.as_c_array(),
                 impurity.as_c_array(),

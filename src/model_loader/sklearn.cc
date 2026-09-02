@@ -25,37 +25,6 @@ namespace treelite::model_loader::sklearn {
 
 namespace detail {
 
-namespace stdex = std::experimental;
-// Multidimensional array views. Use row-major (C) layout
-template <typename ElemT>
-using Array2DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
-
-class IsolationForestMixIn {
- public:
-  explicit IsolationForestMixIn(double ratio_c) : ratio_c_{ratio_c} {}
-
-  void HandleMetadata(model_builder::ModelBuilder& builder, int n_trees, int n_features,
-      [[maybe_unused]] int n_targets, [[maybe_unused]] std::int32_t const* n_classes) {
-    model_builder::Metadata metadata{n_features, TaskType::kIsolationForest, true, 1, {1}, {1, 1}};
-    model_builder::TreeAnnotation tree_annotation{
-        n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
-
-    std::ostringstream oss;
-    model_builder::PostProcessorFunc postprocessor{
-        "exponential_standard_ratio", {{"ratio_c", ratio_c_}}};
-
-    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, {0.0}, std::nullopt);
-  }
-
-  void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
-      double const** value, [[maybe_unused]] std::int32_t const* n_classes) const {
-    builder.LeafScalar(value[tree_id][node_id]);
-  }
-
- private:
-  double ratio_c_;
-};
-
 class GradientBoostingRegressorMixIn {
  public:
   explicit GradientBoostingRegressorMixIn(double base_score) : base_score_{base_score} {}
@@ -369,18 +338,6 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoosting(MixIn& mixin, int n_tr
 }
 
 }  // namespace detail
-
-std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_features,
-    std::int64_t const* node_count, std::int64_t const** children_left,
-    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    double const** value, std::int64_t const** n_node_samples,
-    double const** weighted_n_node_samples, double const** impurity, double ratio_c) {
-  detail::IsolationForestMixIn mixin{ratio_c};
-  std::vector<std::int32_t> n_classes{1};
-  return detail::LoadSKLearnModel(mixin, n_estimators, n_features, 1, n_classes.data(), node_count,
-      children_left, children_right, feature, threshold, value, n_node_samples,
-      weighted_n_node_samples, impurity);
-}
 
 std::unique_ptr<treelite::Model> LoadGradientBoostingRegressor(int n_iter, int n_features,
     std::int64_t const* node_count, std::int64_t const** children_left,

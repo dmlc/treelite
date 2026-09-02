@@ -236,7 +236,9 @@ def test_iforest_round_trip(bootstrap, use_sample_weights):
     exported_model = treelite.sklearn.export_model(tl_model)
     assert type(exported_model) is type(clf)
     assert len(clf.estimators_) == len(exported_model.estimators_)
-    for old_tree, new_tree in zip(clf.estimators_, exported_model.estimators_):
+    for old_tree, new_tree in zip(
+        clf.estimators_, exported_model.estimators_, strict=True
+    ):
         assert type(old_tree) is type(new_tree)
         np.testing.assert_array_equal(
             old_tree.tree_.n_node_samples, new_tree.tree_.n_node_samples
@@ -417,3 +419,31 @@ def test_skl_export_rf_multitarget_multiclass(n_classes, n_estimators):
     clf2 = treelite.sklearn.export_model(tl_model)
     assert isinstance(clf2, RandomForestClassifier)
     np.testing.assert_almost_equal(clf2.predict_proba(X), clf.predict_proba(X))
+
+
+@given(
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=2, max_value=4),
+    ),
+    n_estimators=integers(min_value=5, max_value=10),
+)
+@settings(**standard_settings())
+def test_random_forest_classifier_round_trip(dataset, n_estimators):
+    X, y = dataset
+    clf = RandomForestClassifier(random_state=0, n_estimators=n_estimators, n_jobs=-1)
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    clf2 = treelite.sklearn.export_model(tl_model)
+
+    assert type(clf) is type(clf2)
+    assert len(clf.estimators_) == len(clf2.estimators_)
+
+    np.testing.assert_array_equal(clf.classes_, clf2.classes_)
+    for old_tree, new_tree in zip(clf.estimators_, clf2.estimators_, strict=True):
+        assert type(old_tree) is type(new_tree)
+        assert old_tree.n_classes_ == new_tree.n_classes_
+        np.testing.assert_array_equal(
+            old_tree.tree_.n_node_samples, new_tree.tree_.n_node_samples
+        )
+        np.testing.assert_array_equal(old_tree.classes_, new_tree.classes_)

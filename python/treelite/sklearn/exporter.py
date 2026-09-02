@@ -160,9 +160,22 @@ def _export_tree(
     }
     if subestimator_class is DecisionTreeClassifier:
         if n_targets == 1:
-            subestimator_state["n_classes_"] = n_classes[0]
+            subestimator_state.update(
+                {
+                    "n_classes_": n_classes[0],
+                    "classes_": np.arange(n_classes[0], dtype=np.float64),
+                }
+            )
         else:
-            subestimator_state["n_classes_"] = n_classes.tolist()
+            subestimator_state.update(
+                {
+                    "n_classes_": n_classes.tolist(),
+                    "classes_": [
+                        np.arange(n_classes[i], dtype=np.float64)
+                        for i in range(n_targets)
+                    ],
+                }
+            )
     subestimator.__setstate__(subestimator_state)
     return subestimator
 

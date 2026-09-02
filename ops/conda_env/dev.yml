@@ -13,7 +13,7 @@ dependencies:
 - coverage
 - codecov
 - ninja
-- lcov
+- lcov<2.0
 - cmake
 - llvm-openmp
 - cython

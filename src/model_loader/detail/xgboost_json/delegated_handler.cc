@@ -742,6 +742,7 @@ bool ObjectiveHandler::StartObject() {
           || push_key_handler<IgnoreHandler>("aft_loss_param")
           || push_key_handler<IgnoreHandler>("pseduo_huber_param")
           || push_key_handler<IgnoreHandler>("pseudo_huber_param")
+          || push_key_handler<IgnoreHandler>("quantile_loss_param")
           || push_key_handler<IgnoreHandler>("lambdarank_param"));
 }
 
@@ -756,7 +757,8 @@ bool ObjectiveHandler::is_recognized_key(std::string const& key) {
   return (key == "reg_loss_param" || key == "poisson_regression_param"
           || key == "tweedie_regression_param" || key == "softmax_multiclass_param"
           || key == "lambda_rank_param" || key == "aft_loss_param" || key == "pseduo_huber_param"
-          || key == "pseudo_huber_param" || key == "lambdarank_param" || key == "name");
+          || key == "pseudo_huber_param" || key == "quantile_loss_param"
+          || key == "lambdarank_param" || key == "name");
 }
 
 /******************************************************************************

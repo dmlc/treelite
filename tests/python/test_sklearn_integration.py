@@ -91,6 +91,21 @@ def test_skl_regressor(clazz, n_estimators, callback):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 
+@pytest.mark.parametrize("loss", ["poisson", "gamma"])
+def test_skl_hist_gradient_boosting_regressor_log_link(loss):
+    """Scikit-learn HistGradientBoostingRegressor with a log-link loss"""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((200, 4))
+    y = np.exp(X[:, 0] - 0.5 * X[:, 1]) + rng.uniform(0.1, 0.5, size=200)
+    clf = HistGradientBoostingRegressor(loss=loss, max_iter=10, random_state=0)
+    clf.fit(X, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    out_pred = treelite.gtil.predict(tl_model, X)
+    expected_pred = clf.predict(X).reshape((X.shape[0], 1, -1))
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
 @given(
     clazz=sampled_from(
         [

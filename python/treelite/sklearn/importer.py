@@ -495,4 +495,11 @@ def _import_hist_gradient_boosting(sklearn_model) -> Model:
         raise TreeliteError(
             f"Unsupported model type {sklearn_model.__class__.__name__}"
         )
-    return Model(handle=handle)
+    model = Model(handle=handle)
+    if isinstance(sklearn_model, (HistGradientBoostingR,)) and sklearn_model.loss in (
+        "poisson",
+        "gamma",
+    ):
+        # These losses use a log link, so the prediction is exp(raw_prediction)
+        model.get_header_accessor().set_field("postprocessor", "exponential")
+    return model

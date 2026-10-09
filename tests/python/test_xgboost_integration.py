@@ -65,6 +65,8 @@ def generate_data_for_squared_log_error(n_targets: int = 1):
         "reg:squarederror",
         "reg:squaredlogerror",
         "reg:pseudohubererror",
+        "reg:absoluteerror",
+        "reg:quantileerror",
     ],
 )
 @given(
@@ -108,6 +110,8 @@ def test_xgb_regressor(
         "objective": objective,
         "num_parallel_tree": num_parallel_tree,
     }
+    if objective == "reg:quantileerror":
+        param["quantile_alpha"] = 0.8
     xgb_model = xgb.train(
         param,
         dtrain,

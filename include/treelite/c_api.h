@@ -382,7 +382,15 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n
     int64_t const** children_right, int64_t const** feature, double const** threshold,
     double const** value, int64_t const** n_node_samples, double const** weighted_n_node_samples,
     double const** impurity, double const* base_scores, TreeliteModelHandle* out);
-
+/*!
+ * \brief Deprecated. Please use \ref TreeliteLoadSKLearnHistGradientBoostingRegressorEx instead.
+ */
+TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
+    int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
+    int32_t const* features_map, int64_t const** categories_map, double const* base_scores,
+    TreeliteModelHandle* out);
 /*!
  * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.
  *        Note: HistGradientBoostingRegressor does not support multiple targets (outputs).
@@ -409,16 +417,17 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,)
+ * \param loss_function Name of the loss function used in the boosting progress. This information
+ *                      is used in selecting the postprocessor field in the imported Treelite model.
  * \param out Loaded model
  * \return 0 for success, -1 for failure
  */
-TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
+TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressorEx(int n_iter, int n_features,
     int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
     uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
     uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
     int32_t const* features_map, int64_t const** categories_map, double const* base_scores,
-    TreeliteModelHandle* out);
-
+    char const* loss_function, TreeliteModelHandle* out);
 /*!
  * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
  *        Note: HistGradientBoostingClassifier does not support multiple targets (outputs).

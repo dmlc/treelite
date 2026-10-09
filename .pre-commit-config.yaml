@@ -10,7 +10,7 @@ repos:
   - id: check-added-large-files
     args: ["--maxkb=4000"]
 - repo: https://github.com/psf/black
-  rev: 26.5.1
+  rev: 26.10.0
   hooks:
   - id: black
 - repo: https://github.com/pycqa/isort
@@ -19,7 +19,7 @@ repos:
   - id: isort
     args: ["--profile", "black", "--filter-files"]
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.21.1
+  rev: v0.22.0
   hooks:
   - id: cython-lint
   - id: double-quote-cython-strings
@@ -49,12 +49,12 @@ repos:
       additional_dependencies: [cpplint==1.6.1]
       types_or: [c++]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v2.3.1
+  rev: v2.4.0
   hooks:
     - id: mypy
       additional_dependencies: [types-setuptools, xgboost]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.16.9
+  rev: v0.16.10
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

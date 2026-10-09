@@ -307,6 +307,8 @@ std::unique_ptr<treelite::Model> LoadGradientBoostingClassifier(int n_iter, int 
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,)
+ * \param loss_function Name of the loss function used in the boosting progress. This information
+ *                      is used in selecting the postprocessor field in the imported Treelite model.
  * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, int n_features,
@@ -314,7 +316,7 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, i
     std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
     std::int32_t const* features_map, std::int64_t const** categories_map,
-    double const* base_scores);
+    double const* base_scores, std::string const& loss_function);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.

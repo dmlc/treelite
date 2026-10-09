@@ -6,6 +6,7 @@
  */
 
 #include <cstdint>
+#include <string>
 
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
@@ -126,11 +127,26 @@ int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
     std::int32_t const* features_map, std::int64_t const** categories_map,
     double const* base_scores, TreeliteModelHandle* out) {
+  TREELITE_LOG(WARNING)
+      << "TreeliteLoadSKLearnHistGradientBoostingRegressor() is deprecated. Please use "
+      << "TreeliteLoadSKLearnHistGradientBoostingRegressorEx() instead.";
+  return TreeliteLoadSKLearnHistGradientBoostingRegressorEx(n_iter, n_features, node_count, nodes,
+      expected_sizeof_node_struct, n_categorical_splits, raw_left_cat_bitsets, known_cat_bitsets,
+      known_cat_bitsets_offset_map, features_map, categories_map, base_scores, "squared_error",
+      out);
+}
+
+int TreeliteLoadSKLearnHistGradientBoostingRegressorEx(int n_iter, int n_features,
+    std::int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
+    std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    std::int32_t const* features_map, std::int64_t const** categories_map,
+    double const* base_scores, char const* loss_function, TreeliteModelHandle* out) {
   API_BEGIN();
   auto model = treelite::model_loader::sklearn::LoadHistGradientBoostingRegressor(n_iter,
       n_features, node_count, nodes, expected_sizeof_node_struct, n_categorical_splits,
       raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, features_map,
-      categories_map, base_scores);
+      categories_map, base_scores, std::string{loss_function});
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }

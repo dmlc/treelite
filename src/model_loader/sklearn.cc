@@ -12,6 +12,7 @@
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <string>
 
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
@@ -103,16 +104,22 @@ class GradientBoostingMulticlassClassifierMixIn {
 
 class HistGradientBoostingRegressorMixIn {
  public:
-  explicit HistGradientBoostingRegressorMixIn(double base_score) : base_score_{base_score} {}
+  explicit HistGradientBoostingRegressorMixIn(double base_score, std::string const& loss_function)
+      : base_score_{base_score}, loss_function_{loss_function} {}
 
   void HandleMetadata(model_builder::ModelBuilder& builder, int n_trees, int n_features,
       [[maybe_unused]] int n_targets, [[maybe_unused]] std::int32_t const* n_classes) {
     model_builder::Metadata metadata{n_features, TaskType::kRegressor, false, 1, {1}, {1, 1}};
     model_builder::TreeAnnotation tree_annotation{
         n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PostProcessorFunc postprocessor{"identity"};
     std::vector<double> base_scores{base_score_};
-    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
+
+    std::string postprocessor{"identity"};
+    if (loss_function_ == "gamma" || loss_function_ == "poisson") {
+      postprocessor = "exponential";
+    }
+    builder.InitializeMetadata(metadata, tree_annotation,
+        model_builder::PostProcessorFunc{postprocessor}, base_scores, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -122,6 +129,7 @@ class HistGradientBoostingRegressorMixIn {
 
  private:
   double base_score_;
+  std::string loss_function_;
 };
 
 class HistGradientBoostingBinaryClassifierMixIn {
@@ -376,8 +384,8 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, i
     std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
     std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
     std::int32_t const* features_map, std::int64_t const** categories_map,
-    double const* base_scores) {
-  detail::HistGradientBoostingRegressorMixIn mixin{base_scores[0]};
+    double const* base_scores, std::string const& loss_function) {
+  detail::HistGradientBoostingRegressorMixIn mixin{base_scores[0], loss_function};
   return detail::LoadHistGradientBoosting(mixin, n_iter, n_features, 1, node_count, nodes,
       expected_sizeof_node_struct, raw_left_cat_bitsets, features_map, categories_map);
 }

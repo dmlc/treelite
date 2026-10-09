@@ -452,7 +452,7 @@ def _import_hist_gradient_boosting(sklearn_model) -> Model:
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):
         _check_call(
-            _LIB.TreeliteLoadSKLearnHistGradientBoostingRegressor(
+            _LIB.TreeliteLoadSKLearnHistGradientBoostingRegressorEx(
                 ctypes.c_int(sklearn_model.n_iter_),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 c_array(ctypes.c_int64, node_count),
@@ -467,6 +467,7 @@ def _import_hist_gradient_boosting(sklearn_model) -> Model:
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),
+                c_str(sklearn_model.loss),
                 ctypes.byref(handle),
             )
         )

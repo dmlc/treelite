@@ -218,6 +218,18 @@ def test_lightgbm_categorical_data():
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
+def test_lightgbm_linear_tree_not_supported():
+    """Linear trees cannot be represented, so loading them should fail"""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((100, 3))
+    y = X[:, 0] * 2.0 + X[:, 1]
+    dtrain = lgb.Dataset(X, label=y)
+    params = {"objective": "regression", "linear_tree": True, "verbose": -1}
+    bst = lgb.train(params, dtrain, num_boost_round=3)
+    with pytest.raises(treelite.TreeliteError, match="linear trees"):
+        treelite.frontend.from_lightgbm(bst)
+
+
 def test_lightgbm_sparse_ranking_model(tmpdir):
     """Generate a LightGBM ranking model with highly sparse data."""
     rng = np.random.default_rng(seed=2020)

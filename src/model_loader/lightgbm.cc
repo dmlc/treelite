@@ -302,6 +302,12 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     TREELITE_CHECK(it != dict.end()) << "Ill-formed LightGBM model file: need num_cat";
     tree.num_cat = TextToNumber<int>(it->second);
 
+    // Linear trees store a linear model in each leaf (leaf_const, leaf_coeff), which
+    // cannot be represented by Treelite. Using leaf_value alone gives wrong predictions.
+    it = dict.find("is_linear");
+    TREELITE_CHECK(it == dict.end() || TextToNumber<int>(it->second) == 0)
+        << "LightGBM models with linear trees (linear_tree=True) are not supported";
+
     it = dict.find("leaf_value");
     TREELITE_CHECK(it != dict.end() && !it->second.empty())
         << "Ill-formed LightGBM model file: need leaf_value";

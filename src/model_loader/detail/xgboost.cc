@@ -40,6 +40,7 @@ std::string GetPostProcessor(std::string const& objective_name) {
     return "hinge";
   } else if (objective_name == "reg:squarederror" || objective_name == "reg:linear"
              || objective_name == "reg:squaredlogerror" || objective_name == "reg:pseudohubererror"
+             || objective_name == "reg:absoluteerror" || objective_name == "reg:quantileerror"
              || objective_name == "binary:logitraw" || objective_name == "rank:pairwise"
              || objective_name == "rank:ndcg" || objective_name == "rank:map") {
     return "identity";

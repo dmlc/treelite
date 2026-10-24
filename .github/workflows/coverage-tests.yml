@@ -47,23 +47,25 @@ jobs:
   win-python-coverage:
     name: Run Python and C++ tests with test coverage (Windows)
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd /C CALL {0}
     steps:
     - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-variant: Miniforge3
-        miniforge-version: latest
+        # Miniforge 26.9.4-0 fails during conda init on Windows (updating conda.exe).
+        miniforge-version: 26.7.2-1
         conda-remove-defaults: "true"
         activate-environment: dev
         environment-file: ops/conda_env/dev.yml
         use-mamba: true
     - name: Display Conda env
-      shell: cmd /C CALL {0}
       run: |
         conda info
         conda list
     - name: Run tests with test coverage computation
-      shell: cmd /C CALL {0}
       run: |
         call ops/win-python-coverage.bat
   macos-python-coverage:

@@ -1,9 +1,10 @@
 /*!
- * Copyright (c) 2024 by Contributors
+ * Copyright (c) 2024-2026 by Contributors
  * \file model_query.cc
  * \author Hyunsu Cho
  * \brief Methods for querying various properties of tree models
  */
+#include <algorithm>  // for max
 #include <cstdint>
 #include <stack>
 #include <utility>
@@ -13,25 +14,23 @@
 #include <treelite/tree.h>
 
 namespace {
-
 template <typename ThresholdType, typename LeafOutputType>
 std::uint32_t GetDepth(treelite::Tree<ThresholdType, LeafOutputType> const& tree) {
   // Visit all trees nodes in depth-first order
-  std::stack<int> st;
-  st.push(0);
+  using NodeDepth = std::pair<std::int32_t, std::uint32_t>;
+  std::stack<NodeDepth> st;
+  st.push({0, 0u});
+
   std::uint32_t max_depth = 0;
-  std::uint32_t depth = 1;
   while (!st.empty()) {
-    int node_id = st.top();
+    auto node_depth = st.top();
     st.pop();
-    if (tree.IsLeaf(node_id)) {
-      --depth;
+    if (tree.IsLeaf(node_depth.first)) {
+      max_depth = std::max(max_depth, node_depth.second);
     } else {
-      st.push(tree.LeftChild(node_id));
-      st.push(tree.RightChild(node_id));
-      ++depth;
+      st.push({tree.LeftChild(node_depth.first), node_depth.second + 1});
+      st.push({tree.RightChild(node_depth.first), node_depth.second + 1});
     }
-    max_depth = std::max(max_depth, depth);
   }
   return max_depth;
 }
@@ -39,7 +38,6 @@ std::uint32_t GetDepth(treelite::Tree<ThresholdType, LeafOutputType> const& tree
 }  // anonymous namespace
 
 namespace treelite {
-
 std::vector<std::uint32_t> Model::GetTreeDepth() const {
   return std::visit(
       [](auto&& concrete_model) {
@@ -52,5 +50,4 @@ std::vector<std::uint32_t> Model::GetTreeDepth() const {
       },
       variant_);
 }
-
 }  // namespace treelite

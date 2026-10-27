@@ -362,6 +362,26 @@ def test_skl_hist_gradient_boosting_with_string_categorical():
         _ = treelite.sklearn.import_model(clf)
 
 
+@pytest.mark.parametrize("max_depth", [1, 3, None])
+def test_skl_tree_depth(max_depth):
+    """Preserve trained tree depths through import and export."""
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(100, 3))
+    y = rng.normal(size=100)
+    original = RandomForestRegressor(
+        n_estimators=3, max_depth=max_depth, random_state=0
+    ).fit(X, y)
+    expected_depths = [tree.get_depth() for tree in original.estimators_]
+
+    model = treelite.sklearn.import_model(original)
+    np.testing.assert_array_equal(model.get_tree_depth(), expected_depths)
+
+    exported = treelite.sklearn.export_model(model)
+    np.testing.assert_array_equal(
+        [tree.get_depth() for tree in exported.estimators_], expected_depths
+    )
+
+
 @given(
     dataset=standard_regression_datasets(
         n_targets=integers(min_value=1, max_value=3),

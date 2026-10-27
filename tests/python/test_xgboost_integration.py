@@ -36,6 +36,30 @@ def _get_model_filename(name, model_format):
     return f"{name}.{model_format}"
 
 
+@pytest.mark.parametrize("max_depth", [1, 3, 8])
+def test_xgb_tree_depth(max_depth):
+    """Compare imported depths with the actual XGBoost tree structure."""
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(100, 3))
+    y = rng.normal(size=100)
+    booster = xgb.train(
+        {"objective": "reg:squarederror", "max_depth": max_depth},
+        xgb.DMatrix(X, label=y),
+        num_boost_round=3,
+    )
+
+    def tree_depth(node):
+        if "leaf" in node:
+            return 0
+        return 1 + max(tree_depth(child) for child in node["children"])
+
+    expected_depths = [
+        tree_depth(json.loads(tree)) for tree in booster.get_dump(dump_format="json")
+    ]
+    model = treelite.frontend.from_xgboost(booster)
+    np.testing.assert_array_equal(model.get_tree_depth(), expected_depths)
+
+
 def generate_data_for_squared_log_error(n_targets: int = 1):
     """Generate data containing outliers."""
     n_rows = 4096

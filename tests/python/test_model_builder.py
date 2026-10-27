@@ -128,6 +128,8 @@ def test_leaf_vector_rf(predict_kind):
     make_tree_stump([1.0, 0.0, 0.0], [0.0, 0.5, 0.5])
 
     model = builder.commit()
+    np.testing.assert_array_equal(model.get_tree_depth(), [1, 1])
+
     dmat = np.array([[1.0], [-1.0]], dtype=np.float32)
     if predict_kind in "default":
         expected_pred = np.array([[[100.0, 200.5, 300.5]], [[101.0, 200.0, 300.0]]])

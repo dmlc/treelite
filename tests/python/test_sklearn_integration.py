@@ -368,7 +368,9 @@ def test_skl_tree_depth(max_depth):
     rng = np.random.default_rng(0)
     X = rng.normal(size=(100, 3))
     y = rng.normal(size=100)
-    original = RandomForestRegressor(n_estimators=3, max_depth=max_depth, random_state=0).fit(X, y)
+    original = RandomForestRegressor(
+        n_estimators=3, max_depth=max_depth, random_state=0
+    ).fit(X, y)
     expected_depths = [tree.get_depth() for tree in original.estimators_]
 
     model = treelite.sklearn.import_model(original)

@@ -50,6 +50,12 @@ void WriteElement(WriterType& writer, T e) {
 }
 
 template <typename WriterType, typename T,
+    typename std::enable_if<std::is_same_v<T, std::int8_t>, bool>::type = true>
+void WriteElement(WriterType& writer, T e) {
+  writer.Int(static_cast<int>(e));
+}
+
+template <typename WriterType, typename T,
     typename std::enable_if<std::is_floating_point<T>::value, bool>::type = true>
 void WriteElement(WriterType& writer, T e) {
   writer.Double(static_cast<double>(e));
@@ -156,6 +162,24 @@ void SerializeModelParametersToJSON(WriterType& writer, treelite::Model const& m
   WriteString(writer, model.attributes);
 }
 
+template <typename WriterType>
+void SerializeCategoricalEncodingToJSON(WriterType& writer, treelite::Model const& model) {
+  writer.Key("int_cat_values");
+  WriteArray(writer, model.int_cat_values);
+  writer.Key("str_cat_values");
+  WriteArray(writer, model.str_cat_values);
+  writer.Key("str_cat_offsets");
+  WriteArray(writer, model.str_cat_offsets);
+  writer.Key("int_cat_feature_segments");
+  WriteArray(writer, model.int_cat_feature_segments);
+  writer.Key("str_cat_feature_segments");
+  WriteArray(writer, model.str_cat_feature_segments);
+  writer.Key("int_sorted_idx");
+  WriteArray(writer, model.int_sorted_idx);
+  writer.Key("str_sorted_idx");
+  WriteArray(writer, model.str_sorted_idx);
+}
+
 }  // anonymous namespace
 
 namespace treelite {
@@ -201,6 +225,8 @@ void DumpModelAsJSON(WriterType& writer, Model const& model) {
   WriteArray(writer, model.class_id);
 
   SerializeModelParametersToJSON(writer, model);
+
+  SerializeCategoricalEncodingToJSON(writer, model);
 
   writer.Key("trees");
   writer.StartArray();

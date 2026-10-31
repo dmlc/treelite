@@ -553,6 +553,15 @@ class Model {
   ContiguousArray<double> base_scores;
   std::string attributes;
 
+  /* Categorical encoding */
+  ContiguousArray<std::int64_t> int_cat_values;
+  ContiguousArray<std::int8_t> str_cat_values;
+  ContiguousArray<std::int32_t> str_cat_offsets;
+  ContiguousArray<std::int32_t> int_cat_feature_segments;
+  ContiguousArray<std::int32_t> str_cat_feature_segments;
+  ContiguousArray<std::int32_t> int_sorted_idx;
+  ContiguousArray<std::int32_t> str_sorted_idx;
+
  private:
   /* Note: the following member fields shall be re-computed at serialization time */
   // Number of trees

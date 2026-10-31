@@ -25,6 +25,7 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 
+#include "detail/xgboost_json/cat_encoding.h"
 #include "detail/xgboost_json/delegated_handler.h"
 #include "detail/xgboost_json/sax_adapters.h"
 
@@ -139,6 +140,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
   }
   treelite::model_loader::detail::xgboost::ParsedXGBoostModel parsed = handler->get_result();
   auto model = parsed.builder->CommitModel();
+  SetCategoricalEncoding(model.get(), parsed.category_container);
 
   // Apply Dart weights
   if (!parsed.weight_drop.empty()) {

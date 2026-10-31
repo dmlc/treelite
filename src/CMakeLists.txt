@@ -108,6 +108,8 @@ target_sources(objtreelite
     model_loader/detail/xgboost.h
     model_loader/detail/xgboost_json/sax_adapters.h
     model_loader/detail/xgboost_json/sax_adapters.cc
+    model_loader/detail/xgboost_json/cat_encoding.h
+    model_loader/detail/xgboost_json/cat_encoding.cc
     model_loader/detail/xgboost_json/delegated_handler.h
     model_loader/detail/xgboost_json/delegated_handler.cc
 )

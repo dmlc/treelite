@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <string>
+#include <variant>
 
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
@@ -80,5 +81,42 @@ int TreeliteGetTreeDepth(TreeliteModelHandle model, std::uint32_t** out, std::si
   ret_depth = model_->GetTreeDepth();
   *out = ret_depth.data();
   *out_len = ret_depth.size();
+  API_END();
+}
+
+int TreeliteGetCategoryKind(TreeliteModelHandle model, std::int32_t feature_id, int* out) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  *out = static_cast<int>(model_->GetCategoricalKind(feature_id));
+  API_END();
+}
+
+int TreeliteGetCategoryValuesInteger(
+    TreeliteModelHandle model, std::int32_t feature_id, int64_t** out) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  TREELITE_CHECK(model_->GetCategoricalKind(feature_id) == treelite::CategoricalKind::kInteger)
+      << "Feature " << feature_id << " is not a categorical feature with integer values";
+  auto& cat_values = treelite::c_api::ReturnValueStore::Get()->ret_int64_vec;
+  cat_values = std::get<std::vector<std::int64_t>>(model_->GetCategoryValues(feature_id));
+  *out = cat_values.data();
+  API_END();
+}
+
+int TreeliteGetCategoryValuesString(
+    TreeliteModelHandle model, std::int32_t feature_id, char const*** out) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  TREELITE_CHECK(model_->GetCategoricalKind(feature_id) == treelite::CategoricalKind::kString)
+      << "Feature " << feature_id << " is not a categorical feature with string values";
+
+  auto& cat_values = treelite::c_api::ReturnValueStore::Get()->ret_vec_str;
+  cat_values = std::get<std::vector<std::string>>(model_->GetCategoryValues(feature_id));
+
+  auto& vec_charp = treelite::c_api::ReturnValueStore::Get()->ret_vec_charp;
+  vec_charp.resize(cat_values.size());
+  std::transform(cat_values.begin(), cat_values.end(), vec_charp.begin(),
+      [](std::string const& e) { return e.c_str(); });
+  *out = vec_charp.data();
   API_END();
 }

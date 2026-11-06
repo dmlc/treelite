@@ -64,6 +64,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/threading_utils.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/tree.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/categorical.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/operator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/task_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/tree_node_type.h
@@ -85,6 +86,7 @@ target_sources(objtreelite
     c_api/model_loader.cc
     c_api/serializer.cc
     c_api/sklearn.cc
+    enum/categorical.cc
     enum/operator.cc
     enum/task_type.cc
     enum/tree_node_type.cc

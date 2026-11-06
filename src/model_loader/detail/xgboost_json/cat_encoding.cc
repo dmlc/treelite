@@ -27,52 +27,55 @@ void SetCategoricalEncoding(Model* model, ParsedCategoryContainer const& cat_con
   TREELITE_CHECK_EQ(cat_container.sorted_idx.size(),
       static_cast<std::size_t>(cat_container.feature_segments.back()));
 
-  model->int_cat_feature_segments = std::vector<std::int32_t>{0};
-  model->str_cat_feature_segments = std::vector<std::int32_t>{0};
-  model->str_cat_offsets = std::vector<std::int32_t>{0};
+  model->int_cat_feature_segments_ = std::vector<std::int32_t>{0};
+  model->str_cat_feature_segments_ = std::vector<std::int32_t>{0};
+  model->str_cat_offsets_ = std::vector<std::int32_t>{0};
   std::size_t fidx = 0;
   for (ParsedCategoryInfo const& enc_item : cat_container.enc) {
     if (enc_item.type.has_value()) {
       // Integer categories
       auto const& int_cat_values = std::get<std::vector<std::int64_t>>(enc_item.values);
       TREELITE_CHECK(!int_cat_values.empty());
-      model->int_cat_values.Extend(int_cat_values);
-      model->int_cat_feature_segments.PushBack(
-          static_cast<std::int32_t>(model->int_cat_values.Size()));
-      model->int_sorted_idx.Extend(std::vector<std::int32_t>(
+      model->cat_kind_.PushBack(CategoricalKind::kInteger);
+      model->int_cat_values_.Extend(int_cat_values);
+      model->int_cat_feature_segments_.PushBack(
+          static_cast<std::int32_t>(model->int_cat_values_.Size()));
+      model->int_sorted_idx_.Extend(std::vector<std::int32_t>(
           cat_container.sorted_idx.begin() + cat_container.feature_segments[fidx],
           cat_container.sorted_idx.begin() + cat_container.feature_segments[fidx + 1]));
-      TREELITE_CHECK_EQ(model->int_sorted_idx.Size(), model->int_cat_feature_segments.Back());
+      TREELITE_CHECK_EQ(model->int_sorted_idx_.Size(), model->int_cat_feature_segments_.Back());
 
-      model->str_cat_feature_segments.PushBack(model->str_cat_feature_segments.Back());
+      model->str_cat_feature_segments_.PushBack(model->str_cat_feature_segments_.Back());
     } else if (enc_item.offsets.has_value() && !enc_item.offsets->empty()) {
       // String categories
+      model->cat_kind_.PushBack(CategoricalKind::kString);
       auto const& str_cat_values = std::get<std::vector<std::int8_t>>(enc_item.values);
-      model->str_cat_values.Extend(str_cat_values);
+      model->str_cat_values_.Extend(str_cat_values);
       auto const& str_cat_offsets = enc_item.offsets.value();
       TREELITE_CHECK_GT(str_cat_offsets.size(), 1UL);
-      auto last_offset = model->str_cat_offsets.Back();
+      auto last_offset = model->str_cat_offsets_.Back();
       for (std::size_t i = 1; i < str_cat_offsets.size(); ++i) {
-        model->str_cat_offsets.PushBack(last_offset + str_cat_offsets[i]);
+        model->str_cat_offsets_.PushBack(last_offset + str_cat_offsets[i]);
       }
-      model->str_cat_feature_segments.PushBack(
-          static_cast<std::int32_t>(model->str_cat_offsets.Size() - 1));
-      model->str_sorted_idx.Extend(std::vector<std::int32_t>(
+      model->str_cat_feature_segments_.PushBack(
+          static_cast<std::int32_t>(model->str_cat_offsets_.Size() - 1));
+      model->str_sorted_idx_.Extend(std::vector<std::int32_t>(
           cat_container.sorted_idx.begin() + cat_container.feature_segments[fidx],
           cat_container.sorted_idx.begin() + cat_container.feature_segments[fidx + 1]));
-      TREELITE_CHECK_EQ(model->str_sorted_idx.Size(), model->str_cat_feature_segments.Back());
+      TREELITE_CHECK_EQ(model->str_sorted_idx_.Size(), model->str_cat_feature_segments_.Back());
 
-      model->int_cat_feature_segments.PushBack(model->int_cat_feature_segments.Back());
+      model->int_cat_feature_segments_.PushBack(model->int_cat_feature_segments_.Back());
     } else {
-      model->int_cat_feature_segments.PushBack(model->int_cat_feature_segments.Back());
-      model->str_cat_feature_segments.PushBack(model->str_cat_feature_segments.Back());
+      model->cat_kind_.PushBack(CategoricalKind::kNone);
+      model->int_cat_feature_segments_.PushBack(model->int_cat_feature_segments_.Back());
+      model->str_cat_feature_segments_.PushBack(model->str_cat_feature_segments_.Back());
     }
     fidx++;
   }
   TREELITE_CHECK_EQ(
-      model->int_cat_feature_segments.Size(), static_cast<std::size_t>(model->num_feature + 1));
+      model->int_cat_feature_segments_.Size(), static_cast<std::size_t>(model->num_feature + 1));
   TREELITE_CHECK_EQ(
-      model->str_cat_feature_segments.Size(), static_cast<std::size_t>(model->num_feature + 1));
+      model->str_cat_feature_segments_.Size(), static_cast<std::size_t>(model->num_feature + 1));
 }
 
 }  // namespace treelite::model_loader::detail::xgboost

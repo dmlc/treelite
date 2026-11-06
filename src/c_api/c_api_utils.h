@@ -24,7 +24,10 @@ struct ReturnValueEntry {
   std::vector<char> ret_buffer;  // Used by optimized SerializeToBuffer
   std::vector<std::uint32_t> ret_uint32_vec;
   std::vector<std::uint64_t> ret_uint64_vec;
+  std::vector<std::int64_t> ret_int64_vec;
   std::vector<treelite::PyBufferFrame> ret_frames;
+  std::vector<std::string> ret_vec_str;
+  std::vector<char const*> ret_vec_charp;
 };
 using ReturnValueStore = ThreadLocalStore<ReturnValueEntry>;
 

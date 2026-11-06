@@ -91,7 +91,7 @@ std::unique_ptr<treelite::Model> ParseStream(
               oss << "]" << std::endl;
             }
           },
-          model->GetCategories(fid));
+          model->GetCategoryValues(fid));
       auto sorted_idx = model->GetCategorySortedIdx(fid);
       if (sorted_idx.has_value()) {
         oss << "    sorted_idx = [";

@@ -15,6 +15,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -561,6 +562,10 @@ class Model {
   ContiguousArray<std::int32_t> str_cat_feature_segments;
   ContiguousArray<std::int32_t> int_sorted_idx;
   ContiguousArray<std::int32_t> str_sorted_idx;
+
+  std::variant<std::monostate, std::vector<std::int64_t>, std::vector<std::string>> GetCategories(
+      std::int32_t feature_id);
+  std::optional<std::vector<std::int32_t>> GetCategorySortedIdx(std::int32_t feature_id);
 
  private:
   /* Note: the following member fields shall be re-computed at serialization time */

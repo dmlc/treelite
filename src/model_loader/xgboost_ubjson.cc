@@ -68,6 +68,42 @@ std::unique_ptr<treelite::Model> ParseStream(
   auto model = parsed.builder->CommitModel();
   SetCategoricalEncoding(model.get(), parsed.category_container);
 
+  {
+    std::ostringstream oss;
+    for (std::int32_t fid = 0; fid < model->num_feature; fid++) {
+      oss << "Feature " << fid << ": " << std::endl;
+      std::visit(
+          [&](auto&& categories) {
+            using containter_t = std::remove_const_t<std::remove_reference_t<decltype(categories)>>;
+            if constexpr (std::is_same_v<containter_t, std::monostate>) {
+              oss << "    Not a categorical feature" << std::endl;
+            } else if constexpr (std::is_same_v<containter_t, std::vector<std::int64_t>>) {
+              oss << "    categories = [";
+              for (std::int64_t cat : categories) {
+                oss << std::to_string(cat) << ", ";
+              }
+              oss << "]" << std::endl;
+            } else if constexpr (std::is_same_v<containter_t, std::vector<std::string>>) {
+              oss << "    categories = [";
+              for (std::string cat : categories) {
+                oss << cat << ", ";
+              }
+              oss << "]" << std::endl;
+            }
+          },
+          model->GetCategories(fid));
+      auto sorted_idx = model->GetCategorySortedIdx(fid);
+      if (sorted_idx.has_value()) {
+        oss << "    sorted_idx = [";
+        for (std::int32_t e : sorted_idx.value()) {
+          oss << e << ", ";
+        }
+        oss << "]" << std::endl;
+      }
+    }
+    TREELITE_LOG(INFO) << "\n" << oss.str();
+  }
+
   // Apply Dart weights
   if (!parsed.weight_drop.empty()) {
     auto& trees = std::get<treelite::ModelPreset<float, float>>(model->variant_).trees;

@@ -64,10 +64,12 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/threading_utils.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/tree.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/enum/categorical.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/operator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/task_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/tree_node_type.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
+    categorical.cc
     field_accessor.cc
     json_serializer.cc
     logging.cc
@@ -84,6 +86,7 @@ target_sources(objtreelite
     c_api/model_loader.cc
     c_api/serializer.cc
     c_api/sklearn.cc
+    enum/categorical.cc
     enum/operator.cc
     enum/task_type.cc
     enum/tree_node_type.cc
@@ -108,6 +111,8 @@ target_sources(objtreelite
     model_loader/detail/xgboost.h
     model_loader/detail/xgboost_json/sax_adapters.h
     model_loader/detail/xgboost_json/sax_adapters.cc
+    model_loader/detail/xgboost_json/cat_encoding.h
+    model_loader/detail/xgboost_json/cat_encoding.cc
     model_loader/detail/xgboost_json/delegated_handler.h
     model_loader/detail/xgboost_json/delegated_handler.cc
 )

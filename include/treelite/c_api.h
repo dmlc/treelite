@@ -890,6 +890,15 @@ TREELITE_DLL int TreeliteSetTreeField(
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetTreeDepth(TreeliteModelHandle model, uint32_t** out, size_t* out_len);
+
+TREELITE_DLL int TreeliteGetCategoryKind(TreeliteModelHandle model, int32_t feature_id, int* out);
+
+TREELITE_DLL int TreeliteGetCategoryValuesInteger(
+    TreeliteModelHandle model, int32_t feature_id, int64_t** out);
+
+TREELITE_DLL int TreeliteGetCategoryValuesString(
+    TreeliteModelHandle model, int32_t feature_id, char const*** out);
+
 /*! \} */
 
 /*!

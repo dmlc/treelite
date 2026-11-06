@@ -21,51 +21,26 @@
 
 #include <treelite/model_builder.h>
 
+#include "./cat_encoding.h"
+
 namespace treelite::model_loader::detail::xgboost {
 
-enum class ValueKind : std::int64_t {
-  kString = 0,
-  kNumber = 1,
-  kInteger = 2,
-  kObject = 3,
-  kArray = 4,
-  kBoolean = 5,
-  kNull = 6,
-  kF32Array = 7,
-  kF64Array = 8,
-  kI8Array = 9,
-  kU8Array = 10,
-  kI16Array = 11,
-  kU16Array = 12,
-  kI32Array = 13,
-  kU32Array = 14,
-  kI64Array = 15,
-  kU64Array = 16,
+enum class CatIndexType : std::int64_t {
+  kF32 = 7,
+  kF64 = 8,
+  kI8 = 9,
+  kU8 = 10,
+  kI16 = 11,
+  kU16 = 12,
+  kI32 = 13,
+  kU32 = 14,
+  kI64 = 15,
+  kU64 = 16,
 };
 
 class HandlerConfig {
  public:
   bool allow_unknown_field{false};
-};
-
-struct ParsedStringCategorical {
-  std::vector<std::int32_t> offsets;
-  std::vector<std::int8_t> values;
-};
-
-using ParsedCategoryValuesArray = std::variant<std::monostate, std::vector<std::int8_t>,
-    std::vector<std::int64_t>, std::vector<std::uint64_t>, std::vector<double>>;
-
-struct ParsedCategoryInfo {
-  std::optional<std::int64_t> type{};
-  std::optional<std::vector<std::int32_t>> offsets{};
-  ParsedCategoryValuesArray values{std::monostate{}};
-};
-
-struct ParsedCategoryContainer {
-  std::vector<ParsedCategoryInfo> enc;
-  std::vector<std::int32_t> feature_segments;
-  std::vector<std::int32_t> sorted_idx;
 };
 
 struct ParsedXGBoostModel {

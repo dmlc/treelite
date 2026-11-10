@@ -36,6 +36,9 @@ inline PyBufferFrame GetPyBufferFromArray(void* data, char const* format, std::s
 // Infer format string from data type
 template <typename T>
 inline char const* InferFormatString() {
+  if constexpr (std::is_enum_v<T>) {
+    return InferFormatString<std::underlying_type_t<T>>();
+  }
   switch (sizeof(T)) {
   case 1:
     return (std::is_unsigned_v<T> ? "=B" : "=b");

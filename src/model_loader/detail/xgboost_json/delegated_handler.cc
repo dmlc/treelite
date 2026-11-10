@@ -441,8 +441,8 @@ bool RegTreeHandler::EndObject() {
         std::vector<float> leafvec(size_leaf_vector);
         auto leaf_id = right_children[node_id];
         TREELITE_CHECK_NE(leaf_id, -1) << "Expected a leaf node at index " << node_id;
-        std::copy(&leaf_weights[leaf_id * size_leaf_vector],
-            &leaf_weights[(leaf_id + 1) * size_leaf_vector], leafvec.begin());
+        std::copy(leaf_weights.begin() + leaf_id * size_leaf_vector,
+            leaf_weights.begin() + (leaf_id + 1) * size_leaf_vector, leafvec.begin());
         model_builder.LeafVector(leafvec);
       } else {
         // Scalar leaf output

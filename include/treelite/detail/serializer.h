@@ -27,10 +27,9 @@
 
 namespace treelite::detail::serializer {
 
-inline PyBufferFrame GetPyBufferFromArray(void* data, char const* format, std::size_t itemsize,
-    std::size_t nitem, bool readonly = false) {
-  return PyBufferFrame{
-      data, const_cast<char*>(format), itemsize, nitem, static_cast<int>(readonly)};
+inline PyBufferFrame GetPyBufferFromArray(
+    void* data, char const* format, std::size_t itemsize, std::size_t nitem) {
+  return PyBufferFrame{data, const_cast<char*>(format), itemsize, nitem, 0};
 }
 
 // Infer format string from data type
@@ -84,8 +83,8 @@ inline PyBufferFrame GetPyBufferFromString(std::string* str) {
   return GetPyBufferFromArray(str->data(), "=c", 1, str->length());
 }
 
-inline PyBufferFrame GetPyBufferFromStringConstant(std::string const& str) {
-  return GetPyBufferFromArray(const_cast<char*>(str.data()), "=c", 1, str.length(), true);
+inline PyBufferFrame GetPyBufferFromStringConstant(char const* str) {
+  return PyBufferFrame{const_cast<char*>(str), const_cast<char*>("=c"), 1, std::strlen(str), 1};
 }
 
 template <typename T>

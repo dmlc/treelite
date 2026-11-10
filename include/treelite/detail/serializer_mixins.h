@@ -34,8 +34,9 @@ class StreamSerializerMixIn {
     WriteStringToStream(field, os_);
   }
 
-  void SerializeStringConstant(std::string const& field) {
-    WriteStringToStream(&field, os_);
+  void SerializeStringConstant(char const* field) {
+    std::string tmpstr(field);
+    WriteStringToStream(&tmpstr, os_);
   }
 
   template <typename T>
@@ -86,7 +87,7 @@ class PyBufferSerializerMixIn {
     frames_.push_back(GetPyBufferFromString(field));
   }
 
-  void SerializeStringConstant(std::string const& field) {
+  void SerializeStringConstant(char const* field) {
     frames_.push_back(GetPyBufferFromStringConstant(field));
   }
 
@@ -152,9 +153,9 @@ class SizeCalculatorMixIn {
     total_size_ += field->length();
   }
 
-  void SerializeStringConstant(std::string const& field) {
+  void SerializeStringConstant(char const* field) {
     total_size_ += sizeof(std::uint64_t);  // length prefix
-    total_size_ += field.length();
+    total_size_ += std::strlen(field);
   }
 
   template <typename T>
@@ -202,12 +203,12 @@ class BufferSerializerMixIn {
     }
   }
 
-  void SerializeStringConstant(std::string const& field) {
-    auto const str_len = static_cast<std::uint64_t>(field.length());
+  void SerializeStringConstant(char const* field) {
+    auto const str_len = static_cast<std::uint64_t>(std::strlen(field));
     std::memcpy(buffer_.data() + offset_, &str_len, sizeof(str_len));
     offset_ += sizeof(str_len);
     if (str_len > 0) {
-      std::memcpy(buffer_.data() + offset_, field.data(), str_len);
+      std::memcpy(buffer_.data() + offset_, field, str_len);
       offset_ += str_len;
     }
   }

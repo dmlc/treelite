@@ -158,7 +158,11 @@ class SizeCalculatorMixIn {
   }
 
   template <typename T>
-  void SerializeArray(ContiguousArray<T>* field, [[maybe_unused]] bool is_optional_field = false) {
+  void SerializeArray(ContiguousArray<T>* field, bool is_optional_field = false) {
+    if (is_optional_field) {
+      // For optional fields, record element size (in bytes) as well
+      total_size_ += sizeof(std::uint64_t);
+    }
     total_size_ += sizeof(std::uint64_t);  // length prefix
     total_size_ += sizeof(T) * field->Size();
   }

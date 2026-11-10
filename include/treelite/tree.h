@@ -566,6 +566,9 @@ class Model {
   ContiguousArray<std::int32_t> str_sorted_idx_;
 
   CategoricalKind GetCategoricalKind(std::int32_t feature_id) const {
+    if (cat_kind_.Empty()) {
+      return CategoricalKind::kNone;
+    }
     return cat_kind_[feature_id];
   }
   std::variant<std::monostate, std::vector<std::int64_t>, std::vector<std::string>>

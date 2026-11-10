@@ -902,20 +902,32 @@ TREELITE_DLL int TreeliteGetCategoryKind(TreeliteModelHandle model, int32_t feat
  * \brief Get the integer category values for a categorical feature.
  * \param model Treelite Model object
  * \param feature_id Feature ID
- * \param out Pointer to array holding integer category values
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding integer category values
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetCategoryValuesInteger(
-    TreeliteModelHandle model, int32_t feature_id, int64_t** out);
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, int64_t** out_arr);
 /*!
  * \brief Get the string category values for a categorical feature.
  * \param model Treelite Model object
  * \param feature_id Feature ID
- * \param out Pointer to array holding string category values
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding string category values
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetCategoryValuesString(
-    TreeliteModelHandle model, int32_t feature_id, char const*** out);
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, char const*** out_arr);
+/*!
+ * \brief Get the sorted index for categories. What you'd get from running argsort(cat_values)
+ * \param model Treelite Model object
+ * \param feature_id Feature ID
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding sorted index
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetCategorySortedIdx(
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, int32_t** out_arr);
 /*! \} */
 
 /*!

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <variant>
 
@@ -91,20 +92,21 @@ int TreeliteGetCategoryKind(TreeliteModelHandle model, std::int32_t feature_id, 
   API_END();
 }
 
-int TreeliteGetCategoryValuesInteger(
-    TreeliteModelHandle model, std::int32_t feature_id, int64_t** out) {
+int TreeliteGetCategoryValuesInteger(TreeliteModelHandle model, std::int32_t feature_id,
+    std::size_t* out_len, std::int64_t** out_arr) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   TREELITE_CHECK(model_->GetCategoricalKind(feature_id) == treelite::CategoricalKind::kInteger)
       << "Feature " << feature_id << " is not a categorical feature with integer values";
   auto& cat_values = treelite::c_api::ReturnValueStore::Get()->ret_int64_vec;
   cat_values = std::get<std::vector<std::int64_t>>(model_->GetCategoryValues(feature_id));
-  *out = cat_values.data();
+  *out_len = cat_values.size();
+  *out_arr = cat_values.data();
   API_END();
 }
 
-int TreeliteGetCategoryValuesString(
-    TreeliteModelHandle model, std::int32_t feature_id, char const*** out) {
+int TreeliteGetCategoryValuesString(TreeliteModelHandle model, std::int32_t feature_id,
+    std::size_t* out_len, char const*** out_arr) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   TREELITE_CHECK(model_->GetCategoricalKind(feature_id) == treelite::CategoricalKind::kString)
@@ -117,6 +119,24 @@ int TreeliteGetCategoryValuesString(
   vec_charp.resize(cat_values.size());
   std::transform(cat_values.begin(), cat_values.end(), vec_charp.begin(),
       [](std::string const& e) { return e.c_str(); });
-  *out = vec_charp.data();
+  *out_len = cat_values.size();
+  *out_arr = vec_charp.data();
+  API_END();
+}
+
+int TreeliteGetCategorySortedIdx(
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, int32_t** out_arr) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  auto& sorted_idx = treelite::c_api::ReturnValueStore::Get()->ret_int32_vec;
+
+  std::optional<std::vector<std::int32_t>> sorted_idx_vals
+      = model_->GetCategorySortedIdx(feature_id);
+  TREELITE_CHECK(model_->GetCategoricalKind(feature_id) != treelite::CategoricalKind::kNone
+                 && sorted_idx_vals.has_value())
+      << "Feature " << feature_id << " is not a categorical feature";
+  sorted_idx = sorted_idx_vals.value();
+  *out_len = sorted_idx.size();
+  *out_arr = sorted_idx.data();
   API_END();
 }

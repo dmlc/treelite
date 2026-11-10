@@ -34,9 +34,13 @@ class StreamSerializerMixIn {
     WriteStringToStream(field, os_);
   }
 
+  void SerializeStringConstant(std::string const& field) {
+    WriteStringToStream(&field, os_);
+  }
+
   template <typename T>
-  void SerializeArray(ContiguousArray<T>* field) {
-    WriteArrayToStream(field, os_);
+  void SerializeArray(ContiguousArray<T>* field, bool is_optional_field = false) {
+    WriteArrayToStream(field, os_, is_optional_field);
   }
 
  private:
@@ -57,8 +61,8 @@ class StreamDeserializerMixIn {
   }
 
   template <typename T>
-  void DeserializeArray(ContiguousArray<T>* field) {
-    ReadArrayFromStream(field, is_);
+  void DeserializeArray(ContiguousArray<T>* field, bool is_optional_field = false) {
+    ReadArrayFromStream(field, is_, is_optional_field);
   }
 
   void SkipOptionalField() {
@@ -82,8 +86,12 @@ class PyBufferSerializerMixIn {
     frames_.push_back(GetPyBufferFromString(field));
   }
 
+  void SerializeStringConstant(std::string const& field) {
+    frames_.push_back(GetPyBufferFromStringConstant(field));
+  }
+
   template <typename T>
-  void SerializeArray(ContiguousArray<T>* field) {
+  void SerializeArray(ContiguousArray<T>* field, [[maybe_unused]] bool is_optional_field = false) {
     frames_.push_back(GetPyBufferFromArray(field));
   }
 
@@ -110,12 +118,13 @@ class PyBufferDeserializerMixIn {
   }
 
   template <typename T>
-  void DeserializeArray(ContiguousArray<T>* field) {
+  void DeserializeArray(
+      ContiguousArray<T>* field, [[maybe_unused]] bool is_optional_field = false) {
     InitArrayFromPyBuffer(field, frames_[cur_idx_++]);
   }
 
   void SkipOptionalField() {
-    cur_idx_ += 2;  // field name + content
+    cur_idx_ += 1;  // content
   }
 
  private:
@@ -143,8 +152,13 @@ class SizeCalculatorMixIn {
     total_size_ += field->length();
   }
 
+  void SerializeStringConstant(std::string const& field) {
+    total_size_ += sizeof(std::uint64_t);  // length prefix
+    total_size_ += field.length();
+  }
+
   template <typename T>
-  void SerializeArray(ContiguousArray<T>* field) {
+  void SerializeArray(ContiguousArray<T>* field, [[maybe_unused]] bool is_optional_field = false) {
     total_size_ += sizeof(std::uint64_t);  // length prefix
     total_size_ += sizeof(T) * field->Size();
   }
@@ -184,8 +198,24 @@ class BufferSerializerMixIn {
     }
   }
 
+  void SerializeStringConstant(std::string const& field) {
+    auto const str_len = static_cast<std::uint64_t>(field.length());
+    std::memcpy(buffer_.data() + offset_, &str_len, sizeof(str_len));
+    offset_ += sizeof(str_len);
+    if (str_len > 0) {
+      std::memcpy(buffer_.data() + offset_, field.data(), str_len);
+      offset_ += str_len;
+    }
+  }
+
   template <typename T>
-  void SerializeArray(ContiguousArray<T>* field) {
+  void SerializeArray(ContiguousArray<T>* field, bool is_optional_field = false) {
+    if (is_optional_field) {
+      // For optional fields, record element size (in bytes) as well
+      auto elem_size = static_cast<std::uint64_t>(sizeof(T));
+      std::memcpy(buffer_.data() + offset_, &elem_size, sizeof(elem_size));
+      offset_ += sizeof(elem_size);
+    }
     auto const nelem = static_cast<std::uint64_t>(field->Size());
     std::memcpy(buffer_.data() + offset_, &nelem, sizeof(nelem));
     offset_ += sizeof(nelem);

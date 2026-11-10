@@ -120,9 +120,25 @@ class Serializer {
     mixin_->SerializeArray(&model.base_scores);
     mixin_->SerializeString(&model.attributes);
 
-    /* Extension Slot 1: Per-model optional fields -- to be added later */
-    model.num_opt_field_per_model_ = 0;
+    /* Extension Slot 1: Per-model optional fields */
+    model.num_opt_field_per_model_ = 8;
     mixin_->SerializeScalar(&model.num_opt_field_per_model_);
+    mixin_->SerializeStringConstant("cat_kind");
+    mixin_->SerializeArray(&model.cat_kind_);
+    mixin_->SerializeStringConstant("int_cat_values");
+    mixin_->SerializeArray(&model.int_cat_values_);
+    mixin_->SerializeStringConstant("str_cat_values");
+    mixin_->SerializeArray(&model.str_cat_values_);
+    mixin_->SerializeStringConstant("str_cat_offsets");
+    mixin_->SerializeArray(&model.str_cat_offsets_);
+    mixin_->SerializeStringConstant("int_cat_feature_segments");
+    mixin_->SerializeArray(&model.int_cat_feature_segments_);
+    mixin_->SerializeStringConstant("str_cat_feature_segments");
+    mixin_->SerializeArray(&model.str_cat_feature_segments_);
+    mixin_->SerializeStringConstant("int_sorted_idx");
+    mixin_->SerializeArray(&model.int_sorted_idx_);
+    mixin_->SerializeStringConstant("str_sorted_idx");
+    mixin_->SerializeArray(&model.str_sorted_idx_);
   }
 
   void SerializeTrees(Model& model) {
@@ -234,11 +250,31 @@ class Deserializer {
     mixin_->DeserializeArray(&model->base_scores);
     mixin_->DeserializeString(&model->attributes);
 
-    /* Extension Slot 1: Per-model optional fields -- to be added later */
+    /* Extension Slot 1: Per-model optional fields */
     mixin_->DeserializeScalar(&model->num_opt_field_per_model_);
-    // Ignore extra fields; the input is likely from a later version of Treelite
+    std::string opt_field_name;
     for (std::int32_t i = 0; i < model->num_opt_field_per_model_; ++i) {
-      mixin_->SkipOptionalField();
+      mixin_->DeserializeString(&opt_field_name);
+      if (opt_field_name == "cat_kind") {
+        mixin_->DeserializeArray(&model->cat_kind_, true);
+      } else if (opt_field_name == "int_cat_values") {
+        mixin_->DeserializeArray(&model->int_cat_values_, true);
+      } else if (opt_field_name == "str_cat_values") {
+        mixin_->DeserializeArray(&model->str_cat_values_, true);
+      } else if (opt_field_name == "str_cat_offsets") {
+        mixin_->DeserializeArray(&model->str_cat_offsets_, true);
+      } else if (opt_field_name == "int_cat_feature_segments") {
+        mixin_->DeserializeArray(&model->int_cat_feature_segments_, true);
+      } else if (opt_field_name == "str_cat_feature_segments") {
+        mixin_->DeserializeArray(&model->str_cat_feature_segments_, true);
+      } else if (opt_field_name == "int_sorted_idx") {
+        mixin_->DeserializeArray(&model->int_sorted_idx_, true);
+      } else if (opt_field_name == "str_sorted_idx") {
+        mixin_->DeserializeArray(&model->str_sorted_idx_, true);
+      } else {
+        // Unrecognized optional field
+        mixin_->SkipOptionalField();
+      }
     }
 
     return model;

@@ -55,6 +55,7 @@ TREELITE_DLL_STRUCT TreelitePyBufferFrame {
   char* format;
   size_t itemsize;
   size_t nitem;
+  int readonly;
 };
 /*! \} */
 

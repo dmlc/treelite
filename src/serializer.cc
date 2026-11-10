@@ -124,21 +124,21 @@ class Serializer {
     model.num_opt_field_per_model_ = 8;
     mixin_->SerializeScalar(&model.num_opt_field_per_model_);
     mixin_->SerializeStringConstant("cat_kind");
-    mixin_->SerializeArray(&model.cat_kind_);
+    mixin_->SerializeArray(&model.cat_kind_, true);
     mixin_->SerializeStringConstant("int_cat_values");
-    mixin_->SerializeArray(&model.int_cat_values_);
+    mixin_->SerializeArray(&model.int_cat_values_, true);
     mixin_->SerializeStringConstant("str_cat_values");
-    mixin_->SerializeArray(&model.str_cat_values_);
+    mixin_->SerializeArray(&model.str_cat_values_, true);
     mixin_->SerializeStringConstant("str_cat_offsets");
-    mixin_->SerializeArray(&model.str_cat_offsets_);
+    mixin_->SerializeArray(&model.str_cat_offsets_, true);
     mixin_->SerializeStringConstant("int_cat_feature_segments");
-    mixin_->SerializeArray(&model.int_cat_feature_segments_);
+    mixin_->SerializeArray(&model.int_cat_feature_segments_, true);
     mixin_->SerializeStringConstant("str_cat_feature_segments");
-    mixin_->SerializeArray(&model.str_cat_feature_segments_);
+    mixin_->SerializeArray(&model.str_cat_feature_segments_, true);
     mixin_->SerializeStringConstant("int_sorted_idx");
-    mixin_->SerializeArray(&model.int_sorted_idx_);
+    mixin_->SerializeArray(&model.int_sorted_idx_, true);
     mixin_->SerializeStringConstant("str_sorted_idx");
-    mixin_->SerializeArray(&model.str_sorted_idx_);
+    mixin_->SerializeArray(&model.str_sorted_idx_, true);
   }
 
   void SerializeTrees(Model& model) {

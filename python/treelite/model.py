@@ -430,6 +430,7 @@ class _TreelitePyBufferFrame(ctypes.Structure):  # pylint: disable=R0903
         ("format", ctypes.c_char_p),
         ("itemsize", ctypes.c_size_t),
         ("nitem", ctypes.c_size_t),
+        ("readonly", ctypes.c_int),
     ]
 
 
@@ -488,7 +489,7 @@ def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
     py_buf.obj = ctypes.py_object(frame)
     py_buf.len = frame.nitem * frame.itemsize
     py_buf.itemsize = frame.itemsize
-    py_buf.readonly = 0
+    py_buf.readonly = frame.readonly
     py_buf.ndim = 1
     py_buf.format = frame.format
     py_buf.shape = (ctypes.c_ssize_t * 1)(frame.nitem)

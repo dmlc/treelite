@@ -339,7 +339,9 @@ class Deserializer {
     /* Extension slot 2: Per-tree optional fields -- to be added later */
     mixin_->DeserializeScalar(&tree.num_opt_field_per_tree_);
     // Ignore extra fields; the input is likely from a later version of Treelite
+    std::string opt_field_name;
     for (std::int32_t i = 0; i < tree.num_opt_field_per_tree_; ++i) {
+      mixin_->DeserializeString(&opt_field_name);
       mixin_->SkipOptionalField();
     }
 
@@ -347,6 +349,7 @@ class Deserializer {
     mixin_->DeserializeScalar(&tree.num_opt_field_per_node_);
     // Ignore extra fields; the input is likely from a later version of Treelite
     for (std::int32_t i = 0; i < tree.num_opt_field_per_node_; ++i) {
+      mixin_->DeserializeString(&opt_field_name);
       mixin_->SkipOptionalField();
     }
   }

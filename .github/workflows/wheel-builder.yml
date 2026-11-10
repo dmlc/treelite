@@ -35,7 +35,7 @@ jobs:
             wheel-tag: manylinux_2_28_aarch64
           - os: macos-15-intel
             wheel-tag: macosx_10_15_x86_64 # should match MACOSX_DEPLOYMENT_TARGET in pyproject.toml overrides
-          - os: macos-14
+          - os: macos-15
             wheel-tag: macosx_12_0_arm64
           - os: windows-latest
             wheel-tag: win_amd64

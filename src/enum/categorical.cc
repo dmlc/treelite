@@ -35,7 +35,7 @@ CategoricalKind CategoricalKindFromString(std::string const& name) {
   if (name == "string") {
     return CategoricalKind::kString;
   }
-  TREELITE_LOG(FATAL) << "Unknown operator: " << name;
+  TREELITE_LOG(FATAL) << "Unknown CategoricalKind: " << name;
   return CategoricalKind::kNone;
 }
 

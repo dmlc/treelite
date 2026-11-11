@@ -14,17 +14,17 @@ repos:
   hooks:
   - id: black
 - repo: https://github.com/pycqa/isort
-  rev: 10.0.0b1
+  rev: 10.0.0b2
   hooks:
   - id: isort
     args: ["--profile", "black", "--filter-files"]
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.22.0
+  rev: v0.22.1
   hooks:
   - id: cython-lint
   - id: double-quote-cython-strings
 - repo: https://github.com/PyCQA/flake8
-  rev: 7.4.1
+  rev: 7.5.0
   hooks:
   - id: flake8
     args: [--config=.flake8]
@@ -33,7 +33,7 @@ repos:
     types_or: [python]
     additional_dependencies: [flake8-force]
 - repo: https://github.com/pocc/pre-commit-hooks
-  rev: v1.3.5
+  rev: v1.5.0
   hooks:
     - id: clang-format
       args: ["-i", "--style=file:.clang-format"]
@@ -49,12 +49,12 @@ repos:
       additional_dependencies: [cpplint==1.6.1]
       types_or: [c++]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v2.4.0
+  rev: v2.4.1
   hooks:
     - id: mypy
       additional_dependencies: [types-setuptools, xgboost]
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.17.1
+  rev: v0.17.4
   hooks:
     - id: ruff
       args: ["--config", "python/pyproject.toml"]

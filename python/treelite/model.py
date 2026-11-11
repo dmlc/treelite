@@ -7,6 +7,7 @@ import json
 import pathlib
 import platform
 from enum import IntEnum
+from functools import cached_property
 from typing import Any, List, Optional, Union
 
 import numpy as np
@@ -34,74 +35,11 @@ class Model:
 
     def __init__(self, *, handle: Optional[Any] = None):
         self._handle = handle
-        if self._handle is not None:
-            self._load_categorical_info()
 
     def __del__(self):
         if self.handle is not None:
             _check_call(_LIB.TreeliteFreeModel(self._handle))
             self._handle = None
-
-    def _load_categorical_info(self):
-        n_features = self.num_feature
-
-        categorical_info = {}
-        for feature_id in range(n_features):
-            cat_kind = ctypes.c_int()
-            _check_call(
-                _LIB.TreeliteGetCategoryKind(
-                    self.handle, ctypes.c_int32(feature_id), ctypes.byref(cat_kind)
-                )
-            )
-            if cat_kind.value == _CategoricalKind.kInteger:
-                int_cat_vals = ctypes.POINTER(ctypes.c_int64)()
-                int_cat_len = ctypes.c_size_t()
-                _check_call(
-                    _LIB.TreeliteGetCategoryValuesInteger(
-                        self.handle,
-                        ctypes.c_int32(feature_id),
-                        ctypes.byref(int_cat_len),
-                        ctypes.byref(int_cat_vals),
-                    )
-                )
-                # Make a copy here, since the C API function returns ephemeral pointer
-                cat_vals = np.ctypeslib.as_array(
-                    int_cat_vals, shape=(int_cat_len.value,)
-                ).tolist()
-            elif cat_kind.value == _CategoricalKind.kString:
-                str_cat_vals = ctypes.POINTER(ctypes.c_char_p)()
-                str_cat_len = ctypes.c_size_t()
-                _check_call(
-                    _LIB.TreeliteGetCategoryValuesString(
-                        self.handle,
-                        ctypes.c_int32(feature_id),
-                        ctypes.byref(str_cat_len),
-                        ctypes.byref(str_cat_vals),
-                    )
-                )
-                cat_vals = from_cstr_to_pystr(str_cat_vals, str_cat_len)
-            else:
-                cat_vals = None
-
-            if cat_kind.value in [_CategoricalKind.kInteger, _CategoricalKind.kString]:
-                sorted_idx_vals = ctypes.POINTER(ctypes.c_int32)()
-                sorted_idx_len = ctypes.c_size_t()
-                _check_call(
-                    _LIB.TreeliteGetCategorySortedIdx(
-                        self.handle,
-                        ctypes.c_int32(feature_id),
-                        ctypes.byref(sorted_idx_len),
-                        ctypes.byref(sorted_idx_vals),
-                    )
-                )
-                categorical_info[feature_id] = {
-                    "categories": cat_vals,
-                    "sorted_idx": np.ctypeslib.as_array(
-                        sorted_idx_vals, shape=(sorted_idx_len.value,)
-                    ).tolist(),
-                }
-
-        self._categorical_info = categorical_info
 
     @property
     def handle(self):
@@ -162,9 +100,69 @@ class Model:
         attributes_str = array.tobytes().decode("utf-8")
         return json.loads(attributes_str)
 
-    @property
+    @cached_property
     def categorical_info(self) -> dict[int, dict[str, Union[int, str]]]:
-        return self._categorical_info
+        if self._handle is None:
+            raise AttributeError("Model not loaded yet")
+
+        n_features = self.num_feature
+
+        categorical_info = {}
+        for feature_id in range(n_features):
+            cat_kind = ctypes.c_int()
+            _check_call(
+                _LIB.TreeliteGetCategoryKind(
+                    self.handle, ctypes.c_int32(feature_id), ctypes.byref(cat_kind)
+                )
+            )
+            if cat_kind.value == _CategoricalKind.kInteger:
+                int_cat_vals = ctypes.POINTER(ctypes.c_int64)()
+                int_cat_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategoryValuesInteger(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(int_cat_len),
+                        ctypes.byref(int_cat_vals),
+                    )
+                )
+                # Make a copy here, since the C API function returns ephemeral pointer
+                cat_vals = np.ctypeslib.as_array(
+                    int_cat_vals, shape=(int_cat_len.value,)
+                ).tolist()
+            elif cat_kind.value == _CategoricalKind.kString:
+                str_cat_vals = ctypes.POINTER(ctypes.c_char_p)()
+                str_cat_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategoryValuesString(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(str_cat_len),
+                        ctypes.byref(str_cat_vals),
+                    )
+                )
+                cat_vals = from_cstr_to_pystr(str_cat_vals, str_cat_len)
+            else:
+                cat_vals = None
+
+            if cat_kind.value in [_CategoricalKind.kInteger, _CategoricalKind.kString]:
+                sorted_idx_vals = ctypes.POINTER(ctypes.c_int32)()
+                sorted_idx_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategorySortedIdx(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(sorted_idx_len),
+                        ctypes.byref(sorted_idx_vals),
+                    )
+                )
+                categorical_info[feature_id] = {
+                    "categories": cat_vals,
+                    "sorted_idx": np.ctypeslib.as_array(
+                        sorted_idx_vals, shape=(sorted_idx_len.value,)
+                    ).tolist(),
+                }
+        return categorical_info
 
     @classmethod
     def concatenate(cls, model_objs: List[Model]) -> Model:

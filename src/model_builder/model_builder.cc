@@ -283,6 +283,7 @@ class ModelBuilderImpl : public ModelBuilder {
     TREELITE_CHECK_EQ(model_->GetNumTree(), expected_num_tree_)
         << "Expected " << expected_num_tree_ << " trees but only got " << model_->GetNumTree()
         << " trees instead";
+    FinalizeSetCategoricalInfo(model_.get());
     current_state_ = ModelBuilderState::kModelComplete;
     return std::move(model_);
   }
@@ -291,6 +292,20 @@ class ModelBuilderImpl : public ModelBuilder {
       PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes) override {
     InitializeMetadataImpl(metadata, tree_annotation, postprocessor, base_scores, attributes);
+  }
+
+  void SetCategoricalInfo(std::int32_t feature_id, std::vector<std::int64_t> const& cat_values,
+      std::vector<std::int32_t> const& sorted_idx) override {
+    TREELITE_CHECK_EQ(categorical_info_.count(feature_id), 0)
+        << "Must set only one categorical info for each feature";
+    categorical_info_.emplace(feature_id, CategoricalInfo{cat_values, sorted_idx});
+  }
+
+  void SetCategoricalInfo(std::int32_t feature_id, std::vector<std::string> const& cat_values,
+      std::vector<std::int32_t> const& sorted_idx) override {
+    TREELITE_CHECK_EQ(categorical_info_.count(feature_id), 0)
+        << "Must set only one categorical info for each feature";
+    categorical_info_.emplace(feature_id, CategoricalInfo{cat_values, sorted_idx});
   }
 
  private:
@@ -304,6 +319,13 @@ class ModelBuilderImpl : public ModelBuilder {
   ModelBuilderState current_state_;
   bool metadata_initialized_{false};
   bool flag_check_orphaned_nodes_{true};
+
+  /* Categorical info */
+  struct CategoricalInfo {
+    std::variant<std::vector<std::int64_t>, std::vector<std::string>> cat_values_;
+    std::vector<std::int32_t> sorted_idx_;
+  };
+  std::map<std::int32_t, CategoricalInfo> categorical_info_;
 
   void CheckStateWithDiagnostic(std::string const& func_name,
       std::vector<ModelBuilderState> const& valid_states, ModelBuilderState actual_state) {
@@ -385,6 +407,50 @@ class ModelBuilderImpl : public ModelBuilder {
     expected_leaf_size_ = std::accumulate(metadata.leaf_vector_shape.begin(),
         metadata.leaf_vector_shape.end(), std::int32_t(1), std::multiplies<>{});
     metadata_initialized_ = true;
+  }
+
+  void FinalizeSetCategoricalInfo(Model* model) {
+    if (categorical_info_.empty()) {
+      return;
+    }
+
+    model_->int_cat_feature_segments_ = std::vector<std::int32_t>{0};
+    model_->str_cat_feature_segments_ = std::vector<std::int32_t>{0};
+    model_->str_cat_offsets_ = std::vector<int32_t>{0};
+    for (std::int32_t feature_id = 0; feature_id < model->num_feature; ++feature_id) {
+      if (categorical_info_.count(feature_id) == 0) {
+        // Numerical feature
+        model->cat_kind_.PushBack(CategoricalKind::kNone);
+        model->int_cat_feature_segments_.PushBack(model->int_cat_feature_segments_.Back());
+        model->str_cat_feature_segments_.PushBack(model->str_cat_feature_segments_.Back());
+      } else {
+        auto const& [cat_values, sorted_idx] = categorical_info_[feature_id];
+        if (std::holds_alternative<std::vector<std::int64_t>>(cat_values)) {
+          // Integer categories
+          auto const& int_cat_values = std::get<std::vector<std::int64_t>>(cat_values);
+          model->cat_kind_.PushBack(CategoricalKind::kInteger);
+          model->int_cat_values_.Extend(int_cat_values);
+          model->int_cat_feature_segments_.PushBack(
+              static_cast<std::int32_t>(model->int_cat_values_.Size()));
+          model->int_sorted_idx_.Extend(sorted_idx);
+          TREELITE_CHECK_EQ(model->int_sorted_idx_.Size(), model->int_cat_feature_segments_.Back());
+          model->str_cat_feature_segments_.PushBack(model->str_cat_feature_segments_.Back());
+        } else {
+          // String categories
+          model->cat_kind_.PushBack(CategoricalKind::kString);
+          for (auto const& str_cat : std::get<std::vector<std::string>>(cat_values)) {
+            std::for_each(str_cat.begin(), str_cat.end(),
+                [&](char e) { model->str_cat_values_.PushBack(static_cast<std::int8_t>(e)); });
+            model->str_cat_offsets_.PushBack(model->str_cat_offsets_.Back() + str_cat.length());
+          }
+          model->str_cat_feature_segments_.PushBack(
+              static_cast<std::int32_t>(model->str_cat_offsets_.Size() - 1));
+          model->str_sorted_idx_.Extend(sorted_idx);
+          TREELITE_CHECK_EQ(model->str_sorted_idx_.Size(), model->str_cat_feature_segments_.Back());
+          model->int_cat_feature_segments_.PushBack(model->int_cat_feature_segments_.Back());
+        }
+      }
+    }
   }
 };
 

@@ -156,6 +156,13 @@ void SerializerRoundTrip_TreeStump() {
     "ratio_c": 1.0,
     "base_scores": [0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "str_cat_values": [],
+    "str_cat_offsets": [],
+    "int_cat_feature_segments": [],
+    "str_cat_feature_segments": [],
+    "int_sorted_idx": [],
+    "str_sorted_idx": [],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": false,
@@ -245,6 +252,13 @@ void SerializerRoundTrip_TreeStumpLeafVec() {
     "ratio_c": 1.0,
     "base_scores": [0.0, 0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "str_cat_values": [],
+    "str_cat_offsets": [],
+    "int_cat_feature_segments": [],
+    "str_cat_feature_segments": [],
+    "int_sorted_idx": [],
+    "str_sorted_idx": [],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": false,
@@ -312,6 +326,8 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
   builder->LeafScalar(3);
   builder->EndNode();
   builder->EndTree();
+  builder->SetCategoricalInfo(
+      0, std::vector<std::string>{"dog", "cat"}, std::vector<std::int32_t>{1, 0});
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
@@ -346,6 +362,13 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
     "ratio_c": 1.0,
     "base_scores": [0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "str_cat_values": [100, 111, 103, 99, 97, 116],
+    "str_cat_offsets": [0, 3, 6],
+    "int_cat_feature_segments": [0, 0, 0],
+    "str_cat_feature_segments": [0, 2, 2],
+    "int_sorted_idx": [],
+    "str_sorted_idx": [1, 0],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": true,
@@ -435,6 +458,9 @@ void SerializerRoundTrip_TreeDepth2() {
     builder->EndNode();
     builder->EndTree();
   }
+  builder->SetCategoricalInfo(
+      0, std::vector<std::string>{"dog", "cat"}, std::vector<std::int32_t>{1, 0});
+  builder->SetCategoricalInfo(1, std::vector<std::int64_t>{0, 1}, std::vector<std::int32_t>{0, 1});
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
@@ -456,6 +482,13 @@ void SerializerRoundTrip_TreeDepth2() {
     "ratio_c": 1.0,
     "base_scores": [0.5],
     "attributes": "{{}}",
+    "int_cat_values": [0, 1],
+    "str_cat_values": [100, 111, 103, 99, 97, 116],
+    "str_cat_offsets": [0, 3, 6],
+    "int_cat_feature_segments": [0, 0, 2],
+    "str_cat_feature_segments": [0, 2, 2],
+    "int_sorted_idx": [0, 1],
+    "str_sorted_idx": [1, 0],
     "trees": [{{
             "num_nodes": 7,
             "has_categorical_split": true,

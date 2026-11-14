@@ -40,6 +40,12 @@ We first define a set of enum types to be used in the serialization format.
   - ``kGT`` (4)
   - ``kGE`` (5)
 
+* ``CategoricalKind``: underlying type ``int8_t``. Indicates the type of each feature.
+
+  - ``kNone`` (0): the feature is not a categorical feature.
+  - ``kInteger`` (1): the feature is a categorical feature with integer categories.
+  - ``kString`` (2): the feature is a categorical feature with string categories.
+
 The model type is currently parametrized with two template parameters: ``ThresholdType`` and ``LeafOutputType``.
 In v4, the following combinations are allowed:
 
@@ -74,10 +80,11 @@ written to the byte sequence in the exact order they appear in the following lis
      - ``num_target``: single ``int32_t`` scalar. Number of targets in the model. ``num_target > 1`` indicates a multi-target models. Negative value is invalid.
      - ``num_class``: an array of ``int32_t`` with length ``num_target``. Negative value is invalid. Set ``num_class=[1, 1, 1, ...]`` for regression and other non-classifier models.
 
-       .. note:: Writing an array to the disk or a stream
+       .. tip:: Writing an array to the disk or a stream
 
           When writing an array to the disk or a stream, we first write the length of the array (``uint64_t`` scalar),
           and then the content of the array.
+
      - ``leaf_vector_shape``: an array of ``int32_t`` with length 2. The first dimension is either 1 or ``num_target``. The second dimension is either 1 or ``max(num_class)``.
 
    * Per-tree Metadata
@@ -101,9 +108,55 @@ written to the byte sequence in the exact order they appear in the following lis
        * Set the field to an empty string (zero length) or
        * Set the field to ``{}``.
 
-#. Extension slot 1: Per-model optional fields. This field is currently not used.
+#. Extension slot 1: Per-model optional fields. Currently, this extension slot is used to store information about categorical features.
 
-   * ``num_opt_field_per_model``: single ``int32_t`` scalar. Set this value to ``0``, to indicate the lack of optional fields.
+    * ``num_opt_field_per_model``: single ``int32_t`` scalar. This value indicates the number of optional fields
+      the model contains. The list of possible optional fields is given below.
+
+    .. tip:: Parsing optinal fields
+
+        Optional fields are optional and may be absent in some models. To indicate the presence, we serialize
+        extra metadata along with the field's data, in the following order:
+
+        1. Name of the field (string): String length (``uint64_t`` scalar), followed by the string (UTF-8 encoded)
+        2. Size of each array element: ``uint64_t`` scalar
+        3. Length of the array: ``uint64_t`` scalar
+        4. Array content
+
+        Note that Items 1 and 2 are unique to optional fields. Regular fields only use Items 3 and 4 and do not use Items 1 and 2.
+
+    * ``cat_kind``: an array of ``int32_t`` (representing enum ``CategoricalKind``). ``cat_kind[i]`` indicates type of
+      feature ``i``. If feature ``i`` is numerical, ``cat_kind[i]`` is set to ``CategoricalKind::kNone``.
+    * Fields related to integer categorical features
+
+        - ``int_cat_values``: an array of ``int64_t``. This array stores the integer category values of all features, such
+          that the sub-array ``int_cat_values[int_cat_feature_segments[i]:int_cat_feature_segments[i+1]]`` yields the list
+          of integer category values for feature ``i``. If feature ``i`` is a numerical feature or a string categorical
+          feature, the sub-array should be empty (``int_cat_feature_segments[i] == int_cat_feature_segments[i+1]``).
+        - ``int_cat_feature_segments``: an array of ``int32_t``.
+        - ``int_sorted_idx``: an array of ``int32_t``. The sub-array
+          ``int_sorted_idx[int_cat_feature_segments[i]:int_cat_feature_segments[i+1]]`` indicates the ordering among
+          the integer categorical values from feature ``i``, when they are sorted by their values.
+
+    * Fields related to string categorical features. To extract the string category values for a given feature ``i``, use
+      the following procedure:
+
+        .. code-block:: none
+
+            categories <- [empty list]
+            for each k for which str_cat_feature_segments[i] <= k < str_cat_feature_segments[i+1]:
+                Fetch sub-array str_cat_values[str_cat_offsets[k]:str_cat_offsets[k+1]]
+                Decode the sub-array as UTF-8 string.
+                Append the decoded string to the categories list.
+            Return categories
+
+        - ``str_cat_values``: an array of ``int8_t``. This array stores all string category values from all features.
+        - ``str_cat_offsets``: an array of ``int32_t``. If feature ``i`` is a numerical feature or an integer categorical
+          feature, the sub-array should be empty (``str_cat_feature_segments[i] == str_cat_feature_segments[i+1]``).
+        - ``str_cat_feature_segments``: an array of ``int32_t``.
+        - ``str_sorted_idx``: an array of ``int32_t``. The sub-array
+          ``str_sorted_idx[str_cat_feature_segments[i]:str_cat_feature_segments[i+1]]`` indicates the ordering among
+          the string categorical values from feature ``i``, when they are sorted by their values.
 
 #. Tree 0: First tree, which is to be represented by the following fields.
 

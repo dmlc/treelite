@@ -17,6 +17,8 @@ namespace treelite {
 
 std::variant<std::monostate, std::vector<std::int64_t>, std::vector<std::string>>
 Model::GetCategoryValues(std::int32_t feature_id) const {
+  TREELITE_CHECK(feature_id >= 0 && feature_id < num_feature) << "feature_id out of range";
+
   if (int_cat_feature_segments_.Empty() || str_cat_feature_segments_.Empty()) {
     return std::monostate{};
   }
@@ -40,6 +42,8 @@ Model::GetCategoryValues(std::int32_t feature_id) const {
 
 std::optional<std::vector<std::int32_t>> Model::GetCategorySortedIdx(
     std::int32_t feature_id) const {
+  TREELITE_CHECK(feature_id >= 0 && feature_id < num_feature) << "feature_id out of range";
+
   if (int_cat_feature_segments_.Empty() || str_cat_feature_segments_.Empty()) {
     return std::nullopt;
   }

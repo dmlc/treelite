@@ -569,6 +569,7 @@ class Model {
     if (cat_kind_.Empty()) {
       return CategoricalKind::kNone;
     }
+    TREELITE_CHECK(feature_id >= 0 && feature_id < num_feature) << "feature_id out of range";
     return cat_kind_[feature_id];
   }
   std::variant<std::monostate, std::vector<std::int64_t>, std::vector<std::string>>

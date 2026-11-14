@@ -296,6 +296,8 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void SetCategoricalInfo(std::int32_t feature_id, std::vector<std::int64_t> const& cat_values,
       std::vector<std::int32_t> const& sorted_idx) override {
+    TREELITE_CHECK(!cat_values.empty()) << "cat_values must not be empty";
+    TREELITE_CHECK(!sorted_idx.empty()) << "sorted_idx must not be empty";
     TREELITE_CHECK_EQ(categorical_info_.count(feature_id), 0)
         << "Must set only one categorical info for each feature";
     categorical_info_.emplace(feature_id, CategoricalInfo{cat_values, sorted_idx});
@@ -303,6 +305,8 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void SetCategoricalInfo(std::int32_t feature_id, std::vector<std::string> const& cat_values,
       std::vector<std::int32_t> const& sorted_idx) override {
+    TREELITE_CHECK(!cat_values.empty()) << "cat_values must not be empty";
+    TREELITE_CHECK(!sorted_idx.empty()) << "sorted_idx must not be empty";
     TREELITE_CHECK_EQ(categorical_info_.count(feature_id), 0)
         << "Must set only one categorical info for each feature";
     categorical_info_.emplace(feature_id, CategoricalInfo{cat_values, sorted_idx});
@@ -417,6 +421,10 @@ class ModelBuilderImpl : public ModelBuilder {
     model_->int_cat_feature_segments_ = std::vector<std::int32_t>{0};
     model_->str_cat_feature_segments_ = std::vector<std::int32_t>{0};
     model_->str_cat_offsets_ = std::vector<int32_t>{0};
+    for (auto const& [feature_id, _] : categorical_info_) {
+      TREELITE_CHECK(feature_id >= 0 && feature_id < model->num_feature)
+          << "Feature ID out of range";
+    }
     for (std::int32_t feature_id = 0; feature_id < model->num_feature; ++feature_id) {
       if (categorical_info_.count(feature_id) == 0) {
         // Numerical feature

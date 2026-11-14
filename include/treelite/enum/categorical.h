@@ -7,12 +7,13 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace treelite {
 
 /*! \brief Type of categorical features */
-enum class CategoricalKind : int {
+enum class CategoricalKind : std::int8_t {
   kNone = 0,
   kInteger = 1,
   kString = 2,

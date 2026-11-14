@@ -558,11 +558,11 @@ class Model {
   /* Categorical encoding */
   ContiguousArray<CategoricalKind> cat_kind_;
   ContiguousArray<std::int64_t> int_cat_values_;
+  ContiguousArray<std::int32_t> int_cat_feature_segments_;
+  ContiguousArray<std::int32_t> int_sorted_idx_;
   ContiguousArray<std::int8_t> str_cat_values_;
   ContiguousArray<std::int32_t> str_cat_offsets_;
-  ContiguousArray<std::int32_t> int_cat_feature_segments_;
   ContiguousArray<std::int32_t> str_cat_feature_segments_;
-  ContiguousArray<std::int32_t> int_sorted_idx_;
   ContiguousArray<std::int32_t> str_sorted_idx_;
 
   CategoricalKind GetCategoricalKind(std::int32_t feature_id) const {

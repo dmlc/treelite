@@ -109,7 +109,7 @@ class Model:
 
         categorical_info = {}
         for feature_id in range(n_features):
-            cat_kind = ctypes.c_int()
+            cat_kind = ctypes.c_int8()
             _check_call(
                 _LIB.TreeliteGetCategoryKind(
                     self.handle, ctypes.c_int32(feature_id), ctypes.byref(cat_kind)

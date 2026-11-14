@@ -84,8 +84,8 @@ struct NodeV3 {
 };
 
 char const* categorical_info_field_names[]
-    = {"cat_kind", "int_cat_values", "str_cat_values", "str_cat_offsets",
-        "int_cat_feature_segments", "str_cat_feature_segments", "int_sorted_idx", "str_sorted_idx"};
+    = {"cat_kind", "int_cat_values", "int_cat_feature_segments", "int_sorted_idx", "str_cat_values",
+        "str_cat_offsets", "str_cat_feature_segments", "str_sorted_idx"};
 
 template <typename MixIn>
 class Serializer {
@@ -132,15 +132,15 @@ class Serializer {
     mixin_->SerializeStringConstant(categorical_info_field_names[1]);
     mixin_->SerializeArray(&model.int_cat_values_, true);
     mixin_->SerializeStringConstant(categorical_info_field_names[2]);
-    mixin_->SerializeArray(&model.str_cat_values_, true);
-    mixin_->SerializeStringConstant(categorical_info_field_names[3]);
-    mixin_->SerializeArray(&model.str_cat_offsets_, true);
-    mixin_->SerializeStringConstant(categorical_info_field_names[4]);
     mixin_->SerializeArray(&model.int_cat_feature_segments_, true);
-    mixin_->SerializeStringConstant(categorical_info_field_names[5]);
-    mixin_->SerializeArray(&model.str_cat_feature_segments_, true);
-    mixin_->SerializeStringConstant(categorical_info_field_names[6]);
+    mixin_->SerializeStringConstant(categorical_info_field_names[3]);
     mixin_->SerializeArray(&model.int_sorted_idx_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[4]);
+    mixin_->SerializeArray(&model.str_cat_values_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[5]);
+    mixin_->SerializeArray(&model.str_cat_offsets_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[6]);
+    mixin_->SerializeArray(&model.str_cat_feature_segments_, true);
     mixin_->SerializeStringConstant(categorical_info_field_names[7]);
     mixin_->SerializeArray(&model.str_sorted_idx_, true);
   }
@@ -263,16 +263,16 @@ class Deserializer {
         mixin_->DeserializeArray(&model->cat_kind_, true);
       } else if (opt_field_name == "int_cat_values") {
         mixin_->DeserializeArray(&model->int_cat_values_, true);
+      } else if (opt_field_name == "int_cat_feature_segments") {
+        mixin_->DeserializeArray(&model->int_cat_feature_segments_, true);
+      } else if (opt_field_name == "int_sorted_idx") {
+        mixin_->DeserializeArray(&model->int_sorted_idx_, true);
       } else if (opt_field_name == "str_cat_values") {
         mixin_->DeserializeArray(&model->str_cat_values_, true);
       } else if (opt_field_name == "str_cat_offsets") {
         mixin_->DeserializeArray(&model->str_cat_offsets_, true);
-      } else if (opt_field_name == "int_cat_feature_segments") {
-        mixin_->DeserializeArray(&model->int_cat_feature_segments_, true);
       } else if (opt_field_name == "str_cat_feature_segments") {
         mixin_->DeserializeArray(&model->str_cat_feature_segments_, true);
-      } else if (opt_field_name == "int_sorted_idx") {
-        mixin_->DeserializeArray(&model->int_sorted_idx_, true);
       } else if (opt_field_name == "str_sorted_idx") {
         mixin_->DeserializeArray(&model->str_sorted_idx_, true);
       } else {

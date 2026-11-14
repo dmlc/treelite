@@ -898,7 +898,8 @@ TREELITE_DLL int TreeliteGetTreeDepth(TreeliteModelHandle model, uint32_t** out,
  * \param out Integer representing the kind of categorical feature (0 if feature is not categorical)
  * \return 0 for success; -1 for failure
  */
-TREELITE_DLL int TreeliteGetCategoryKind(TreeliteModelHandle model, int32_t feature_id, int* out);
+TREELITE_DLL int TreeliteGetCategoryKind(
+    TreeliteModelHandle model, int32_t feature_id, int8_t* out);
 /*!
  * \brief Get the integer category values for a categorical feature.
  * \param model Treelite Model object

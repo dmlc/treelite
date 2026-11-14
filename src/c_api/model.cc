@@ -85,10 +85,10 @@ int TreeliteGetTreeDepth(TreeliteModelHandle model, std::uint32_t** out, std::si
   API_END();
 }
 
-int TreeliteGetCategoryKind(TreeliteModelHandle model, std::int32_t feature_id, int* out) {
+int TreeliteGetCategoryKind(TreeliteModelHandle model, std::int32_t feature_id, std::int8_t* out) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
-  *out = static_cast<int>(model_->GetCategoricalKind(feature_id));
+  *out = static_cast<std::int8_t>(model_->GetCategoricalKind(feature_id));
   API_END();
 }
 

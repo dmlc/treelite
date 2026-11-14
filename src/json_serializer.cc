@@ -166,16 +166,16 @@ template <typename WriterType>
 void SerializeCategoricalEncodingToJSON(WriterType& writer, treelite::Model const& model) {
   writer.Key("int_cat_values");
   WriteArray(writer, model.int_cat_values_);
+  writer.Key("int_cat_feature_segments");
+  WriteArray(writer, model.int_cat_feature_segments_);
+  writer.Key("int_sorted_idx");
+  WriteArray(writer, model.int_sorted_idx_);
   writer.Key("str_cat_values");
   WriteArray(writer, model.str_cat_values_);
   writer.Key("str_cat_offsets");
   WriteArray(writer, model.str_cat_offsets_);
-  writer.Key("int_cat_feature_segments");
-  WriteArray(writer, model.int_cat_feature_segments_);
   writer.Key("str_cat_feature_segments");
   WriteArray(writer, model.str_cat_feature_segments_);
-  writer.Key("int_sorted_idx");
-  WriteArray(writer, model.int_sorted_idx_);
   writer.Key("str_sorted_idx");
   WriteArray(writer, model.str_sorted_idx_);
 }

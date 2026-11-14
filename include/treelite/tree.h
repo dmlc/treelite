@@ -598,7 +598,8 @@ class Model {
 
 /*!
  * \brief Concatenate multiple model objects into a single model object by copying
- *        all member trees into the destination model object
+ *        all member trees into the destination model object. Note that the
+ *        concatenation function will always use the metadata from the first model.
  * \param objs List of model objects
  * \return Concatenated model
  */

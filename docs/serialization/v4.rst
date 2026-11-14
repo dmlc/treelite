@@ -108,12 +108,13 @@ written to the byte sequence in the exact order they appear in the following lis
        * Set the field to an empty string (zero length) or
        * Set the field to ``{}``.
 
-#. Extension slot 1: Per-model optional fields. Currently, this extension slot is used to store information about categorical features.
+#. Extension slot 1: Per-model optional fields. Currently, this extension slot is used to store the encoding for
+   categorical features.
 
     * ``num_opt_field_per_model``: single ``int32_t`` scalar. This value indicates the number of optional fields
       the model contains. The list of possible optional fields is given below.
 
-    .. tip:: Parsing optinal fields
+    .. tip:: Parsing optional fields
 
         Optional fields are optional and may be absent in some models. To indicate the presence, we serialize
         extra metadata along with the field's data, in the following order:
@@ -125,18 +126,25 @@ written to the byte sequence in the exact order they appear in the following lis
 
         Note that Items 1 and 2 are unique to optional fields. Regular fields only use Items 3 and 4 and do not use Items 1 and 2.
 
-    * ``cat_kind``: an array of ``int32_t`` (representing enum ``CategoricalKind``). ``cat_kind[i]`` indicates type of
+    .. note:: Optional fields denoting categorical encoding must be provided together.
+
+        If a model furnishes one of the 8 fields related to categorical encoding, it must provide the remaining 7
+        as well. Otherwise, the model is incomplete. A model should provide all the 8 fields or none of them.
+
+    * ``cat_kind``: an array of ``int8_t`` (representing enum ``CategoricalKind``). ``cat_kind[i]`` indicates the type of
       feature ``i``. If feature ``i`` is numerical, ``cat_kind[i]`` is set to ``CategoricalKind::kNone``.
     * Fields related to integer categorical features
 
         - ``int_cat_values``: an array of ``int64_t``. This array stores the integer category values of all features, such
           that the sub-array ``int_cat_values[int_cat_feature_segments[i]:int_cat_feature_segments[i+1]]`` yields the list
-          of integer category values for feature ``i``. If feature ``i`` is a numerical feature or a string categorical
-          feature, the sub-array should be empty (``int_cat_feature_segments[i] == int_cat_feature_segments[i+1]``).
-        - ``int_cat_feature_segments``: an array of ``int32_t``.
+          of integer category values for feature ``i``.
+        - ``int_cat_feature_segments``: an array of ``int32_t``, with length ``num_feature + 1``.
+          If feature ``i`` is a numerical feature or a string categorical feature, the sub-array should be empty
+          (``int_cat_feature_segments[i] == int_cat_feature_segments[i+1]``).
         - ``int_sorted_idx``: an array of ``int32_t``. The sub-array
           ``int_sorted_idx[int_cat_feature_segments[i]:int_cat_feature_segments[i+1]]`` indicates the ordering among
-          the integer categorical values from feature ``i``, when they are sorted by their values.
+          the integer categorical values from feature ``i``, when they are sorted by their values. For example,
+          categories ``[3, 1]`` will have sorted indices ``[1, 0]``.
 
     * Fields related to string categorical features. To extract the string category values for a given feature ``i``, use
       the following procedure:
@@ -146,17 +154,19 @@ written to the byte sequence in the exact order they appear in the following lis
             categories <- [empty list]
             for each k for which str_cat_feature_segments[i] <= k < str_cat_feature_segments[i+1]:
                 Fetch sub-array str_cat_values[str_cat_offsets[k]:str_cat_offsets[k+1]]
-                Decode the sub-array as UTF-8 string.
+                Decode the sub-array as a UTF-8 string.
                 Append the decoded string to the categories list.
             Return categories
 
         - ``str_cat_values``: an array of ``int8_t``. This array stores all string category values from all features.
-        - ``str_cat_offsets``: an array of ``int32_t``. If feature ``i`` is a numerical feature or an integer categorical
-          feature, the sub-array should be empty (``str_cat_feature_segments[i] == str_cat_feature_segments[i+1]``).
-        - ``str_cat_feature_segments``: an array of ``int32_t``.
+        - ``str_cat_offsets``: an array of ``int32_t``.
+        - ``str_cat_feature_segments``: an array of ``int32_t``, with length ``num_feature + 1``.
+          If feature ``i`` is a numerical feature or an integer categorical feature, the sub-array should be empty
+          (``str_cat_feature_segments[i] == str_cat_feature_segments[i+1]``).
         - ``str_sorted_idx``: an array of ``int32_t``. The sub-array
           ``str_sorted_idx[str_cat_feature_segments[i]:str_cat_feature_segments[i+1]]`` indicates the ordering among
-          the string categorical values from feature ``i``, when they are sorted by their values.
+          the string categorical values from feature ``i``, when they are sorted by their values. For example,
+          categories ``["dog", "cat"]`` will have sorted indices ``[1, 0]``.
 
 #. Tree 0: First tree, which is to be represented by the following fields.
 

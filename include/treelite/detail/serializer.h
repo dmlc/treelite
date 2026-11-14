@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <istream>
 #include <limits>
 #include <ostream>
@@ -29,12 +30,15 @@ namespace treelite::detail::serializer {
 
 inline PyBufferFrame GetPyBufferFromArray(
     void* data, char const* format, std::size_t itemsize, std::size_t nitem) {
-  return PyBufferFrame{data, const_cast<char*>(format), itemsize, nitem};
+  return PyBufferFrame{data, const_cast<char*>(format), itemsize, nitem, 0};
 }
 
 // Infer format string from data type
 template <typename T>
 inline char const* InferFormatString() {
+  if constexpr (std::is_enum_v<T>) {
+    return InferFormatString<std::underlying_type_t<T>>();
+  }
   switch (sizeof(T)) {
   case 1:
     return (std::is_unsigned_v<T> ? "=B" : "=b");
@@ -78,6 +82,10 @@ inline PyBufferFrame GetPyBufferFromScalar(void* data, char const* format, std::
 
 inline PyBufferFrame GetPyBufferFromString(std::string* str) {
   return GetPyBufferFromArray(str->data(), "=c", 1, str->length());
+}
+
+inline PyBufferFrame GetPyBufferFromStringConstant(char const* str) {
+  return PyBufferFrame{const_cast<char*>(str), const_cast<char*>("=c"), 1, std::strlen(str), 1};
 }
 
 template <typename T>
@@ -157,6 +165,7 @@ template <typename T>
 inline void ReadScalarFromStream(T* scalar, std::istream& is) {
   static_assert(std::is_standard_layout_v<T>, "T must be in the standard layout");
   is.read(reinterpret_cast<char*>(scalar), sizeof(T));
+  TREELITE_CHECK(is) << "Could not read scalar from stream";
 }
 
 template <typename T>
@@ -166,20 +175,35 @@ inline void WriteScalarToStream(T* scalar, std::ostream& os) {
 }
 
 template <typename T>
-inline void ReadArrayFromStream(ContiguousArray<T>* vec, std::istream& is) {
+inline void ReadArrayFromStream(ContiguousArray<T>* vec, std::istream& is, bool is_optional_field) {
+  if (is_optional_field) {
+    // For optional fields, record element size (in bytes) as well
+    std::uint64_t elem_size;
+    ReadScalarFromStream(&elem_size, is);
+    TREELITE_CHECK_EQ(sizeof(T), elem_size) << "Unexpected element size";
+  }
   std::uint64_t nelem;
-  is.read(reinterpret_cast<char*>(&nelem), sizeof(nelem));
+  ReadScalarFromStream(&nelem, is);
   vec->Clear();
   vec->Resize(nelem);
   if (nelem == 0) {
     return;  // handle empty arrays
   }
   is.read(reinterpret_cast<char*>(vec->Data()), sizeof(T) * nelem);
+  TREELITE_CHECK(is) << "Could not read array from stream";
 }
 
 template <typename T>
-inline void WriteArrayToStream(ContiguousArray<T>* vec, std::ostream& os) {
+inline void WriteArrayToStream(ContiguousArray<T>* vec, std::ostream& os, bool is_optional_field) {
   static_assert(sizeof(std::uint64_t) >= sizeof(std::size_t), "size_t too large");
+
+  if (is_optional_field) {
+    // For optional fields, record element size (in bytes) as well
+    auto elem_size = static_cast<std::uint64_t>(sizeof(T));
+    os.write(reinterpret_cast<char const*>(&elem_size), sizeof(elem_size));
+    TREELITE_CHECK_EQ(sizeof(T), elem_size) << "Unexpected element size";
+  }
+
   auto const nelem = static_cast<std::uint64_t>(vec->Size());
   os.write(reinterpret_cast<char const*>(&nelem), sizeof(nelem));
   if (nelem == 0) {
@@ -190,15 +214,17 @@ inline void WriteArrayToStream(ContiguousArray<T>* vec, std::ostream& os) {
 
 inline void ReadStringFromStream(std::string* str, std::istream& is) {
   std::uint64_t str_len;
-  is.read(reinterpret_cast<char*>(&str_len), sizeof(str_len));
+  ReadScalarFromStream(&str_len, is);
   if (str_len == 0) {
+    str->clear();
     return;  // handle empty string
   }
   *str = std::string(str_len, '\0');
   is.read(str->data(), sizeof(char) * str_len);
+  TREELITE_CHECK(is) << "Could not read string from stream";
 }
 
-inline void WriteStringToStream(std::string* str, std::ostream& os) {
+inline void WriteStringToStream(std::string const* str, std::ostream& os) {
   static_assert(sizeof(std::uint64_t) >= sizeof(std::size_t), "size_t too large");
   auto const str_len = static_cast<std::uint64_t>(str->length());
   os.write(reinterpret_cast<char const*>(&str_len), sizeof(str_len));
@@ -209,9 +235,6 @@ inline void WriteStringToStream(std::string* str, std::ostream& os) {
 }
 
 inline void SkipOptionalFieldInStream(std::istream& is) {
-  std::string field_name;
-  ReadStringFromStream(&field_name, is);
-
   std::uint64_t elem_size, nelem;
   ReadScalarFromStream(&elem_size, is);
   ReadScalarFromStream(&nelem, is);
@@ -219,6 +242,7 @@ inline void SkipOptionalFieldInStream(std::istream& is) {
   std::uint64_t const nbytes = elem_size * nelem;
   TREELITE_CHECK_LE(nbytes, std::numeric_limits<std::streamoff>::max());  // NOLINT
   is.seekg(static_cast<std::streamoff>(nbytes), std::ios::cur);
+  TREELITE_CHECK(is) << "Could not skip optional field in stream";
 }
 
 }  // namespace treelite::detail::serializer

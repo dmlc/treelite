@@ -66,6 +66,7 @@ std::unique_ptr<treelite::Model> ParseStream(
 
   treelite::model_loader::detail::xgboost::ParsedXGBoostModel parsed = handler->get_result();
   auto model = parsed.builder->CommitModel();
+  SetCategoricalEncoding(model.get(), parsed.category_container);
 
   // Apply Dart weights
   if (!parsed.weight_drop.empty()) {

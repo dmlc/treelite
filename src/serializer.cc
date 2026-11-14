@@ -83,6 +83,10 @@ struct NodeV3 {
   }
 };
 
+char const* categorical_info_field_names[]
+    = {"cat_kind", "int_cat_values", "int_cat_feature_segments", "int_sorted_idx", "str_cat_values",
+        "str_cat_offsets", "str_cat_feature_segments", "str_sorted_idx"};
+
 template <typename MixIn>
 class Serializer {
  public:
@@ -120,9 +124,25 @@ class Serializer {
     mixin_->SerializeArray(&model.base_scores);
     mixin_->SerializeString(&model.attributes);
 
-    /* Extension Slot 1: Per-model optional fields -- to be added later */
-    model.num_opt_field_per_model_ = 0;
+    /* Extension Slot 1: Per-model optional fields */
+    model.num_opt_field_per_model_ = 8;
     mixin_->SerializeScalar(&model.num_opt_field_per_model_);
+    mixin_->SerializeStringConstant(categorical_info_field_names[0]);
+    mixin_->SerializeArray(&model.cat_kind_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[1]);
+    mixin_->SerializeArray(&model.int_cat_values_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[2]);
+    mixin_->SerializeArray(&model.int_cat_feature_segments_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[3]);
+    mixin_->SerializeArray(&model.int_sorted_idx_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[4]);
+    mixin_->SerializeArray(&model.str_cat_values_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[5]);
+    mixin_->SerializeArray(&model.str_cat_offsets_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[6]);
+    mixin_->SerializeArray(&model.str_cat_feature_segments_, true);
+    mixin_->SerializeStringConstant(categorical_info_field_names[7]);
+    mixin_->SerializeArray(&model.str_sorted_idx_, true);
   }
 
   void SerializeTrees(Model& model) {
@@ -234,11 +254,31 @@ class Deserializer {
     mixin_->DeserializeArray(&model->base_scores);
     mixin_->DeserializeString(&model->attributes);
 
-    /* Extension Slot 1: Per-model optional fields -- to be added later */
+    /* Extension Slot 1: Per-model optional fields */
     mixin_->DeserializeScalar(&model->num_opt_field_per_model_);
-    // Ignore extra fields; the input is likely from a later version of Treelite
+    std::string opt_field_name;
     for (std::int32_t i = 0; i < model->num_opt_field_per_model_; ++i) {
-      mixin_->SkipOptionalField();
+      mixin_->DeserializeString(&opt_field_name);
+      if (opt_field_name == "cat_kind") {
+        mixin_->DeserializeArray(&model->cat_kind_, true);
+      } else if (opt_field_name == "int_cat_values") {
+        mixin_->DeserializeArray(&model->int_cat_values_, true);
+      } else if (opt_field_name == "int_cat_feature_segments") {
+        mixin_->DeserializeArray(&model->int_cat_feature_segments_, true);
+      } else if (opt_field_name == "int_sorted_idx") {
+        mixin_->DeserializeArray(&model->int_sorted_idx_, true);
+      } else if (opt_field_name == "str_cat_values") {
+        mixin_->DeserializeArray(&model->str_cat_values_, true);
+      } else if (opt_field_name == "str_cat_offsets") {
+        mixin_->DeserializeArray(&model->str_cat_offsets_, true);
+      } else if (opt_field_name == "str_cat_feature_segments") {
+        mixin_->DeserializeArray(&model->str_cat_feature_segments_, true);
+      } else if (opt_field_name == "str_sorted_idx") {
+        mixin_->DeserializeArray(&model->str_sorted_idx_, true);
+      } else {
+        // Unrecognized optional field
+        mixin_->SkipOptionalField();
+      }
     }
 
     return model;
@@ -299,7 +339,9 @@ class Deserializer {
     /* Extension slot 2: Per-tree optional fields -- to be added later */
     mixin_->DeserializeScalar(&tree.num_opt_field_per_tree_);
     // Ignore extra fields; the input is likely from a later version of Treelite
+    std::string opt_field_name;
     for (std::int32_t i = 0; i < tree.num_opt_field_per_tree_; ++i) {
+      mixin_->DeserializeString(&opt_field_name);
       mixin_->SkipOptionalField();
     }
 
@@ -307,6 +349,7 @@ class Deserializer {
     mixin_->DeserializeScalar(&tree.num_opt_field_per_node_);
     // Ignore extra fields; the input is likely from a later version of Treelite
     for (std::int32_t i = 0; i < tree.num_opt_field_per_node_; ++i) {
+      mixin_->DeserializeString(&opt_field_name);
       mixin_->SkipOptionalField();
     }
   }

@@ -15,6 +15,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -23,6 +24,7 @@
 #include <vector>
 
 #include <treelite/contiguous_array.h>
+#include <treelite/enum/categorical.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/tree_node_type.h>
@@ -553,6 +555,27 @@ class Model {
   ContiguousArray<double> base_scores;
   std::string attributes;
 
+  /* Categorical encoding */
+  ContiguousArray<CategoricalKind> cat_kind_;
+  ContiguousArray<std::int64_t> int_cat_values_;
+  ContiguousArray<std::int32_t> int_cat_feature_segments_;
+  ContiguousArray<std::int32_t> int_sorted_idx_;
+  ContiguousArray<std::int8_t> str_cat_values_;
+  ContiguousArray<std::int32_t> str_cat_offsets_;
+  ContiguousArray<std::int32_t> str_cat_feature_segments_;
+  ContiguousArray<std::int32_t> str_sorted_idx_;
+
+  CategoricalKind GetCategoricalKind(std::int32_t feature_id) const {
+    if (cat_kind_.Empty()) {
+      return CategoricalKind::kNone;
+    }
+    TREELITE_CHECK(feature_id >= 0 && feature_id < num_feature) << "feature_id out of range";
+    return cat_kind_[feature_id];
+  }
+  std::variant<std::monostate, std::vector<std::int64_t>, std::vector<std::string>>
+  GetCategoryValues(std::int32_t feature_id) const;
+  std::optional<std::vector<std::int32_t>> GetCategorySortedIdx(std::int32_t feature_id) const;
+
  private:
   /* Note: the following member fields shall be re-computed at serialization time */
   // Number of trees
@@ -575,7 +598,8 @@ class Model {
 
 /*!
  * \brief Concatenate multiple model objects into a single model object by copying
- *        all member trees into the destination model object
+ *        all member trees into the destination model object. Note that the
+ *        concatenation function will always use the metadata from the first model.
  * \param objs List of model objects
  * \return Concatenated model
  */

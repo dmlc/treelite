@@ -15,6 +15,7 @@
 
 #include "../string_utils.h"
 #include "../xgboost.h"
+#include "./cat_encoding.h"
 
 namespace {
 
@@ -623,32 +624,26 @@ bool CategoryInfoHandler::StartArray() {
       push_handler<ArrayHandler<std::int8_t>, std::vector<std::int8_t>>(
           std::get<std::vector<std::int8_t>>(output.values));
     } else if (output.type.has_value()) {
-      // Numerical categories
-      switch (static_cast<ValueKind>(output.type.value())) {
-      case ValueKind::kU8Array:
-      case ValueKind::kU16Array:
-      case ValueKind::kU32Array:
-      case ValueKind::kU64Array: {
-        output.values = std::vector<std::uint64_t>{};
-        push_handler<ArrayHandler<std::uint64_t>, std::vector<std::uint64_t>>(
-            std::get<std::vector<std::uint64_t>>(output.values));
-        break;
-      }
-      case ValueKind::kI8Array:
-      case ValueKind::kI16Array:
-      case ValueKind::kI32Array:
-      case ValueKind::kI64Array: {
+      // Integer categories
+      switch (static_cast<CatIndexType>(output.type.value())) {
+      case CatIndexType::kU8:
+      case CatIndexType::kU16:
+      case CatIndexType::kU32:
+      case CatIndexType::kU64:
+      case CatIndexType::kI8:
+      case CatIndexType::kI16:
+      case CatIndexType::kI32:
+      case CatIndexType::kI64: {
+        // Always use int64_t for integer categories
         output.values = std::vector<std::int64_t>{};
         push_handler<ArrayHandler<std::int64_t>, std::vector<std::int64_t>>(
             std::get<std::vector<std::int64_t>>(output.values));
         break;
       }
-      case ValueKind::kF32Array:
-      case ValueKind::kF64Array: {
-        output.values = std::vector<double>{};
-        push_handler<ArrayHandler<double>, std::vector<double>>(
-            std::get<std::vector<double>>(output.values));
-        break;
+      case CatIndexType::kF32:
+      case CatIndexType::kF64: {
+        TREELITE_LOG(ERROR) << "Cannot store floating-point values in `values` array";
+        return false;
       }
       default:
         TREELITE_LOG(ERROR) << "Got invalid type for `values` array";
@@ -805,13 +800,6 @@ bool LearnerHandler::StartObject() {
 }
 
 bool LearnerHandler::EndObject() {
-  /* Throw an exception if category encoding is required.
-   * TODO(hcho3): Implement categorical encoding */
-  TREELITE_CHECK(output.category_container.enc.empty()
-                 && output.category_container.feature_segments.empty()
-                 && output.category_container.sorted_idx.empty())
-      << "Treelite does not yet support XGBoost models with categorical encoder";
-
   /* Set metadata */
   auto const num_tree = output.num_tree;
   auto const num_feature = learner_params.num_feature;

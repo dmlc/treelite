@@ -6,9 +6,15 @@ import ctypes
 import warnings
 from functools import wraps
 from inspect import Parameter, signature
-from typing import Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
 
 import numpy as np
+
+if TYPE_CHECKING:
+    CStrPptr = ctypes._Pointer[ctypes.c_char_p]
+else:
+    CStrPptr = ctypes._Pointer
+
 
 _CTYPES_TYPE_TABLE = {
     "uint32": ctypes.c_uint32,
@@ -51,6 +57,14 @@ def bytes_from_string_and_size(ptr, size):
 def py_str(string):
     """Convert C string back to Python string"""
     return string.decode("utf-8")
+
+
+def from_cstr_to_pystr(data: CStrPptr, length: ctypes.c_size_t) -> list[str]:
+    """Convert an array of C strings to an array of Python strings"""
+    res = []
+    for i in range(length.value):
+        res.append(str(cast(bytes, data[i]).decode("utf-8")))
+    return res
 
 
 def c_array(ctype, values):

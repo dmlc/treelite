@@ -6,12 +6,21 @@ import ctypes
 import json
 import pathlib
 import platform
+from enum import IntEnum
+from functools import cached_property
 from typing import Any, List, Optional, Union
 
 import numpy as np
 
 from .core import _LIB, _check_call
-from .util import bytes_from_string_and_size, c_array, c_str, py_str
+from .util import bytes_from_string_and_size, c_array, c_str, from_cstr_to_pystr, py_str
+
+
+class _CategoricalKind(IntEnum):
+    # pylint: disable=invalid-name
+    kNone = 0
+    kInteger = 1
+    kString = 2
 
 
 class Model:
@@ -90,6 +99,70 @@ class Model:
         array = _pybuffer2numpy(obj)
         attributes_str = array.tobytes().decode("utf-8")
         return json.loads(attributes_str)
+
+    @cached_property
+    def categorical_info(self) -> dict[int, dict[str, Union[int, str]]]:
+        if self._handle is None:
+            raise AttributeError("Model not loaded yet")
+
+        n_features = self.num_feature
+
+        categorical_info = {}
+        for feature_id in range(n_features):
+            cat_kind = ctypes.c_int8()
+            _check_call(
+                _LIB.TreeliteGetCategoryKind(
+                    self.handle, ctypes.c_int32(feature_id), ctypes.byref(cat_kind)
+                )
+            )
+            if cat_kind.value == _CategoricalKind.kInteger:
+                int_cat_vals = ctypes.POINTER(ctypes.c_int64)()
+                int_cat_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategoryValuesInteger(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(int_cat_len),
+                        ctypes.byref(int_cat_vals),
+                    )
+                )
+                # Make a copy here, since the C API function returns ephemeral pointer
+                cat_vals = np.ctypeslib.as_array(
+                    int_cat_vals, shape=(int_cat_len.value,)
+                ).tolist()
+            elif cat_kind.value == _CategoricalKind.kString:
+                str_cat_vals = ctypes.POINTER(ctypes.c_char_p)()
+                str_cat_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategoryValuesString(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(str_cat_len),
+                        ctypes.byref(str_cat_vals),
+                    )
+                )
+                cat_vals = from_cstr_to_pystr(str_cat_vals, str_cat_len)
+            else:
+                cat_vals = None
+
+            if cat_kind.value in [_CategoricalKind.kInteger, _CategoricalKind.kString]:
+                sorted_idx_vals = ctypes.POINTER(ctypes.c_int32)()
+                sorted_idx_len = ctypes.c_size_t()
+                _check_call(
+                    _LIB.TreeliteGetCategorySortedIdx(
+                        self.handle,
+                        ctypes.c_int32(feature_id),
+                        ctypes.byref(sorted_idx_len),
+                        ctypes.byref(sorted_idx_vals),
+                    )
+                )
+                categorical_info[feature_id] = {
+                    "categories": cat_vals,
+                    "sorted_idx": np.ctypeslib.as_array(
+                        sorted_idx_vals, shape=(sorted_idx_len.value,)
+                    ).tolist(),
+                }
+        return categorical_info
 
     @classmethod
     def concatenate(cls, model_objs: List[Model]) -> Model:
@@ -355,6 +428,7 @@ class _TreelitePyBufferFrame(ctypes.Structure):  # pylint: disable=R0903
         ("format", ctypes.c_char_p),
         ("itemsize", ctypes.c_size_t),
         ("nitem", ctypes.c_size_t),
+        ("readonly", ctypes.c_int),
     ]
 
 
@@ -393,10 +467,14 @@ def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
     if not frame.buf:
         if frame.format == b"=l":
             dtype = "int32"
+        elif frame.format == b"=q":
+            dtype = "int64"
         elif frame.format == b"=Q":
             dtype = "uint64"
         elif frame.format == b"=L":
             dtype = "uint32"
+        elif frame.format == b"=b":
+            dtype = "int8"
         elif frame.format == b"=B":
             dtype = "uint8"
         elif frame.format == b"=f":
@@ -413,7 +491,7 @@ def _pybuffer2numpy(frame: _TreelitePyBufferFrame) -> np.ndarray:
     py_buf.obj = ctypes.py_object(frame)
     py_buf.len = frame.nitem * frame.itemsize
     py_buf.itemsize = frame.itemsize
-    py_buf.readonly = 0
+    py_buf.readonly = frame.readonly
     py_buf.ndim = 1
     py_buf.format = frame.format
     py_buf.shape = (ctypes.c_ssize_t * 1)(frame.nitem)

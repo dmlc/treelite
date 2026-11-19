@@ -614,15 +614,17 @@ bool CategoryInfoHandler::StartArray() {
     push_handler<ArrayHandler<std::int32_t>, std::vector<std::int32_t>>(output.offsets.value());
   }
 
-  // Assumption: Either "offsets" or "type" fields have been given before "values" field.
-  // Only with this assumption can we infer the type of the "values" field.
+  // Possible scenarios for
+  // 1. "offsets" field, followed by "utf8_bytes" field: string categorical (XGBoost 3.5+)
+  // 2. "offsets" field, followed by "values" field: string categorical (XGBoost 3.1-3.4)
+  // 3. "type" field, followed by "values" field: integer categorical
   bool got_values = check_cur_key("values");
   if (got_values) {
     if (output.offsets.has_value()) {
-      // String categories
-      output.values = std::vector<std::int8_t>{};
+      // String categories (XGBoost 3.1-3.4)
+      output.str_values.emplace<std::vector<std::int8_t>>();
       push_handler<ArrayHandler<std::int8_t>, std::vector<std::int8_t>>(
-          std::get<std::vector<std::int8_t>>(output.values));
+          std::get<std::vector<std::int8_t>>(output.str_values));
     } else if (output.type.has_value()) {
       // Integer categories
       switch (static_cast<CatIndexType>(output.type.value())) {
@@ -635,9 +637,9 @@ bool CategoryInfoHandler::StartArray() {
       case CatIndexType::kI32:
       case CatIndexType::kI64: {
         // Always use int64_t for integer categories
-        output.values = std::vector<std::int64_t>{};
+        output.int_values.emplace();
         push_handler<ArrayHandler<std::int64_t>, std::vector<std::int64_t>>(
-            std::get<std::vector<std::int64_t>>(output.values));
+            output.int_values.value());
         break;
       }
       case CatIndexType::kF32:
@@ -650,17 +652,30 @@ bool CategoryInfoHandler::StartArray() {
         return false;
       }
     } else {
-      TREELITE_LOG(ERROR) << "Cannot determine the type of `values` array, since neither"
+      TREELITE_LOG(ERROR) << "Cannot determine the type of `values` field, since neither"
                           << "`type` or `offsets` fields are present";
       return false;
     }
   }
 
-  return got_values || got_offsets;
+  bool got_utf8_bytes = check_cur_key("utf8_bytes");
+  if (got_utf8_bytes) {
+    if (output.offsets.has_value()) {
+      // String categories (XGBoost 3.5+)
+      output.str_values.emplace<std::vector<std::uint8_t>>();
+      push_handler<ArrayHandler<std::uint8_t>, std::vector<std::uint8_t>>(
+          std::get<std::vector<std::uint8_t>>(output.str_values));
+    } else {
+      TREELITE_LOG(ERROR) << "The `utf8_bytes` array must be preceded by the `offsets` field.";
+      return false;
+    }
+  }
+
+  return got_values || got_offsets || got_utf8_bytes;
 }
 
 bool CategoryInfoHandler::is_recognized_key(std::string const& key) {
-  return key == "type" || key == "offsets" || key == "values";
+  return key == "type" || key == "offsets" || key == "values" || key == "utf8_bytes";
 }
 
 /******************************************************************************

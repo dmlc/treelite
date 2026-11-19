@@ -448,7 +448,7 @@ class ModelBuilderImpl : public ModelBuilder {
           model->cat_kind_.PushBack(CategoricalKind::kString);
           for (auto const& str_cat : std::get<std::vector<std::string>>(cat_values)) {
             std::for_each(str_cat.begin(), str_cat.end(),
-                [&](char e) { model->str_cat_values_.PushBack(static_cast<std::int8_t>(e)); });
+                [&](char e) { model->str_cat_values_.PushBack(static_cast<std::uint8_t>(e)); });
             model->str_cat_offsets_.PushBack(model->str_cat_offsets_.Back() + str_cat.length());
           }
           model->str_cat_feature_segments_.PushBack(

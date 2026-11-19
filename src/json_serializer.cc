@@ -50,7 +50,7 @@ void WriteElement(WriterType& writer, T e) {
 }
 
 template <typename WriterType, typename T,
-    typename std::enable_if<std::is_same_v<T, std::int8_t>, bool>::type = true>
+    typename std::enable_if<std::is_same_v<T, std::uint8_t>, bool>::type = true>
 void WriteElement(WriterType& writer, T e) {
   writer.Int(static_cast<int>(e));
 }

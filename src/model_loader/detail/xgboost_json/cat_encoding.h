@@ -20,13 +20,17 @@ class Model;
 
 namespace treelite::model_loader::detail::xgboost {
 
-using ParsedCategoryValuesArray
-    = std::variant<std::monostate, std::vector<std::int8_t>, std::vector<std::int64_t>>;
+// XGBoost 3.1-3.4 stores string characters as signed 8-bit integers
+// XGBoost 3.5+ stores string characters as unsigned 8-bit integers
+using ParsedStringCategoryValues
+    = std::variant<std::monostate, std::vector<std::uint8_t>, std::vector<std::int8_t>>;
+using ParsedIntegerCategoryValues = std::optional<std::vector<std::int64_t>>;
 
 struct ParsedCategoryInfo {
   std::optional<std::int64_t> type{};
   std::optional<std::vector<std::int32_t>> offsets{};
-  ParsedCategoryValuesArray values{std::monostate{}};
+  ParsedStringCategoryValues str_values{std::monostate{}};
+  ParsedIntegerCategoryValues int_values{std::nullopt};
 };
 
 struct ParsedCategoryContainer {

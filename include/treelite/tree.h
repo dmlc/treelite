@@ -560,7 +560,7 @@ class Model {
   ContiguousArray<std::int64_t> int_cat_values_;
   ContiguousArray<std::int32_t> int_cat_feature_segments_;
   ContiguousArray<std::int32_t> int_sorted_idx_;
-  ContiguousArray<std::int8_t> str_cat_values_;
+  ContiguousArray<std::uint8_t> str_cat_values_;
   ContiguousArray<std::int32_t> str_cat_offsets_;
   ContiguousArray<std::int32_t> str_cat_feature_segments_;
   ContiguousArray<std::int32_t> str_sorted_idx_;

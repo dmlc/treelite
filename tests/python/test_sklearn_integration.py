@@ -219,7 +219,9 @@ def test_skl_converter_iforest(dataset):
     )
 
 
-@pytest.mark.parametrize("estimator", [RandomForestClassifier, GradientBoostingRegressor])
+@pytest.mark.parametrize(
+    "estimator", [RandomForestClassifier, GradientBoostingRegressor]
+)
 def test_import_weighted_split_gain(estimator):
     X, y = make_classification(n_features=5, random_state=42)
     weights = np.linspace(0.1, 3.0, len(y))

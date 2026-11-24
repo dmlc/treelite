@@ -1,16 +1,16 @@
 /*!
- * Copyright (c) 2021-2023 by Contributors
+ * Copyright (c) 2021-2026 by Contributors
  * \file sklearn.cc
  * \brief Model loader for scikit-learn models
  * \author Hyunsu Cho
  */
-#include <algorithm>
+#include "detail/sklearn.h"
+
 #include <cstdint>
 #include <experimental/mdspan>
 #include <functional>
 #include <limits>
 #include <memory>
-#include <numeric>
 #include <optional>
 #include <string>
 
@@ -189,7 +189,6 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn& mixin, int n_trees, int n_feature
   mixin.HandleMetadata(*builder, n_trees, n_features, n_targets, n_classes);
 
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
-    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
     TREELITE_CHECK_LE(
         node_count[tree_id], static_cast<std::int64_t>(std::numeric_limits<int>::max()))
         << "Too many nodes in the tree";
@@ -208,22 +207,13 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn& mixin, int n_trees, int n_feature
       } else {
         std::int64_t const split_index = feature[tree_id][node_id];
         double const split_cond = threshold[tree_id][node_id];
-        std::int64_t const left_child_sample_cnt = n_node_samples[tree_id][left_child_id];
-        std::int64_t const right_child_sample_cnt = n_node_samples[tree_id][right_child_id];
-        double const gain
-            = static_cast<double>(sample_cnt)
-              * (impurity[tree_id][node_id]
-                  - static_cast<double>(left_child_sample_cnt) * impurity[tree_id][left_child_id]
-                        / static_cast<double>(sample_cnt)
-                  - static_cast<double>(right_child_sample_cnt) * impurity[tree_id][right_child_id]
-                        / static_cast<double>(sample_cnt))
-              / static_cast<double>(total_sample_cnt);
 
         TREELITE_CHECK_LE(split_index, std::numeric_limits<std::int32_t>::max())
             << "split_index too large";
         builder->NumericalTest(static_cast<std::int32_t>(split_index), split_cond, true,
             Operator::kLE, left_child_id, right_child_id);
-        builder->Gain(gain);
+        builder->Gain(SplitGain(weighted_n_node_samples[tree_id], impurity[tree_id], node_id,
+            left_child_id, right_child_id));
       }
       builder->DataCount(sample_cnt);
       builder->SumHess(weighted_sample_cnt);

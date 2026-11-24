@@ -46,6 +46,34 @@ from .hypothesis_util import (
 from .util import to_categorical
 
 
+@pytest.mark.parametrize(
+    "estimator",
+    [
+        RandomForestRegressor(
+            n_estimators=1, max_depth=2, bootstrap=False, random_state=0
+        ),
+        GradientBoostingRegressor(n_estimators=1, max_depth=2, random_state=0),
+    ],
+)
+def test_skl_weighted_split_gain(estimator):
+    """Imported splits store the root-normalized weighted impurity decrease."""
+    X = np.arange(4).reshape(-1, 1)
+    estimator.fit(X, [0, 0, 1, 2], sample_weight=[1, 1, 1, 0.5])
+    tree = np.asarray(estimator.estimators_).flat[0].tree_
+    model = treelite.sklearn.import_model(estimator)
+    accessor = model.get_tree_accessor(0)
+
+    split = tree.children_left != -1
+    weighted_impurity = tree.weighted_n_node_samples * tree.impurity
+    expected = (
+        weighted_impurity[split]
+        - weighted_impurity[tree.children_left[split]]
+        - weighted_impurity[tree.children_right[split]]
+    ) / tree.weighted_n_node_samples[0]
+    np.testing.assert_array_equal(accessor.get_field("gain_present"), split)
+    np.testing.assert_allclose(accessor.get_field("gain")[split], expected)
+
+
 @given(
     clazz=sampled_from(
         [

@@ -22,6 +22,8 @@
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
+#include "detail/sklearn.h"
+
 namespace treelite {
 
 /*!
@@ -38,8 +40,8 @@ void BulkConstructTree(Tree<ThresholdType, LeafOutputType>& tree, int n_nodes,
     std::int64_t const* children_left, std::int64_t const* children_right,
     std::int64_t const* feature, double const* threshold, double const* value,
     std::uint8_t const* missing_go_to_left, std::int64_t const* n_node_samples,
-    double const* weighted_n_node_samples, double const* impurity, std::int64_t total_sample_cnt,
-    int n_targets, int max_num_class, bool is_classifier) {
+    double const* weighted_n_node_samples, double const* impurity, int n_targets, int max_num_class,
+    bool is_classifier) {
   // Clear and pre-allocate all arrays at once - key optimization!
   tree.node_type_.Clear();
   tree.cleft_.Clear();
@@ -195,17 +197,8 @@ void BulkConstructTree(Tree<ThresholdType, LeafOutputType>& tree, int n_nodes,
 
     // Calculate and set gain for internal nodes
     if (!is_leaf) {
-      std::int64_t const sample_cnt = n_node_samples[node_id];
-      std::int64_t const left_sample_cnt = n_node_samples[left_child];
-      std::int64_t const right_sample_cnt = n_node_samples[right_child];
-      double const gain = static_cast<double>(sample_cnt)
-                          * (impurity[node_id]
-                              - static_cast<double>(left_sample_cnt) * impurity[left_child]
-                                    / static_cast<double>(sample_cnt)
-                              - static_cast<double>(right_sample_cnt) * impurity[right_child]
-                                    / static_cast<double>(sample_cnt))
-                          / static_cast<double>(total_sample_cnt);
-      tree.gain_.PushBack(gain);
+      tree.gain_.PushBack(model_loader::sklearn::detail::SplitGain(
+          weighted_n_node_samples, impurity, node_id, left_child, right_child));
       tree.gain_present_.PushBack(true);
     } else {
       tree.gain_.PushBack(0.0);
@@ -217,11 +210,11 @@ void BulkConstructTree(Tree<ThresholdType, LeafOutputType>& tree, int n_nodes,
 // Explicit instantiation
 template void BulkConstructTree<double, double>(Tree<double, double>&, int, std::int64_t const*,
     std::int64_t const*, std::int64_t const*, double const*, double const*, std::uint8_t const*,
-    std::int64_t const*, double const*, double const*, std::int64_t, int, int, bool);
+    std::int64_t const*, double const*, double const*, int, int, bool);
 
 template void BulkConstructTree<float, float>(Tree<float, float>&, int, std::int64_t const*,
     std::int64_t const*, std::int64_t const*, double const*, double const*, std::uint8_t const*,
-    std::int64_t const*, double const*, double const*, std::int64_t, int, int, bool);
+    std::int64_t const*, double const*, double const*, int, int, bool);
 
 }  // namespace treelite
 
@@ -280,14 +273,13 @@ std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, in
   // Construct each tree using bulk operations
   for (int tree_id = 0; tree_id < n_estimators; ++tree_id) {
     int const n_nodes = static_cast<int>(node_count[tree_id]);
-    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
     std::uint8_t const* missing_go_to_left_ptr
         = missing_go_to_left ? missing_go_to_left[tree_id] : nullptr;
 
     BulkConstructTree<double, double>(preset.trees[tree_id], n_nodes, children_left[tree_id],
         children_right[tree_id], feature[tree_id], threshold[tree_id], value[tree_id],
         missing_go_to_left_ptr, n_node_samples[tree_id], weighted_n_node_samples[tree_id],
-        impurity[tree_id], total_sample_cnt, n_targets, max_num_class,
+        impurity[tree_id], n_targets, max_num_class,
         true);  // is_classifier
   }
 
@@ -343,14 +335,13 @@ std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int
   // Construct each tree using bulk operations
   for (int tree_id = 0; tree_id < n_estimators; ++tree_id) {
     int const n_nodes = static_cast<int>(node_count[tree_id]);
-    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
     std::uint8_t const* missing_go_to_left_ptr
         = missing_go_to_left ? missing_go_to_left[tree_id] : nullptr;
 
     BulkConstructTree<double, double>(preset.trees[tree_id], n_nodes, children_left[tree_id],
         children_right[tree_id], feature[tree_id], threshold[tree_id], value[tree_id],
         missing_go_to_left_ptr, n_node_samples[tree_id], weighted_n_node_samples[tree_id],
-        impurity[tree_id], total_sample_cnt, n_targets,
+        impurity[tree_id], n_targets,
         1,  // max_num_class = 1 for regressors
         false);  // is_classifier
   }
@@ -410,14 +401,13 @@ std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_fea
   // Construct each tree using bulk operations
   for (int tree_id = 0; tree_id < n_estimators; ++tree_id) {
     int const n_nodes = static_cast<int>(node_count[tree_id]);
-    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
     std::uint8_t const* missing_go_to_left_ptr
         = missing_go_to_left ? missing_go_to_left[tree_id] : nullptr;
 
     BulkConstructTree<double, double>(preset.trees[tree_id], n_nodes, children_left[tree_id],
         children_right[tree_id], feature[tree_id], threshold[tree_id], value[tree_id],
         missing_go_to_left_ptr, n_node_samples[tree_id], weighted_n_node_samples[tree_id],
-        impurity[tree_id], total_sample_cnt, n_targets,
+        impurity[tree_id], n_targets,
         1,  // max_num_class = 1 for isolation forests
         false);  // is_classifier
   }

@@ -219,6 +219,29 @@ def test_skl_converter_iforest(dataset):
     )
 
 
+@pytest.mark.parametrize("estimator", [RandomForestClassifier, GradientBoostingRegressor])
+def test_import_weighted_split_gain(estimator):
+    X, y = make_classification(n_features=5, random_state=42)
+    weights = np.linspace(0.1, 3.0, len(y))
+    model = estimator(n_estimators=3, max_depth=3, random_state=0).fit(
+        X, y, sample_weight=weights
+    )
+    imported = treelite.sklearn.import_model(model)
+    for tree_id, tree in enumerate(np.ravel(model.estimators_)):
+        accessor = imported.get_tree_accessor(tree_id)
+        splits = accessor.get_field("gain_present").astype(bool)
+        importances = np.bincount(
+            accessor.get_field("split_index")[splits],
+            weights=accessor.get_field("gain")[splits],
+            minlength=X.shape[1],
+        )
+        np.testing.assert_allclose(
+            importances,
+            tree.tree_.compute_feature_importances(normalize=False),
+            atol=1e-12,
+        )
+
+
 @pytest.mark.parametrize("bootstrap", [True, False])
 @pytest.mark.parametrize("use_sample_weights", [True, False])
 def test_iforest_round_trip(bootstrap, use_sample_weights):

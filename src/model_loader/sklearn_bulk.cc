@@ -38,7 +38,7 @@ void BulkConstructTree(Tree<ThresholdType, LeafOutputType>& tree, int n_nodes,
     std::int64_t const* children_left, std::int64_t const* children_right,
     std::int64_t const* feature, double const* threshold, double const* value,
     std::uint8_t const* missing_go_to_left, std::int64_t const* n_node_samples,
-    double const* weighted_n_node_samples, double const* impurity, std::int64_t total_sample_cnt,
+    double const* weighted_n_node_samples, double const* impurity, std::int64_t /* total_sample_cnt */,
     int n_targets, int max_num_class, bool is_classifier) {
   // Clear and pre-allocate all arrays at once - key optimization!
   tree.node_type_.Clear();
@@ -195,16 +195,10 @@ void BulkConstructTree(Tree<ThresholdType, LeafOutputType>& tree, int n_nodes,
 
     // Calculate and set gain for internal nodes
     if (!is_leaf) {
-      std::int64_t const sample_cnt = n_node_samples[node_id];
-      std::int64_t const left_sample_cnt = n_node_samples[left_child];
-      std::int64_t const right_sample_cnt = n_node_samples[right_child];
-      double const gain = static_cast<double>(sample_cnt)
-                          * (impurity[node_id]
-                              - static_cast<double>(left_sample_cnt) * impurity[left_child]
-                                    / static_cast<double>(sample_cnt)
-                              - static_cast<double>(right_sample_cnt) * impurity[right_child]
-                                    / static_cast<double>(sample_cnt))
-                          / static_cast<double>(total_sample_cnt);
+      double const gain = (weighted_n_node_samples[node_id] * impurity[node_id]
+                              - weighted_n_node_samples[left_child] * impurity[left_child]
+                              - weighted_n_node_samples[right_child] * impurity[right_child])
+                          / weighted_n_node_samples[0];
       tree.gain_.PushBack(gain);
       tree.gain_present_.PushBack(true);
     } else {

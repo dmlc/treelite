@@ -189,7 +189,7 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn& mixin, int n_trees, int n_feature
   mixin.HandleMetadata(*builder, n_trees, n_features, n_targets, n_classes);
 
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
-    std::int64_t const total_sample_cnt = n_node_samples[tree_id][0];
+    double const total_weight = weighted_n_node_samples[tree_id][0];
     TREELITE_CHECK_LE(
         node_count[tree_id], static_cast<std::int64_t>(std::numeric_limits<int>::max()))
         << "Too many nodes in the tree";
@@ -208,16 +208,12 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn& mixin, int n_trees, int n_feature
       } else {
         std::int64_t const split_index = feature[tree_id][node_id];
         double const split_cond = threshold[tree_id][node_id];
-        std::int64_t const left_child_sample_cnt = n_node_samples[tree_id][left_child_id];
-        std::int64_t const right_child_sample_cnt = n_node_samples[tree_id][right_child_id];
-        double const gain
-            = static_cast<double>(sample_cnt)
-              * (impurity[tree_id][node_id]
-                  - static_cast<double>(left_child_sample_cnt) * impurity[tree_id][left_child_id]
-                        / static_cast<double>(sample_cnt)
-                  - static_cast<double>(right_child_sample_cnt) * impurity[tree_id][right_child_id]
-                        / static_cast<double>(sample_cnt))
-              / static_cast<double>(total_sample_cnt);
+        double const gain = (weighted_sample_cnt * impurity[tree_id][node_id]
+                                - weighted_n_node_samples[tree_id][left_child_id]
+                                      * impurity[tree_id][left_child_id]
+                                - weighted_n_node_samples[tree_id][right_child_id]
+                                      * impurity[tree_id][right_child_id])
+                            / total_weight;
 
         TREELITE_CHECK_LE(split_index, std::numeric_limits<std::int32_t>::max())
             << "split_index too large";

@@ -15,6 +15,7 @@
 
 #include "../string_utils.h"
 #include "../xgboost.h"
+#include "./cat_encoding.h"
 
 namespace {
 
@@ -613,59 +614,68 @@ bool CategoryInfoHandler::StartArray() {
     push_handler<ArrayHandler<std::int32_t>, std::vector<std::int32_t>>(output.offsets.value());
   }
 
-  // Assumption: Either "offsets" or "type" fields have been given before "values" field.
-  // Only with this assumption can we infer the type of the "values" field.
+  // Possible scenarios for
+  // 1. "offsets" field, followed by "utf8_bytes" field: string categorical (XGBoost 3.5+)
+  // 2. "offsets" field, followed by "values" field: string categorical (XGBoost 3.1-3.4)
+  // 3. "type" field, followed by "values" field: integer categorical
   bool got_values = check_cur_key("values");
   if (got_values) {
     if (output.offsets.has_value()) {
-      // String categories
-      output.values = std::vector<std::int8_t>{};
+      // String categories (XGBoost 3.1-3.4)
+      output.str_values.emplace<std::vector<std::int8_t>>();
       push_handler<ArrayHandler<std::int8_t>, std::vector<std::int8_t>>(
-          std::get<std::vector<std::int8_t>>(output.values));
+          std::get<std::vector<std::int8_t>>(output.str_values));
     } else if (output.type.has_value()) {
-      // Numerical categories
-      switch (static_cast<ValueKind>(output.type.value())) {
-      case ValueKind::kU8Array:
-      case ValueKind::kU16Array:
-      case ValueKind::kU32Array:
-      case ValueKind::kU64Array: {
-        output.values = std::vector<std::uint64_t>{};
-        push_handler<ArrayHandler<std::uint64_t>, std::vector<std::uint64_t>>(
-            std::get<std::vector<std::uint64_t>>(output.values));
-        break;
-      }
-      case ValueKind::kI8Array:
-      case ValueKind::kI16Array:
-      case ValueKind::kI32Array:
-      case ValueKind::kI64Array: {
-        output.values = std::vector<std::int64_t>{};
+      // Integer categories
+      switch (static_cast<CatIndexType>(output.type.value())) {
+      case CatIndexType::kU8:
+      case CatIndexType::kU16:
+      case CatIndexType::kU32:
+      case CatIndexType::kU64:
+      case CatIndexType::kI8:
+      case CatIndexType::kI16:
+      case CatIndexType::kI32:
+      case CatIndexType::kI64: {
+        // Always use int64_t for integer categories
+        output.int_values.emplace();
         push_handler<ArrayHandler<std::int64_t>, std::vector<std::int64_t>>(
-            std::get<std::vector<std::int64_t>>(output.values));
+            output.int_values.value());
         break;
       }
-      case ValueKind::kF32Array:
-      case ValueKind::kF64Array: {
-        output.values = std::vector<double>{};
-        push_handler<ArrayHandler<double>, std::vector<double>>(
-            std::get<std::vector<double>>(output.values));
-        break;
+      case CatIndexType::kF32:
+      case CatIndexType::kF64: {
+        TREELITE_LOG(ERROR) << "Cannot store floating-point values in `values` array";
+        return false;
       }
       default:
         TREELITE_LOG(ERROR) << "Got invalid type for `values` array";
         return false;
       }
     } else {
-      TREELITE_LOG(ERROR) << "Cannot determine the type of `values` array, since neither"
+      TREELITE_LOG(ERROR) << "Cannot determine the type of `values` field, since neither"
                           << "`type` or `offsets` fields are present";
       return false;
     }
   }
 
-  return got_values || got_offsets;
+  bool got_utf8_bytes = check_cur_key("utf8_bytes");
+  if (got_utf8_bytes) {
+    if (output.offsets.has_value()) {
+      // String categories (XGBoost 3.5+)
+      output.str_values.emplace<std::vector<std::uint8_t>>();
+      push_handler<ArrayHandler<std::uint8_t>, std::vector<std::uint8_t>>(
+          std::get<std::vector<std::uint8_t>>(output.str_values));
+    } else {
+      TREELITE_LOG(ERROR) << "The `utf8_bytes` array must be preceded by the `offsets` field.";
+      return false;
+    }
+  }
+
+  return got_values || got_offsets || got_utf8_bytes;
 }
 
 bool CategoryInfoHandler::is_recognized_key(std::string const& key) {
-  return key == "type" || key == "offsets" || key == "values";
+  return key == "type" || key == "offsets" || key == "values" || key == "utf8_bytes";
 }
 
 /******************************************************************************
@@ -805,13 +815,6 @@ bool LearnerHandler::StartObject() {
 }
 
 bool LearnerHandler::EndObject() {
-  /* Throw an exception if category encoding is required.
-   * TODO(hcho3): Implement categorical encoding */
-  TREELITE_CHECK(output.category_container.enc.empty()
-                 && output.category_container.feature_segments.empty()
-                 && output.category_container.sorted_idx.empty())
-      << "Treelite does not yet support XGBoost models with categorical encoder";
-
   /* Set metadata */
   auto const num_tree = output.num_tree;
   auto const num_feature = learner_params.num_feature;

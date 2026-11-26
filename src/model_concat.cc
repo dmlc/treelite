@@ -37,6 +37,15 @@ std::unique_ptr<Model> ConcatenateModelObjects(std::vector<Model const*> const& 
   concatenated_model->ratio_c = objs[0]->ratio_c;
   concatenated_model->base_scores = objs[0]->base_scores.Clone();
   concatenated_model->attributes = objs[0]->attributes;
+  // Categorical info
+  concatenated_model->cat_kind_ = objs[0]->cat_kind_.Clone();
+  concatenated_model->int_cat_values_ = objs[0]->int_cat_values_.Clone();
+  concatenated_model->str_cat_values_ = objs[0]->str_cat_values_.Clone();
+  concatenated_model->str_cat_offsets_ = objs[0]->str_cat_offsets_.Clone();
+  concatenated_model->int_cat_feature_segments_ = objs[0]->int_cat_feature_segments_.Clone();
+  concatenated_model->str_cat_feature_segments_ = objs[0]->str_cat_feature_segments_.Clone();
+  concatenated_model->int_sorted_idx_ = objs[0]->int_sorted_idx_.Clone();
+  concatenated_model->str_sorted_idx_ = objs[0]->str_sorted_idx_.Clone();
 
   std::visit(
       [&objs, &concatenated_model](auto&& first_model_obj) {

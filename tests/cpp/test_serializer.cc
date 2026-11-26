@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <treelite/detail/file_utils.h>
+#include <treelite/detail/serializer.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
 #include <treelite/error.h>
@@ -83,6 +84,37 @@ inline void TestRoundTrip(treelite::Model* model) {
 
 namespace treelite {
 
+TEST(StreamDeserializer, TruncatedOptionalArray) {
+  ContiguousArray<std::int32_t> values(std::vector<std::int32_t>{10, 20});
+  std::ostringstream os;
+  detail::serializer::WriteArrayToStream(&values, os, true);
+  auto const bytes = os.str();
+  for (std::size_t length = 0; length < bytes.size(); ++length) {
+    SCOPED_TRACE(length);
+    // Like file loading, this stream does not throw on failbit.
+    std::istringstream is(bytes.substr(0, length));
+    ContiguousArray<std::int32_t> result;
+    EXPECT_THROW(detail::serializer::ReadArrayFromStream(&result, is, true), treelite::Error);
+  }
+  std::istringstream is(bytes);
+  ContiguousArray<std::int32_t> result;
+  detail::serializer::ReadArrayFromStream(&result, is, true);
+  EXPECT_TRUE(result == values);
+}
+
+TEST(StreamDeserializer, TruncatedFieldName) {
+  std::string name = "optional_field";
+  std::ostringstream os;
+  detail::serializer::WriteStringToStream(&name, os);
+  auto const bytes = os.str();
+  for (std::size_t length = 0; length < bytes.size(); ++length) {
+    SCOPED_TRACE(length);
+    std::istringstream is(bytes.substr(0, length));
+    std::string result;
+    EXPECT_THROW(detail::serializer::ReadStringFromStream(&result, is), treelite::Error);
+  }
+}
+
 template <typename ThresholdType, typename LeafOutputType>
 void SerializerRoundTrip_TreeStump() {
   TypeInfo threshold_type = TypeInfoFromType<ThresholdType>();
@@ -124,6 +156,13 @@ void SerializerRoundTrip_TreeStump() {
     "ratio_c": 1.0,
     "base_scores": [0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "int_cat_feature_segments": [],
+    "int_sorted_idx": [],
+    "str_cat_values": [],
+    "str_cat_offsets": [],
+    "str_cat_feature_segments": [],
+    "str_sorted_idx": [],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": false,
@@ -213,6 +252,13 @@ void SerializerRoundTrip_TreeStumpLeafVec() {
     "ratio_c": 1.0,
     "base_scores": [0.0, 0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "int_cat_feature_segments": [],
+    "int_sorted_idx": [],
+    "str_cat_values": [],
+    "str_cat_offsets": [],
+    "str_cat_feature_segments": [],
+    "str_sorted_idx": [],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": false,
@@ -280,6 +326,8 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
   builder->LeafScalar(3);
   builder->EndNode();
   builder->EndTree();
+  builder->SetCategoricalInfo(
+      0, std::vector<std::string>{"dog", "cat"}, std::vector<std::int32_t>{1, 0});
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
@@ -314,6 +362,13 @@ void SerializerRoundTrip_TreeStumpCategoricalSplit(
     "ratio_c": 1.0,
     "base_scores": [0.0],
     "attributes": "{{}}",
+    "int_cat_values": [],
+    "int_cat_feature_segments": [0, 0, 0],
+    "int_sorted_idx": [],
+    "str_cat_values": [100, 111, 103, 99, 97, 116],
+    "str_cat_offsets": [0, 3, 6],
+    "str_cat_feature_segments": [0, 2, 2],
+    "str_sorted_idx": [1, 0],
     "trees": [{{
             "num_nodes": 3,
             "has_categorical_split": true,
@@ -403,6 +458,9 @@ void SerializerRoundTrip_TreeDepth2() {
     builder->EndNode();
     builder->EndTree();
   }
+  builder->SetCategoricalInfo(
+      0, std::vector<std::string>{"dog", "cat"}, std::vector<std::int32_t>{1, 0});
+  builder->SetCategoricalInfo(1, std::vector<std::int64_t>{0, 1}, std::vector<std::int32_t>{0, 1});
 
   std::unique_ptr<Model> model = builder->CommitModel();
   TestRoundTrip(model.get());
@@ -424,6 +482,13 @@ void SerializerRoundTrip_TreeDepth2() {
     "ratio_c": 1.0,
     "base_scores": [0.5],
     "attributes": "{{}}",
+    "int_cat_values": [0, 1],
+    "int_cat_feature_segments": [0, 0, 2],
+    "int_sorted_idx": [0, 1],
+    "str_cat_values": [100, 111, 103, 99, 97, 116],
+    "str_cat_offsets": [0, 3, 6],
+    "str_cat_feature_segments": [0, 2, 2],
+    "str_sorted_idx": [1, 0],
     "trees": [{{
             "num_nodes": 7,
             "has_categorical_split": true,
@@ -662,7 +727,10 @@ TEST(SerializerForwardCompatibility, TreeStump) {
 
   /* Locate the frames containing the extension slots */
   std::size_t num_opt_field_per_model_offset = 5 + 1 + 13;
-  std::vector<std::size_t> num_opt_field_per_tree_offset{num_opt_field_per_model_offset + 24};
+  auto const num_model_optional_fields
+      = *static_cast<std::int32_t*>(frames[num_opt_field_per_model_offset].buf);
+  std::vector<std::size_t> num_opt_field_per_tree_offset{
+      num_opt_field_per_model_offset + 2 * num_model_optional_fields + 24};
   std::vector<std::size_t> num_opt_field_per_node_offset{num_opt_field_per_tree_offset[0] + 1};
   for (std::size_t i = 1; i < num_tree; ++i) {
     num_opt_field_per_tree_offset.push_back(num_opt_field_per_tree_offset.back() + 25);
@@ -691,7 +759,7 @@ TEST(SerializerForwardCompatibility, TreeStump) {
       ++(*static_cast<std::int32_t*>(new_cnt_frame.buf));
       new_frames.push_back(new_cnt_frame);
       // Insert new optional field
-      auto [name, content] = frames_to_add.at(i);
+      auto& [name, content] = frames_to_add.at(i);
       new_frames.push_back({name.data(), const_cast<char*>("=c"), sizeof(char), name.length()});
       new_frames.push_back(content);
     } else {

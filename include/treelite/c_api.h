@@ -55,6 +55,7 @@ TREELITE_DLL_STRUCT TreelitePyBufferFrame {
   char* format;
   size_t itemsize;
   size_t nitem;
+  int readonly;
 };
 /*! \} */
 
@@ -890,6 +891,45 @@ TREELITE_DLL int TreeliteSetTreeField(
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetTreeDepth(TreeliteModelHandle model, uint32_t** out, size_t* out_len);
+/*!
+ * \brief Query the kind of a categorical feature.
+ * \param model Treelite Model object
+ * \param feature_id Feature ID
+ * \param out Integer representing the kind of categorical feature (0 if feature is not categorical)
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetCategoryKind(
+    TreeliteModelHandle model, int32_t feature_id, int8_t* out);
+/*!
+ * \brief Get the integer category values for a categorical feature.
+ * \param model Treelite Model object
+ * \param feature_id Feature ID
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding integer category values
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetCategoryValuesInteger(
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, int64_t** out_arr);
+/*!
+ * \brief Get the string category values for a categorical feature.
+ * \param model Treelite Model object
+ * \param feature_id Feature ID
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding string category values
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetCategoryValuesString(
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, char const*** out_arr);
+/*!
+ * \brief Get the sorted index for categories. What you'd get from running argsort(cat_values)
+ * \param model Treelite Model object
+ * \param feature_id Feature ID
+ * \param out_len Length of out_arr
+ * \param out_arr Pointer to array holding sorted index
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetCategorySortedIdx(
+    TreeliteModelHandle model, int32_t feature_id, size_t* out_len, int32_t** out_arr);
 /*! \} */
 
 /*!

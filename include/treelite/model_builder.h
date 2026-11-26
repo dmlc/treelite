@@ -140,6 +140,13 @@ class ModelBuilder {
   virtual void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes) = 0;
+
+  virtual void SetCategoricalInfo(std::int32_t feature_id,
+      std::vector<std::int64_t> const& cat_values, std::vector<std::int32_t> const& sorted_idx) = 0;
+
+  virtual void SetCategoricalInfo(std::int32_t feature_id,
+      std::vector<std::string> const& cat_values, std::vector<std::int32_t> const& sorted_idx) = 0;
+
   /*!
    * \brief Conclude model building and obtain the final model object.
    * \return Final model object

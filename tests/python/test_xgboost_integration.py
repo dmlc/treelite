@@ -637,7 +637,6 @@ def test_load_old_xgboost_model():
 
 @pytest.mark.skipif(not has_pandas(), reason="Pandas is not installed")
 def test_categorical_encoding():
-    """Treelite should throw an exception when XGBoost model uses categorical encoding"""
     import pandas as pd
 
     n_samples = int(2**10)

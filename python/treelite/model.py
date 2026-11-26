@@ -101,7 +101,7 @@ class Model:
         return json.loads(attributes_str)
 
     @cached_property
-    def categorical_info(self) -> dict[int, dict[str, Union[int, str]]]:
+    def categorical_info(self) -> dict[int, dict[str, Union[list[int], list[str]]]]:
         if self._handle is None:
             raise AttributeError("Model not loaded yet")
 
